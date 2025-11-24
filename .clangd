@@ -1,0 +1,40 @@
+CompileFlags:
+  # 优先使用 compile_commands.json（CMake 生成）
+  CompilationDatabase: build
+  Add:
+    - "-std=c++23"
+    - "-fdeclspec"
+    - "-D_WIN32"
+    - "-D_WIN64"
+    - "-DSHINE_OPENGL"
+    - "-DSTB_IMAGE_IMPLEMENTATION"
+    - "-I"
+    - "src"
+    - "-I"
+    - "src/util"
+    - "-I"
+    - "src/third"
+    - "-I"
+    - "src/third/imgui"
+    - "-I"
+    - "src/third/imgui/backends"
+  Remove:
+    - "--target=wasm32-unknown-emscripten"
+    - "-fvisibility=default"
+    - "-DEMSCRIPTEN"
+    - "-D__EMSCRIPTEN__"
+    - "-D__wasm__"
+    - "-D__wasm32__"
+
+# C++ 模块支持
+If:
+  PathMatch: ["**/*.ixx", "**/*.cppm"]
+  CompileFlags:
+    Add: ["-fmodules-ts"]
+
+Diagnostics:
+  ClangTidy:
+    Add: ["-*"]
+    Remove: 
+      - "unused-parameter"
+      - "missing-prototypes"

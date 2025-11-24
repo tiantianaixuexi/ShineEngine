@@ -1,0 +1,9 @@
+{
+    "name": "base64",
+    "type": "static",
+    "comment": "base64编码解码",
+    "files": [
+        "src/util/base64/base64.h",
+        "src/util/base64/base64.cpp"
+    ]
+}

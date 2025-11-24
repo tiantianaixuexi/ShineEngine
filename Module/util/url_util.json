@@ -1,0 +1,12 @@
+﻿{
+    "name": "url_util",
+    "type": "static",
+    "files": [
+        "src/util/encoding/url_util.h",
+        "src/util/encoding/url_util.cpp"
+    ],
+    "imports": [],
+    "deps": ["string_util"],
+    "comment": "string_util鏄疄鐜版ā鍧?鏈?cpp)锛岄渶瑕侀摼鎺ュ簱渚濊禆"
+}
+

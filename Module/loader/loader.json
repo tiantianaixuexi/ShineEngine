@@ -1,0 +1,11 @@
+﻿{
+  "name": "loader",
+  "type": "static",
+  "files": [
+    "src/loader/loader.h",
+    "src/loader/loader.cpp"
+  ],
+  "imports": [],
+  "deps": [  ]
+}
+

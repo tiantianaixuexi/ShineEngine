@@ -1,0 +1,13 @@
+﻿{
+    "name": "timer",
+    "type": "static",
+    "files": [
+      "src/util/timer/function_timer.h",
+      "src/util/timer/function_timer.cpp",
+      "src/util/timer/timer_util.h",
+      "src/util/timer/timer_util.cpp"
+
+    ],
+    "deps": ["fmt"]
+  }
+

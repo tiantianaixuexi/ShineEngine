@@ -1,0 +1,8 @@
+﻿{
+    "name": "shine_define",
+    "files": [
+        "src/util/shine_define.h"
+    ],
+    "comment": "配置项"
+}
+

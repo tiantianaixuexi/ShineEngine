@@ -1,0 +1,37 @@
+{
+  "name": "EngineLauncher",
+  "files": [
+    "src/launcher.cpp"
+  ],
+  "deps": [
+    "fmt",
+    "shine_define"
+  ],
+  "defines": [
+    "LAUNCHER_BUILD",
+    "SHINE_OPENGL"
+  ],
+  "type": [
+    "exe"
+  ],
+  "platform": [
+    "Windows"
+  ],
+  "third": {
+    "lib": {
+      "debug": [
+        "glew32d.lib",
+        "opengl32.lib",
+        "glu32.lib",
+        "dxgi.lib"
+      ],
+      "release": [
+        "glew32.lib",
+        "opengl32.lib",
+        "glu32.lib",
+        "dxgi.lib"
+      ]
+    }
+  },
+  "output": "exe/EngineLauncher.exe"
+}

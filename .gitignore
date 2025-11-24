@@ -1,0 +1,16 @@
+# Xmake cache
+.xmake/
+build/
+.idea
+.vs
+x64
+
+
+# MacOS Cache
+.DS_Store
+
+
+exe/
+cache/
+compiler=msvc/
+.cache/

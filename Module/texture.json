@@ -1,0 +1,36 @@
+﻿{
+  "name": "texture",
+  "files": [
+    "src/image/Texture.h",
+    "src/image/Texture.cpp"
+  ],
+  
+  "type": [
+    "lib"
+  ],
+  "deps": [
+    "shine_define"
+  ],
+  "third": {
+    "lib": {
+      "debug": [
+        "glew32d.lib",
+        "opengl32.lib",
+        "glu32.lib"
+      ],
+      "release": [
+        "glew32.lib",
+        "opengl32.lib",
+        "glu32.lib"
+      ]
+    },
+    "src": [
+
+    ]
+  },
+  "platform": [
+    "Windows",
+    "Wasm"
+  ]
+}
+  

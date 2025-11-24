@@ -1,0 +1,18 @@
+﻿{
+    "name": "fast_float",
+    "files": [
+      "src/third/fast_float/fast_float.h",
+      "src/third/fast_float/ascii_number.h",
+      "src/third/fast_float/bigint.h",
+      "src/third/fast_float/constexpr_feature_detect.h",
+      "src/third/fast_float/decimal_to_binary.h",
+      "src/third/fast_float/digit_comparison.h",
+      "src/third/fast_float/fast_table.h",
+      "src/third/fast_float/float_common.h",
+      "src/third/fast_float/parse_number.h"
+
+    ],
+    "type": "third",
+    "comment": "快速解析第三方库 , https://github.com/fastfloat/fast_float"
+}
+

@@ -1,0 +1,11 @@
+﻿{
+    "name": "file_util",
+    "type": "static",
+    "files": [
+      "src/util/file_util.h",
+      "src/util/file_util.cpp"
+    ],
+    "imports": [],
+    "deps": ["fmt","shine_define"]
+  }
+

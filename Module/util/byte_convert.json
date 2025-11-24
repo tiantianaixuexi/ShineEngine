@@ -1,0 +1,10 @@
+﻿{
+    "name": "byte_convert",
+    "type": "static",
+    "files": [
+      "src/util/encoding/byte_convert.h",
+      "src/util/encoding/byte_convert.cpp"
+    ],
+    "deps":["fmt"]
+  }
+

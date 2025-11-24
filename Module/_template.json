@@ -1,0 +1,21 @@
+{
+  "name": "your_module_name",
+  "files": [
+    "src/your_module/your_file.cpp",
+    "src/your_module/your_file.h"
+  ],
+  "dirs": [
+    "src/your_module"
+  ],
+  "type": "lib",
+  "deps": [
+    "shine_define"
+  ],
+  "defines": [
+    "YOUR_DEFINE"
+  ],
+  "platform": [
+    "Windows"
+  ],
+  "comment": "模块说明：这是一个模块配置模板文件，复制此文件并重命名为你的模块名.json"
+}

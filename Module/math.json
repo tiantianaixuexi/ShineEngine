@@ -1,0 +1,7 @@
+﻿{
+  "name": "math",
+  "dirs": ["src/math"],
+  "type": "static",
+  "deps": [ "shine_define" ]
+}
+

@@ -1,0 +1,33 @@
+﻿{
+  "name": "fmt",
+  "files": [
+    "src/third/fmt/args.h",
+    "src/third/fmt/base.h",
+    "src/third/fmt/chrono.h",
+    "src/third/fmt/color.h",
+    "src/third/fmt/compile.h",
+    "src/third/fmt/core.h",
+    "src/third/fmt/format-inl.h",
+    "src/third/fmt/format.h",
+    "src/third/fmt/os.h",
+    "src/third/fmt/ostream.h",
+    "src/third/fmt/printf.h",
+    "src/third/fmt/ranges.h",
+    "src/third/fmt/std.h",
+    "src/third/fmt/xchar.h"
+  ],
+  "type": "third",
+  "link": {
+    "release": {
+      "lib": ["fmt.lib"]
+    },
+    "debug": {
+      "lib": ["fmtd.lib"]
+    }
+  },
+  "defines": [
+    "FMT_SHARED",
+    "FMT_LIB_EXPORT"
+  ],
+  "comment": "第三方库，格式化输出, https://github.com/fmtlib/fmt"
+}

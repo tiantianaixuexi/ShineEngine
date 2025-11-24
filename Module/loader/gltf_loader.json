@@ -1,0 +1,10 @@
+﻿{
+    "name": "gltf_loader",
+    "type": "static",
+    "files": [
+        "src/loader/gltfLoader.h",
+        "src/loader/gltfLoader.cpp"
+    ],
+    "deps": ["loader","fmt","file_util","byte_convert","timer","math"]
+}
+
