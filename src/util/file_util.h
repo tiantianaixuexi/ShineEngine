@@ -46,7 +46,11 @@ namespace shine::util
 		MappedView(MappedView&& other) noexcept;
 
 		// 移动赋值运算符
-		MappedView& operator=(MappedView&& other) noexcept;
+		// C++23 特性：显式对象参数 (Explicit Object Parameter) - CWG 2586
+		// 允许赋值运算符使用显式对象参数，与隐式声明的赋值运算符兼容
+		MappedView& operator=(this MappedView& self, MappedView&& other) noexcept;
+		// 原代码（已注释）：
+		// MappedView& operator=(MappedView&& other) noexcept;
 
 		// 析构函数
 		~MappedView()
@@ -106,7 +110,11 @@ namespace shine::util
 		FileMapping& operator=(const FileMapping&) = delete;
 
 		// 移动赋值运算符
-		FileMapping& operator=(FileMapping&& other) noexcept;
+		// C++23 特性：显式对象参数 (Explicit Object Parameter) - CWG 2586
+		// 允许赋值运算符使用显式对象参数，与隐式声明的赋值运算符兼容
+		FileMapping& operator=(this FileMapping& self, FileMapping&& other) noexcept;
+		// 原代码（已注释）：
+		// FileMapping& operator=(FileMapping&& other) noexcept;
 
 		// 析构函数
 		~FileMapping()

@@ -174,10 +174,12 @@ namespace shine::math
             return *this;
         }
 
-        constexpr bool operator==(const TVector<T> &V) const  noexcept
-        {
-            return X == V.X && Y == V.Y && Z == V.Z;
-        }
+        // C++23 特性：显式对象参数 (Explicit Object Parameter) - CWG 2586
+        // constexpr bool operator==(const TVector<T> &V) const  noexcept
+        // {
+        //     return X == V.X && Y == V.Y && Z == V.Z;
+        // }
+        constexpr bool operator==(this TVector<T> const& self, TVector<T> const& V) const noexcept = default;
 
         constexpr bool operator!=(const TVector<T> &V) const  noexcept
         {
