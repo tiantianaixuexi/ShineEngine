@@ -130,6 +130,7 @@ namespace shine::loader
             std::vector<ObjNormal> normals;
             std::vector<ObjGroup> groups;
             std::unordered_map<std::string, ObjMaterial> materials;
+            std::unordered_map<std::string, int> materialNameToIndex;  // 材质名称到索引的稳定映射
             std::string mtlLibPath;  // 材质库文件路径
         };
 

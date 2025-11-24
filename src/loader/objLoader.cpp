@@ -42,15 +42,26 @@ namespace shine::loader
             if (ptr < end && (*ptr == '-' || *ptr == '+')) ++ptr;
             if (ptr >= end || (*ptr < '0' || *ptr > '9')) return false;
             
-            while (ptr < end && ((*ptr >= '0' && *ptr <= '9') || *ptr == '.' || *ptr == 'e' || *ptr == 'E' || *ptr == '-' || *ptr == '+')) {
-                if (*ptr == '.') {
+            while (ptr < end) {
+                if (*ptr >= '0' && *ptr <= '9') {
+                    // Digit - always allowed
+                    ++ptr;
+                } else if (*ptr == '.') {
                     if (hasDot) break;
                     hasDot = true;
+                    ++ptr;
                 } else if (*ptr == 'e' || *ptr == 'E') {
                     if (hasExp) break;
                     hasExp = true;
+                    ++ptr;
+                    // Allow sign immediately after 'e' or 'E'
+                    if (ptr < end && (*ptr == '-' || *ptr == '+')) {
+                        ++ptr;
+                    }
+                } else {
+                    // Invalid character - stop parsing
+                    break;
                 }
-                ++ptr;
             }
             
             double value = 0.0;
@@ -505,19 +516,12 @@ namespace shine::loader
         
         if (!name.empty()) {
             std::string materialName(name);
-            // 查找材质索引
-            int index = 0;
-            bool found = false;
-            for (const auto& [key, value] : _model.materials) {
-                if (key == materialName) {
-                    _currentMaterialIndex = index;
-                    found = true;
-                    break;
-                }
-                ++index;
-            }
-            // 如果没找到，设置为 -1
-            if (!found) {
+            // 使用稳定的材质名称到索引映射进行查找
+            auto it = _model.materialNameToIndex.find(materialName);
+            if (it != _model.materialNameToIndex.end()) {
+                _currentMaterialIndex = it->second;
+            } else {
+                // 如果没找到，设置为 -1
                 _currentMaterialIndex = -1;
             }
         }
@@ -637,6 +641,16 @@ namespace shine::loader
                 
                 ObjMaterial material;
                 material.name = std::string(name);
+                
+                // 如果材质已存在，使用现有索引；否则分配新索引
+                int materialIndex;
+                if (_model.materialNameToIndex.count(material.name) > 0) {
+                    materialIndex = _model.materialNameToIndex[material.name];
+                } else {
+                    materialIndex = static_cast<int>(_model.materials.size());
+                    _model.materialNameToIndex[material.name] = materialIndex;
+                }
+                
                 _model.materials[material.name] = material;
                 currentMaterial = &_model.materials[material.name];
             } else if (currentMaterial) {
@@ -700,10 +714,11 @@ namespace shine::loader
                     parseFloatValue(valPtr, cmdEnd, value);
                     currentMaterial->transparency = value;
                     currentMaterial->dissolve = 1.0f - value;
-                } else if (trimmed.size() > 1 && trimmed[0] == 'i') {
+                } else if (trimmed.size() > 5 && trimmed.substr(0, 5) == "illum") {
                     // illum - Illumination model
                     int value = 0;
                     const char* valPtr = cmdPtr + 5;
+                    skipWhitespace(valPtr, cmdEnd);
                     parseIntValue(valPtr, cmdEnd, value);
                     currentMaterial->illuminationModel = value;
                 } else if (trimmed.size() > 6 && trimmed.substr(0, 7) == "map_Ka ") {
@@ -829,10 +844,6 @@ namespace shine::loader
                 if (!meshData.vertices.empty()) {
                     result.push_back(std::move(meshData));
                 }
-            }
-
-            if (!meshData.vertices.empty()) {
-                result.push_back(std::move(meshData));
             }
         }
 
