@@ -5,11 +5,7 @@
 #include <string_view>
 #include <string>
 #include <expected>
-#include <cstring>
-#include <cmath>
 #include <bit>
-#include <climits>
-#include <limits>
 
 #ifndef __EMSCRIPTEN__
 #if defined(__AVX2__) && (defined(_MSC_VER) || defined(__GNUC__) || defined(__clang__))
@@ -116,7 +112,7 @@ namespace shine::image
 		if (!result.has_value())
 		{
 			setError(shine::loader::EAssetLoaderError::PARSE_ERROR, result.error());
-			setState(shine::loader::EAssetLoadState::ERROR);
+			setState(shine::loader::EAssetLoadState::FAILD);
 			return false;
 		}
 		
@@ -133,34 +129,69 @@ namespace shine::image
 		if (!data || size == 0)
 		{
 			setError(shine::loader::EAssetLoaderError::INVALID_PARAMETER);
-			setState(shine::loader::EAssetLoadState::ERROR);
+			setState(shine::loader::EAssetLoadState::FAILD);
 			return false;
 		}
 		
 		std::span<const std::byte> dataSpan(reinterpret_cast<const std::byte*>(data), size);
+		
+		// 验证PNG文件格式并解析IHDR块
+		// IsPngFile会验证文件头并解析IHDR块数据
 		if (!IsPngFile(dataSpan))
 		{
 			setError(shine::loader::EAssetLoaderError::INVALID_FORMAT);
-			setState(shine::loader::EAssetLoadState::ERROR);
+			setState(shine::loader::EAssetLoadState::FAILD);
 			return false;
 		}
 		
-		// 保存原始数据并解析 PNG 结构
+		// 验证IHDR解析结果
+		if (_width == 0 || _height == 0)
+		{
+			setError(shine::loader::EAssetLoaderError::PARSE_ERROR, "IHDR块解析失败：图像尺寸无效");
+			setState(shine::loader::EAssetLoadState::FAILD);
+			return false;
+		}
+		
+		// 保存原始数据
 		rawPngData.assign(reinterpret_cast<const uint8_t*>(data), reinterpret_cast<const uint8_t*>(data) + size);
 		
 		setState(shine::loader::EAssetLoadState::PROCESSING);
 		
 		// 解析 PNG 块（类似 parsePngFile 的逻辑，但不从文件读取）
-		// 这里需要解析所有块，包括 IDAT
-		bool isEnd = false;
-		std::span<const std::byte> chunkData = dataSpan.subspan(33); // 跳过文件头和 IHDR
-		
-		while (!isEnd && chunkData.size() >= 12)
+		// PNG规范要求IHDR必须是第一个块，位于文件头（8字节）之后
+		// IHDR块结构：4字节长度(13) + 4字节类型("IHDR") + 13字节数据 + 4字节CRC = 25字节
+		// 所以第一个块从偏移33开始（8字节文件头 + 25字节IHDR块）
+		if (dataSpan.size() < 33)
 		{
+			setError(shine::loader::EAssetLoaderError::PARSE_ERROR, "PNG数据不完整：缺少IHDR块");
+			setState(shine::loader::EAssetLoadState::FAILD);
+			return false;
+		}
+		
+		bool isEnd = false;
+		std::span<const std::byte> chunkData = dataSpan.subspan(33); // 跳过文件头(8) + IHDR块(25)
+		
+		while (!isEnd)
+		{
+			// 优化：提前检查是否有足够的数据读取块头（至少12字节）
+			if (chunkData.size() < 12)
+			{
+				fmt::println("警告: PNG 块数据不足，停止解析");
+				break;
+			}
+			
 			uint32_t chunkLength = 0;
 			read_be_ref(chunkData, chunkLength);
 			
 			std::span<const std::byte> type = chunkData.subspan(4);
+			
+			// 检查是否有足够的数据读取块内容
+			if (chunkData.size() < 8 + chunkLength)
+			{
+				fmt::println("警告: PNG 块内容数据不足，停止解析");
+				break;
+			}
+			
 			std::span<const std::byte> chunkDataContent = chunkData.subspan(8, chunkLength);
 			
 			if (JudgeChunkType(type, IDAT))
@@ -185,7 +216,9 @@ namespace shine::image
 			}
 			else if (JudgeChunkType(type, IEND))
 			{
+				// 优化：遇到IEND块后立即退出，不需要继续处理
 				isEnd = true;
+				break;
 			}
 			else if (JudgeChunkType(type, TRNS))
 			{
@@ -293,7 +326,8 @@ namespace shine::image
 		if (!result.has_value())
 		{
 			setError(shine::loader::EAssetLoaderError::FILE_NOT_FOUND, result.error());
-			setState(shine::loader::EAssetLoadState::ERROR);
+			auto errorState = shine::loader::EAssetLoadState::FAILD;
+			setState(errorState);
 			return std::unexpected(result.error());
 		}
 
@@ -305,7 +339,8 @@ namespace shine::image
 		if (!IsPngFile(file_data_view.content))
 		{
 			setError(shine::loader::EAssetLoaderError::INVALID_FORMAT);
-			setState(shine::loader::EAssetLoadState::ERROR);
+			auto errorState = shine::loader::EAssetLoadState::FAILD;
+			setState(errorState);
 			return std::unexpected("无效的 PNG 文件格式");
 		}
 
@@ -416,10 +451,25 @@ namespace shine::image
 		std::span<const std::byte> Data = content.subspan(33);
 		while (!isEnd)
 		{
+			// 优化：提前检查是否有足够的数据读取块头（至少12字节：4字节长度+4字节类型+4字节CRC）
+			if (Data.size() < 12)
+			{
+				fmt::println("警告: PNG 块数据不足，停止解析");
+				break;
+			}
+			
 			unsigned chunkLength = 0;
 			read_be_ref(Data, chunkLength);
 
 			std::span<const std::byte> type = Data.subspan(4);
+			
+			// 检查是否有足够的数据读取块内容
+			if (Data.size() < 8 + chunkLength)
+			{
+				fmt::println("警告: PNG 块内容数据不足，停止解析");
+				break;
+			}
+			
 			std::span<const std::byte> chunkData = Data.subspan(8, chunkLength);
 
 			if (JudgeChunkType(type, IDAT))
@@ -451,7 +501,9 @@ namespace shine::image
 			}
 			else if (JudgeChunkType(type, IEND))
 			{
+				// 优化：遇到IEND块后立即退出，不需要继续处理
 				isEnd = true;
+				break;
 			}
 			else if (JudgeChunkType(type, TRNS))
 			{
@@ -525,18 +577,10 @@ namespace shine::image
 			Data = Data.subspan(12 + chunkLength);
 		}
 
-		// 如果收集到了 IDAT 数据，尝试自动解码
-		if (!idatData.empty())
-		{
-			auto decodeResult = decode();
-			if (!decodeResult.has_value())
-			{
-				fmt::println("警告: PNG 解码失败: {}", decodeResult.error());
-				// 不返回错误，因为元数据解析已经成功
-			}
-		}
+		// 注意：不在这里自动解码，让用户显式调用decode()来控制解码时机
+		// 这样可以避免重复解码，并允许延迟解码
 
-		return true;
+		return {};
 	}
 
 	// ============================================================================
@@ -556,17 +600,18 @@ namespace shine::image
 
 		palettesize = length / 3;
 		palettColors.clear();
-		palettColors.reserve(palettesize);
+		palettColors.resize(palettesize);
 
-		// 读取调色板颜色（RGB 格式，每 3 字节一个颜色）
-		for (size_t i = 0; i < length; i += 3)
+		// 优化：批量处理调色板颜色
+		// 先批量复制RGB数据，然后批量设置Alpha通道
+		const uint8_t* srcData = reinterpret_cast<const uint8_t*>(data.data());
+		for (size_t i = 0; i < palettesize; ++i)
 		{
-			const uint8_t r = read_u8(data, i);
-			const uint8_t g = read_u8(data, i + 1);
-			const uint8_t b = read_u8(data, i + 2);
-
-			// 存储为 RGBA 格式，Alpha 通道默认 255（不透明），后续可能由 tRNS 块更新
-			palettColors.push_back({ r, g, b, 255 });
+			size_t srcOffset = i * 3;
+			palettColors[i][0] = srcData[srcOffset];     // R
+			palettColors[i][1] = srcData[srcOffset + 1]; // G
+			palettColors[i][2] = srcData[srcOffset + 2]; // B
+			palettColors[i][3] = 255;                     // A (默认不透明，后续可能由 tRNS 块更新)
 		}
 
 		fmt::println("读取调色板: {} 种颜色", palettColors.size());
@@ -611,7 +656,7 @@ namespace shine::image
 				memcpy(transparency.paletteAlpha.data(), data.data(), data.size());
 
 				// 同步更新调色板颜色的Alpha通道
-				for (size_t i = 0; i < min(length, palettColors.size()); ++i)
+				for (size_t i = 0; i < std::min(length, palettColors.size()); ++i)
 				{
 					palettColors[i][3] = transparency.paletteAlpha[i];
 				}
@@ -661,27 +706,35 @@ namespace shine::image
 	{
 		if (colorType == PngColorType::PALETTE)
 		{
-			if (length != 1)       return false;
+			if (length != 1) return false;
 
-			const uint8_t _r = read_u8(data, 0);
+			const uint8_t index = read_u8(data, 0);
 
-			if (_r >= palettesize) return false;
+			if (index >= palettesize) return false;
 
-			background = PngBackground(
-				_r, _r, _r
-			);
-
+			// 使用调色板中的实际颜色值，而不是索引值
+			if (index < palettColors.size())
+			{
+				background = PngBackground(
+					palettColors[index][0],
+					palettColors[index][1],
+					palettColors[index][2]
+				);
+			}
+			else
+			{
+				return false;
+			}
 		}
 		else if (colorType == PngColorType::GERY || colorType == PngColorType::GERY_ALPHA)
 		{
 			if (length != 2) return false;
 
-			const uint16_t _r = read_u16(data, 0);
+			const uint16_t gray = read_u16(data, 0);
 
 			background = PngBackground(
-				_r, _r, _r
+				gray, gray, gray
 			);
-
 		}
 		else if (colorType == PngColorType::RGB || colorType == PngColorType::RGBA)
 		{
@@ -689,9 +742,14 @@ namespace shine::image
 
 			background = PngBackground(
 				read_u16(data, 0),
-				read_u16(data,2),
-				read_u16(data,4)
+				read_u16(data, 2),
+				read_u16(data, 4)
 			);
+		}
+		else
+		{
+			// 不支持的颜色类型
+			return false;
 		}
 
 		return true;
@@ -1344,6 +1402,7 @@ namespace shine::image
 		std::vector<uint8_t> unfilteredData;
 		
 		// 优化：预分配内存（考虑可能的填充位）
+		// 对于非交织图像，可以精确计算大小；对于Adam7，decodeAdam7会处理
 		size_t estimatedSize = _height * scanlineWidth;
 		if (bitDepth < 8)
 		{
@@ -1352,7 +1411,16 @@ namespace shine::image
 			size_t paddedBitsPerLine = ((actualBitsPerLine + 7) / 8) * 8;
 			estimatedSize = _height * ((paddedBitsPerLine + 7) / 8);
 		}
-		unfilteredData.reserve(estimatedSize);
+		
+		// 对于非交织图像，直接resize而不是reserve，避免多次分配
+		if (interlaceMethod == 0)
+		{
+			unfilteredData.resize(estimatedSize);
+		}
+		else
+		{
+			unfilteredData.reserve(estimatedSize);
+		}
 		
 		if (interlaceMethod == 1)
 		{
@@ -1391,8 +1459,8 @@ namespace shine::image
 				
 				std::span<const uint8_t> scanline(decompressed.data() + offset + 1, scanlineWidth);
 				
-				size_t reconOffset = unfilteredData.size();
-				unfilteredData.resize(unfilteredData.size() + scanlineWidth);
+				// 优化：直接使用预分配的缓冲区，避免resize
+				size_t reconOffset = y * scanlineWidth;
 				std::span<uint8_t> recon(unfilteredData.data() + reconOffset, scanlineWidth);
 				
 				unfilterScanline(recon, scanline, prevline, bytesPerPixel, filterType);
@@ -1406,7 +1474,7 @@ namespace shine::image
 				size_t paddedBitsPerLine = scanlineWidth * 8;
 				if (paddedBitsPerLine != actualBitsPerLine)
 				{
-					unfilteredData = removePaddingBits(unfilteredData, actualBitsPerLine, paddedBitsPerLine);
+					unfilteredData = removePaddingBits(unfilteredData, actualBitsPerLine, paddedBitsPerLine, _height);
 				}
 			}
 		}
@@ -1417,10 +1485,10 @@ namespace shine::image
 		return {};
 	}
 
-	std::expected<std::vector<uint8_t>, std::string> png::decodeRGB() const
+	std::expected<std::vector<uint8_t>, std::string> png::decodeRGB()
 	{
 		// 先解码为 RGBA，然后转换为 RGB
-		auto result = const_cast<png*>(this)->decodeInternal();
+		auto result = decodeInternal();
 		if (!result.has_value())
 		{
 			return std::unexpected(result.error());
@@ -1522,15 +1590,9 @@ namespace shine::image
 		HuffmanTree tree;
 		tree.init(static_cast<uint32_t>(numcodes), maxbitlen);
 		
-		// 分配空间
+		// 优化：一次性分配并复制长度
 		tree.codes.resize(numcodes);
-		tree.lengths.resize(numcodes);
-		
-		// 复制长度
-		for (size_t i = 0; i < numcodes; ++i)
-		{
-			tree.lengths[i] = bitlen[i];
-		}
+		tree.lengths.assign(bitlen, bitlen + numcodes);
 		
 		// 步骤1：统计每个长度的数量
 		std::vector<uint32_t> blcount(maxbitlen + 1, 0);
@@ -1566,22 +1628,22 @@ namespace shine::image
 		constexpr uint32_t headsize = 1u << FIRSTBITS;
 		constexpr uint32_t mask = headsize - 1u;
 		
-		// 计算最大长度
+		// 优化：计算最大长度并预分配查找表空间
 		std::vector<uint32_t> maxlens(headsize, 0);
 		for (size_t i = 0; i < numcodes; ++i)
 		{
-			uint32_t symbol = tree.codes[i];
 			uint32_t l = tree.lengths[i];
 			if (l <= FIRSTBITS) continue;
 			
+			uint32_t symbol = tree.codes[i];
 			uint32_t index = reverseBits(symbol >> (l - FIRSTBITS), FIRSTBITS);
 			if (index < headsize)
 			{
-				maxlens[index] = std::max(maxlens[index], l);
+				maxlens[index] = (std::max)(maxlens[index], l);
 			}
 		}
 		
-		// 计算总表大小
+		// 计算总表大小并一次性分配
 		size_t size = headsize;
 		for (uint32_t i = 0; i < headsize; ++i)
 		{
@@ -1592,6 +1654,7 @@ namespace shine::image
 			}
 		}
 		
+		// 优化：一次性分配所有空间，避免多次resize
 		tree.table_len.resize(size, 16); // 16 表示未使用
 		tree.table_value.resize(size, INVALIDSYMBOL);
 		
@@ -1702,6 +1765,8 @@ namespace shine::image
 	// Huffman 解码符号
 	static uint32_t huffmanDecodeSymbol(util::BitReader& reader, const HuffmanTree& tree)
 	{
+		// 优化：确保有足够的位用于第一层查找（最多15位）
+		reader.ensureBits(FIRSTBITS);
 		uint32_t code = reader.peekBits(FIRSTBITS);
 		if (code >= tree.table_len.size())
 		{
@@ -1719,6 +1784,8 @@ namespace shine::image
 		else
 		{
 			reader.advanceBits(FIRSTBITS);
+			// 优化：确保有足够的位用于第二层查找（最多15位）
+			reader.ensureBits(l - FIRSTBITS);
 			uint32_t code2 = reader.peekBits(l - FIRSTBITS);
 			uint32_t index2 = value + code2;
 			
@@ -1734,8 +1801,9 @@ namespace shine::image
 	}
 	
 	// 解压缩 Huffman 块（BTYPE=1 或 2）
-	static std::expected<std::vector<uint8_t>, std::string> inflateHuffmanBlock(
-		util::BitReader& reader, uint32_t btype, size_t max_output_size = 0)
+	// 注意：output 参数用于累积所有块的数据，使得距离码可以引用之前块的数据
+	static std::expected<void, std::string> inflateHuffmanBlock(
+		util::BitReader& reader, uint32_t btype, std::vector<uint8_t>& output, size_t max_output_size = 0)
 	{
 		HuffmanTree tree_ll, tree_d;
 		
@@ -1754,6 +1822,11 @@ namespace shine::image
 		else // btype == 2
 		{
 			// 动态树
+			// 检查是否有足够的数据读取头部（至少需要14位：5+5+4）
+			if (!reader.hasMoreData() || reader.remainingBytes() < 2)
+			{
+				return std::unexpected("数据不足：无法读取动态Huffman树头部");
+			}
 			reader.ensureBits(17);
 			
 			// 读取 HLIT, HDIST, HCLEN
@@ -1794,6 +1867,11 @@ namespace shine::image
 			uint32_t i = 0;
 			while (i < HLIT + HDIST)
 			{
+				// 检查是否有足够的数据
+				if (!reader.hasMoreData())
+				{
+					return std::unexpected("数据不足：无法读取代码长度码");
+				}
 				reader.ensureBits(25);
 				uint32_t code = huffmanDecodeSymbol(reader, tree_cl);
 				
@@ -1877,16 +1955,16 @@ namespace shine::image
 			tree_d = std::move(tree_d_result.value());
 		}
 		
-		std::vector<uint8_t> output;
-		output.reserve(1024);
-		
 		bool done = false;
 		while (!done)
 		{
-			// 确保有足够的位
-			reader.ensureBits(30);
+			// 检查是否有足够的数据
+			if (!reader.hasMoreData())
+			{
+				return std::unexpected("数据不足：无法读取Huffman符号");
+			}
 			
-			// 解码符号
+			// 解码符号（huffmanDecodeSymbol内部会调用ensureBits，这里不需要重复调用）
 			uint32_t code_ll = huffmanDecodeSymbol(reader, tree_ll);
 			
 			if (code_ll == INVALIDSYMBOL)
@@ -1911,8 +1989,7 @@ namespace shine::image
 					length += reader.readBits(numextrabits_l);
 				}
 				
-				// 解码距离码
-				reader.ensureBits(28);
+				// 解码距离码（huffmanDecodeSymbol内部会调用ensureBits）
 				uint32_t code_d = huffmanDecodeSymbol(reader, tree_d);
 				
 				if (code_d == INVALIDSYMBOL || code_d > 29)
@@ -1928,7 +2005,7 @@ namespace shine::image
 					distance += reader.readBits(numextrabits_d);
 				}
 				
-				// LZ77 解码：从输出缓冲区复制
+				// LZ77 解码：从输出缓冲区复制（可以引用之前所有块的数据）
 				if (distance > output.size())
 				{
 					return std::unexpected("距离超出输出缓冲区");
@@ -1942,7 +2019,7 @@ namespace shine::image
 				{
 					// 需要重复复制
 					std::memcpy(output.data() + start, output.data() + backward, distance);
-					size_t forward = distance;
+					uint32_t forward = distance;
 					while (forward < length)
 					{
 						size_t copyLen = std::min(distance, length - forward);
@@ -1972,7 +2049,7 @@ namespace shine::image
 			}
 		}
 		
-		return output;
+		return {};
 	}
 	
 	// Zlib 解压缩实现（完整版，支持 Deflate）
@@ -2017,7 +2094,13 @@ namespace shine::image
 		util::BitReader reader(deflateData.data(), deflateData.size() - 4); // 保留最后4字节用于 Adler-32
 		
 		std::vector<uint8_t> output;
-		output.reserve(1024); // 预分配一些空间
+		// 优化：根据压缩数据大小估算解压后大小，减少重新分配
+		// PNG图像解压后大小约为：height * (width * bytesPerPixel + 1)
+		// 对于844x167 RGBA，约为 167 * (844*4 + 1) ≈ 563KB
+		// 保守估计：压缩比通常为2-10倍，预分配压缩大小的5倍
+		size_t estimatedSize = compressed.size() * 5;
+		if (estimatedSize < 1024) estimatedSize = 1024; // 至少1KB
+		output.reserve(estimatedSize);
 		
 		// 解压缩 deflate 块
 		bool bfinal = false;
@@ -2074,16 +2157,12 @@ namespace shine::image
 			else if (btype == 1 || btype == 2)
 			{
 				// BTYPE=1 (固定 Huffman) 或 BTYPE=2 (动态 Huffman)
-				auto blockResult = inflateHuffmanBlock(reader, btype);
+				// 注意：传递累积的输出缓冲区，使得距离码可以引用之前块的数据
+				auto blockResult = inflateHuffmanBlock(reader, btype, output);
 				if (!blockResult.has_value())
 				{
 					return std::unexpected("Huffman 块解码失败: " + blockResult.error());
 				}
-				
-				// 追加到输出
-				size_t oldSize = output.size();
-				output.resize(oldSize + blockResult->size());
-				std::memcpy(output.data() + oldSize, blockResult->data(), blockResult->size());
 			}
 			else
 			{
@@ -2092,10 +2171,48 @@ namespace shine::image
 		}
 		
 		// 验证 Adler-32 校验和
+		// Adler-32校验和在zlib中是大端序存储的，read_u32会将其转换为本机字节序
 		if (deflateData.size() >= 4)
 		{
+			// 读取期望的Adler-32校验和（大端序，read_u32会转换为本机字节序）
 			uint32_t expectedAdler = util::read_u32(compressedSpan, compressed.size() - 4);
-			uint32_t calculatedAdler = calculateAdler32(output.data(), output.size());
+			
+			// 计算Adler-32校验和
+			// Adler-32算法：s1和s2初始值分别为1和0
+			// 对于每个字节：s1 = (s1 + byte) % 65521, s2 = (s2 + s1) % 65521
+			// 最终校验和 = (s2 << 16) | s1
+			uint32_t s1 = 1, s2 = 0;
+			const uint32_t ADLER_MOD = 65521;
+			
+			// 优化：批量处理减少模运算次数
+			// 由于s1每次最多加255，可以累积约257个字节后再做模运算（65521/255 ≈ 257）
+			// 使用延迟模运算优化性能
+			const size_t BATCH_SIZE = 256; // 批量处理大小
+			size_t i = 0;
+			const size_t size = output.size();
+			
+			// 批量处理
+			for (; i + BATCH_SIZE <= size; i += BATCH_SIZE)
+			{
+				for (size_t j = 0; j < BATCH_SIZE; ++j)
+				{
+					s1 += output[i + j];
+					s2 += s1;
+				}
+				// 延迟模运算：批量处理后再做模运算
+				s1 %= ADLER_MOD;
+				s2 %= ADLER_MOD;
+			}
+			
+			// 处理剩余字节
+			for (; i < size; ++i)
+			{
+				s1 = (s1 + output[i]) % ADLER_MOD;
+				s2 = (s2 + s1) % ADLER_MOD;
+			}
+			
+			// 组合校验和：高16位是s2，低16位是s1
+			uint32_t calculatedAdler = (s2 << 16) | s1;
 			
 			if (expectedAdler != calculatedAdler)
 			{
@@ -2126,14 +2243,57 @@ namespace shine::image
 			
 		case 1: // Sub
 		{
-			for (size_t i = 0; i < bytewidth && i < length; ++i)
+			// 复制前bytewidth个字节
+			const size_t copyLen = (bytewidth < length) ? bytewidth : length;
+			std::memcpy(recon.data(), scanline.data(), copyLen);
+			
+			// 优化：使用SIMD加速Sub滤波器（如果可用）
+#ifndef __EMSCRIPTEN__
+#if defined(__AVX2__) && (defined(_MSC_VER) || defined(__GNUC__) || defined(__clang__))
+			// AVX2优化：批量处理Sub滤波器
+			if (length > bytewidth + 32)
 			{
-				recon[i] = scanline[i];
+				size_t i = bytewidth;
+				const uint8_t* src = scanline.data();
+				uint8_t* dst = recon.data();
+				
+				// 处理对齐部分
+				for (; i + 32 <= length; i += 32)
+				{
+					__m256i scan = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src + i));
+					__m256i prev = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(dst + i - bytewidth));
+					__m256i result = _mm256_add_epi8(scan, prev);
+					_mm256_storeu_si256(reinterpret_cast<__m256i*>(dst + i), result);
+				}
+				
+				// 处理剩余字节
+				for (; i < length; ++i)
+				{
+					dst[i] = src[i] + dst[i - bytewidth];
+				}
 			}
+			else
+			{
+				// 标准实现（小数据）
+				for (size_t i = bytewidth; i < length; ++i)
+				{
+					recon[i] = scanline[i] + recon[i - bytewidth];
+				}
+			}
+#else
+			// 标准实现（无AVX2）
 			for (size_t i = bytewidth; i < length; ++i)
 			{
 				recon[i] = scanline[i] + recon[i - bytewidth];
 			}
+#endif
+#else
+			// 标准实现（WASM平台）
+			for (size_t i = bytewidth; i < length; ++i)
+			{
+				recon[i] = scanline[i] + recon[i - bytewidth];
+			}
+#endif
 			break;
 		}
 		
@@ -2141,6 +2301,35 @@ namespace shine::image
 		{
 			if (prevline)
 			{
+				// 优化：使用SIMD加速Up滤波器（如果可用）
+#ifndef __EMSCRIPTEN__
+#if defined(__AVX2__) && (defined(_MSC_VER) || defined(__GNUC__) || defined(__clang__))
+				if (length >= 32)
+				{
+					size_t i = 0;
+					const uint8_t* src = scanline.data();
+					const uint8_t* prev = prevline;
+					uint8_t* dst = recon.data();
+					
+					// AVX2批量处理
+					for (; i + 32 <= length; i += 32)
+					{
+						__m256i scan = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src + i));
+						__m256i prev_vec = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(prev + i));
+						__m256i result = _mm256_add_epi8(scan, prev_vec);
+						_mm256_storeu_si256(reinterpret_cast<__m256i*>(dst + i), result);
+					}
+					
+					// 处理剩余字节
+					for (; i < length; ++i)
+					{
+						dst[i] = src[i] + prev[i];
+					}
+					break;
+				}
+#endif
+#endif
+				// 标准实现
 				for (size_t i = 0; i < length; ++i)
 				{
 					recon[i] = scanline[i] + prevline[i];
@@ -2308,25 +2497,51 @@ namespace shine::image
 			if (bitDepth >= 8)
 			{
 				// 字节对齐的数据
-				for (uint32_t y = 0; y < passh[pass]; ++y)
+				// 优化：如果步长为1（连续像素），可以批量复制整行；否则逐个像素复制
+				if (ADAM7_DX[pass] == 1 && ADAM7_IX[pass] == 0)
 				{
-					for (uint32_t x = 0; x < passw[pass]; ++x)
+					// 优化：整行连续，可以批量复制
+					for (uint32_t y = 0; y < passh[pass]; ++y)
 					{
-						uint32_t srcX = x;
-						uint32_t srcY = y;
-						uint32_t dstX = ADAM7_IX[pass] + x * ADAM7_DX[pass];
 						uint32_t dstY = ADAM7_IY[pass] + y * ADAM7_DY[pass];
-						
-						if (dstX < _width && dstY < _height)
+						if (dstY < _height)
 						{
-							size_t srcOffset = (srcY * passScanlineWidth + srcX * bytesPerPixel);
-							size_t dstOffset = (dstY * scanlineWidth + dstX * bytesPerPixel);
+							size_t srcOffset = y * passScanlineWidth;
+							size_t dstOffset = dstY * scanlineWidth;
+							size_t copySize = passScanlineWidth;
 							
-							if (srcOffset + bytesPerPixel <= passData.size() && 
-							    dstOffset + bytesPerPixel <= output.size())
+							if (srcOffset + copySize <= passData.size() && 
+							    dstOffset + copySize <= output.size())
 							{
 								std::memcpy(output.data() + dstOffset, 
-								           passData.data() + srcOffset, bytesPerPixel);
+								           passData.data() + srcOffset, copySize);
+							}
+						}
+					}
+				}
+				else
+				{
+					// 非连续像素，逐个复制
+					for (uint32_t y = 0; y < passh[pass]; ++y)
+					{
+						for (uint32_t x = 0; x < passw[pass]; ++x)
+						{
+							uint32_t srcX = x;
+							uint32_t srcY = y;
+							uint32_t dstX = ADAM7_IX[pass] + x * ADAM7_DX[pass];
+							uint32_t dstY = ADAM7_IY[pass] + y * ADAM7_DY[pass];
+							
+							if (dstX < _width && dstY < _height)
+							{
+								size_t srcOffset = (srcY * passScanlineWidth + srcX * bytesPerPixel);
+								size_t dstOffset = (dstY * scanlineWidth + dstX * bytesPerPixel);
+								
+								if (srcOffset + bytesPerPixel <= passData.size() && 
+								    dstOffset + bytesPerPixel <= output.size())
+								{
+									std::memcpy(output.data() + dstOffset, 
+									           passData.data() + srcOffset, bytesPerPixel);
+								}
 							}
 						}
 					}
@@ -2342,7 +2557,7 @@ namespace shine::image
 				std::vector<uint8_t> passDataNoPadding;
 				if (paddedBitsPerLine != actualBitsPerLine)
 				{
-					passDataNoPadding = removePaddingBits(passData, actualBitsPerLine, paddedBitsPerLine);
+					passDataNoPadding = removePaddingBits(passData, actualBitsPerLine, paddedBitsPerLine, passh[pass]);
 				}
 				else
 				{
@@ -2359,6 +2574,10 @@ namespace shine::image
 					output.resize(_height * outputBytesPerLine, 0);
 				}
 				
+				// 计算源数据的最大位数
+				size_t maxSrcBits = passh[pass] * actualBitsPerLine;
+				size_t maxDstBits = _height * outputBitsPerLine;
+				
 				for (uint32_t y = 0; y < passh[pass]; ++y)
 				{
 					for (uint32_t x = 0; x < passw[pass]; ++x)
@@ -2373,6 +2592,14 @@ namespace shine::image
 							
 							// 写入目标像素位
 							size_t dstBitPos = (dstY * outputBitsPerLine + dstX * bitDepth);
+							
+							// 边界检查：确保不会超出数据范围
+							if (srcBitPos + bitDepth > maxSrcBits || dstBitPos + bitDepth > maxDstBits)
+							{
+								return std::unexpected("Adam7 通道 " + std::to_string(pass) + 
+									" 位位置超出范围: src=" + std::to_string(srcBitPos) + 
+									", dst=" + std::to_string(dstBitPos));
+							}
 							
 							// 复制位（需要临时变量，因为 readBitFromStream 会修改 bitPos）
 							size_t tempSrcBitPos = srcBitPos;
@@ -2392,34 +2619,39 @@ namespace shine::image
 	}
 	
 	// 从位流读取位（MSB优先，用于低位深度）
-	uint8_t png::readBitFromStream(size_t& bitPos, const uint8_t* data) noexcept
+	// 优化：内联函数，减少函数调用开销；优化位操作计算
+	inline uint8_t png::readBitFromStream(size_t& bitPos, const uint8_t* data) noexcept
 	{
-		size_t bytePos = bitPos / 8;
-		size_t bitInByte = 7 - (bitPos % 8); // MSB优先
+		// 优化：使用位操作替代除法和取模
+		size_t bytePos = bitPos >> 3;  // bitPos / 8
+		size_t bitInByte = 7 - (bitPos & 7); // bitPos % 8, MSB优先
 		uint8_t bit = (data[bytePos] >> bitInByte) & 1;
 		++bitPos;
 		return bit;
 	}
 	
 	// 写入位到位流（MSB优先，用于低位深度）
-	void png::writeBitToStream(size_t& bitPos, uint8_t* data, uint8_t bit) noexcept
+	// 优化：内联函数，减少函数调用开销；优化位操作计算
+	inline void png::writeBitToStream(size_t& bitPos, uint8_t* data, uint8_t bit) noexcept
 	{
-		size_t bytePos = bitPos / 8;
-		size_t bitInByte = 7 - (bitPos % 8); // MSB优先
+		// 优化：使用位操作替代除法和取模
+		size_t bytePos = bitPos >> 3;  // bitPos / 8
+		size_t bitInByte = 7 - (bitPos & 7); // bitPos % 8, MSB优先
+		uint8_t mask = 1 << bitInByte;
 		if (bit)
 		{
-			data[bytePos] |= (1 << bitInByte);
+			data[bytePos] |= mask;
 		}
 		else
 		{
-			data[bytePos] &= ~(1 << bitInByte);
+			data[bytePos] &= ~mask;
 		}
 		++bitPos;
 	}
 	
 	// 移除填充位（用于低位深度）
 	std::vector<uint8_t> png::removePaddingBits(
-		const std::vector<uint8_t>& paddedData, size_t actualBitsPerLine, size_t paddedBitsPerLine) const
+		const std::vector<uint8_t>& paddedData, size_t actualBitsPerLine, size_t paddedBitsPerLine, size_t height) const
 	{
 		if (actualBitsPerLine == paddedBitsPerLine)
 		{
@@ -2427,14 +2659,14 @@ namespace shine::image
 		}
 		
 		size_t diff = paddedBitsPerLine - actualBitsPerLine;
-		size_t outputBits = _height * actualBitsPerLine;
+		size_t outputBits = height * actualBitsPerLine;
 		size_t outputBytes = (outputBits + 7) / 8;
 		
 		std::vector<uint8_t> output(outputBytes, 0);
 		size_t inputBitPos = 0;
 		size_t outputBitPos = 0;
 		
-		for (size_t y = 0; y < _height; ++y)
+		for (size_t y = 0; y < height; ++y)
 		{
 			// 复制实际数据位
 			for (size_t x = 0; x < actualBitsPerLine; ++x)
@@ -2452,69 +2684,108 @@ namespace shine::image
 	// 颜色转换到 RGBA
 	void png::convertToRGBA(std::span<const uint8_t> rawData, std::vector<uint8_t>& output) const
 	{
+		// 优化：预分配精确大小的空间，避免多次重新分配
+		const size_t pixelCount = _width * _height;
+		const size_t outputSize = pixelCount * 4;
 		output.clear();
-		output.reserve(_width * _height * 4);
+		output.resize(outputSize);
 		
 		if (bitDepth == 8)
 		{
 			switch (colorType)
 			{
 			case PngColorType::GERY:
-				for (size_t i = 0; i < rawData.size(); ++i)
 				{
-					uint8_t gray = rawData[i];
-					output.push_back(gray);
-					output.push_back(gray);
-					output.push_back(gray);
-					output.push_back(255);
+					size_t outIdx = 0;
+					for (size_t i = 0; i < rawData.size(); ++i)
+					{
+						uint8_t gray = rawData[i];
+						output[outIdx++] = gray;
+						output[outIdx++] = gray;
+						output[outIdx++] = gray;
+						output[outIdx++] = 255;
+					}
 				}
 				break;
 				
 			case PngColorType::RGB:
-				for (size_t i = 0; i < rawData.size(); i += 3)
 				{
-					output.push_back(rawData[i]);
-					output.push_back(rawData[i + 1]);
-					output.push_back(rawData[i + 2]);
-					output.push_back(255);
+					// 优化：RGB转RGBA，批量处理减少循环开销
+					const size_t pixelCount = rawData.size() / 3;
+					const uint8_t* src = rawData.data();
+					uint8_t* dst = output.data();
+					
+					// 展开循环，每次处理4个像素（12字节输入，16字节输出）
+					size_t i = 0;
+					for (; i + 4 <= pixelCount; i += 4)
+					{
+						// 像素0
+						dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; dst[3] = 255;
+						// 像素1
+						dst[4] = src[3]; dst[5] = src[4]; dst[6] = src[5]; dst[7] = 255;
+						// 像素2
+						dst[8] = src[6]; dst[9] = src[7]; dst[10] = src[8]; dst[11] = 255;
+						// 像素3
+						dst[12] = src[9]; dst[13] = src[10]; dst[14] = src[11]; dst[15] = 255;
+						src += 12;
+						dst += 16;
+					}
+					
+					// 处理剩余像素
+					for (; i < pixelCount; ++i)
+					{
+						dst[0] = src[0];
+						dst[1] = src[1];
+						dst[2] = src[2];
+						dst[3] = 255;
+						src += 3;
+						dst += 4;
+					}
 				}
 				break;
 				
 			case PngColorType::PALETTE:
-				for (size_t i = 0; i < rawData.size(); ++i)
 				{
-					uint8_t index = rawData[i];
-					if (index < palettColors.size())
+					size_t outIdx = 0;
+					for (size_t i = 0; i < rawData.size(); ++i)
 					{
-						output.push_back(palettColors[index][0]);
-						output.push_back(palettColors[index][1]);
-						output.push_back(palettColors[index][2]);
-						output.push_back(palettColors[index][3]);
-					}
-					else
-					{
-						output.push_back(0);
-						output.push_back(0);
-						output.push_back(0);
-						output.push_back(255);
+						uint8_t index = rawData[i];
+						if (index < palettColors.size())
+						{
+							output[outIdx++] = palettColors[index][0];
+							output[outIdx++] = palettColors[index][1];
+							output[outIdx++] = palettColors[index][2];
+							output[outIdx++] = palettColors[index][3];
+						}
+						else
+						{
+							output[outIdx++] = 0;
+							output[outIdx++] = 0;
+							output[outIdx++] = 0;
+							output[outIdx++] = 255;
+						}
 					}
 				}
 				break;
 				
 			case PngColorType::GERY_ALPHA:
-				for (size_t i = 0; i < rawData.size(); i += 2)
 				{
-					uint8_t gray = rawData[i];
-					uint8_t alpha = rawData[i + 1];
-					output.push_back(gray);
-					output.push_back(gray);
-					output.push_back(gray);
-					output.push_back(alpha);
+					size_t outIdx = 0;
+					for (size_t i = 0; i < rawData.size(); i += 2)
+					{
+						uint8_t gray = rawData[i];
+						uint8_t alpha = rawData[i + 1];
+						output[outIdx++] = gray;
+						output[outIdx++] = gray;
+						output[outIdx++] = gray;
+						output[outIdx++] = alpha;
+					}
 				}
 				break;
 				
 			case PngColorType::RGBA:
-				output.assign(rawData.begin(), rawData.end());
+				// 优化：RGBA类型不需要转换，直接memcpy避免vector的assign开销
+				std::memcpy(output.data(), rawData.data(), rawData.size());
 				break;
 				
 			default:
@@ -2523,61 +2794,84 @@ namespace shine::image
 		}
 		else if (bitDepth == 16)
 		{
-			// 16 位深度需要降采样到 8 位，PNG 使用大端序存储
+			// 16 位深度需要降采样到 8 位
+			// PNG 规范：16位值以大端序存储，read_u16会将其转换为本机字节序
+			// 降采样时取高8位（MSB），这是PNG规范推荐的做法
 			std::span<const std::byte> rawDataSpan(reinterpret_cast<const std::byte*>(rawData.data()), rawData.size());
 			
 			switch (colorType)
 			{
 			case PngColorType::GERY:
-				for (size_t i = 0; i < rawData.size(); i += 2)
 				{
-					uint16_t gray16 = util::read_u16(rawDataSpan, i);
-					uint8_t gray = static_cast<uint8_t>(gray16 >> 8); // 取高8位
-					output.push_back(gray);
-					output.push_back(gray);
-					output.push_back(gray);
-					output.push_back(255);
+					// 优化：使用byte_convert工具处理16位灰度值
+					// read_u16会自动处理大端序到小端序的转换
+					size_t outIdx = 0;
+					for (size_t i = 0; i < rawData.size(); i += 2)
+					{
+						uint16_t gray16 = util::read_u16(rawDataSpan, i);
+						// read_u16已处理字节序转换，取高8位进行降采样
+						uint8_t gray = static_cast<uint8_t>(gray16 >> 8);
+						output[outIdx++] = gray;
+						output[outIdx++] = gray;
+						output[outIdx++] = gray;
+						output[outIdx++] = 255;
+					}
 				}
 				break;
 				
 			case PngColorType::RGB:
-				for (size_t i = 0; i < rawData.size(); i += 6)
 				{
-					uint16_t r16 = util::read_u16(rawDataSpan, i);
-					uint16_t g16 = util::read_u16(rawDataSpan, i + 2);
-					uint16_t b16 = util::read_u16(rawDataSpan, i + 4);
-					output.push_back(static_cast<uint8_t>(r16 >> 8));
-					output.push_back(static_cast<uint8_t>(g16 >> 8));
-					output.push_back(static_cast<uint8_t>(b16 >> 8));
-					output.push_back(255);
+					// 优化：使用byte_convert工具处理16位RGB值
+					// read_u16会自动处理大端序到小端序的转换
+					size_t outIdx = 0;
+					for (size_t i = 0; i < rawData.size(); i += 6)
+					{
+						uint16_t r16 = util::read_u16(rawDataSpan, i);
+						uint16_t g16 = util::read_u16(rawDataSpan, i + 2);
+						uint16_t b16 = util::read_u16(rawDataSpan, i + 4);
+						output[outIdx++] = static_cast<uint8_t>(r16 >> 8);
+						output[outIdx++] = static_cast<uint8_t>(g16 >> 8);
+						output[outIdx++] = static_cast<uint8_t>(b16 >> 8);
+						output[outIdx++] = 255;
+					}
 				}
 				break;
 				
 			case PngColorType::GERY_ALPHA:
-				for (size_t i = 0; i < rawData.size(); i += 4)
 				{
-					uint16_t gray16 = util::read_u16(rawDataSpan, i);
-					uint16_t alpha16 = util::read_u16(rawDataSpan, i + 2);
-					uint8_t gray = static_cast<uint8_t>(gray16 >> 8);
-					uint8_t alpha = static_cast<uint8_t>(alpha16 >> 8);
-					output.push_back(gray);
-					output.push_back(gray);
-					output.push_back(gray);
-					output.push_back(alpha);
+					// 优化：使用byte_convert工具处理16位灰度+Alpha值
+					// read_u16会自动处理大端序到小端序的转换
+					size_t outIdx = 0;
+					for (size_t i = 0; i < rawData.size(); i += 4)
+					{
+						uint16_t gray16 = util::read_u16(rawDataSpan, i);
+						uint16_t alpha16 = util::read_u16(rawDataSpan, i + 2);
+						uint8_t gray = static_cast<uint8_t>(gray16 >> 8);
+						uint8_t alpha = static_cast<uint8_t>(alpha16 >> 8);
+						output[outIdx++] = gray;
+						output[outIdx++] = gray;
+						output[outIdx++] = gray;
+						output[outIdx++] = alpha;
+					}
 				}
 				break;
 				
 			case PngColorType::RGBA:
-				for (size_t i = 0; i < rawData.size(); i += 8)
 				{
-					uint16_t r16 = util::read_u16(rawDataSpan, i);
-					uint16_t g16 = util::read_u16(rawDataSpan, i + 2);
-					uint16_t b16 = util::read_u16(rawDataSpan, i + 4);
-					uint16_t a16 = util::read_u16(rawDataSpan, i + 6);
-					output.push_back(static_cast<uint8_t>(r16 >> 8));
-					output.push_back(static_cast<uint8_t>(g16 >> 8));
-					output.push_back(static_cast<uint8_t>(b16 >> 8));
-					output.push_back(static_cast<uint8_t>(a16 >> 8));
+					// 优化：使用byte_convert工具处理16位RGBA值
+					// read_u16会自动处理大端序到小端序的转换
+					size_t outIdx = 0;
+					for (size_t i = 0; i < rawData.size(); i += 8)
+					{
+						uint16_t r16 = util::read_u16(rawDataSpan, i);
+						uint16_t g16 = util::read_u16(rawDataSpan, i + 2);
+						uint16_t b16 = util::read_u16(rawDataSpan, i + 4);
+						uint16_t a16 = util::read_u16(rawDataSpan, i + 6);
+						output[outIdx++] = static_cast<uint8_t>(r16 >> 8);
+						output[outIdx++] = static_cast<uint8_t>(g16 >> 8);
+						output[outIdx++] = static_cast<uint8_t>(b16 >> 8);
+						output[outIdx++] = static_cast<uint8_t>(a16 >> 8);
+					}
 				}
 				break;
 				
@@ -2595,28 +2889,31 @@ namespace shine::image
 			{
 			case PngColorType::GERY:
 				bitsPerPixel = bitDepth;
-				for (size_t byteIdx = 0; byteIdx < rawData.size(); ++byteIdx)
 				{
-					uint8_t byte = rawData[byteIdx];
-					for (size_t bitIdx = 0; bitIdx < pixelsPerByte && (byteIdx * pixelsPerByte + bitIdx) < (_width * _height); ++bitIdx)
+					size_t outIdx = 0;
+					for (size_t byteIdx = 0; byteIdx < rawData.size(); ++byteIdx)
 					{
-						// 从高位到低位读取
-						uint8_t shift = 8 - (bitIdx + 1) * bitDepth;
-						uint8_t mask = (1 << bitDepth) - 1;
-						uint8_t gray = (byte >> shift) & mask;
-						
-						// 扩展到 8 位
-						if (bitDepth == 1)
-							gray = gray ? 255 : 0;
-						else if (bitDepth == 2)
-							gray = (gray << 6) | (gray << 4) | (gray << 2) | gray;
-						else if (bitDepth == 4)
-							gray = (gray << 4) | gray;
-						
-						output.push_back(gray);
-						output.push_back(gray);
-						output.push_back(gray);
-						output.push_back(255);
+						uint8_t byte = rawData[byteIdx];
+						for (size_t bitIdx = 0; bitIdx < pixelsPerByte && (byteIdx * pixelsPerByte + bitIdx) < pixelCount; ++bitIdx)
+						{
+							// 从高位到低位读取
+							uint8_t shift = 8 - (bitIdx + 1) * bitDepth;
+							uint8_t mask = (1 << bitDepth) - 1;
+							uint8_t gray = (byte >> shift) & mask;
+							
+							// 扩展到 8 位
+							if (bitDepth == 1)
+								gray = gray ? 255 : 0;
+							else if (bitDepth == 2)
+								gray = (gray << 6) | (gray << 4) | (gray << 2) | gray;
+							else if (bitDepth == 4)
+								gray = (gray << 4) | gray;
+							
+							output[outIdx++] = gray;
+							output[outIdx++] = gray;
+							output[outIdx++] = gray;
+							output[outIdx++] = 255;
+						}
 					}
 				}
 				break;
@@ -2625,30 +2922,47 @@ namespace shine::image
 				bitsPerPixel = bitDepth;
 				{
 					size_t bitPos = 0;
-					size_t pixelCount = _width * _height;
+					size_t totalBits = rawData.size() * 8;
+					size_t requiredBits = pixelCount * bitDepth;
 					
+					// 验证数据是否足够
+					if (requiredBits > totalBits)
+					{
+						output.clear();
+						break;
+					}
+					
+					size_t outIdx = 0;
 					for (size_t pixelIdx = 0; pixelIdx < pixelCount; ++pixelIdx)
 					{
 						// 从位流读取调色板索引（MSB优先）
+						// readBitFromStream会修改bitPos，这是预期的行为，用于顺序读取位
 						uint8_t index = 0;
 						for (size_t b = 0; b < bitDepth; ++b)
 						{
+							// 边界检查：确保不会超出数据范围
+							if (bitPos >= totalBits)
+							{
+								output.clear();
+								return;
+							}
 							index = (index << 1) | readBitFromStream(bitPos, rawData.data());
 						}
 						
 						if (index < palettColors.size())
 						{
-							output.push_back(palettColors[index][0]);
-							output.push_back(palettColors[index][1]);
-							output.push_back(palettColors[index][2]);
-							output.push_back(palettColors[index][3]);
+							output[outIdx++] = palettColors[index][0];
+							output[outIdx++] = palettColors[index][1];
+							output[outIdx++] = palettColors[index][2];
+							output[outIdx++] = palettColors[index][3];
 						}
 						else
 						{
-							output.push_back(0);
-							output.push_back(0);
-							output.push_back(0);
-							output.push_back(255);
+							// 索引超出范围，使用黑色
+							output[outIdx++] = 0;
+							output[outIdx++] = 0;
+							output[outIdx++] = 0;
+							output[outIdx++] = 255;
 						}
 					}
 				}

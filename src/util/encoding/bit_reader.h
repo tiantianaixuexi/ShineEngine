@@ -1,9 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <cstddef>
-#include <climits>
-#include <limits>
 #include <span>
 
 namespace shine::util

@@ -37,23 +37,24 @@ namespace shine::util
 
         void Invalidate() noexcept { A = B = C = D = 0u; }
 
-        // 比较
-        // [[nodiscard]] std::strong_ordering operator<=>(const FGuid& other) const noexcept
-        // {
-        //     if (A != other.A) return A < other.A ? std::strong_ordering::less : std::strong_ordering::greater;
-        //     if (B != other.B) return B < other.B ? std::strong_ordering::less : std::strong_ordering::greater;
-        //     if (C != other.C) return C < other.C ? std::strong_ordering::less : std::strong_ordering::greater;
-        //     if (D != other.D) return D < other.D ? std::strong_ordering::less : std::strong_ordering::greater;
-        //     return std::strong_ordering::equal;
-        // }
-
-        // [[nodiscard]] bool operator==(const FGuid& other) const noexcept
-        // {
-        //     return A == other.A && B == other.B && C == other.C && D == other.D;
-        // }
         // c++23  显式对象参数 (Explicit Object Parameter) - CWG 2586
-        [[nodiscard]] std::strong_ordering operator<=>(this FGuid const& self, FGuid const& other) const noexcept = default;
-        [[nodiscard]] bool operator==(this FGuid const& self, FGuid const& other) const noexcept = default;
+		//[[nodiscard]] std::strong_ordering operator<=>(this FGuid const& self, FGuid const& other) const noexcept = default;
+		//[[nodiscard]] bool operator==(this FGuid const& self, FGuid const& other) const noexcept = default;
+         //比较
+         [[nodiscard]] std::strong_ordering operator<=>(const FGuid& other) const noexcept
+         {
+             if (A != other.A) return A < other.A ? std::strong_ordering::less : std::strong_ordering::greater;
+             if (B != other.B) return B < other.B ? std::strong_ordering::less : std::strong_ordering::greater;
+             if (C != other.C) return C < other.C ? std::strong_ordering::less : std::strong_ordering::greater;
+             if (D != other.D) return D < other.D ? std::strong_ordering::less : std::strong_ordering::greater;
+             return std::strong_ordering::equal;
+         }
+
+         [[nodiscard]] bool operator==(const FGuid& other) const noexcept
+         {
+             return A == other.A && B == other.B && C == other.C && D == other.D;
+         }
+
 
         // 转字节序列（网络序：大端）
         [[nodiscard]] std::array<std::uint8_t, 16> ToBytes() const noexcept

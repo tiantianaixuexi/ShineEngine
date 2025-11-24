@@ -4,9 +4,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <memory>
-#include <chrono>
 #include <typeinfo>
-#include <utility>
 
 
 namespace shine::loader
@@ -39,7 +37,7 @@ namespace shine::loader
         PROCESSING = 4,
         FINALIZING = 5,
         COMPLETE = 6,
-        ERROR = 7,
+        FAILD = 7,
         CANCELLED = 8,
         UNLOADING = 9
     };

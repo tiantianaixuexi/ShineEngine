@@ -13,9 +13,7 @@
 
 #endif
 
-#define LODEPNG_COMPILE_DECODER
-#define LODEPNG_COMPILE_DISK
-#include "loadpng/lodepng.h"
+
 
 #ifdef WITH_EDITOR
 
@@ -65,6 +63,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 int my_image_width = 0;
 int my_image_height = 0;
+GLuint my_png_texture = 0;  // PNG纹理ID
 shine::render::backend::IRenderBackend* RenderBackend = nullptr;
 
 shine::gameplay::Camera g_Camera("默认相机");
@@ -153,36 +152,6 @@ int main(int argc, char** argv) {
 	//shine::util::win32::api();
 
 
-    {
-        shine::image::png png;
-        auto result = png.parsePngFile("E:\\c++\\shine_optimization_tool\\image\\chrm_demo_2048_random.png");
-        if(result.has_value())
-        {
-            fmt::println("加载png文件成功");
-            
-            // 显示PNG文本信息
-            const auto& textInfos = png.getTextInfos();
-            if (!textInfos.empty())
-            {
-                fmt::println("PNG文件包含 {} 个文本块:", textInfos.size());
-                for (size_t i = 0; i < textInfos.size(); ++i)
-                {
-                    const auto& textInfo = textInfos[i];
-                    fmt::println("  文本块{}: 关键字'{}', 内容='{}'", 
-                                i + 1, textInfo.keyword, textInfo.text);
-                }
-            }
-            else
-            {
-                fmt::println("PNG文件不包含文本块");
-            }
-        }
-        else
-        {
-            fmt::println("加载png文件失败:{}", result.error());
-        }
-
-    }
 
     // {
     //     shine::model::obj obj;
@@ -433,13 +402,50 @@ int main(int argc, char** argv) {
 		std::vector<unsigned char> buffer;
 		unsigned h = 0;
 		unsigned w = 0;
-		lodepng::State state;
 
-		lodepng::load_file(buffer, "E:\\c++\\shine_optimization_tool\\image\\chrm_demo_2048_random.png");
-		lodepng::decode(RenderBackend->data, w, h, state, buffer);
 
-		fmt::println("{} : {}", RenderBackend->data.size(), RenderBackend->data.size()/4);
-		fmt::println("{}", (unsigned)state.info_png.color.colortype);
+        shine::image::png _png;
+        _png.loadFromFile("K:\\post_metallicRoughness.png");
+        // 解码PNG图像
+        auto decodeResult = _png.decode();
+        if (decodeResult.has_value())
+        {
+            fmt::println("PNG解码成功: {}x{}", _png.getWidth(), _png.getHeight());
+
+            // 创建OpenGL纹理
+            const auto& imageData = _png.getImageData();
+            if (!imageData.empty())
+            {
+                glGenTextures(1, &my_png_texture);
+                glBindTexture(GL_TEXTURE_2D, my_png_texture);
+
+                // 设置纹理参数
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+                // 上传纹理数据
+                glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                    static_cast<GLsizei>(_png.getWidth()),
+                    static_cast<GLsizei>(_png.getHeight()),
+                    0, GL_RGBA, GL_UNSIGNED_BYTE, imageData.data());
+
+                my_image_width = static_cast<int>(_png.getWidth());
+                my_image_height = static_cast<int>(_png.getHeight());
+
+                fmt::println("PNG纹理创建成功: {}x{}", my_image_width, my_image_height);
+            }
+            else
+            {
+                fmt::println("PNG图像数据为空");
+            }
+        }
+        else
+        {
+            fmt::println("PNG解码失败: {}", decodeResult.error());
+        }
 
 
 		
@@ -570,6 +576,32 @@ int main(int argc, char** argv) {
 				show_another_window = false;
 			ImGui::End();
 		}
+
+
+		if (my_png_texture != 0) {
+			ImGui::Begin("PNG Image Viewer");
+			ImGui::Text("Image Size: %d x %d", my_image_width, my_image_height);
+			ImGui::Separator();
+
+			// 计算显示尺寸（保持宽高比，最大宽度800）
+			float maxWidth = 800.0f;
+			float aspectRatio = static_cast<float>(my_image_height) / static_cast<float>(my_image_width);
+			float displayWidth = maxWidth;
+			float displayHeight = maxWidth * aspectRatio;
+
+			// 如果高度太大，限制高度
+			if (displayHeight > 600.0f) {
+				displayHeight = 600.0f;
+				displayWidth = displayHeight / aspectRatio;
+			}
+
+			// 显示图像
+			ImGui::Image((ImTextureID)(intptr_t)my_png_texture,
+				ImVec2(displayWidth, displayHeight));
+
+			ImGui::End();
+		}
+
 
         // 编辑器UI渲染
         mainEditor->Render();

@@ -357,7 +357,7 @@ namespace shine::image
 		 * 
 		 * @return 成功返回 RGB 数据向量，失败返回错误信息
 		 */
-		std::expected<std::vector<uint8_t>, std::string> decodeRGB() const;
+		std::expected<std::vector<uint8_t>, std::string> decodeRGB();
 
 		/**
 		 * @brief 获取解码后的图像数据（RGBA 格式）
@@ -422,12 +422,14 @@ namespace shine::image
 		 * @param paddedData 包含填充位的数据
 		 * @param actualBitsPerLine 每行实际位数
 		 * @param paddedBitsPerLine 每行填充后的位数
+		 * @param height 图像高度（行数）
 		 * @return 移除填充位后的数据
 		 */
 		std::vector<uint8_t> removePaddingBits(
 			const std::vector<uint8_t>& paddedData,
 			size_t actualBitsPerLine,
-			size_t paddedBitsPerLine) const;
+			size_t paddedBitsPerLine,
+			size_t height) const;
 
 		/**
 		 * @brief 从位流读取位（MSB 优先，用于低位深度）
@@ -435,7 +437,7 @@ namespace shine::image
 		 * @param data 数据指针
 		 * @return 读取的位值（0 或 1）
 		 */
-		static uint8_t readBitFromStream(size_t& bitPos, const uint8_t* data) noexcept;
+		static inline uint8_t readBitFromStream(size_t& bitPos, const uint8_t* data) noexcept;
 
 		/**
 		 * @brief 写入位到位流（MSB 优先，用于低位深度）
@@ -443,7 +445,7 @@ namespace shine::image
 		 * @param data 数据指针
 		 * @param bit 要写入的位值（0 或 1）
 		 */
-		static void writeBitToStream(size_t& bitPos, uint8_t* data, uint8_t bit) noexcept;
+		static inline void writeBitToStream(size_t& bitPos, uint8_t* data, uint8_t bit) noexcept;
 
 		/**
 		 * @brief 颜色转换：将原始数据转换为 RGBA 格式
@@ -462,9 +464,11 @@ namespace shine::image
 		static constexpr uint8_t paethPredictor(int a, int b, int c) noexcept
 		{
 			int p = a + b - c;
-			int pa = std::abs(p - a);
-			int pb = std::abs(p - b);
-			int pc = std::abs(p - c);
+			// Use constexpr-compatible abs implementation
+			auto abs_val = [](int x) constexpr -> int { return x < 0 ? -x : x; };
+			int pa = abs_val(p - a);
+			int pb = abs_val(p - b);
+			int pc = abs_val(p - c);
 			if (pa <= pb && pa <= pc) return static_cast<uint8_t>(a);
 			if (pb <= pc) return static_cast<uint8_t>(b);
 			return static_cast<uint8_t>(c);

@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <sstream>
 #include <charconv>
+#include <cctype>
+#include <functional>
 
 #include "fmt/format.h"
 
@@ -18,6 +20,7 @@
 
 #include "util/timer/function_timer.h"
 #include "util/file_util.h"
+#include "util/base64/base64.h"
 
 
 namespace shine::loader
@@ -323,7 +326,7 @@ namespace shine::loader
             _loaded = true;
             setState(EAssetLoadState::COMPLETE);
         } else {
-            setState(EAssetLoadState::ERROR);
+            setState(EAssetLoadState::FAILD);
         }
 
         return result;
@@ -339,28 +342,46 @@ namespace shine::loader
             return false;
         }
 
-        // 使用文件映射读取文件
-        auto fileResult = util::read_full_file(filePath);
-        if (!fileResult.has_value()) {
-            setError(EAssetLoaderError::FILE_NOT_FOUND);
-        return false;
-        }
-
-        auto fileMapView = std::move(fileResult.value());
-        const void* data = fileMapView.view.data();
-        size_t size = fileMapView.view.size();
-
         unload();
         _loaded = false;
 
+        // 检查文件扩展名，决定是 GLB 还是纯 JSON GLTF
+        std::string filePathStr(filePath);
+        size_t dotPos = filePathStr.rfind('.');
+        bool isGLB = false;
+        
+        if (dotPos != std::string::npos) {
+            std::string ext = filePathStr.substr(dotPos + 1);
+            // 转换为小写进行比较
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            isGLB = (ext == "glb");
+        }
+
         setState(EAssetLoadState::PARSING_DATA);
-        bool result = parseGLB(data, size);
+        bool result = false;
+
+        if (isGLB) {
+            // GLB 格式：二进制文件
+            auto fileResult = util::read_full_file(filePath);
+            if (!fileResult.has_value()) {
+                setError(EAssetLoaderError::FILE_NOT_FOUND);
+                return false;
+            }
+
+            auto fileMapView = std::move(fileResult.value());
+            const void* data = fileMapView.view.data();
+            size_t size = fileMapView.view.size();
+            result = parseGLB(data, size);
+        } else {
+            // 纯 JSON GLTF 格式
+            result = parseGLTF(filePath);
+        }
 
         if (result) {
             _loaded = true;
             setState(EAssetLoadState::COMPLETE);
         } else {
-            setState(EAssetLoadState::ERROR);
+            setState(EAssetLoadState::FAILD);
         }
 
         return result;
@@ -369,7 +390,7 @@ namespace shine::loader
     void gltfLoader::unload()
     {
         _model = GltfModel();
-        _binaryData.clear();
+        _bufferData.clear();
         _loaded = false;
         setState(EAssetLoadState::NONE);
     }
@@ -454,6 +475,15 @@ namespace shine::loader
                     }
                 }
             }
+            
+        // 对于 GLB 格式，第一个缓冲区（索引 0）应该使用 BIN chunk 的数据
+        // 如果 buffers 数组为空，创建一个
+        if (_model.buffers.empty() && !_bufferData.empty()) {
+            Buffer buffer;
+            buffer.byteLength = _bufferData[0].size();
+            buffer.uri.clear();  // GLB 格式中，第一个缓冲区没有 URI
+            _model.buffers.push_back(std::move(buffer));
+        }
         }
 
         return true;
@@ -610,6 +640,7 @@ namespace shine::loader
                     }
                     if (node.has("translation") && node["translation"].isArray()) {
                         const auto& trans = node["translation"].getArray();
+                        n.translation.reserve(trans.size());
                         for (const auto& val : trans) {
                             if (val.isNumber()) {
                                 n.translation.push_back(static_cast<float>(val.getNumber()));
@@ -618,6 +649,7 @@ namespace shine::loader
                     }
                     if (node.has("rotation") && node["rotation"].isArray()) {
                         const auto& rot = node["rotation"].getArray();
+                        n.rotation.reserve(rot.size());
                         for (const auto& val : rot) {
                             if (val.isNumber()) {
                                 n.rotation.push_back(static_cast<float>(val.getNumber()));
@@ -626,6 +658,7 @@ namespace shine::loader
                     }
                     if (node.has("scale") && node["scale"].isArray()) {
                         const auto& scale = node["scale"].getArray();
+                        n.scale.reserve(scale.size());
                         for (const auto& val : scale) {
                             if (val.isNumber()) {
                                 n.scale.push_back(static_cast<float>(val.getNumber()));
@@ -634,6 +667,7 @@ namespace shine::loader
                     }
                     if (node.has("children") && node["children"].isArray()) {
                         const auto& children = node["children"].getArray();
+                        n.children.reserve(children.size());
                         for (const auto& val : children) {
                             if (val.isNumber()) {
                                 n.children.push_back(static_cast<int>(val.getNumber()));
@@ -645,18 +679,220 @@ namespace shine::loader
             }
         }
 
-        fmt::println("glTF model loaded: version={}, buffers={}, bufferViews={}, accessors={}, meshes={}, nodes={}",
+        // 解析 scenes
+        if (root.has("scenes") && root["scenes"].isArray()) {
+            const auto& scenes = root["scenes"].getArray();
+            _model.scenes.reserve(scenes.size());
+            for (const auto& scene : scenes) {
+                Scene s;
+                if (scene.isObject()) {
+                    if (scene.has("name") && scene["name"].isString()) {
+                        s.name = scene["name"].getString();
+                    }
+                    if (scene.has("nodes") && scene["nodes"].isArray()) {
+                        const auto& nodes = scene["nodes"].getArray();
+                        s.nodes.reserve(nodes.size());
+                        for (const auto& val : nodes) {
+                            if (val.isNumber()) {
+                                s.nodes.push_back(static_cast<int>(val.getNumber()));
+                            }
+                        }
+                    }
+                }
+                _model.scenes.push_back(std::move(s));
+            }
+        }
+
+        // 解析默认场景
+        if (root.has("scene") && root["scene"].isNumber()) {
+            _model.scene = static_cast<int>(root["scene"].getNumber());
+        }
+
+        fmt::println("glTF model loaded: version={}, buffers={}, bufferViews={}, accessors={}, meshes={}, nodes={}, scenes={}",
                      _model.version, _model.buffers.size(), _model.bufferViews.size(),
-                     _model.accessors.size(), _model.meshes.size(), _model.nodes.size());
+                     _model.accessors.size(), _model.meshes.size(), _model.nodes.size(), _model.scenes.size());
 
         return true;
     }
 
     bool gltfLoader::parseBinaryChunk(const std::byte* binData, size_t binSize)
     {
-        _binaryData.assign(binData, binData + binSize);
+        // 将 BIN chunk 数据添加到第一个缓冲区
+        std::vector<std::byte> buffer;
+        buffer.assign(binData, binData + binSize);
+        _bufferData.push_back(std::move(buffer));
         fmt::println("Binary chunk loaded: {} bytes", binSize);
         return true;
+    }
+
+    bool gltfLoader::parseGLTF(const char* filePath)
+    {
+        // 读取 JSON 文件
+        auto fileResult = util::read_full_file(filePath);
+        if (!fileResult.has_value()) {
+            setError(EAssetLoaderError::FILE_NOT_FOUND);
+            return false;
+        }
+
+        auto fileMapView = std::move(fileResult.value());
+        const char* jsonData = reinterpret_cast<const char*>(fileMapView.view.data());
+        size_t jsonSize = fileMapView.view.size();
+
+        // 解析 JSON
+        if (!parseJSONChunk(jsonData, jsonSize)) {
+            return false;
+        }
+
+        // 加载所有缓冲区
+        std::string basePath = util::get_file_directory(filePath);
+        for (size_t i = 0; i < _model.buffers.size(); ++i) {
+            const Buffer& buffer = _model.buffers[i];
+            if (buffer.uri.empty()) {
+                // GLB 格式的缓冲区，应该已经在 parseBinaryChunk 中加载
+                // 如果 _bufferData 中还没有对应索引的数据，创建一个空缓冲区
+                if (i >= _bufferData.size()) {
+                    _bufferData.resize(i + 1);
+                    _bufferData[i].resize(buffer.byteLength);
+                }
+            } else if (buffer.uri.find("data:") == 0) {
+                // Data URI，需要解码
+                if (!loadDataURIBuffer(buffer, i)) {
+                    fmt::println("Warning: Failed to decode data URI buffer {}: {}", i, buffer.uri.substr(0, 50));
+                    // 创建一个空缓冲区作为占位符
+                    if (i >= _bufferData.size()) {
+                        _bufferData.resize(i + 1);
+                    }
+                    _bufferData[i].resize(buffer.byteLength);
+                }
+            } else {
+                // 外部文件，需要加载
+                if (!loadExternalBuffer(buffer, i, basePath.c_str())) {
+                    fmt::println("Warning: Failed to load external buffer {}: {}", i, buffer.uri);
+                    // 创建一个空缓冲区作为占位符
+                    if (i >= _bufferData.size()) {
+                        _bufferData.resize(i + 1);
+                    }
+                    _bufferData[i].resize(buffer.byteLength);
+                }
+            }
+        }
+
+        return true;
+    }
+
+    bool gltfLoader::loadDataURIBuffer(const Buffer& buffer, size_t bufferIndex)
+    {
+        if (buffer.uri.empty() || buffer.uri.find("data:") != 0) {
+            return false;
+        }
+
+        // 解析 data URI: data:[<mime_type>][;base64],<data>
+        size_t commaPos = buffer.uri.find(',', 5);
+        if (commaPos == std::string::npos) {
+            return false;
+        }
+
+        std::string_view metaView = std::string_view(buffer.uri).substr(5, commaPos - 5);
+        std::string_view dataView = std::string_view(buffer.uri).substr(commaPos + 1);
+
+        // 检查是否使用 base64 编码
+        bool isBase64 = metaView.find(";base64") != std::string_view::npos;
+
+        std::vector<std::byte> decodedData;
+
+        if (isBase64) {
+            // Base64 解码
+            try {
+                auto decoded = shine::base64::base64_decode(dataView);
+                decodedData.reserve(decoded.size());
+                for (unsigned char byte : decoded) {
+                    decodedData.push_back(static_cast<std::byte>(byte));
+                }
+            } catch (...) {
+                return false;
+            }
+        } else {
+            // URL 编码的数据（直接使用）
+            decodedData.reserve(dataView.size());
+            for (char c : dataView) {
+                decodedData.push_back(static_cast<std::byte>(c));
+            }
+        }
+
+        // 验证大小
+        if (decodedData.size() != buffer.byteLength) {
+            fmt::println("Warning: Data URI buffer size mismatch: expected {}, got {}", 
+                        buffer.byteLength, decodedData.size());
+            // 调整大小以匹配预期
+            if (decodedData.size() < buffer.byteLength) {
+                decodedData.resize(buffer.byteLength);
+            } else {
+                decodedData.resize(buffer.byteLength);
+            }
+        }
+
+        // 确保缓冲区数组足够大
+        if (bufferIndex >= _bufferData.size()) {
+            _bufferData.resize(bufferIndex + 1);
+        }
+        _bufferData[bufferIndex] = std::move(decodedData);
+
+        return true;
+    }
+
+    bool gltfLoader::loadExternalBuffer(const Buffer& buffer, size_t bufferIndex, const char* basePath)
+    {
+        if (buffer.uri.empty()) {
+            return false;
+        }
+
+        // 构建完整路径
+        std::string fullPath;
+        if (basePath && basePath[0] != '\0') {
+            fullPath = basePath;
+            // 检查是否需要添加路径分隔符
+            if (fullPath.back() != '/' && fullPath.back() != '\\') {
+                fullPath += "/";
+            }
+            fullPath += buffer.uri;
+        } else {
+            fullPath = buffer.uri;
+        }
+
+        // 读取外部缓冲区文件
+        auto fileResult = util::read_full_file(fullPath.c_str());
+        if (!fileResult.has_value()) {
+            return false;
+        }
+
+        auto fileMapView = std::move(fileResult.value());
+        
+        // 验证文件大小
+        if (fileMapView.view.size() != buffer.byteLength) {
+            fmt::println("Warning: External buffer size mismatch: expected {}, got {}", 
+                        buffer.byteLength, fileMapView.view.size());
+        }
+
+        // 将数据添加到对应索引的缓冲区
+        if (bufferIndex >= _bufferData.size()) {
+            _bufferData.resize(bufferIndex + 1);
+        }
+        
+        _bufferData[bufferIndex].assign(fileMapView.view.data(), 
+                                       fileMapView.view.data() + fileMapView.view.size());
+
+        return true;
+    }
+
+    const std::vector<std::byte>& gltfLoader::getBufferData(int bufferIndex) const
+    {
+        static const std::vector<std::byte> emptyBuffer;
+        
+        if (bufferIndex < 0 || static_cast<size_t>(bufferIndex) >= _bufferData.size()) {
+            return emptyBuffer;
+        }
+        
+        return _bufferData[bufferIndex];
     }
 
     std::vector<std::byte> gltfLoader::getAccessorData(const Accessor& accessor) const
@@ -672,6 +908,12 @@ namespace shine::loader
         
         if (bufferView.buffer < 0 || 
             static_cast<size_t>(bufferView.buffer) >= _model.buffers.size()) {
+            return result;
+        }
+
+        // 获取缓冲区数据
+        const std::vector<std::byte>& bufferData = getBufferData(bufferView.buffer);
+        if (bufferData.empty()) {
             return result;
         }
 
@@ -706,16 +948,16 @@ namespace shine::loader
 
         size_t elementSize = componentSize * componentsPerElement;
         size_t stride = (bufferView.byteStride > 0) ? bufferView.byteStride : elementSize;
-        size_t totalSize = accessor.count * stride;
+        size_t totalSize = (accessor.count - 1) * stride + elementSize;
 
         size_t dataOffset = bufferView.byteOffset + accessor.byteOffset;
         
-        if (dataOffset + totalSize > _binaryData.size()) {
+        if (dataOffset + totalSize > bufferData.size()) {
             return result;
         }
 
         result.resize(totalSize);
-        std::memcpy(result.data(), _binaryData.data() + dataOffset, totalSize);
+        std::memcpy(result.data(), bufferData.data() + dataOffset, totalSize);
 
         return result;
     }
@@ -728,35 +970,59 @@ namespace shine::loader
             return result;
         }
 
-        for (size_t nodeIdx = 0; nodeIdx < _model.nodes.size(); ++nodeIdx) {
-            const Node& node = _model.nodes[nodeIdx];
-            
-            if (node.mesh < 0 || static_cast<size_t>(node.mesh) >= _model.meshes.size()) {
-                continue;
+        // 确定要处理的节点列表
+        std::vector<int> nodesToProcess;
+        
+        if (_model.scene >= 0 && static_cast<size_t>(_model.scene) < _model.scenes.size()) {
+            // 使用默认场景的节点
+            const Scene& scene = _model.scenes[_model.scene];
+            nodesToProcess = scene.nodes;
+        } else if (!_model.scenes.empty()) {
+            // 使用第一个场景的节点
+            nodesToProcess = _model.scenes[0].nodes;
+        } else {
+            // 如果没有场景，处理所有有 mesh 的节点
+            for (size_t i = 0; i < _model.nodes.size(); ++i) {
+                if (_model.nodes[i].mesh >= 0) {
+                    nodesToProcess.push_back(static_cast<int>(i));
+                }
+            }
+        }
+
+        // 递归处理节点（包括子节点）
+        std::function<void(int, const math::FVector3f&, const math::FRotator3f&, const math::FVector3f&)> processNode;
+        processNode = [&](int nodeIdx, const math::FVector3f& parentTranslation, 
+                         const math::FRotator3f& parentRotation, const math::FVector3f& parentScale) {
+            if (nodeIdx < 0 || static_cast<size_t>(nodeIdx) >= _model.nodes.size()) {
+                return;
             }
 
-            const Mesh& mesh = _model.meshes[node.mesh];
+            const Node& node = _model.nodes[nodeIdx];
             
-            // 提取变换信息
-            FVector3f translation(0.0f);
-            FRotator3f rotation(0.0f, 0.0f, 0.0f);
-            FVector3f scale(1.0f);
+            // 计算当前节点的变换
+            math::FVector3f translation = parentTranslation;
+            math::FRotator3f rotation = parentRotation;
+            math::FVector3f scale = parentScale;
 
             if (node.translation.size() >= 3) {
-                translation = FVector3f(node.translation[0], node.translation[1], node.translation[2]);
+                translation = parentTranslation + math::FVector3f(node.translation[0], node.translation[1], node.translation[2]);
             }
 
             if (node.rotation.size() >= 4) {
                 // glTF 使用 xyzw 顺序的四元数
-                FQuatf quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
+                math::FQuatf quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
                 rotation = quat.eulerAngles();
             }
 
             if (node.scale.size() >= 3) {
-                scale = FVector3f(node.scale[0], node.scale[1], node.scale[2]);
+                scale = parentScale * math::FVector3f(node.scale[0], node.scale[1], node.scale[2]);
             }
 
-            // 处理每个 primitive
+            // 处理当前节点的 mesh
+            if (node.mesh >= 0 && static_cast<size_t>(node.mesh) < _model.meshes.size()) {
+                const Mesh& mesh = _model.meshes[node.mesh];
+
+                // 处理每个 primitive
             for (const Primitive& primitive : mesh.primitives) {
                 MeshData meshData;
                 meshData.name = mesh.name;
@@ -804,24 +1070,81 @@ namespace shine::loader
                     }
                 }
 
-                // 提取纹理坐标
-                if (primitive.attributes.count("TEXCOORD_0") > 0) {
-                    int texcoordAccessorIdx = primitive.attributes.at("TEXCOORD_0");
-                    if (texcoordAccessorIdx >= 0 && static_cast<size_t>(texcoordAccessorIdx) < _model.accessors.size()) {
-                        const Accessor& accessor = _model.accessors[texcoordAccessorIdx];
-                        auto floatData = readAccessorAs<float>(accessor);
-                        
-                        if (accessor.type == "VEC2" && floatData.size() >= accessor.count * 2) {
-                            meshData.texcoords.reserve(accessor.count);
-                            for (size_t i = 0; i < accessor.count; ++i) {
-                                meshData.texcoords.emplace_back(
-                                    floatData[i * 2],
-                                    floatData[i * 2 + 1]
-                                );
+                // 提取纹理坐标（支持多个纹理坐标集）
+                for (int texCoordSet = 0; texCoordSet < 8; ++texCoordSet) {
+                    std::string attrName = (texCoordSet == 0) ? "TEXCOORD_0" : 
+                                           fmt::format("TEXCOORD_{}", texCoordSet);
+                    
+                    if (primitive.attributes.count(attrName) > 0) {
+                        int texcoordAccessorIdx = primitive.attributes.at(attrName);
+                        if (texcoordAccessorIdx >= 0 && static_cast<size_t>(texcoordAccessorIdx) < _model.accessors.size()) {
+                            const Accessor& accessor = _model.accessors[texcoordAccessorIdx];
+                            auto floatData = readAccessorAs<float>(accessor);
+                            
+                            if (accessor.type == "VEC2" && floatData.size() >= accessor.count * 2) {
+                                // 只提取第一个纹理坐标集到 texcoords
+                                if (texCoordSet == 0) {
+                                    meshData.texcoords.reserve(accessor.count);
+                                    for (size_t i = 0; i < accessor.count; ++i) {
+                                        meshData.texcoords.emplace_back(
+                                            floatData[i * 2],
+                                            floatData[i * 2 + 1]
+                                        );
+                                    }
+                                }
+                                // TODO: 可以扩展 MeshData 结构以支持多个纹理坐标集
                             }
                         }
                     }
                 }
+
+                // 提取顶点颜色（COLOR_0）
+                if (primitive.attributes.count("COLOR_0") > 0) {
+                    int colorAccessorIdx = primitive.attributes.at("COLOR_0");
+                    if (colorAccessorIdx >= 0 && static_cast<size_t>(colorAccessorIdx) < _model.accessors.size()) {
+                        const Accessor& accessor = _model.accessors[colorAccessorIdx];
+                        auto floatData = readAccessorAs<float>(accessor);
+                        
+                        if (accessor.type == "VEC3" && floatData.size() >= accessor.count * 3) {
+                            meshData.colors.reserve(accessor.count);
+                            for (size_t i = 0; i < accessor.count; ++i) {
+                                meshData.colors.emplace_back(
+                                    floatData[i * 3],
+                                    floatData[i * 3 + 1],
+                                    floatData[i * 3 + 2],
+                                    1.0f  // Alpha 默认为 1.0
+                                );
+                            }
+                        } else if (accessor.type == "VEC4" && floatData.size() >= accessor.count * 4) {
+                            meshData.colors.reserve(accessor.count);
+                            for (size_t i = 0; i < accessor.count; ++i) {
+                                meshData.colors.emplace_back(
+                                    floatData[i * 4],
+                                    floatData[i * 4 + 1],
+                                    floatData[i * 4 + 2],
+                                    floatData[i * 4 + 3]
+                                );
+                            }
+                        } else if (accessor.componentType == COMPONENT_TYPE_UNSIGNED_BYTE) {
+                            // 处理归一化的 UNSIGNED_BYTE 颜色数据
+                            if (accessor.type == "VEC3" || accessor.type == "VEC4") {
+                                auto byteData = readAccessorAs<uint8_t>(accessor);
+                                size_t components = (accessor.type == "VEC3") ? 3 : 4;
+                                meshData.colors.reserve(accessor.count);
+                                for (size_t i = 0; i < accessor.count; ++i) {
+                                    float r = byteData[i * components] / 255.0f;
+                                    float g = byteData[i * components + 1] / 255.0f;
+                                    float b = byteData[i * components + 2] / 255.0f;
+                                    float a = (components == 4) ? byteData[i * components + 3] / 255.0f : 1.0f;
+                                    meshData.colors.emplace_back(r, g, b, a);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 保存材质索引
+                meshData.materialIndex = primitive.material;
 
                 // 提取索引
                 if (primitive.indices >= 0 && static_cast<size_t>(primitive.indices) < _model.accessors.size()) {
@@ -837,11 +1160,38 @@ namespace shine::loader
                     }
                 }
 
-                result.push_back(std::move(meshData));
+                    result.push_back(std::move(meshData));
+                }
             }
+
+            // 递归处理子节点
+            for (int childIdx : node.children) {
+                processNode(childIdx, translation, rotation, scale);
+            }
+        };
+
+        // 处理所有根节点
+        math::FVector3f rootTranslation(0.0f);
+        math::FRotator3f rootRotation(0.0f, 0.0f, 0.0f);
+        math::FVector3f rootScale(1.0f);
+
+        for (int nodeIdx : nodesToProcess) {
+            processNode(nodeIdx, rootTranslation, rootRotation, rootScale);
         }
 
         return result;
+    }
+
+    std::vector<int> gltfLoader::getSceneRootNodes(int sceneIndex) const
+    {
+        std::vector<int> result;
+        
+        if (sceneIndex < 0 || static_cast<size_t>(sceneIndex) >= _model.scenes.size()) {
+            return result;
+        }
+        
+        const Scene& scene = _model.scenes[sceneIndex];
+        return scene.nodes;
     }
 
 }

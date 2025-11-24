@@ -37,19 +37,42 @@ namespace shine::loader
             bool isLoaded() const { return _loaded; }
 
             
+            // 顶点颜色结构（RGBA）
+            struct VertexColor {
+                float r = 1.0f;
+                float g = 1.0f;
+                float b = 1.0f;
+                float a = 1.0f;
+                
+                VertexColor() = default;
+                VertexColor(float _r, float _g, float _b, float _a = 1.0f) 
+                    : r(_r), g(_g), b(_b), a(_a) {}
+            };
+            
             // 提取网格数据（转换为项目内部格式）
             struct MeshData {
                 std::string name;
                 std::vector<math::FVector3f> vertices;
                 std::vector<math::FVector3f> normals;
                 std::vector<math::FVector2f> texcoords;
+                std::vector<VertexColor> colors;  // 顶点颜色（如果存在）
                 std::vector<uint32_t> indices;
                 math::FVector3f translation{0.0f};
                 math::FRotator3f rotation{0.0f, 0.0f, 0.0f};
                 math::FVector3f scale{1.0f};
+                int materialIndex = -1;  // 材质索引
             };
             
             std::vector<MeshData> extractMeshData() const;
+            
+            // 获取场景数量
+            size_t getSceneCount() const { return _model.scenes.size(); }
+            
+            // 获取默认场景索引
+            int getDefaultSceneIndex() const { return _model.scene; }
+            
+            // 获取场景的根节点索引列表
+            std::vector<int> getSceneRootNodes(int sceneIndex) const;
 
         private:
             // GLB 文件格式结构
@@ -109,6 +132,11 @@ namespace shine::loader
                 std::string uri;  // 对于 GLB，为空字符串
             };
 
+            struct Scene {
+                std::string name;
+                std::vector<int> nodes;  // node indices
+            };
+
             struct GltfModel {
                 std::string version;
                 std::vector<Buffer> buffers;
@@ -116,32 +144,81 @@ namespace shine::loader
                 std::vector<Accessor> accessors;
                 std::vector<Mesh> meshes;
                 std::vector<Node> nodes;
+                std::vector<Scene> scenes;
+                int scene = -1;  // default scene index
             };
 
             // 内部方法
             bool parseGLB(const void* data, size_t size);
+            bool parseGLTF(const char* filePath);  // 解析纯 JSON GLTF 文件
             bool parseJSONChunk(const char* jsonData, size_t jsonSize);
             bool parseBinaryChunk(const std::byte* binData, size_t binSize);
+            bool loadDataURIBuffer(const Buffer& buffer, size_t bufferIndex);
+            bool loadExternalBuffer(const Buffer& buffer, size_t bufferIndex, const char* basePath);
             std::vector<std::byte> getAccessorData(const Accessor& accessor) const;
             
-            // 模板函数：从 accessor 读取特定类型的数据
+            // 模板函数：从 accessor 读取特定类型的数据（优化版本，避免不必要的拷贝）
             template<typename T> 
             std::vector<T> readAccessorAs(const Accessor& accessor) const {
                 std::vector<T> result;
-                auto data = getAccessorData(accessor);
-                if (data.empty()) return result;
+                
+                if (accessor.bufferView < 0 || 
+                    static_cast<size_t>(accessor.bufferView) >= _model.bufferViews.size()) {
+                    return result;
+                }
 
+                const BufferView& bufferView = _model.bufferViews[accessor.bufferView];
+                
+                if (bufferView.buffer < 0 || 
+                    static_cast<size_t>(bufferView.buffer) >= _model.buffers.size()) {
+                    return result;
+                }
+
+                // 计算组件大小
+                size_t componentSize = 0;
+                switch (accessor.componentType) {
+                    case 5120: case 5121: componentSize = 1; break;  // BYTE, UNSIGNED_BYTE
+                    case 5122: case 5123: componentSize = 2; break;  // SHORT, UNSIGNED_SHORT
+                    case 5125: componentSize = 4; break;  // UNSIGNED_INT
+                    case 5126: componentSize = 4; break;  // FLOAT
+                    default: return result;
+                }
+
+                // 计算每个元素的组件数量
                 size_t componentsPerElement = 1;
                 if (accessor.type == "VEC2") componentsPerElement = 2;
                 else if (accessor.type == "VEC3") componentsPerElement = 3;
                 else if (accessor.type == "VEC4") componentsPerElement = 4;
+                else if (accessor.type == "SCALAR") componentsPerElement = 1;
+                else if (accessor.type == "MAT2") componentsPerElement = 4;
+                else if (accessor.type == "MAT3") componentsPerElement = 9;
+                else if (accessor.type == "MAT4") componentsPerElement = 16;
 
-                const BufferView& bufferView = _model.bufferViews[accessor.bufferView];
-                size_t stride = (bufferView.byteStride > 0) 
-                    ? bufferView.byteStride 
-                    : sizeof(T) * componentsPerElement;
+                size_t elementSize = componentSize * componentsPerElement;
+                size_t stride = (bufferView.byteStride > 0) ? bufferView.byteStride : elementSize;
+                
+                // 计算数据偏移
+                size_t dataOffset = bufferView.byteOffset + accessor.byteOffset;
+                
+                // 获取缓冲区数据
+                const std::vector<std::byte>& bufferData = getBufferData(bufferView.buffer);
+                
+                // 边界检查
+                size_t totalSize = (accessor.count - 1) * stride + elementSize;
+                if (dataOffset + totalSize > bufferData.size()) {
+                    return result;
+                }
 
-                const std::byte* ptr = data.data();
+                // 预分配结果内存
+                if constexpr (std::is_same_v<T, float>) {
+                    result.reserve(accessor.count * componentsPerElement);
+                } else {
+                    result.reserve(accessor.count);
+                }
+
+                // 直接读取数据，避免中间拷贝
+                const std::byte* ptr = bufferData.data() + dataOffset;
+                
                 for (size_t i = 0; i < accessor.count; ++i) {
                     if constexpr (std::is_same_v<T, float>) {
                         if (accessor.componentType == 5126) { // FLOAT
@@ -160,6 +237,18 @@ namespace shine::loader
                             uint16_t value = 0;
                             std::memcpy(&value, ptr, sizeof(uint16_t));
                             result.push_back(static_cast<uint32_t>(value));
+                        } else if (accessor.componentType == 5121) { // UNSIGNED_BYTE
+                            uint8_t value = 0;
+                            std::memcpy(&value, ptr, sizeof(uint8_t));
+                            result.push_back(static_cast<uint32_t>(value));
+                        }
+                    } else if constexpr (std::is_same_v<T, uint8_t>) {
+                        if (accessor.componentType == 5121) { // UNSIGNED_BYTE
+                            for (size_t j = 0; j < componentsPerElement; ++j) {
+                                uint8_t value = 0;
+                                std::memcpy(&value, ptr + j * sizeof(uint8_t), sizeof(uint8_t));
+                                result.push_back(value);
+                            }
                         }
                     }
                     ptr += stride;
@@ -170,8 +259,11 @@ namespace shine::loader
 
             // 数据成员
             GltfModel _model;
-            std::vector<std::byte> _binaryData;  // BIN chunk 数据
+            std::vector<std::vector<std::byte>> _bufferData;  // 多个缓冲区的数据
             bool _loaded = false;
+            
+            // 获取指定缓冲区的数据
+            const std::vector<std::byte>& getBufferData(int bufferIndex) const;
 
 
 
