@@ -1,0 +1,37 @@
+{
+    "name": "minizip",
+    "type": "third",
+    "files": [
+        "src/third/minizip/mz.h",
+        "src/third/minizip/mz_crypt.h",
+        "src/third/minizip/mz_os.h",
+        "src/third/minizip/mz_strm.h",
+        "src/third/minizip/mz_strm_buf.h",
+        "src/third/minizip/mz_strm_bzip.h",
+        "src/third/minizip/mz_strm_libcomp.h",
+        "src/third/minizip/mz_strm_lzma.h",
+        "src/third/minizip/mz_strm_mem.h",
+        "src/third/minizip/mz_strm_os.h",
+        "src/third/minizip/mz_strm_pkcrypt.h",
+        "src/third/minizip/mz_strm_split.h",
+        "src/third/minizip/mz_strm_wzaes.h",
+        "src/third/minizip/mz_strm_zlib.h",
+        "src/third/minizip/mz_strm_zstd.h",
+        "src/third/minizip/mz_zip.h",
+        "src/third/minizip/unzip.h",
+        "src/third/minizip/zip.h",
+        "src/third/minizip/ioapi.h",
+        "src/third/minizip/crypt.h"
+    ],
+    "platform": ["Windows"],
+    "link": {
+        "release": {
+            "lib": ["minizip.lib", "bzip2.lib"]
+        },
+        "debug": {
+            "lib": ["minizipd.lib", "bzip2d.lib"]
+        }
+    },
+    "comment": "第三方库，ZIP 压缩/解压缩库，https://github.com/zlib-ng/minizip-ng"
+}
+

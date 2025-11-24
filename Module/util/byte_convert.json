@@ -1,11 +1,12 @@
-﻿{
+{
     "name": "byte_convert",
     "type": "static",
     "files": [
       "src/util/encoding/byte_convert.h",
-      "src/util/encoding/byte_convert.cpp"
+      "src/util/encoding/byte_convert.cpp",
+      "src/util/encoding/bit_reader.h"
     ],
     "deps": ["fmt"],
-    "comment": "字节转换工具"
+    "comment": "字节转换工具和位读取器"
 }
 
