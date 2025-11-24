@@ -1,8 +1,0 @@
-{
-  "name": "lodepng",
-  "type": "static",
-  "files": [
-    "src/third/loadpng/lodepng.h",
-    "src/third/loadpng/lodepng.cpp"
-  ]
-}
