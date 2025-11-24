@@ -1,0 +1,9 @@
+{
+    "name": "fps_controller",
+    "files": [
+        "src/util/fps_controller.h"
+    ],
+    "deps": ["fmt"],
+    "comment": "FPS控制器工具类"
+}
+

@@ -1,4 +1,4 @@
-﻿#include <util/shine_common.h>
+﻿#include "util/shine_define.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN

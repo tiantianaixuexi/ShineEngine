@@ -2,6 +2,7 @@
 
 #include <memory>
 #include "mathDef.h"
+#include "mathUtil.h"
 
 namespace shine::math
 {
@@ -233,9 +234,160 @@ namespace shine::math
             Z = _z;
         }
 
-        T getMax()  const noexcept { return Max(Max(X, Y), Z); }
+        [[nodiscard]] constexpr T getMax() const noexcept { return Max(Max(X, Y), Z); }
 
-        T getAbsMax()  const  noexcept{ return Max(Max(Abs(X),Abs(Y)), Abs(Z)); }
+        [[nodiscard]] constexpr T getAbsMax() const noexcept { return Max(Max(Abs(X), Abs(Y)), Abs(Z)); }
+
+        [[nodiscard]] constexpr T getMin() const noexcept { return Min(Min(X, Y), Z); }
+
+        [[nodiscard]] constexpr T getAbsMin() const noexcept { return Min(Min(Abs(X), Abs(Y)), Abs(Z)); }
+
+        // 长度平方（避免开方，性能更好）
+        [[nodiscard]] constexpr T LengthSquared() const noexcept
+        {
+            return X * X + Y * Y + Z * Z;
+        }
+
+        // 长度
+        [[nodiscard]] T Length() const noexcept
+        {
+            return Sqrt(LengthSquared());
+        }
+
+        // 获取归一化向量（不修改自身）
+        [[nodiscard]] TVector<T> GetNormalized(T Tolerance = SMALL_NUMBER) const noexcept
+        {
+            TVector<T> result(*this);
+            result.Normalize(Tolerance);
+            return result;
+        }
+
+        // 距离
+        [[nodiscard]] static T Distance(const TVector<T>& V1, const TVector<T>& V2) noexcept
+        {
+            return (V2 - V1).Length();
+        }
+
+        // 距离平方
+        [[nodiscard]] static constexpr T DistanceSquared(const TVector<T>& V1, const TVector<T>& V2) noexcept
+        {
+            return (V2 - V1).LengthSquared();
+        }
+
+        // 线性插值
+        [[nodiscard]] static constexpr TVector<T> Lerp(const TVector<T>& A, const TVector<T>& B, T Alpha) noexcept
+        {
+            Alpha = Clamp(Alpha, static_cast<T>(0), static_cast<T>(1));
+            return A + (B - A) * Alpha;
+        }
+
+        // 球面线性插值（用于方向向量）
+        [[nodiscard]] static TVector<T> Slerp(const TVector<T>& A, const TVector<T>& B, T Alpha) noexcept
+        {
+            Alpha = Clamp(Alpha, static_cast<T>(0), static_cast<T>(1));
+            T dot = A.Dot(B);
+            dot = Clamp(dot, static_cast<T>(-1), static_cast<T>(1));
+            
+            T theta = std::acos(dot);
+            if (Abs(theta) < SMALL_NUMBER) {
+                return Lerp(A, B, Alpha);
+            }
+            
+            T sinTheta = std::sin(theta);
+            T w1 = std::sin((static_cast<T>(1) - Alpha) * theta) / sinTheta;
+            T w2 = std::sin(Alpha * theta) / sinTheta;
+            
+            return A * w1 + B * w2;
+        }
+
+        // 反射向量
+        [[nodiscard]] TVector<T> Reflect(const TVector<T>& Normal) const noexcept
+        {
+            return *this - Normal * (static_cast<T>(2) * Dot(Normal));
+        }
+
+        // 投影向量（投影到另一个向量上）
+        [[nodiscard]] TVector<T> Project(const TVector<T>& Target) const noexcept
+        {
+            T targetLengthSq = Target.LengthSquared();
+            if (targetLengthSq < SMALL_NUMBER) {
+                return TVector<T>::Zero();
+            }
+            return Target * (Dot(Target) / targetLengthSq);
+        }
+
+        // 拒绝向量（垂直于另一个向量）
+        [[nodiscard]] TVector<T> Reject(const TVector<T>& Target) const noexcept
+        {
+            return *this - Project(Target);
+        }
+
+        // 计算两个向量之间的角度（弧度）
+        [[nodiscard]] static T Angle(const TVector<T>& A, const TVector<T>& B) noexcept
+        {
+            T dot = A.Dot(B);
+            T lenA = A.Length();
+            T lenB = B.Length();
+            
+            if (lenA < SMALL_NUMBER || lenB < SMALL_NUMBER) {
+                return static_cast<T>(0);
+            }
+            
+            dot = Clamp(dot / (lenA * lenB), static_cast<T>(-1), static_cast<T>(1));
+            return std::acos(dot);
+        }
+
+        // 计算两个向量之间的角度（度）
+        [[nodiscard]] static T AngleDegrees(const TVector<T>& A, const TVector<T>& B) noexcept
+        {
+            return Angle(A, B) * static_cast<T>(57.295779513082320876); // 180/PI
+        }
+
+        // 限制向量长度
+        [[nodiscard]] TVector<T> ClampLength(T MaxLength) const noexcept
+        {
+            T lengthSq = LengthSquared();
+            if (lengthSq <= MaxLength * MaxLength) {
+                return *this;
+            }
+            return GetNormalized() * MaxLength;
+        }
+
+        // 限制向量长度（最小和最大）
+        [[nodiscard]] TVector<T> ClampLength(T MinLength, T MaxLength) const noexcept
+        {
+            T length = Length();
+            if (length < MinLength) {
+                return GetNormalized() * MinLength;
+            }
+            if (length > MaxLength) {
+                return GetNormalized() * MaxLength;
+            }
+            return *this;
+        }
+
+        // 检查是否接近零向量
+        [[nodiscard]] constexpr bool IsNearlyZero(T Tolerance = SMALL_NUMBER) const noexcept
+        {
+            return Abs(X) <= Tolerance && Abs(Y) <= Tolerance && Abs(Z) <= Tolerance;
+        }
+
+        // 检查是否为单位向量
+        [[nodiscard]] bool IsUnit(T Tolerance = KINDA_SMALL_NUMBER) const noexcept
+        {
+            return Abs(LengthSquared() - static_cast<T>(1)) <= Tolerance;
+        }
+
+        // 数组访问操作符
+        [[nodiscard]] constexpr T& operator[](int Index) noexcept
+        {
+            return (Index == 0) ? X : (Index == 1) ? Y : Z;
+        }
+
+        [[nodiscard]] constexpr const T& operator[](int Index) const noexcept
+        {
+            return (Index == 0) ? X : (Index == 1) ? Y : Z;
+        }
     };
 
 

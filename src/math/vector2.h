@@ -1,10 +1,8 @@
 ﻿#pragma once
 
 #include <string>
-
-
-
 #include "math/mathDef.h"
+#include "math/mathUtil.h"
 
 namespace shine::math
 {
@@ -293,6 +291,119 @@ namespace shine::math
         [[nodiscard]] std::string ToString() const
         {
             return "(" + std::to_string(X) + ", " + std::to_string(Y) + ")";
+        }
+
+        // 限制向量长度
+        [[nodiscard]] vector2<T> ClampLength(T maxLength) const noexcept
+        {
+            T lengthSq = LengthSquared();
+            if (lengthSq <= maxLength * maxLength) {
+                return *this;
+            }
+            return GetNormalized() * maxLength;
+        }
+
+        // 限制向量长度（最小和最大）
+        [[nodiscard]] vector2<T> ClampLength(T minLength, T maxLength) const noexcept
+        {
+            T length = Length();
+            if (length < minLength) {
+                return GetNormalized() * minLength;
+            }
+            if (length > maxLength) {
+                return GetNormalized() * maxLength;
+            }
+            return *this;
+        }
+
+        // 检查是否接近零向量
+        [[nodiscard]] constexpr bool IsNearlyZero(T tolerance = SMALL_NUMBER) const noexcept
+        {
+            return Abs(X) <= tolerance && Abs(Y) <= tolerance;
+        }
+
+        // 检查是否为单位向量
+        [[nodiscard]] bool IsUnit(T tolerance = KINDA_SMALL_NUMBER) const noexcept
+        {
+            return Abs(LengthSquared() - static_cast<T>(1)) <= tolerance;
+        }
+
+        // 计算两个向量之间的角度（弧度）
+        [[nodiscard]] static T Angle(const vector2<T>& a, const vector2<T>& b) noexcept
+        {
+            T dot = a.Dot(b);
+            T lenA = a.Length();
+            T lenB = b.Length();
+            
+            if (lenA < SMALL_NUMBER || lenB < SMALL_NUMBER) {
+                return static_cast<T>(0);
+            }
+            
+            dot = Clamp(dot / (lenA * lenB), static_cast<T>(-1), static_cast<T>(1));
+            return std::acos(dot);
+        }
+
+        // 计算两个向量之间的角度（度）
+        [[nodiscard]] static T AngleDegrees(const vector2<T>& a, const vector2<T>& b) noexcept
+        {
+            return Angle(a, b) * static_cast<T>(57.295779513082320876); // 180/PI
+        }
+
+        // 投影向量（投影到另一个向量上）
+        [[nodiscard]] vector2<T> Project(const vector2<T>& target) const noexcept
+        {
+            T targetLengthSq = target.LengthSquared();
+            if (targetLengthSq < SMALL_NUMBER) {
+                return vector2<T>::Zero();
+            }
+            return target * (Dot(target) / targetLengthSq);
+        }
+
+        // 拒绝向量（垂直于另一个向量）
+        [[nodiscard]] vector2<T> Reject(const vector2<T>& target) const noexcept
+        {
+            return *this - Project(target);
+        }
+
+        // 旋转向量（逆时针旋转指定角度，弧度）
+        [[nodiscard]] vector2<T> Rotate(T angleRad) const noexcept
+        {
+            T cosA = std::cos(angleRad);
+            T sinA = std::sin(angleRad);
+            return vector2<T>(
+                X * cosA - Y * sinA,
+                X * sinA + Y * cosA
+            );
+        }
+
+        // 旋转向量（逆时针旋转指定角度，度）
+        [[nodiscard]] vector2<T> RotateDegrees(T angleDeg) const noexcept
+        {
+            return Rotate(angleDeg * static_cast<T>(0.017453292519943295769)); // PI/180
+        }
+
+        // 获取角度（相对于X轴，弧度）
+        [[nodiscard]] T GetAngle() const noexcept
+        {
+            return std::atan2(Y, X);
+        }
+
+        // 获取角度（相对于X轴，度）
+        [[nodiscard]] T GetAngleDegrees() const noexcept
+        {
+            return GetAngle() * static_cast<T>(57.295779513082320876);
+        }
+
+        // 从角度创建向量（弧度）
+        [[nodiscard]] static vector2<T> FromAngle(T angleRad) noexcept
+        {
+            return vector2<T>(std::cos(angleRad), std::sin(angleRad));
+        }
+
+        // 从角度创建向量（度）
+        [[nodiscard]] static vector2<T> FromAngleDegrees(T angleDeg) noexcept
+        {
+            return FromAngle(angleDeg * static_cast<T>(0.017453292519943295769));
         }
     };
 

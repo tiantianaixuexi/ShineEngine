@@ -3,17 +3,7 @@
   "type": "static",
   "files": [
     "src/util/string_util.h",
-    "src/util/string_util.cpp",
-    "src/util/base64/base64.h",
-    "src/util/base64/base64.cpp",
-    "src/util/encoding/byte_convert.h",
-    "src/util/encoding/byte_convert.cpp",
-    "src/util/file_util.h",
-    "src/util/file_util.cpp",
-    "src/util/timer/function_timer.h",
-    "src/util/timer/function_timer.cpp",
-    "src/util/timer/timer_util.h",
-    "src/util/timer/timer_util.cpp"
+    "src/util/string_util.cpp"
   ],
   "defines": [ "NOMINMAX" ],
   "deps": [ "fmt", "fast_float" ]

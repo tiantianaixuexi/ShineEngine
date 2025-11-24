@@ -1,0 +1,8 @@
+{
+    "name": "singleton",
+    "files": [
+        "src/util/singleton.h"
+    ],
+    "comment": "单例模式工具类"
+}
+

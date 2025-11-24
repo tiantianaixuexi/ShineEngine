@@ -5,7 +5,7 @@
       "src/util/file_util.h",
       "src/util/file_util.cpp"
     ],
-    "imports": [],
-    "deps": ["fmt","shine_define"]
-  }
+    "deps": ["fmt", "shine_define"],
+    "comment": "文件操作工具"
+}
 

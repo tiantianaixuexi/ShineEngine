@@ -114,8 +114,38 @@ function(parse_third_party_libs json_content result_debug result_release)
     set(release_list "")
     string(JSON link_exists ERROR_VARIABLE link_error TYPE ${json_content} "link")
     if(NOT link_error)
-        parse_json_array(${json_content} "link debug lib" debug_list)
-        parse_json_array(${json_content} "link release lib" release_list)
+        # CMake 的 string(JSON) 不支持点号分隔的嵌套路径，需要手动逐层解析
+        # 先检查 link.debug 对象是否存在
+        string(JSON debug_obj_exists ERROR_VARIABLE debug_obj_error TYPE ${json_content} "link" "debug")
+        if(NOT debug_obj_error)
+            # 获取 link.debug.lib 数组长度
+            string(JSON debug_lib_length ERROR_VARIABLE debug_lib_error LENGTH ${json_content} "link" "debug" "lib")
+            if(NOT debug_lib_error AND debug_lib_length GREATER 0)
+                math(EXPR debug_lib_length "${debug_lib_length} - 1")
+                foreach(i RANGE 0 ${debug_lib_length})
+                    string(JSON lib_item GET ${json_content} "link" "debug" "lib" ${i})
+                    if(lib_item)
+                        list(APPEND debug_list ${lib_item})
+                    endif()
+                endforeach()
+            endif()
+        endif()
+        
+        # 先检查 link.release 对象是否存在
+        string(JSON release_obj_exists ERROR_VARIABLE release_obj_error TYPE ${json_content} "link" "release")
+        if(NOT release_obj_error)
+            # 获取 link.release.lib 数组长度
+            string(JSON release_lib_length ERROR_VARIABLE release_lib_error LENGTH ${json_content} "link" "release" "lib")
+            if(NOT release_lib_error AND release_lib_length GREATER 0)
+                math(EXPR release_lib_length "${release_lib_length} - 1")
+                foreach(i RANGE 0 ${release_lib_length})
+                    string(JSON lib_item GET ${json_content} "link" "release" "lib" ${i})
+                    if(lib_item)
+                        list(APPEND release_list ${lib_item})
+                    endif()
+                endforeach()
+            endif()
+        endif()
     endif()
     set(${result_debug} ${debug_list} PARENT_SCOPE)
     set(${result_release} ${release_list} PARENT_SCOPE)
@@ -233,6 +263,27 @@ function(parse_and_cache_modules)
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_RELEASE" "${third_lib_release_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_PLATFORMS" "${platform_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_TYPES" "${type_list}")
+        
+        # 预判断是否是 INTERFACE 库（用于后续依赖链接）
+        set(is_interface_predicted FALSE)
+        if("${type_list}" MATCHES "third")
+            set(is_interface_predicted TRUE)
+        else()
+            # 检查是否是 header-only 库（只有头文件，没有源文件）
+            set(has_source FALSE)
+            set(has_header FALSE)
+            foreach(file ${files_list})
+                if(file MATCHES "\\.(cpp|ixx|cppm)$")
+                    set(has_source TRUE)
+                elseif(file MATCHES "\\.(h|hpp|ixx)$")
+                    set(has_header TRUE)
+                endif()
+            endforeach()
+            if(NOT has_source AND has_header)
+                set(is_interface_predicted TRUE)
+            endif()
+        endif()
+        set_property(GLOBAL PROPERTY "MODULE_${module_name}_IS_INTERFACE" ${is_interface_predicted})
 
         # 添加到模块列表
         get_property(module_list GLOBAL PROPERTY MODULE_DATA_CACHE)
@@ -430,6 +481,8 @@ foreach(module_name ${MODULE_LIST})
     # 配置目标属性
     if(is_interface)
         target_include_directories(${name} INTERFACE ${COMMON_INCLUDE_DIRS})
+        # INTERFACE 库也需要设置链接目录，以便第三方库文件能被找到
+        target_link_directories(${name} INTERFACE ${CMAKE_SOURCE_DIR}/exe ${CMAKE_SOURCE_DIR}/src/third/lib)
     else()
         set_module_properties(${name})
         target_include_directories(${name} PRIVATE ${COMMON_INCLUDE_DIRS})
@@ -584,14 +637,49 @@ foreach(module_name ${MODULE_LIST})
             endif()
 
             if(needs_link)
-                check_module_type("${dep_types}" "third" is_third_party)
-                if(is_third_party)
-                    get_third_party_libs(${dep} third_debug_libs third_release_libs)
-                    if(third_debug_libs OR third_release_libs)
-                        link_third_party_libs(${name} "${third_debug_libs}" "${third_release_libs}" FALSE)
+                # 获取依赖和目标是否是 INTERFACE 库的信息
+                get_property(dep_is_interface GLOBAL PROPERTY "MODULE_${dep}_IS_INTERFACE")
+                get_property(current_is_interface GLOBAL PROPERTY "MODULE_${module_name}_IS_INTERFACE")
+                
+                # 如果属性不存在，回退到检查类型
+                if(NOT DEFINED dep_is_interface)
+                    check_module_type("${dep_types}" "third" is_third_party)
+                    if(is_third_party)
+                        set(dep_is_interface TRUE)
+                    else()
+                        set(dep_is_interface FALSE)
                     endif()
-                elseif(TARGET ${dep})
-                    target_link_libraries(${name} PRIVATE ${dep})
+                endif()
+                
+                if(NOT DEFINED current_is_interface)
+                    check_module_type("${types}" "third" current_is_third)
+                    if(current_is_third)
+                        set(current_is_interface TRUE)
+                    else()
+                        set(current_is_interface FALSE)
+                    endif()
+                endif()
+                
+                if(TARGET ${dep})
+                    if(dep_is_interface)
+                        # 如果依赖是 INTERFACE 库，必须使用 INTERFACE 或 PUBLIC
+                        if(current_is_interface)
+                            # 当前目标也是 INTERFACE 库，使用 INTERFACE
+                            target_link_libraries(${name} INTERFACE ${dep})
+                        else()
+                            # 当前目标是普通库，使用 PUBLIC（这样依赖会传递）
+                            target_link_libraries(${name} PUBLIC ${dep})
+                        endif()
+                    else()
+                        # 依赖是普通库
+                        if(current_is_interface)
+                            # 当前目标是 INTERFACE 库，使用 INTERFACE
+                            target_link_libraries(${name} INTERFACE ${dep})
+                        else()
+                            # 当前目标是普通库，使用 PRIVATE
+                            target_link_libraries(${name} PRIVATE ${dep})
+                        endif()
+                    endif()
                 endif()
             endif()
         endforeach()
@@ -617,19 +705,130 @@ list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*/imgui/.*")
 list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*/tinygltf/.*")
 
 # 收集所有模块的源文件路径并排除
-set(EXCLUDE_SOURCES "")
+# 转换为绝对路径进行比较，避免路径格式问题
+set(EXCLUDE_ABS_PATHS "")
+set(EXCLUDE_REL_PATHS "")
+foreach(module_name ${MODULE_LIST})
+    get_property(files GLOBAL PROPERTY "MODULE_${module_name}_FILES")
+    foreach(mod_src ${files})
+        # 转换为绝对路径
+        get_filename_component(abs_mod_src "${CMAKE_SOURCE_DIR}/${mod_src}" ABSOLUTE)
+        # 规范化路径格式（统一使用正斜杠）
+        file(TO_CMAKE_PATH "${abs_mod_src}" abs_mod_src_norm)
+        list(APPEND EXCLUDE_ABS_PATHS "${abs_mod_src_norm}")
+        list(APPEND EXCLUDE_ABS_PATHS "${abs_mod_src}")
+        # 也添加相对路径
+        list(APPEND EXCLUDE_REL_PATHS "${mod_src}")
+        file(TO_CMAKE_PATH "${mod_src}" mod_src_norm)
+        list(APPEND EXCLUDE_REL_PATHS "${mod_src_norm}")
+    endforeach()
+endforeach()
+
+# 排除模块文件
+set(FILTERED_SOURCES "")
+foreach(src ${ENGINE_SOURCES})
+    # 转换为绝对路径并规范化
+    if(IS_ABSOLUTE "${src}")
+        set(abs_src "${src}")
+        file(RELATIVE_PATH rel_src "${CMAKE_SOURCE_DIR}" "${src}")
+    else()
+        get_filename_component(abs_src "${CMAKE_SOURCE_DIR}/${src}" ABSOLUTE)
+        set(rel_src "${src}")
+    endif()
+    # 规范化路径格式（统一使用正斜杠）
+    file(TO_CMAKE_PATH "${abs_src}" abs_src_norm)
+    file(TO_CMAKE_PATH "${rel_src}" rel_src_norm)
+    # 也尝试将反斜杠替换为正斜杠
+    string(REPLACE "\\" "/" abs_src_unix "${abs_src_norm}")
+    string(REPLACE "\\" "/" rel_src_unix "${rel_src_norm}")
+    # 检查是否在排除列表中（尝试多种格式）
+    list(FIND EXCLUDE_ABS_PATHS "${abs_src_norm}" found_abs1)
+    list(FIND EXCLUDE_ABS_PATHS "${abs_src}" found_abs2)
+    list(FIND EXCLUDE_ABS_PATHS "${abs_src_unix}" found_abs3)
+    list(FIND EXCLUDE_REL_PATHS "${rel_src_norm}" found_rel1)
+    list(FIND EXCLUDE_REL_PATHS "${rel_src}" found_rel2)
+    list(FIND EXCLUDE_REL_PATHS "${rel_src_unix}" found_rel3)
+    # 如果找到匹配（任何格式），则排除该文件
+    # 注意：list(FIND) 返回索引（>=0）表示找到，-1 表示未找到
+    set(should_exclude FALSE)
+    if(found_abs1 GREATER_EQUAL 0 OR found_abs2 GREATER_EQUAL 0 OR found_abs3 GREATER_EQUAL 0 OR
+       found_rel1 GREATER_EQUAL 0 OR found_rel2 GREATER_EQUAL 0 OR found_rel3 GREATER_EQUAL 0)
+        set(should_exclude TRUE)
+    endif()
+    # 如果找到匹配（任何格式），则排除该文件
+    if(NOT should_exclude)
+        list(APPEND FILTERED_SOURCES "${src}")
+    endif()
+endforeach()
+set(ENGINE_SOURCES ${FILTERED_SOURCES})
+
+# 最终检查：直接移除模块文件（使用 list(REMOVE_ITEM)）
 foreach(module_name ${MODULE_LIST})
     get_property(files GLOBAL PROPERTY "MODULE_${module_name}_FILES")
     foreach(mod_src ${files})
         get_filename_component(abs_mod_src "${CMAKE_SOURCE_DIR}/${mod_src}" ABSOLUTE)
         file(TO_CMAKE_PATH "${abs_mod_src}" abs_mod_src_norm)
-        list(APPEND EXCLUDE_SOURCES "${abs_mod_src_norm}")
+        # 尝试多种路径格式移除
+        list(REMOVE_ITEM ENGINE_SOURCES "${abs_mod_src_norm}")
+        list(REMOVE_ITEM ENGINE_SOURCES "${abs_mod_src}")
+        list(REMOVE_ITEM ENGINE_SOURCES "${mod_src}")
+        # 也尝试 Unix 风格的路径
+        string(REPLACE "\\" "/" abs_mod_src_unix "${abs_mod_src_norm}")
+        list(REMOVE_ITEM ENGINE_SOURCES "${abs_mod_src_unix}")
+        # 也尝试匹配文件名（不区分路径）
+        get_filename_component(filename "${mod_src}" NAME)
+        foreach(src ${ENGINE_SOURCES})
+            get_filename_component(src_filename "${src}" NAME)
+            if("${src_filename}" STREQUAL "${filename}")
+                list(REMOVE_ITEM ENGINE_SOURCES "${src}")
+            endif()
+        endforeach()
     endforeach()
 endforeach()
-list(REMOVE_ITEM ENGINE_SOURCES ${EXCLUDE_SOURCES})
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]gltfLoader\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]loader\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]lodepng\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]quat\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]rotator\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]vector\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]vector2\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]obj\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]png\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]base64[/\\\\]base64\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]byte_convert\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]file_util\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]string_util\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]url_util\\.h$")
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]timer[/\\\\].*\\.h$")
 
 # 创建主引擎目标
+# 注意：必须确保 ENGINE_SOURCES 中不包含模块文件
 add_executable(MainEngine ${ENGINE_SOURCES})
+
+# 双重保险：只对 MainEngine 目标中的模块文件设置属性以隐藏它们
+# 注意：不能全局设置模块文件属性，否则会阻止模块本身的构建
+if(TARGET MainEngine)
+    get_target_property(target_sources MainEngine SOURCES)
+    if(target_sources)
+        foreach(module_name ${MODULE_LIST})
+            get_property(files GLOBAL PROPERTY "MODULE_${module_name}_FILES")
+            foreach(mod_src ${files})
+                get_filename_component(filename "${mod_src}" NAME)
+                # 只对 MainEngine 目标中的文件设置属性
+                foreach(src ${target_sources})
+                    get_filename_component(src_filename "${src}" NAME)
+                    if("${src_filename}" STREQUAL "${filename}")
+                        set_source_files_properties("${src}" PROPERTIES 
+                            HEADER_FILE_ONLY TRUE
+                            VS_SETTINGS "ExcludeFromBuild=true"
+                        )
+                    endif()
+                endforeach()
+            endforeach()
+        endforeach()
+    endif()
+endif()
+
 target_include_directories(MainEngine PRIVATE ${COMMON_INCLUDE_DIRS})
 target_link_directories(MainEngine PRIVATE
     ${CMAKE_SOURCE_DIR}/exe
@@ -639,6 +838,8 @@ target_link_directories(MainEngine PRIVATE
 set_target_properties(MainEngine PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/exe"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/exe"
+    OUTPUT_NAME_DEBUG "MainEngined"
+    OUTPUT_NAME_RELEASE "MainEngine"
 )
 
 # VS过滤器设置
@@ -671,7 +872,42 @@ foreach(module_name ${MODULE_LIST})
     check_module_type("${types}" "exe" is_executable)
     if(NOT is_executable AND TARGET ${name})
         add_dependencies(MainEngine ${name})
-        target_link_libraries(MainEngine PRIVATE ${name})
+        # 对于 INTERFACE 库（如 fmt），使用 PUBLIC 链接以确保第三方库链接能传递
+        check_module_type("${types}" "third" is_third_party)
+        get_property(is_interface GLOBAL PROPERTY "MODULE_${module_name}_IS_INTERFACE")
+        if(is_third_party OR is_interface)
+            target_link_libraries(MainEngine PUBLIC ${name})
+        else()
+            target_link_libraries(MainEngine PRIVATE ${name})
+        endif()
+    endif()
+endforeach()
+
+# 确保 MainEngine 也直接链接所有第三方库的链接配置
+# 使用完整路径，与 link_third_party_libs 函数保持一致
+foreach(module_name ${MODULE_LIST})
+    get_property(name GLOBAL PROPERTY "MODULE_${module_name}_NAME")
+    get_property(types GLOBAL PROPERTY "MODULE_${module_name}_TYPES")
+    check_module_type("${types}" "third" is_third_party)
+    if(is_third_party)
+        get_property(third_libs_debug GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_DEBUG")
+        get_property(third_libs_release GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_RELEASE")
+        # 调试输出：验证解析是否成功（已确认工作正常，可注释掉）
+        # message(STATUS "MainEngine linking third-party libs for ${name}: Debug=${third_libs_debug}, Release=${third_libs_release}")
+        if(third_libs_debug)
+            foreach(lib ${third_libs_debug})
+                # 使用完整路径，与 link_third_party_libs 函数保持一致
+                target_link_libraries(MainEngine PRIVATE 
+                    $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
+            endforeach()
+        endif()
+        if(third_libs_release)
+            foreach(lib ${third_libs_release})
+                # 使用完整路径，与 link_third_party_libs 函数保持一致
+                target_link_libraries(MainEngine PRIVATE 
+                    $<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
+            endforeach()
+        endif()
     endif()
 endforeach()
 
@@ -744,3 +980,4 @@ if(BUILD_TESTS)
         message(STATUS "Test directory not found, skipping")
     endif()
 endif()
+

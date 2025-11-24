@@ -3,14 +3,14 @@
 #include <cmath>
 #include <array>
 
-
-#include "math/rotator.h"
-#include "math/mathDef.h"
-
+#include "rotator.h"
+#include "mathDef.h"
 
 
 namespace shine::math
 {
+    template<FloatingPoint T>
+    struct TRotator;
 
     template<FloatingPoint T>
     class TQuat
@@ -152,6 +152,114 @@ namespace shine::math
             T n2 = w * w + x * x + y * y + z * z;
             if (n2 == T(0)) return *this;
             return conjugate() / n2;
+        }
+
+        // 旋转向量（使用 TVector）
+        template<typename VectorType>
+        [[nodiscard]] constexpr VectorType rotateVector(const VectorType& v) const noexcept {
+            TQuat<T> qv{T(0), v.X, v.Y, v.Z};
+            TQuat<T> res = (*this) * qv * this->conjugate();
+            return VectorType{res.x, res.y, res.z};
+        }
+
+        // 从方向向量创建四元数（look rotation）
+        static constexpr TQuat fromDirection(const std::array<T, 3>& forward, const std::array<T, 3>& up = {T(0), T(0), T(1)}) noexcept {
+            std::array<T, 3> f = forward;
+            T len = std::sqrt(f[0] * f[0] + f[1] * f[1] + f[2] * f[2]);
+            if (len < T(1e-6)) return identity();
+            f[0] /= len; f[1] /= len; f[2] /= len;
+
+            std::array<T, 3> r = {
+                f[1] * up[2] - f[2] * up[1],
+                f[2] * up[0] - f[0] * up[2],
+                f[0] * up[1] - f[1] * up[0]
+            };
+            len = std::sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
+            if (len < T(1e-6)) {
+                r = {T(1), T(0), T(0)};
+            } else {
+                r[0] /= len; r[1] /= len; r[2] /= len;
+            }
+
+            std::array<T, 3> u = {
+                r[1] * f[2] - r[2] * f[1],
+                r[2] * f[0] - r[0] * f[2],
+                r[0] * f[1] - r[1] * f[0]
+            };
+
+            T trace = r[0] + u[1] + f[2];
+            if (trace > T(0)) {
+                T s = std::sqrt(trace + T(1)) * T(2);
+                return TQuat(
+                    s * T(0.25),
+                    (u[2] - f[1]) / s,
+                    (f[0] - r[2]) / s,
+                    (r[1] - u[0]) / s
+                );
+            } else if (r[0] > u[1] && r[0] > f[2]) {
+                T s = std::sqrt(T(1) + r[0] - u[1] - f[2]) * T(2);
+                return TQuat(
+                    (u[2] - f[1]) / s,
+                    s * T(0.25),
+                    (r[1] + u[0]) / s,
+                    (f[0] + r[2]) / s
+                );
+            } else if (u[1] > f[2]) {
+                T s = std::sqrt(T(1) + u[1] - r[0] - f[2]) * T(2);
+                return TQuat(
+                    (f[0] - r[2]) / s,
+                    (r[1] + u[0]) / s,
+                    s * T(0.25),
+                    (u[2] + f[1]) / s
+                );
+            } else {
+                T s = std::sqrt(T(1) + f[2] - r[0] - u[1]) * T(2);
+                return TQuat(
+                    (r[1] - u[0]) / s,
+                    (f[0] + r[2]) / s,
+                    (u[2] + f[1]) / s,
+                    s * T(0.25)
+                );
+            }
+        }
+
+        // 获取前方向向量
+        [[nodiscard]] constexpr std::array<T, 3> forward() const noexcept {
+            return {
+                T(2) * (x * z + w * y),
+                T(2) * (y * z - w * x),
+                T(1) - T(2) * (x * x + y * y)
+            };
+        }
+
+        // 获取右方向向量
+        [[nodiscard]] constexpr std::array<T, 3> right() const noexcept {
+            return {
+                T(1) - T(2) * (y * y + z * z),
+                T(2) * (x * y + w * z),
+                T(2) * (x * z - w * y)
+            };
+        }
+
+        // 获取上方向向量
+        [[nodiscard]] constexpr std::array<T, 3> up() const noexcept {
+            return {
+                T(2) * (x * y - w * z),
+                T(1) - T(2) * (x * x + z * z),
+                T(2) * (y * z + w * x)
+            };
+        }
+
+        // 角度插值（nlerp - normalized lerp，更快但不够精确）
+        [[nodiscard]] static constexpr TQuat nlerp(const TQuat& a, const TQuat& b, T t) noexcept {
+            T d = a.dot(b);
+            TQuat b2 = (d < T(0)) ? -b : b;
+            return (a * (T(1) - t) + b2 * t).normalized();
+        }
+
+        // 检查是否为零四元数
+        [[nodiscard]] constexpr bool isZero(T eps = T(1e-6)) const noexcept {
+            return std::abs(w) < eps && std::abs(x) < eps && std::abs(y) < eps && std::abs(z) < eps;
         }
     };
 

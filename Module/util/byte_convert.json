@@ -5,6 +5,7 @@
       "src/util/encoding/byte_convert.h",
       "src/util/encoding/byte_convert.cpp"
     ],
-    "deps":["fmt"]
-  }
+    "deps": ["fmt"],
+    "comment": "字节转换工具"
+}
 

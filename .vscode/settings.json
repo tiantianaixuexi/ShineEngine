@@ -19,8 +19,14 @@
     // 日志级别（可选：verbose, info, warning, error）
     "--log=info",
     // 限制内存使用（MB）
-    "--limit-results=100"
+    "--limit-results=100",
+    // 启用跳转到定义
+    "--header-insertion=never"
   ],
+  // clangd 检查文件模式
+  "clangd.checkUpdates": true,
+  // clangd 自动重启
+  "clangd.restartAfterCrash": true,
   
   // 禁用 VSCode 内置的 C/C++ 扩展（避免冲突）
   "C_Cpp.intelliSenseEngine": "disabled",

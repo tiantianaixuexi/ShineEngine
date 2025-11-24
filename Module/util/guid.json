@@ -1,0 +1,8 @@
+{
+    "name": "guid",
+    "files": [
+        "src/util/guid.h"
+    ],
+    "comment": "GUID工具类"
+}
+

@@ -5,6 +5,6 @@
       "src/image/png.h",
       "src/image/png.cpp"
     ],
-    "deps": ["file_util","timer","fast_float","byte_convert","shine_define"]
+    "deps": ["file_util","timer","fast_float","byte_convert","shine_define","fmt"]
 }
 

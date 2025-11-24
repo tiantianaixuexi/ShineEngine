@@ -30,7 +30,7 @@ namespace shine::model
     };
 
     // Obj 材质信息结构体
-    struct EXPORT_OBJ objMaterial
+    struct  objMaterial
     {
         objMaterial() = default;
 
