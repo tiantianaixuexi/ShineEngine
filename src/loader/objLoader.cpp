@@ -735,12 +735,18 @@ namespace shine::loader
                     currentMaterial->specularMap = std::string(path);
                 } else if (trimmed.size() > 4 && trimmed.substr(0, 5) == "map_B") {
                     // map_Bump or bump - Bump map
-                    std::string_view path = trimmed.substr(trimmed.find(' ') + 1);
-                    currentMaterial->bumpMap = std::string(path);
+                    size_t spacePos = trimmed.find(' ');
+                    if (spacePos != std::string_view::npos && spacePos + 1 < trimmed.size()) {
+                        std::string_view path = trimmed.substr(spacePos + 1);
+                        currentMaterial->bumpMap = std::string(path);
+                    }
                 } else if (trimmed.size() > 8 && trimmed.substr(0, 9) == "map_Normal") {
                     // map_Normal - Normal map
-                    std::string_view path = trimmed.substr(trimmed.find(' ') + 1);
-                    currentMaterial->normalMap = std::string(path);
+                    size_t spacePos = trimmed.find(' ');
+                    if (spacePos != std::string_view::npos && spacePos + 1 < trimmed.size()) {
+                        std::string_view path = trimmed.substr(spacePos + 1);
+                        currentMaterial->normalMap = std::string(path);
+                    }
                 }
             }
         }
@@ -799,6 +805,35 @@ namespace shine::loader
                         int vtIdx = (i < face.texCoordIndices.size()) ? face.texCoordIndices[i] : 0;
                         int vnIdx = (i < face.normalIndices.size()) ? face.normalIndices[i] : 0;
 
+                        // 处理负索引（OBJ 格式支持相对索引，负索引表示从末尾开始）
+                        size_t vAbsIdx = 0;
+                        if (vIdx != 0) {
+                            if (vIdx > 0) {
+                                vAbsIdx = static_cast<size_t>(vIdx - 1);
+                            } else {
+                                // 负索引：-1 表示最后一个，-2 表示倒数第二个，以此类推
+                                vAbsIdx = _model.vertices.size() + static_cast<size_t>(vIdx);
+                            }
+                        }
+
+                        size_t vtAbsIdx = 0;
+                        if (vtIdx != 0) {
+                            if (vtIdx > 0) {
+                                vtAbsIdx = static_cast<size_t>(vtIdx - 1);
+                            } else {
+                                vtAbsIdx = _model.texCoords.size() + static_cast<size_t>(vtIdx);
+                            }
+                        }
+
+                        size_t vnAbsIdx = 0;
+                        if (vnIdx != 0) {
+                            if (vnIdx > 0) {
+                                vnAbsIdx = static_cast<size_t>(vnIdx - 1);
+                            } else {
+                                vnAbsIdx = _model.normals.size() + static_cast<size_t>(vnIdx);
+                            }
+                        }
+
                         // 创建唯一键
                         std::string key = fmt::format("{}_{}_{}", vIdx, vtIdx, vnIdx);
 
@@ -810,24 +845,24 @@ namespace shine::loader
                             indexMap[key] = index;
 
                             // 添加顶点位置
-                            if (vIdx > 0 && static_cast<size_t>(vIdx - 1) < _model.vertices.size()) {
-                                const ObjVertex& v = _model.vertices[vIdx - 1];
+                            if (vIdx != 0 && vAbsIdx < _model.vertices.size()) {
+                                const ObjVertex& v = _model.vertices[vAbsIdx];
                                 meshData.vertices.emplace_back(v.x, v.y, v.z);
                             } else {
                                 meshData.vertices.emplace_back(0.0f, 0.0f, 0.0f);
                             }
 
                             // 添加纹理坐标
-                            if (vtIdx > 0 && static_cast<size_t>(vtIdx - 1) < _model.texCoords.size()) {
-                                const ObjTexCoord& vt = _model.texCoords[vtIdx - 1];
+                            if (vtIdx != 0 && vtAbsIdx < _model.texCoords.size()) {
+                                const ObjTexCoord& vt = _model.texCoords[vtAbsIdx];
                                 meshData.texcoords.emplace_back(vt.u, vt.v);
                             } else {
                                 meshData.texcoords.emplace_back(0.0f, 0.0f);
                             }
 
                             // 添加法线
-                            if (vnIdx > 0 && static_cast<size_t>(vnIdx - 1) < _model.normals.size()) {
-                                const ObjNormal& vn = _model.normals[vnIdx - 1];
+                            if (vnIdx != 0 && vnAbsIdx < _model.normals.size()) {
+                                const ObjNormal& vn = _model.normals[vnAbsIdx];
                                 meshData.normals.emplace_back(vn.x, vn.y, vn.z);
                             } else {
                                 meshData.normals.emplace_back(0.0f, 0.0f, 1.0f);
