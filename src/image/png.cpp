@@ -2535,9 +2535,13 @@ namespace shine::image
 					size_t i = 0;
 					const __m128i alpha = _mm_set1_epi8(0xFF);
 					
-					for (; i + 4 <= pixelCount; i += 4)
+					// 确保至少有5个像素（15字节）才使用SIMD，避免越界读取
+					// _mm_loadu_si128 会加载16字节，所以需要确保 i*3 + 15 不超出缓冲区
+					// 当 i + 4 < pixelCount 时，i*3 + 15 < (pixelCount-1)*3 + 15 = pixelCount*3 + 12
+					// 但我们需要 i*3 + 15 < pixelCount*3，即 i + 5 <= pixelCount
+					for (; i + 5 <= pixelCount; i += 4)
 					{
-						// 加载12字节RGB数据
+						// 加载12字节RGB数据（安全：i*3 + 15 < (i+5)*3 = i*3 + 15 <= pixelCount*3）
 						__m128i rgb = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src + i * 3));
 						
 						// 使用shuffle重新排列：RGBRGBRGBRGB -> RGBARGBA...
@@ -2553,7 +2557,7 @@ namespace shine::image
 						_mm_storeu_si128(reinterpret_cast<__m128i*>(dst + i * 4), rgba);
 					}
 					
-					// 处理剩余像素
+					// 处理剩余像素（使用标量代码）
 					for (; i < pixelCount; ++i)
 					{
 						dst[i * 4 + 0] = src[i * 3 + 0];
