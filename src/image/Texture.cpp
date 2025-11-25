@@ -13,7 +13,7 @@ namespace shine::image
     STexture::~STexture()
     {
         // 注意：GPU 资源应该在外部通过 ReleaseRenderResource 释放
-        // 这里不自动释放，因为 TextureManager 管理生命周期
+        // 这里不自动释放，因为 TextureManager 管理生命周期updateData
     }
 
     void STexture::Initialize(u32 width, u32 height, const std::vector<RGBA8>& data)
@@ -141,7 +141,26 @@ namespace shine::image
         _data = std::move(rgbaData);
     }
 
-    // 获取纹理信息（已在头文件中内联实现，这里不需要重复）
+
+    void STexture::updateData(const std::vector<RGBA8>& rgbaData) {
+        // 确保数据大小一致
+        if (rgbaData.size() != static_cast<size_t>(_width * _height)) {
+            return; // 数据大小不匹配，这是错误
+        }
+
+        // 更新CPU数据
+        _data = rgbaData;
+
+        // 更新GPU纹理（高效的子区域更新）
+        if (_renderHandle.isValid()) {
+            auto& textureManager = shine::render::TextureManager::get();
+            textureManager.UpdateTexture(_renderHandle, rgbaData.data(), _width, _height);
+        }
+        else {
+            // 如果没有GPU资源，创建它
+            CreateRenderResource();
+        }
+    }
 
     // 设置纹理参数
     void STexture::setFilter(TextureFilter minFilter, TextureFilter magFilter)
