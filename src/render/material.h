@@ -9,6 +9,7 @@
 
 #include "shader_manager.h"
 #include "pipeline/command_buffer.h"
+#include "render/command/command_list.h"
 
 
 namespace shine::render
@@ -202,12 +203,12 @@ namespace shine::render
         }
 
         // 最小接口：绑定Program并设置材质参数（不包含相关模型变换）
-        void bind(CommandBuffer& cmdBuffer)
+        void bind(command::ICommandList& cmdList)
         {
 #ifdef SHINE_OPENGL
             ensureCompiled();
             if (m_Program == 0) return;
-            cmdBuffer.UseProgram(static_cast<std::uint64_t>(m_Program));
+            cmdList.useProgram(static_cast<std::uint64_t>(m_Program));
             // Uniform 设置需要在执行时进行，这里先记录到命令缓冲区
             // 注意：由于 CommandBuffer 不直接支持 uniform 设置，我们需要扩展它
             // 暂时保留直接调用 glUniform（在 Execute 时处理）

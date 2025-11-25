@@ -337,7 +337,7 @@ namespace shine::image
 		
 		auto file_data_view = std::move(result->view);
 
-		// 验证 PNG 文件格式
+		// 验证 PNG 文件格式（只验证文件头，不解析块）
 		if (!IsPngFile(file_data_view.content))
 		{
 			setError(shine::loader::EAssetLoaderError::INVALID_FORMAT);
@@ -354,10 +354,139 @@ namespace shine::image
 			reinterpret_cast<const uint8_t*>(file_data_view.content.data()) + file_data_view.content.size()
 		);
 
+		// 解析后续的 PNG 块（从偏移 33 开始，跳过文件头 8 字节 + IHDR 块 25 字节）
+		// IsPngFile 已经解析了 IHDR 块，现在解析其他块
+		bool isEnd = false;
+		std::span<const std::byte> Data = file_data_view.content.subspan(33);
+		while (!isEnd)
+		{
+			// 优化：提前检查是否有足够的数据读取块头（至少12字节：4字节长度+4字节类型+4字节CRC）
+			if (Data.size() < 12)
+			{
+				fmt::println("警告: PNG 块数据不足，停止解析");
+				break;
+			}
+			
+			unsigned chunkLength = 0;
+			read_be_ref(Data, chunkLength);
+
+			std::span<const std::byte> type = Data.subspan(4);
+			
+			// 检查是否有足够的数据读取块内容
+			if (Data.size() < 8 + chunkLength)
+			{
+				fmt::println("警告: PNG 块内容数据不足，停止解析");
+				break;
+			}
+			
+			std::span<const std::byte> chunkData = Data.subspan(8, chunkLength);
+
+			if (JudgeChunkType(type, IDAT))
+			{
+				// 收集所有 IDAT 块的数据
+				const size_t oldSize = idatData.size();
+				idatData.resize(oldSize + chunkLength);
+				std::memcpy(idatData.data() + oldSize, chunkData.data(), chunkLength);
+				fmt::println("长度: {},类型:IDAT, 累计大小: {}", chunkLength, idatData.size());
+			}
+			else if (JudgeChunkType(type, PLTE))
+			{
+				read_plte(chunkData, chunkLength);
+				fmt::println("长度: {},类型:PLTE", chunkLength);
+			}
+			else if (JudgeChunkType(type, TIME))
+			{
+				time.year = 256u * read_u8(chunkData, 0) + read_u8(chunkData, 1);
+				read_be_ref(chunkData, time.month, 2);
+				read_be_ref(chunkData, time.day, 3);
+				read_be_ref(chunkData, time.hour, 4);
+				read_be_ref(chunkData, time.minute, 5);
+				read_be_ref(chunkData, time.second, 6);
+				fmt::println("PNG 文件包含时间块tIME");
+				fmt::println("图片最后修改时间: {:04}-{:02}-{:02} {:02}:{:02}:{:02}", time.year, time.month, time.day, time.hour, time.minute, time.second);
+			}
+			else if (JudgeChunkType(type, IEND))
+			{
+				// 优化：遇到IEND块后立即退出，不需要继续处理
+				isEnd = true;
+				break;
+			}
+			else if (JudgeChunkType(type, TRNS))
+			{
+				read_trns(chunkData, chunkLength);
+			}
+			else if (JudgeChunkType(type, BKGD))
+			{
+				read_bkgd(chunkData, chunkLength);
+			}
+			else if (JudgeChunkType(type, TEXT))
+			{
+				read_text(chunkData, chunkLength);
+			}
+			else if (JudgeChunkType(type, ZTXT))
+			{
+				read_ztxt(chunkData, chunkLength);
+			}
+			else if (JudgeChunkType(type, ITXT))
+			{
+				read_itxt(chunkData, chunkLength);
+			}
+			else if (JudgeChunkType(type, PHYS))
+			{
+				read_phys(chunkData, chunkLength);
+			}
+			else if (JudgeChunkType(type, GAMA))
+			{
+				read_gama(chunkData, chunkLength);
+			}
+			else if (JudgeChunkType(type, CHRM))
+			{
+				read_chrm(chunkData, chunkLength);
+			}
+			else if (JudgeChunkType(type, SRGB))
+			{
+				read_srgb(chunkData, chunkLength);
+			}
+			else if (JudgeChunkType(type, ICCP))
+			{
+				// TODO: 实现 ICC 配置文件解析和内存管理
+				// ICCP 块包含 ICC 颜色配置文件，通常较大，需要特殊处理
+			}
+			else if (JudgeChunkType(type, CICP))
+			{
+				read_cicp(chunkData, chunkLength);
+			}
+			else if (JudgeChunkType(type, MDCV))
+			{
+				read_mdcv(chunkData, chunkLength);
+			}
+			else if (JudgeChunkType(type, CLLI))
+			{
+				read_clli(chunkData, chunkLength);
+			}
+			else if (JudgeChunkType(type, EXIF))
+			{
+				read_exif(chunkData, chunkLength);
+			}
+			else if (JudgeChunkType(type, SBIT))
+			{
+				read_sbit(chunkData, chunkLength);
+			}
+
+			// PNG 块结构：4 字节长度 + 4 字节类型 + chunkLength 字节数据 + 4 字节 CRC
+			// 移动到下一个块
+			if (Data.size() < 12 + chunkLength)
+			{
+				fmt::println("警告: PNG 块数据不完整，停止解析");
+				break;
+			}
+			Data = Data.subspan(12 + chunkLength);
+		}
+
 		return {};
 	}
 
-	constexpr bool png::IsPngFile(std::span<const std::byte> content) noexcept
+	bool png::IsPngFile(std::span<const std::byte> content) noexcept
 	{
 		// 检查文件大小（至少需要文件头 + IHDR 块）
 		if (content.size() < 33)
@@ -448,141 +577,9 @@ namespace shine::image
 			return false;
 		}
 
-		// 解析后续的 PNG 块（从偏移 33 开始，跳过文件头 8 字节 + IHDR 块 25 字节）
-		bool isEnd = false;
-		std::span<const std::byte> Data = content.subspan(33);
-		while (!isEnd)
-		{
-			// 优化：提前检查是否有足够的数据读取块头（至少12字节：4字节长度+4字节类型+4字节CRC）
-			if (Data.size() < 12)
-			{
-				fmt::println("警告: PNG 块数据不足，停止解析");
-				break;
-			}
-			
-			unsigned chunkLength = 0;
-			read_be_ref(Data, chunkLength);
-
-			std::span<const std::byte> type = Data.subspan(4);
-			
-			// 检查是否有足够的数据读取块内容
-			if (Data.size() < 8 + chunkLength)
-			{
-				fmt::println("警告: PNG 块内容数据不足，停止解析");
-				break;
-			}
-			
-			std::span<const std::byte> chunkData = Data.subspan(8, chunkLength);
-
-			if (JudgeChunkType(type, IDAT))
-			{
-				// 收集所有 IDAT 块的数据
-				const size_t oldSize = idatData.size();
-				idatData.resize(oldSize + chunkLength);
-				std::memcpy(idatData.data() + oldSize, chunkData.data(), chunkLength);
-				fmt::println("长度: {},类型:IDAT, 累计大小: {}", chunkLength, idatData.size());
-			}
-			else if (JudgeChunkType(type, PLTE))
-			{
-				read_plte(chunkData, chunkLength);
-
-				fmt::println("长度: {},类型:PLTE", chunkLength);
-
-			}
-			else if (JudgeChunkType(type, TIME))
-			{
-				time.year = 256u * read_u8(chunkData, 0) + read_u8(chunkData, 1);
-				read_be_ref(chunkData, time.month, 2);
-				read_be_ref(chunkData, time.day, 3);
-				read_be_ref(chunkData, time.hour, 4);
-				read_be_ref(chunkData, time.minute, 5);
-				read_be_ref(chunkData, time.second, 6);
-
-				fmt::println("PNG 文件包含时间块tIME");
-				fmt::println("图片最后修改时间: {:04}-{:02}-{:02} {:02}:{:02}:{:02}", time.year, time.month, time.day, time.hour, time.minute, time.second);
-			}
-			else if (JudgeChunkType(type, IEND))
-			{
-				// 优化：遇到IEND块后立即退出，不需要继续处理
-				isEnd = true;
-				break;
-			}
-			else if (JudgeChunkType(type, TRNS))
-			{
-				read_trns(chunkData, chunkLength);
-			}
-			else if (JudgeChunkType(type, BKGD))
-			{
-				read_bkgd(chunkData, chunkLength);
-			}
-			else if (JudgeChunkType(type, TEXT))
-			{
-				read_text(chunkData, chunkLength);
-			}
-			else if (JudgeChunkType(type, ZTXT))
-			{
-				read_ztxt(chunkData, chunkLength);
-			}
-			else if (JudgeChunkType(type, ITXT))
-			{
-				read_itxt(chunkData, chunkLength);
-			}
-			else if (JudgeChunkType(type, PHYS))
-			{
-				read_phys(chunkData, chunkLength);
-			}
-			else if (JudgeChunkType(type, GAMA))
-			{
-				read_gama(chunkData, chunkLength);
-			}
-			else if (JudgeChunkType(type, CHRM))
-			{
-				read_chrm(chunkData, chunkLength);
-			}
-			else if (JudgeChunkType(type, SRGB))
-			{
-				read_srgb(chunkData, chunkLength);
-			}
-			else if (JudgeChunkType(type, ICCP))
-			{
-				// TODO: 实现 ICC 配置文件解析和内存管理
-				// ICCP 块包含 ICC 颜色配置文件，通常较大，需要特殊处理
-			}
-			else if (JudgeChunkType(type, CICP))
-			{
-				read_cicp(chunkData, chunkLength);
-			}
-			else if (JudgeChunkType(type, MDCV))
-			{
-				read_mdcv(chunkData, chunkLength);
-			}
-			else if (JudgeChunkType(type, CLLI))
-			{
-				read_clli(chunkData, chunkLength);
-			}
-			else if (JudgeChunkType(type, EXIF))
-			{
-				read_exif(chunkData, chunkLength);
-			}
-			else if (JudgeChunkType(type, SBIT))
-			{
-				read_sbit(chunkData, chunkLength);
-			}
-
-			// PNG 块结构：4 字节长度 + 4 字节类型 + chunkLength 字节数据 + 4 字节 CRC
-			// 移动到下一个块
-			if (Data.size() < 12 + chunkLength)
-			{
-				fmt::println("警告: PNG 块数据不完整，停止解析");
-				break;
-			}
-			Data = Data.subspan(12 + chunkLength);
-		}
-
-		// 注意：不在这里自动解码，让用户显式调用decode()来控制解码时机
-		// 这样可以避免重复解码，并允许延迟解码
-
-		return {};
+		// IsPngFile 只验证文件格式，不解析后续块
+		// 块解析应该在 parsePngFile 中进行
+		return true;
 	}
 
 	// ============================================================================
@@ -1355,7 +1352,11 @@ namespace shine::image
 		}
 
 		// 1. Zlib 解压缩 IDAT 数据
-		auto decompressedResult = zlibDecompress(idatData);
+		std::expected<std::vector<uint8_t>, std::string> decompressedResult;
+		{
+			util::FunctionTimer timer1("PNG解码: Zlib解压缩", util::TimerPrecision::Milliseconds);
+			decompressedResult = zlibDecompress(idatData);
+		}
 		if (!decompressedResult.has_value())
 		{
 			return std::unexpected("Zlib 解压缩失败: " + decompressedResult.error());
@@ -1424,65 +1425,72 @@ namespace shine::image
 			unfilteredData.reserve(estimatedSize);
 		}
 		
-		if (interlaceMethod == 1)
+		// 4. 解滤波器
 		{
-			// Adam7 交织解码
-			auto adam7Result = decodeAdam7(decompressed, bytesPerPixel, scanlineWidth);
-			if (!adam7Result.has_value())
+			util::FunctionTimer timer2("PNG解码: 解滤波器", util::TimerPrecision::Milliseconds);
+			if (interlaceMethod == 1)
 			{
-				return std::unexpected("Adam7 交织解码失败: " + adam7Result.error());
+				// Adam7 交织解码
+				auto adam7Result = decodeAdam7(decompressed, bytesPerPixel, scanlineWidth);
+				if (!adam7Result.has_value())
+				{
+					return std::unexpected("Adam7 交织解码失败: " + adam7Result.error());
+				}
+				unfilteredData = std::move(adam7Result.value());
 			}
-			unfilteredData = std::move(adam7Result.value());
-		}
-		else
-		{
-			// 非交织：直接解滤波器
-			const uint8_t* prevline = nullptr;
-			for (size_t y = 0; y < _height; ++y)
+			else
 			{
-				size_t offset = y * (scanlineWidth + 1);
-				if (offset >= decompressed.size())
+				// 非交织：直接解滤波器
+				const uint8_t* prevline = nullptr;
+				for (size_t y = 0; y < _height; ++y)
 				{
-					return std::unexpected(fmt::format("解压缩数据大小不足: 需要至少 {} 字节，但只有 {} 字节", 
-						offset + scanlineWidth + 1, decompressed.size()));
+					size_t offset = y * (scanlineWidth + 1);
+					if (offset >= decompressed.size())
+					{
+						return std::unexpected(fmt::format("解压缩数据大小不足: 需要至少 {} 字节，但只有 {} 字节", 
+							offset + scanlineWidth + 1, decompressed.size()));
+					}
+					
+					uint8_t filterType = decompressed[offset];
+					if (filterType > 4)
+					{
+						return std::unexpected(fmt::format("无效的滤波器类型: {} (第 {} 行)", filterType, y));
+					}
+					
+					if (offset + 1 + scanlineWidth > decompressed.size())
+					{
+						return std::unexpected(fmt::format("扫描线数据不足: 第 {} 行需要 {} 字节，但只有 {} 字节", 
+							y, scanlineWidth, decompressed.size() - offset - 1));
+					}
+					
+					std::span<const uint8_t> scanline(decompressed.data() + offset + 1, scanlineWidth);
+					
+					// 优化：直接使用预分配的缓冲区，避免resize
+					size_t reconOffset = y * scanlineWidth;
+					std::span<uint8_t> recon(unfilteredData.data() + reconOffset, scanlineWidth);
+					
+					unfilterScanline(recon, scanline, prevline, bytesPerPixel, filterType);
+					prevline = recon.data();
 				}
 				
-				uint8_t filterType = decompressed[offset];
-				if (filterType > 4)
+				// 对于低位深度，移除填充位
+				if (bitDepth < 8 && bitDepth > 0)
 				{
-					return std::unexpected(fmt::format("无效的滤波器类型: {} (第 {} 行)", filterType, y));
-				}
-				
-				if (offset + 1 + scanlineWidth > decompressed.size())
-				{
-					return std::unexpected(fmt::format("扫描线数据不足: 第 {} 行需要 {} 字节，但只有 {} 字节", 
-						y, scanlineWidth, decompressed.size() - offset - 1));
-				}
-				
-				std::span<const uint8_t> scanline(decompressed.data() + offset + 1, scanlineWidth);
-				
-				// 优化：直接使用预分配的缓冲区，避免resize
-				size_t reconOffset = y * scanlineWidth;
-				std::span<uint8_t> recon(unfilteredData.data() + reconOffset, scanlineWidth);
-				
-				unfilterScanline(recon, scanline, prevline, bytesPerPixel, filterType);
-				prevline = recon.data();
-			}
-			
-			// 对于低位深度，移除填充位
-			if (bitDepth < 8 && bitDepth > 0)
-			{
-				size_t actualBitsPerLine = _width * bitDepth;
-				size_t paddedBitsPerLine = scanlineWidth * 8;
-				if (paddedBitsPerLine != actualBitsPerLine)
-				{
-					unfilteredData = removePaddingBits(unfilteredData, actualBitsPerLine, paddedBitsPerLine, _height);
+					size_t actualBitsPerLine = _width * bitDepth;
+					size_t paddedBitsPerLine = scanlineWidth * 8;
+					if (paddedBitsPerLine != actualBitsPerLine)
+					{
+						unfilteredData = removePaddingBits(unfilteredData, actualBitsPerLine, paddedBitsPerLine, _height);
+					}
 				}
 			}
 		}
 		
 		// 5. 转换为 RGBA
-		convertToRGBA(unfilteredData, imageData);
+		{
+			util::FunctionTimer timer3("PNG解码: 转换为RGBA", util::TimerPrecision::Milliseconds);
+			convertToRGBA(unfilteredData, imageData);
+		}
 		
 		return {};
 	}
@@ -2515,37 +2523,110 @@ namespace shine::image
 				
 			case PngColorType::RGB:
 				{
-					// 优化：RGB转RGBA，批量处理减少循环开销
+					// 优化：RGB转RGBA，使用SIMD加速
 					const size_t pixelCount = rawData.size() / 3;
 					const uint8_t* src = rawData.data();
 					uint8_t* dst = output.data();
 					
-					// 展开循环，每次处理4个像素（12字节输入，16字节输出）
+#ifndef __EMSCRIPTEN__
+#if defined(__SSE4_1__) && (defined(_MSC_VER) || defined(__GNUC__) || defined(__clang__))
+					// SSE4.1优化：每次处理4个像素（12字节输入，16字节输出）
+					// 使用shuffle指令重新排列RGB数据并插入Alpha通道
 					size_t i = 0;
+					const __m128i alpha = _mm_set1_epi8(0xFF);
+					
 					for (; i + 4 <= pixelCount; i += 4)
 					{
-						// 像素0
-						dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; dst[3] = 255;
-						// 像素1
-						dst[4] = src[3]; dst[5] = src[4]; dst[6] = src[5]; dst[7] = 255;
-						// 像素2
-						dst[8] = src[6]; dst[9] = src[7]; dst[10] = src[8]; dst[11] = 255;
-						// 像素3
-						dst[12] = src[9]; dst[13] = src[10]; dst[14] = src[11]; dst[15] = 255;
-						src += 12;
-						dst += 16;
+						// 加载12字节RGB数据
+						__m128i rgb = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src + i * 3));
+						
+						// 使用shuffle重新排列：RGBRGBRGBRGB -> RGBARGBA...
+						// Shuffle mask: 提取位置0,1,2,插入255, 位置3,4,5,插入255, ...
+						__m128i rgba = _mm_shuffle_epi8(rgb, _mm_setr_epi8(
+							0, 1, 2, -1, 3, 4, 5, -1, 6, 7, 8, -1, 9, 10, 11, -1
+						));
+						
+						// 插入Alpha通道（使用blend）
+						__m128i alpha_mask = _mm_setr_epi8(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1);
+						rgba = _mm_blendv_epi8(rgba, alpha, alpha_mask);
+						
+						_mm_storeu_si128(reinterpret_cast<__m128i*>(dst + i * 4), rgba);
 					}
 					
 					// 处理剩余像素
 					for (; i < pixelCount; ++i)
 					{
-						dst[0] = src[0];
-						dst[1] = src[1];
-						dst[2] = src[2];
-						dst[3] = 255;
-						src += 3;
-						dst += 4;
+						dst[i * 4 + 0] = src[i * 3 + 0];
+						dst[i * 4 + 1] = src[i * 3 + 1];
+						dst[i * 4 + 2] = src[i * 3 + 2];
+						dst[i * 4 + 3] = 255;
 					}
+#else
+					// 标量优化：展开循环，每次处理4个像素
+					size_t i = 0;
+					for (; i + 4 <= pixelCount; i += 4)
+					{
+						// 像素0
+						dst[i * 4 + 0] = src[i * 3 + 0];
+						dst[i * 4 + 1] = src[i * 3 + 1];
+						dst[i * 4 + 2] = src[i * 3 + 2];
+						dst[i * 4 + 3] = 255;
+						// 像素1
+						dst[i * 4 + 4] = src[i * 3 + 3];
+						dst[i * 4 + 5] = src[i * 3 + 4];
+						dst[i * 4 + 6] = src[i * 3 + 5];
+						dst[i * 4 + 7] = 255;
+						// 像素2
+						dst[i * 4 + 8] = src[i * 3 + 6];
+						dst[i * 4 + 9] = src[i * 3 + 7];
+						dst[i * 4 + 10] = src[i * 3 + 8];
+						dst[i * 4 + 11] = 255;
+						// 像素3
+						dst[i * 4 + 12] = src[i * 3 + 9];
+						dst[i * 4 + 13] = src[i * 3 + 10];
+						dst[i * 4 + 14] = src[i * 3 + 11];
+						dst[i * 4 + 15] = 255;
+					}
+					
+					// 处理剩余像素
+					for (; i < pixelCount; ++i)
+					{
+						dst[i * 4 + 0] = src[i * 3 + 0];
+						dst[i * 4 + 1] = src[i * 3 + 1];
+						dst[i * 4 + 2] = src[i * 3 + 2];
+						dst[i * 4 + 3] = 255;
+					}
+#endif
+#else
+					// WASM平台：标量实现
+					size_t i = 0;
+					for (; i + 4 <= pixelCount; i += 4)
+					{
+						dst[i * 4 + 0] = src[i * 3 + 0];
+						dst[i * 4 + 1] = src[i * 3 + 1];
+						dst[i * 4 + 2] = src[i * 3 + 2];
+						dst[i * 4 + 3] = 255;
+						dst[i * 4 + 4] = src[i * 3 + 3];
+						dst[i * 4 + 5] = src[i * 3 + 4];
+						dst[i * 4 + 6] = src[i * 3 + 5];
+						dst[i * 4 + 7] = 255;
+						dst[i * 4 + 8] = src[i * 3 + 6];
+						dst[i * 4 + 9] = src[i * 3 + 7];
+						dst[i * 4 + 10] = src[i * 3 + 8];
+						dst[i * 4 + 11] = 255;
+						dst[i * 4 + 12] = src[i * 3 + 9];
+						dst[i * 4 + 13] = src[i * 3 + 10];
+						dst[i * 4 + 14] = src[i * 3 + 11];
+						dst[i * 4 + 15] = 255;
+					}
+					for (; i < pixelCount; ++i)
+					{
+						dst[i * 4 + 0] = src[i * 3 + 0];
+						dst[i * 4 + 1] = src[i * 3 + 1];
+						dst[i * 4 + 2] = src[i * 3 + 2];
+						dst[i * 4 + 3] = 255;
+					}
+#endif
 				}
 				break;
 				

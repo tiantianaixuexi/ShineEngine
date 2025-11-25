@@ -1,4 +1,5 @@
 #include "objLoader.h"
+#include <unordered_set>
 
 #include <map>
 #include <vector>
@@ -755,7 +756,7 @@ namespace shine::loader
         return true;
     }
 
-    std::vector<objLoader::MeshData> objLoader::extractMeshData() const
+    std::vector<MeshData> objLoader::extractMeshData() const
     {
         std::vector<MeshData> result;
 
@@ -937,6 +938,31 @@ namespace shine::loader
         while (!str.empty() && (str.back() == ' ' || str.back() == '\t' || str.back() == '\r')) {
             str = str.substr(0, str.size() - 1);
         }
+    }
+
+    size_t objLoader::getMeshCount() const noexcept
+    {
+        if (!_loaded)
+        {
+            return 0;
+        }
+
+        size_t count = 0;
+        for (const auto& group : _model.groups)
+        {
+            if (!group.faces.empty())
+            {
+                // 按材质分组，每个材质算一个网格
+                std::unordered_set<int> materials;
+                for (const auto& face : group.faces)
+                {
+                    int matIdx = (face.materialIndex >= 0) ? face.materialIndex : group.materialIndex;
+                    materials.insert(matIdx);
+                }
+                count += materials.empty() ? 1 : materials.size();
+            }
+        }
+        return count;
     }
 
 }

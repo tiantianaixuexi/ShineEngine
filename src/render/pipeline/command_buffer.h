@@ -7,6 +7,40 @@
 
 namespace shine::render
 {
+    // 前向声明
+    class CommandBuffer;
+
+    /**
+     * @brief CommandBuffer 到 ICommandList 的适配器
+     * 将 CommandBuffer 的方法映射到 ICommandList 接口
+     */
+    class CommandBufferAdapter : public command::ICommandList
+    {
+    public:
+        explicit CommandBufferAdapter(CommandBuffer& buffer);
+
+        // ICommandList 接口实现
+        void begin() override;
+        void end() override;
+        void execute() override;
+        void reset() override;
+
+        void bindFramebuffer(u64 framebufferHandle) override;
+        void setViewport(s32 x, s32 y, s32 width, s32 height) override;
+        void clearColor(float r, float g, float b, float a) override;
+        void clear(bool clearColorBuffer, bool clearDepthBuffer) override;
+        void enableDepthTest(bool enabled) override;
+        void useProgram(u64 programHandle) override;
+        void bindVertexArray(u64 vaoHandle) override;
+        void drawTriangles(s32 firstVertex, s32 vertexCount) override;
+        void drawIndexedTriangles(s32 indexCount, command::IndexType indexType, u64 indexBufferOffsetBytes = 0) override;
+        void imguiRender(void* drawData) override;
+        void swapBuffers(void* nativeSwapContext) override;
+
+    private:
+        CommandBuffer& m_Buffer;
+    };
+
     /**
      * @brief 命令缓冲区（类似 Unity CommandBuffer）
      * 记录渲染命令，可以提交到 ScriptableRenderContext
@@ -86,6 +120,11 @@ namespace shine::render
          * @brief 获取命令数量
          */
         size_t GetCommandCount() const { return m_Commands.size(); }
+
+        /**
+         * @brief 获取 ICommandList 适配器（用于兼容接口）
+         */
+        CommandBufferAdapter GetAdapter() { return CommandBufferAdapter(*this); }
 
     private:
         // 命令类型枚举

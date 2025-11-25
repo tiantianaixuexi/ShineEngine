@@ -1,7 +1,6 @@
 #include "ImageViewerView.h"
 #include "imgui.h"
 #include "image/Texture.h"
-#include "render/resources/texture_manager.h"
 
 namespace shine::editor::views
 {
@@ -36,10 +35,8 @@ namespace shine::editor::views
             return;
         }
 
-        // 从 TextureManager 获取纹理ID（用于 ImGui 显示）
-        auto& textureManager = shine::render::TextureManager::get();
-        const auto& renderHandle = texture_->getRenderHandle();
-        uint32_t textureId = textureManager.GetTextureId(renderHandle);
+        // 直接从 STexture 获取纹理ID（用于 ImGui 显示）
+        uint32_t textureId = texture_->getTextureId();
         
         if (textureId == 0)
         {

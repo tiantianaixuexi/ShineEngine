@@ -6,7 +6,8 @@
 #include "loader/model/gltfLoader.h"
 #include "loader/model/objLoader.h"
 #include "fmt/format.h"
-#include "util/function_timer.h"
+#include "util/timer/function_timer.h"
+#include "util/file_util.h"
 #include <algorithm>
 #include <cstring>
 
@@ -31,9 +32,9 @@ namespace shine::manager
         UnloadAllAssets();
     }
 
-    AssetHandle AssetManager::LoadImage(const std::string& filePath)
+    AssetHandle AssetManager::LoadTextureAsset(const std::string& filePath)
     {
-        shine::util::FunctionTimer timer("AssetManager::LoadImage", shine::util::TimerPrecision::Nanoseconds);
+        shine::util::FunctionTimer timer("AssetManager::LoadTextureAsset", shine::util::TimerPrecision::Nanoseconds);
 
         // 检查是否已加载
         auto it = pathToHandle_.find(filePath);
@@ -46,26 +47,21 @@ namespace shine::manager
             return handle;
         }
 
-        // 创建加载器
-        std::filesystem::path path(filePath);
-        std::string ext = path.extension().string();
-        if (!ext.empty() && ext[0] == '.')
-        {
-            ext = ext.substr(1);
-        }
+        // 创建加载器 - 使用 file_util 提取扩展名（不包含点号）
+        std::string ext = util::get_file_extension(filePath);
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
         auto loader = CreateImageLoader(ext);
         if (!loader)
         {
-            fmt::println("AssetManager: 不支持的图片格式: {}", filePath);
+            fmt::print("AssetManager: 不支持的图片格式: {}\n", filePath);
             return AssetHandle{};
         }
 
         // 加载文件
         if (!loader->loadFromFile(filePath.c_str()))
         {
-            fmt::println("AssetManager: 图片文件加载失败: {} - 错误: {}", filePath, static_cast<int>(loader->getLastError()));
+            fmt::print(FMT_STRING("AssetManager: 图片文件加载失败: {} - 错误: {}\n"), filePath, static_cast<int>(loader->getLastError()));
             return AssetHandle{};
         }
 
@@ -73,14 +69,14 @@ namespace shine::manager
         auto decodeResult = loader->decode();
         if (!decodeResult.has_value())
         {
-            fmt::println("AssetManager: 图片解码失败: {} - {}", filePath, decodeResult.error());
+            fmt::print(FMT_STRING("AssetManager: 图片解码失败: {} - {}\n"), filePath, decodeResult.error());
             return AssetHandle{};
         }
 
         // 验证数据
         if (!loader->isDecoded() || loader->getImageData().empty())
         {
-            fmt::println("AssetManager: 图片数据为空: {}", filePath);
+            fmt::print("AssetManager: 图片数据为空: {}\n", filePath);
             return AssetHandle{};
         }
 
@@ -94,7 +90,7 @@ namespace shine::manager
         imageLoaders_[handle.id] = std::move(loader);
         pathToHandle_[filePath] = handle.id;
 
-        fmt::println("AssetManager: 图片加载成功 - {}x{} - {} - {}", 
+        fmt::print(FMT_STRING("AssetManager: 图片加载成功 - {}x{} - {} - {}\n"), 
             imageLoaders_[handle.id]->getWidth(), 
             imageLoaders_[handle.id]->getHeight(), 
             ext, filePath);
@@ -114,21 +110,21 @@ namespace shine::manager
 
         if (format.empty())
         {
-            fmt::println("AssetManager: 无法识别图片格式");
+            fmt::print("AssetManager: 无法识别图片格式\n");
             return AssetHandle{};
         }
 
         auto loader = CreateImageLoader(format);
         if (!loader)
         {
-            fmt::println("AssetManager: 不支持的图片格式: {}", format);
+            fmt::print("AssetManager: 不支持的图片格式: {}\n", format);
             return AssetHandle{};
         }
 
         // 从内存加载
         if (!loader->loadFromMemory(data, size))
         {
-            fmt::println("AssetManager: 从内存加载图片失败");
+            fmt::print("AssetManager: 从内存加载图片失败\n");
             return AssetHandle{};
         }
 
@@ -136,14 +132,14 @@ namespace shine::manager
         auto decodeResult = loader->decode();
         if (!decodeResult.has_value())
         {
-            fmt::println("AssetManager: 图片解码失败: {}", decodeResult.error());
+            fmt::print("AssetManager: 图片解码失败: {}\n", decodeResult.error());
             return AssetHandle{};
         }
 
         // 验证数据
         if (!loader->isDecoded() || loader->getImageData().empty())
         {
-            fmt::println("AssetManager: 图片数据为空");
+            fmt::print("AssetManager: 图片数据为空\n");
             return AssetHandle{};
         }
 
@@ -156,7 +152,7 @@ namespace shine::manager
         // 保存加载器（数据由加载器持有）
         imageLoaders_[handle.id] = std::move(loader);
 
-        fmt::println("AssetManager: 从内存加载图片成功 - {}x{} - {}", 
+        fmt::print("AssetManager: 从内存加载图片成功 - {}x{} - {}\n", 
             imageLoaders_[handle.id]->getWidth(), 
             imageLoaders_[handle.id]->getHeight(), 
             format);
@@ -183,7 +179,7 @@ namespace shine::manager
     std::shared_ptr<image::STexture> AssetManager::LoadTexture(const std::string& filePath)
     {
         // 先加载图片资源
-        auto assetHandle = LoadImage(filePath);
+        auto assetHandle = LoadTextureAsset(filePath);
         if (!assetHandle.isValid())
         {
             return nullptr;
@@ -214,26 +210,28 @@ namespace shine::manager
             return handle;
         }
 
-        // 创建加载器
-        std::filesystem::path path(filePath);
-        std::string ext = path.extension().string();
-        if (!ext.empty() && ext[0] == '.')
-        {
-            ext = ext.substr(1);
-        }
+        // 创建加载器 - 使用 file_util 提取扩展名（不包含点号）
+        std::string ext = util::get_file_extension(filePath);
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+        // 先检查文件是否存在，避免不必要的操作和可能的阻塞
+        if (!util::file_exists(filePath))
+        {
+            fmt::print("AssetManager: 模型文件不存在: {}\n", filePath);
+            return AssetHandle{};
+        }
 
         auto loader = CreateModelLoader(ext);
         if (!loader)
         {
-            fmt::println("AssetManager: 不支持的模型格式: {}", filePath);
+            fmt::print("AssetManager: 不支持的模型格式: {}\n", filePath);
             return AssetHandle{};
         }
 
         // 加载文件
         if (!loader->loadFromFile(filePath.c_str()))
         {
-            fmt::println("AssetManager: 模型文件加载失败: {} - 错误: {}", filePath, static_cast<int>(loader->getLastError()));
+            fmt::print("AssetManager: 模型文件加载失败: {} - 错误: {}\n", filePath, static_cast<int>(loader->getLastError()));
             return AssetHandle{};
         }
 
@@ -247,7 +245,7 @@ namespace shine::manager
         modelLoaders_[handle.id] = std::move(loader);
         pathToHandle_[filePath] = handle.id;
 
-        fmt::println("AssetManager: 模型加载成功 - {} - 网格数: {}", filePath, modelLoaders_[handle.id]->getMeshCount());
+        fmt::print("AssetManager: 模型加载成功 - {} - 网格数: {}\n", filePath, modelLoaders_[handle.id]->getMeshCount());
 
         return handle;
     }
@@ -360,12 +358,8 @@ namespace shine::manager
 
     EAssetType AssetManager::DetectAssetType(const std::string& filePath) const
     {
-        std::filesystem::path path(filePath);
-        std::string ext = path.extension().string();
-        if (!ext.empty() && ext[0] == '.')
-        {
-            ext = ext.substr(1);
-        }
+        // 使用 file_util 提取扩展名（不包含点号）
+        std::string ext = util::get_file_extension(filePath);
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
         // 图片格式

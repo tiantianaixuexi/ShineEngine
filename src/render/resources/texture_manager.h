@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_map>
 #include <cstdint>
+#include "render/resources/texture_handle.h"
 #include "loader/image/image_loader.h"
 #include "manager/AssetManager.h"
 #include "util/singleton.h"
@@ -14,16 +15,13 @@ namespace shine::image
     class STexture;
 }
 
+namespace shine::render::backend
+{
+    class IRenderBackend;
+}
+
 namespace shine::render
 {
-    /**
-     * @brief 纹理句柄（跨API统一）
-     */
-    struct TextureHandle
-    {
-        uint64_t id = 0;
-        bool isValid() const { return id != 0; }
-    };
 
     /**
      * @brief 纹理创建参数
@@ -45,12 +43,15 @@ namespace shine::render
      */
     class TextureManager : public shine::util::Singleton<TextureManager>
     {
+        // 友元声明：允许 Singleton 模板访问 protected 构造函数
+        friend class shine::util::Singleton<TextureManager>;
+        
     public:
         /**
          * @brief 初始化纹理管理器（必须在首次使用前调用）
          * @param renderBackend 渲染后端指针
          */
-        void Initialize(backend::IRenderBackend* renderBackend);
+        void Initialize(render::backend::IRenderBackend* renderBackend);
 
 
         /**
@@ -157,7 +158,7 @@ namespace shine::render
             manager::AssetHandle assetHandle;  // 关联的资源句柄（如果有）
         };
 
-        backend::IRenderBackend* renderBackend_ = nullptr;
+        render::backend::IRenderBackend* renderBackend_ = nullptr;
         std::unordered_map<uint64_t, TextureData> textures_;
         uint64_t nextHandleId_ = 1;
 

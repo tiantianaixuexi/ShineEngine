@@ -16,7 +16,8 @@ namespace shine::render
     {
         if (cmdBuffer)
         {
-            m_CommandBuffers.push_back(cmdBuffer);
+            // 存储 CommandBuffer 的副本，避免生命周期问题
+            m_CommandBuffers.push_back(*cmdBuffer);
         }
     }
 
@@ -24,12 +25,10 @@ namespace shine::render
     {
         if (m_ExecuteCallback)
         {
-            for (auto* cmdBuffer : m_CommandBuffers)
+            for (auto& cmdBuffer : m_CommandBuffers)
             {
-                if (cmdBuffer)
-                {
-                    m_ExecuteCallback(cmdBuffer);
-                }
+                // 传递引用，因为现在存储的是对象而不是指针
+                m_ExecuteCallback(&cmdBuffer);
             }
         }
         Clear();

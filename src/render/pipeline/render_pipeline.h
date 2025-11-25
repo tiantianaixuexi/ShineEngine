@@ -3,6 +3,11 @@
 #include "shine_define.h"
 #include <memory>
 
+namespace shine::gameplay
+{
+    class Camera;
+}
+
 namespace shine::render
 {
     class RenderPipelineAsset;

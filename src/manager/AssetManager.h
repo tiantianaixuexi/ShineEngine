@@ -10,6 +10,8 @@
 #include "loader/model/model_loader.h"
 #include <cstdint>
 
+// Windows.h 定义了 LoadImage 宏，已通过重命名函数避免冲突
+
 // 前向声明
 namespace shine::image
 {
@@ -77,7 +79,7 @@ namespace shine::manager
          * @param filePath 图片文件路径
          * @return 资源句柄，失败返回无效句柄
          */
-        AssetHandle LoadImage(const std::string& filePath);
+        AssetHandle LoadTextureAsset(const std::string& filePath);
 
         /**
          * @brief 从内存加载图片资源
@@ -98,13 +100,6 @@ namespace shine::manager
         /**
          * @brief 加载图片并创建 STexture 资源（便利方法，类似 UE5 的 LoadObject）
          * 一步完成：加载图片 -> 创建 STexture -> 返回共享指针
-         * @param filePath 图片文件路径
-         * @return STexture 共享指针，失败返回空指针
-         */
-        std::shared_ptr<image::STexture> LoadTexture(const std::string& filePath);
-
-        /**
-         * @brief 加载图片并创建 STexture 资源（便利方法，类似 UE5 的 LoadObject）
          * @param filePath 图片文件路径
          * @return STexture 共享指针，失败返回空指针
          */

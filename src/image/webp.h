@@ -10,6 +10,7 @@
 #include <memory>
 
 #include "loader/loader.h"
+#include "loader/image/image_loader.h"
 
 namespace shine::image
 {
@@ -65,7 +66,7 @@ namespace shine::image
 	 * 
 	 * @see https://developers.google.com/speed/webp/docs/riff_container
 	 */
-	class webp : public shine::loader::IAssetLoader
+	class webp : public shine::loader::IImageLoader
 	{
 	public:
 		// ========================================================================

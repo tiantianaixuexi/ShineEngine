@@ -101,6 +101,17 @@ namespace shine::image
                                   _wrapS == TextureWrap::CLAMP_TO_BORDER);
 
         _renderHandle = textureManager.CreateTexture(createInfo);
+        
+        // 创建后立即获取并存储纹理ID
+        if (_renderHandle.isValid())
+        {
+            _textureId = textureManager.GetTextureId(_renderHandle);
+        }
+        else
+        {
+            _textureId = 0;
+        }
+        
         return _renderHandle;
     }
 
@@ -111,6 +122,7 @@ namespace shine::image
             auto& textureManager = shine::render::TextureManager::get();
             textureManager.ReleaseTexture(_renderHandle);
             _renderHandle = shine::render::TextureHandle{};
+            _textureId = 0;  // 清除纹理ID
         }
     }
 
@@ -131,21 +143,6 @@ namespace shine::image
 
     // 获取纹理信息（已在头文件中内联实现，这里不需要重复）
 
-    TextureFormat STexture::getFormat() const noexcept
-    {
-        return _format;
-    }
-
-    TextureType STexture::getType() const noexcept
-    {
-        return _type;
-    }
-
-    size_t STexture::getDataSize() const noexcept
-    {
-        return _data.size();
-    }
-
     // 设置纹理参数
     void STexture::setFilter(TextureFilter minFilter, TextureFilter magFilter)
     {
@@ -159,6 +156,7 @@ namespace shine::image
         _wrapT = t;
         _wrapR = r;
     }
+
 
 }
 

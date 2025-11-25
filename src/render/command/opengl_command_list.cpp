@@ -64,14 +64,50 @@ namespace shine::render::opengl3
     void OpenGLCommandList::drawIndexedTriangles(s32 indexCount, command::IndexType indexType,
                                                  u64 indexBufferOffsetBytes)
     {
+        // 安全检查：索引数量必须大于0
+        if (indexCount <= 0)
+        {
+            return; // 无效的索引数量，直接返回
+        }
+
+        // 检查当前绑定的 VAO
+        GLint currentVAO = 0;
+        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &currentVAO);
+        if (currentVAO == 0)
+        {
+            // 没有绑定 VAO，glDrawElements 会崩溃
+            // 这通常表示在调用 drawIndexedTriangles 之前没有调用 bindVertexArray
+            return;
+        }
+
         GLenum glIndexType = GL_UNSIGNED_INT;
         switch (indexType)
         {
         case command::IndexType::Uint16: glIndexType = GL_UNSIGNED_SHORT; break;
         case command::IndexType::Uint32: glIndexType = GL_UNSIGNED_INT; break;
+        default:
+            return; // 无效的索引类型
         }
+        
         const void* offsetPtr = reinterpret_cast<const void*>(static_cast<uintptr_t>(indexBufferOffsetBytes));
+        
+        // 检查 OpenGL 错误状态
+        GLenum error = glGetError();
+        if (error != GL_NO_ERROR)
+        {
+            // 清除之前的错误状态
+            while (glGetError() != GL_NO_ERROR) {}
+        }
+        
         glDrawElements(GL_TRIANGLES, indexCount, glIndexType, offsetPtr);
+        
+        // 检查绘制后的错误
+        error = glGetError();
+        if (error != GL_NO_ERROR)
+        {
+            // OpenGL 错误：可能是索引缓冲区未绑定或其他问题
+            // 这里可以添加日志记录
+        }
     }
 
     void OpenGLCommandList::imguiRender(void* drawData)
