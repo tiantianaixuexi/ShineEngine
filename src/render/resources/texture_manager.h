@@ -85,6 +85,15 @@ namespace shine::render
         TextureHandle CreateTextureFromMemory(const void* data, size_t size, const std::string& formatHint = "");
 
         /**
+         * @brief 更新纹理数据
+         * @param handle 纹理句柄
+         * @param data 新的纹理数据（RGBA格式）
+         * @param width 纹理宽度
+         * @param height 纹理高度
+         */
+        void UpdateTexture(const TextureHandle& handle, const void* data, int width, int height);
+
+        /**
          * @brief 获取纹理ID（OpenGL返回GLuint，其他API返回对应的句柄）
          * @param handle 纹理句柄
          * @return 纹理ID，失败返回0

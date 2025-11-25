@@ -92,6 +92,15 @@ namespace shine::render::backend
 			bool generateMipmaps = false, bool linearFilter = true, bool clampToEdge = true) = 0;
 
 		/**
+		 * @brief 更新纹理数据
+		 * @param textureId 纹理ID
+		 * @param width 纹理宽度
+		 * @param height 纹理高度
+		 * @param data 新的纹理数据
+		 */
+		virtual void UpdateTexture2D(uint32_t textureId, int width, int height, const void* data) = 0;
+
+		/**
 		 * @brief 释放纹理
 		 * @param textureId 纹理ID
 		 */

@@ -225,6 +225,12 @@ namespace shine::image
         void setData(std::vector<unsigned char>& imageData) noexcept;
         void setData(std::vector<RGBA8>& rgbaData) noexcept;
 
+        /**
+         * @brief 更新纹理数据（保持GPU资源，只更新数据）
+         * @param rgbaData 新的RGBA数据
+         */
+        void updateData(const std::vector<RGBA8>& rgbaData);
+
         // 获取纹理信息
         u32 getWidth() const noexcept { return _width; }
         u32 getHeight() const noexcept { return _height; }

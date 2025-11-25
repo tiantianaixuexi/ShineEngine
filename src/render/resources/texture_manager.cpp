@@ -166,6 +166,17 @@ namespace shine::render
         return 0;
     }
 
+    void TextureManager::UpdateTexture(const TextureHandle& handle, const void* data, int width, int height)
+    {
+        if (!handle.isValid() || !renderBackend_)
+        {
+            return;
+        }
+
+        // 更新纹理数据
+        renderBackend_->UpdateTexture2D(handle.id, width, height, data);
+    }
+
     bool TextureManager::GetTextureSize(const TextureHandle& handle, int& width, int& height) const
     {
         if (!handle.isValid())

@@ -434,6 +434,21 @@ unsigned int OpenGLRenderBackend::GetViewportTexture(s32 handle)
 		return static_cast<uint32_t>(textureId);
 	}
 
+	void OpenGLRenderBackend::UpdateTexture2D(uint32_t textureId, int width, int height, const void* data)
+	{
+		if (textureId == 0 || width <= 0 || height <= 0)
+		{
+			return;
+		}
+
+		glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(textureId));
+
+		// 更新纹理数据
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
 	void OpenGLRenderBackend::ReleaseTexture(uint32_t textureId)
 	{
 		if (textureId != 0)

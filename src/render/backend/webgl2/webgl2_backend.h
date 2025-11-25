@@ -124,6 +124,8 @@ public:
     virtual uint32_t CreateTexture2D(int width, int height, const void* data = nullptr,
         bool generateMipmaps = false, bool linearFilter = true, bool clampToEdge = true) override;
 
+    virtual void UpdateTexture2D(uint32_t textureId, int width, int height, const void* data) override;
+
     virtual void ReleaseTexture(uint32_t textureId) override;
 };
 

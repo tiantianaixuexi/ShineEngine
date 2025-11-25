@@ -464,6 +464,21 @@ uint32_t WebGL2RenderBackend::CreateTexture2D(int width, int height, const void*
     return static_cast<uint32_t>(textureId);
 }
 
+void WebGL2RenderBackend::UpdateTexture2D(uint32_t textureId, int width, int height, const void* data)
+{
+    if (textureId == 0 || width <= 0 || height <= 0)
+    {
+        return;
+    }
+
+    glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(textureId));
+
+    // Update texture data
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 void WebGL2RenderBackend::ReleaseTexture(uint32_t textureId)
 {
     if (textureId != 0)
