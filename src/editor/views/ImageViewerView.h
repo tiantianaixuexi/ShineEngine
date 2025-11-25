@@ -43,6 +43,7 @@ namespace shine::editor::views
 
     private:
         std::shared_ptr<shine::image::STexture> texture_;  // 使用共享指针管理生命周期
+        std::shared_ptr<shine::image::STexture> processedTexture_; // 处理后的纹理
         bool isOpen_;
 
         // 缩放和显示相关
@@ -60,6 +61,9 @@ namespace shine::editor::views
         float saturation_;                 // 饱和度调整 (0.0 to 2.0)
         shine::math::FVector2f hueShift_;  // 色相偏移 (x: 色相, y: 强度)
 
+        // 处理状态跟踪
+        bool needsReprocessing_;           // 是否需要重新处理图像
+
         // 缩放控制方法
         void FitToWindow();
         void ZoomToActualSize();
@@ -68,6 +72,7 @@ namespace shine::editor::views
 
         // 图像处理方法
         void RenderImageWithEffects();
+        void UpdateProcessedTexture();
         void ApplyColorAdjustments(float& r, float& g, float& b, float& a) const;
         float GetChannelValue(ChannelMode mode, float r, float g, float b, float a) const;
     };

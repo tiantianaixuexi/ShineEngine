@@ -20,6 +20,7 @@ namespace shine::editor::views
         , contrast_(1.0f)
         , saturation_(1.0f)
         , hueShift_(0.0f, 0.0f)
+        , needsReprocessing_(true)
     {
     }
 
@@ -52,6 +53,13 @@ namespace shine::editor::views
         }
 
         ImGui::Begin("图片查看器", &isOpen_);
+
+        // 创建左右分割布局
+        float leftPanelWidth = ImGui::GetContentRegionAvail().x * 0.7f; // 左侧占70%
+        float rightPanelWidth = ImGui::GetContentRegionAvail().x * 0.3f; // 右侧占30%
+
+        // 左侧：图像显示区域
+        ImGui::BeginChild("ImageArea", ImVec2(leftPanelWidth, 0), true);
 
         // 图片信息
         ImGui::Text("图片尺寸: %u x %u", width, height);
@@ -118,45 +126,71 @@ namespace shine::editor::views
         }
         ImGui::SameLine();
         ImGui::SetNextItemWidth(100);
-        if (ImGui::SliderFloat("缩放%", &zoom_, 0.01f, 10.0f, "%.2f"))
+        if (ImGui::SliderFloat("缩放", &zoom_, 0.01f, 10.0f, "%.2f"))
         {
             fitToWindow_ = false;
             panOffset_.Set(0, 0);
         }
-
-        // 图像处理控制
-        ImGui::Separator();
-        if (ImGui::CollapsingHeader("图像处理", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            // 通道预览
-            const char* channelNames[] = {"RGBA", "R", "G", "B", "A"};
-            int currentChannel = static_cast<int>(channelMode_);
-            if (ImGui::Combo("通道预览", &currentChannel, channelNames, IM_ARRAYSIZE(channelNames)))
-            {
-                channelMode_ = static_cast<ChannelMode>(currentChannel);
-            }
-
-            ImGui::Checkbox("去色", &desaturate_);
-
-            // 颜色调整
-            ImGui::SliderFloat("亮度", &brightness_, -1.0f, 1.0f);
-            ImGui::SliderFloat("对比度", &contrast_, 0.0f, 2.0f);
-            ImGui::SliderFloat("饱和度", &saturation_, 0.0f, 2.0f);
-
-            if (ImGui::Button("重置调整"))
-            {
-                brightness_ = 0.0f;
-                contrast_ = 1.0f;
-                saturation_ = 1.0f;
-                hueShift_.Set(0.0f, 0.0f);
-            }
-        }
-
         ImGui::Separator();
 
         // 显示图像
         RenderImageWithEffects();
 
+        ImGui::EndChild();
+
+        // 右侧：控制面板
+        ImGui::SameLine();
+        ImGui::BeginChild("ControlPanel", ImVec2(rightPanelWidth, 0), true);
+
+        ImGui::Text("图像处理控制");
+        ImGui::Separator();
+
+        // 通道预览
+        const char* channelNames[] = {"RGBA", "R", "G", "B", "A"};
+        int currentChannel = static_cast<int>(channelMode_);
+        if (ImGui::Combo("通道预览", &currentChannel, channelNames, IM_ARRAYSIZE(channelNames)))
+        {
+            channelMode_ = static_cast<ChannelMode>(currentChannel);
+            needsReprocessing_ = true;
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Text("颜色调整");
+
+        if (ImGui::Checkbox("去色", &desaturate_))
+        {
+            needsReprocessing_ = true;
+        }
+
+        if (ImGui::SliderFloat("亮度", &brightness_, -1.0f, 1.0f))
+        {
+            needsReprocessing_ = true;
+        }
+
+        if (ImGui::SliderFloat("对比度", &contrast_, 0.0f, 2.0f))
+        {
+            needsReprocessing_ = true;
+        }
+
+        if (ImGui::SliderFloat("饱和度", &saturation_, 0.0f, 2.0f))
+        {
+            needsReprocessing_ = true;
+        }
+
+        ImGui::Spacing();
+        if (ImGui::Button("重置调整", ImVec2(-1, 0)))
+        {
+            brightness_ = 0.0f;
+            contrast_ = 1.0f;
+            saturation_ = 1.0f;
+            hueShift_.Set(0.0f, 0.0f);
+            desaturate_ = false;
+            channelMode_ = ChannelMode::RGBA;
+            needsReprocessing_ = true;
+        }
+
+        ImGui::EndChild();
 
         ImGui::End();
     }
@@ -164,6 +198,8 @@ namespace shine::editor::views
     void ImageViewerView::SetTexture(std::shared_ptr<shine::image::STexture> texture)
     {
         texture_ = texture;
+        processedTexture_.reset();
+        needsReprocessing_ = true;
     }
 
     void ImageViewerView::ClearTexture()
@@ -191,15 +227,98 @@ namespace shine::editor::views
         panOffset_.Set(0, 0); // 重置平移
     }
 
+    void ImageViewerView::UpdateProcessedTexture()
+    {
+        if (!texture_ || !texture_->isValid())
+            return;
+
+        // 如果没有处理需求，直接使用原始纹理
+        if (channelMode_ == ChannelMode::RGBA && !desaturate_ &&
+            brightness_ == 0.0f && contrast_ == 1.0f &&
+            saturation_ == 1.0f && hueShift_.X == 0.0f)
+        {
+            processedTexture_ = texture_;
+            return;
+        }
+
+        // 创建或更新处理后的纹理
+        if (!processedTexture_)
+        {
+            processedTexture_ = std::make_shared<shine::image::STexture>();
+        }
+
+        // 复制原始纹理的基本信息
+        processedTexture_->setWidth(texture_->getWidth());
+        processedTexture_->setHeight(texture_->getHeight());
+        processedTexture_->setFormat(texture_->getFormat());
+        processedTexture_->setType(texture_->getType());
+
+        // 获取原始数据并处理
+        const auto& originalData = texture_->getData();
+        std::vector<shine::image::RGBA8> processedData = originalData;
+
+        for (size_t i = 0; i < processedData.size(); ++i)
+        {
+            // 归一化到0-1范围
+            float r = processedData[i].r / 255.0f;
+            float g = processedData[i].g / 255.0f;
+            float b = processedData[i].b / 255.0f;
+            float a = processedData[i].a / 255.0f;
+
+            // 应用颜色调整
+            ApplyColorAdjustments(r, g, b, a);
+
+            // 转换为灰度（如果去色）
+            if (desaturate_)
+            {
+                float gray = 0.299f * r + 0.587f * g + 0.114f * b;
+                r = g = b = gray;
+            }
+
+            // 应用通道模式
+            if (channelMode_ != ChannelMode::RGBA)
+            {
+                float channelValue = GetChannelValue(channelMode_, r, g, b, a);
+                r = g = b = channelValue;
+            }
+
+            // 转换回0-255范围
+            processedData[i].r = static_cast<u8>((r < 0.0f) ? 0.0f : ((r > 1.0f) ? 255.0f : (r * 255.0f)));
+            processedData[i].g = static_cast<u8>((g < 0.0f) ? 0.0f : ((g > 1.0f) ? 255.0f : (g * 255.0f)));
+            processedData[i].b = static_cast<u8>((b < 0.0f) ? 0.0f : ((b > 1.0f) ? 255.0f : (b * 255.0f)));
+            processedData[i].a = static_cast<u8>((a < 0.0f) ? 0.0f : ((a > 1.0f) ? 255.0f : (a * 255.0f)));
+        }
+
+        // 更新纹理数据
+        processedTexture_->setData(processedData);
+
+        // 创建GPU资源
+        if (!processedTexture_->hasRenderResource())
+        {
+            processedTexture_->CreateRenderResource();
+        }
+
+        needsReprocessing_ = false;
+    }
+
     void ImageViewerView::RenderImageWithEffects()
     {
         if (!texture_ || !texture_->isValid())
             return;
 
+        // 检查是否需要重新处理
+        if (needsReprocessing_)
+        {
+            UpdateProcessedTexture();
+        }
+
+        // 获取当前要显示的纹理
+        auto currentTexture = processedTexture_ ? processedTexture_ : texture_;
+
         // 获取图片尺寸
-        u32 width = texture_->getWidth();
-        u32 height = texture_->getHeight();
-        uint32_t textureId = texture_->getTextureId();
+        u32 width = currentTexture->getWidth();
+        u32 height = currentTexture->getHeight();
+        uint32_t textureId = currentTexture->getTextureId();
 
         if (width == 0 || height == 0 || textureId == 0)
             return;
@@ -261,65 +380,8 @@ namespace shine::editor::views
             ImGui::SetCursorScreenPos(imagePos);
         }
 
-        // 如果有图像处理效果，需要创建自定义的纹理
-        if (channelMode_ != ChannelMode::RGBA || desaturate_ ||
-            brightness_ != 0.0f || contrast_ != 1.0f ||
-            saturation_ != 1.0f || hueShift_.X != 0.0f)
-        {
-            // 创建处理后的图像数据
-            const auto& originalData = texture_->getData();
-            std::vector<shine::image::RGBA8> processedData = originalData;
-
-            for (size_t i = 0; i < processedData.size(); ++i)
-            {
-                shine::math::FVector2f rgba(
-                    processedData[i].r / 255.0f,
-                    processedData[i].g / 255.0f
-                );
-                shine::math::FVector2f bgra(
-                    processedData[i].b / 255.0f,
-                    processedData[i].a / 255.0f
-                );
-
-                // 应用通道选择
-                float channelValue = GetChannelValue(channelMode_, rgba.X, rgba.Y, bgra.X, bgra.Y);
-
-                // 应用颜色调整
-                float adjustedR = rgba.X;
-                float adjustedG = rgba.Y;
-                float adjustedB = bgra.X;
-                float adjustedA = bgra.Y;
-                ApplyColorAdjustments(adjustedR, adjustedG, adjustedB, adjustedA);
-
-                // 转换为灰度（如果去色）
-                if (desaturate_)
-                {
-                    float gray = 0.299f * adjustedR + 0.587f * adjustedG + 0.114f * adjustedB;
-                    adjustedR = adjustedG = adjustedB = gray;
-                }
-
-                // 应用通道模式
-                if (channelMode_ != ChannelMode::RGBA)
-                {
-                    adjustedR = adjustedG = adjustedB = channelValue;
-                }
-
-                processedData[i].r = static_cast<u8>((adjustedR < 0.0f) ? 0.0f : ((adjustedR > 1.0f) ? 255.0f : (adjustedR * 255.0f)));
-                processedData[i].g = static_cast<u8>((adjustedG < 0.0f) ? 0.0f : ((adjustedG > 1.0f) ? 255.0f : (adjustedG * 255.0f)));
-                processedData[i].b = static_cast<u8>((adjustedB < 0.0f) ? 0.0f : ((adjustedB > 1.0f) ? 255.0f : (adjustedB * 255.0f)));
-                processedData[i].a = static_cast<u8>((adjustedA < 0.0f) ? 0.0f : ((adjustedA > 1.0f) ? 255.0f : (adjustedA * 255.0f)));
-            }
-
-            // TODO: 创建临时纹理并显示处理后的图像
-            // 这里需要实现纹理上传到GPU的功能
-            // 暂时显示原始图像
-            ImGui::Image((ImTextureID)(intptr_t)textureId, ImVec2(displayWidth, displayHeight));
-        }
-        else
-        {
-            // 显示原始图像
-            ImGui::Image((ImTextureID)(intptr_t)textureId, ImVec2(displayWidth, displayHeight));
-        }
+        // 显示处理后的图像
+        ImGui::Image((ImTextureID)(intptr_t)textureId, ImVec2(displayWidth, displayHeight));
 
         // 鼠标交互处理
         bool isImageHovered = ImGui::IsItemHovered();
@@ -339,8 +401,8 @@ namespace shine::editor::views
             if (pixelX >= 0 && pixelX < static_cast<int>(width) &&
                 pixelY >= 0 && pixelY < static_cast<int>(height))
             {
-                // 获取像素数据
-                const auto& data = texture_->getData();
+                // 获取处理后纹理的像素数据
+                const auto& data = currentTexture->getData();
                 size_t pixelIndex = pixelY * width + pixelX;
                 if (pixelIndex < data.size())
                 {
