@@ -109,6 +109,65 @@ namespace shine::util
         return read_be<uint32_t>(data, offset);
     }
 
+    // 小端序读取函数（Little Endian）
+    template <typename T,std::size_t N = sizeof(T)>
+        requires std::integral<T> || std::is_enum_v<T>
+    constexpr void read_le_ref(std::span<const std::byte> data,T & value,size_t offset = 0) noexcept
+    {
+        if (offset > data.size() - sizeof(T)) {
+            return;
+        }
+
+        memcpy(&value, data.data() + offset, sizeof(T));
+
+        if constexpr (N == 1){
+            return;
+        }
+
+        if constexpr (std::endian::native == std::endian::big)
+        {
+#ifdef _MSC_VER
+            if constexpr (N==2) value = _byteswap_ushort(value);
+            else if constexpr (N==4) value = _byteswap_ulong(value);
+            else if constexpr (N==8) value = _byteswap_uint64(value);
+#elif  defined(__GNUC__) || defined(__clang__)
+            if constexpr (N==2) value = __builtin_bswap16(value);
+            else if constexpr (N==4) value = __builtin_bswap32(value);
+            else if constexpr (N==8) value = __builtin_bswap64(value);
+#endif
+        }
+    }
+
+    template <typename T,std::size_t N = sizeof(T)>
+        requires std::integral<T> || std::is_enum_v<T>
+    constexpr T read_le(std::span<const std::byte> data, size_t offset = 0) noexcept
+    {
+        T value  = {};
+        read_le_ref<T,N>(data, value, offset);
+        return value;
+    }
+
+    constexpr uint16_t read_le16(std::span<const std::byte> data, size_t offset = 0) noexcept
+    {
+        return read_le<uint16_t>(data, offset);
+    }
+
+    constexpr uint32_t read_le24(std::span<const std::byte> data, size_t offset = 0) noexcept
+    {
+        if (offset + 3 > data.size()) {
+            return 0;
+        }
+        uint32_t value = static_cast<uint32_t>(data[offset + 0]) |
+                        (static_cast<uint32_t>(data[offset + 1]) << 8) |
+                        (static_cast<uint32_t>(data[offset + 2]) << 16);
+        return value;
+    }
+
+    constexpr uint32_t read_le32(std::span<const std::byte> data, size_t offset = 0) noexcept
+    {
+        return read_le<uint32_t>(data, offset);
+    }
+
 
 
     template<typename T,  std::size_t N = sizeof(T)>
