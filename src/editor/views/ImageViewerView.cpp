@@ -205,6 +205,7 @@ namespace shine::editor::views
     void ImageViewerView::ClearTexture()
     {
         texture_.reset();
+        processedTexture_.reset();
     }
 
     void ImageViewerView::FitToWindow()
@@ -232,12 +233,14 @@ namespace shine::editor::views
         if (!texture_ || !texture_->isValid())
             return;
 
-        // 如果没有处理需求，直接使用原始纹理
+        // 如果没有处理需求，直接使用原始纹理（但不修改processedTexture_的引用）
         if (channelMode_ == ChannelMode::RGBA && !desaturate_ &&
             brightness_ == 0.0f && contrast_ == 1.0f &&
             saturation_ == 1.0f && hueShift_.X == 0.0f)
         {
-            processedTexture_ = texture_;
+            // 不需要处理时，清空processedTexture_，在渲染时直接使用texture_
+            processedTexture_.reset();
+            needsReprocessing_ = false;
             return;
         }
 
@@ -292,11 +295,12 @@ namespace shine::editor::views
         // 更新纹理数据
         processedTexture_->setData(processedData);
 
-        // 创建GPU资源
-        if (!processedTexture_->hasRenderResource())
+        // 重新创建GPU资源以应用新数据
+        if (processedTexture_->hasRenderResource())
         {
-            processedTexture_->CreateRenderResource();
+            processedTexture_->ReleaseRenderResource();
         }
+        processedTexture_->CreateRenderResource();
 
         needsReprocessing_ = false;
     }
@@ -393,9 +397,14 @@ namespace shine::editor::views
             ImVec2 mousePos = ImGui::GetMousePos();
             ImVec2 relativePos = ImVec2(mousePos.x - imagePos.x, mousePos.y - imagePos.y);
 
-            // 计算对应的像素坐标
-            int pixelX = static_cast<int>(relativePos.x / displayWidth * width);
-            int pixelY = static_cast<int>(relativePos.y / displayHeight * height);
+            // 计算对应的像素坐标（防止除零错误）
+            int pixelX = 0;
+            int pixelY = 0;
+            if (displayWidth > 0.0f && displayHeight > 0.0f)
+            {
+                pixelX = static_cast<int>(relativePos.x / displayWidth * width);
+                pixelY = static_cast<int>(relativePos.y / displayHeight * height);
+            }
 
             // 确保像素坐标在有效范围内
             if (pixelX >= 0 && pixelX < static_cast<int>(width) &&
@@ -505,14 +514,20 @@ namespace shine::editor::views
     void ImageViewerView::ApplyColorAdjustments(float& r, float& g, float& b, float& a) const
     {
         // 亮度调整
-        r += brightness_;
-        g += brightness_;
-        b += brightness_;
+        if (brightness_ != 0.0f)
+        {
+            r += brightness_;
+            g += brightness_;
+            b += brightness_;
+        }
 
         // 对比度调整
-        r = (r - 0.5f) * contrast_ + 0.5f;
-        g = (g - 0.5f) * contrast_ + 0.5f;
-        b = (b - 0.5f) * contrast_ + 0.5f;
+        if (contrast_ != 1.0f)
+        {
+            r = (r - 0.5f) * contrast_ + 0.5f;
+            g = (g - 0.5f) * contrast_ + 0.5f;
+            b = (b - 0.5f) * contrast_ + 0.5f;
+        }
 
         // 饱和度调整
         if (saturation_ != 1.0f)
