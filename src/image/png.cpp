@@ -2509,6 +2509,76 @@ namespace shine::image
 			{
 			case PngColorType::GERY:
 				{
+					const uint8_t* src = rawData.data();
+					uint8_t* dst = output.data();
+					const size_t pixelCount = rawData.size();
+					
+#ifndef __EMSCRIPTEN__
+#if defined(__SSE4_1__) && (defined(_MSC_VER) || defined(__GNUC__) || defined(__clang__))
+					// SSE4.1优化：每次处理4个像素（4字节输入，16字节输出）
+					// 使用shuffle将灰度值复制到RGB三个通道，并插入Alpha=255
+					size_t i = 0;
+					const __m128i alpha = _mm_set1_epi8(0xFF);
+					
+					// 确保至少有4个像素才使用SIMD
+					for (; i + 4 <= pixelCount; i += 4)
+					{
+						// 加载4个灰度值（只使用低4字节）
+						__m128i gray = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src + i));
+						
+						// 提取低4字节的灰度值，并复制到RGBA格式
+						// 使用shuffle将每个灰度值复制3次（RGB），Alpha位置设为-1用于后续blend
+						__m128i rgba = _mm_shuffle_epi8(gray, _mm_setr_epi8(
+							0, 0, 0, -1,  // G0 G0 G0 A (位置-1会被blend替换为255)
+							1, 1, 1, -1,  // G1 G1 G1 A
+							2, 2, 2, -1,  // G2 G2 G2 A
+							3, 3, 3, -1   // G3 G3 G3 A
+						));
+						
+						// 插入Alpha通道（255）
+						__m128i alpha_mask = _mm_setr_epi8(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1);
+						rgba = _mm_blendv_epi8(rgba, alpha, alpha_mask);
+						
+						_mm_storeu_si128(reinterpret_cast<__m128i*>(dst + i * 4), rgba);
+					}
+					
+					// 处理剩余像素
+					for (; i < pixelCount; ++i)
+					{
+						uint8_t gray = src[i];
+						dst[i * 4 + 0] = gray;
+						dst[i * 4 + 1] = gray;
+						dst[i * 4 + 2] = gray;
+						dst[i * 4 + 3] = 255;
+					}
+#else
+					// 标量优化：展开循环，每次处理4个像素
+					size_t i = 0;
+					for (; i + 4 <= pixelCount; i += 4)
+					{
+						uint8_t g0 = src[i];
+						uint8_t g1 = src[i + 1];
+						uint8_t g2 = src[i + 2];
+						uint8_t g3 = src[i + 3];
+						
+						dst[i * 4 + 0] = g0; dst[i * 4 + 1] = g0; dst[i * 4 + 2] = g0; dst[i * 4 + 3] = 255;
+						dst[i * 4 + 4] = g1; dst[i * 4 + 5] = g1; dst[i * 4 + 6] = g1; dst[i * 4 + 7] = 255;
+						dst[i * 4 + 8] = g2; dst[i * 4 + 9] = g2; dst[i * 4 + 10] = g2; dst[i * 4 + 11] = 255;
+						dst[i * 4 + 12] = g3; dst[i * 4 + 13] = g3; dst[i * 4 + 14] = g3; dst[i * 4 + 15] = 255;
+					}
+					
+					// 处理剩余像素
+					for (; i < pixelCount; ++i)
+					{
+						uint8_t gray = src[i];
+						dst[i * 4 + 0] = gray;
+						dst[i * 4 + 1] = gray;
+						dst[i * 4 + 2] = gray;
+						dst[i * 4 + 3] = 255;
+					}
+#endif
+#else
+					// WASM平台：标量实现
 					size_t outIdx = 0;
 					for (size_t i = 0; i < rawData.size(); ++i)
 					{
@@ -2518,6 +2588,7 @@ namespace shine::image
 						output[outIdx++] = gray;
 						output[outIdx++] = 255;
 					}
+#endif
 				}
 				break;
 				
@@ -2660,6 +2731,74 @@ namespace shine::image
 				
 			case PngColorType::GERY_ALPHA:
 				{
+					const uint8_t* src = rawData.data();
+					uint8_t* dst = output.data();
+					const size_t pixelCount = rawData.size() / 2;
+					
+#ifndef __EMSCRIPTEN__
+#if defined(__SSE4_1__) && (defined(_MSC_VER) || defined(__GNUC__) || defined(__clang__))
+					// SSE4.1优化：每次处理4个像素（8字节输入，16字节输出）
+					// 格式：G A G A G A G A -> G G G A G G G A G G G A G G G A
+					size_t i = 0;
+					
+					// 确保至少有4个像素（8字节）才使用SIMD
+					for (; i + 4 <= pixelCount; i += 4)
+					{
+						// 加载8字节：G0 A0 G1 A1 G2 A2 G3 A3
+						__m128i ga = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src + i * 2));
+						
+						// 使用shuffle将GA数据重新排列为RGBA格式
+						// 输入：G0 A0 G1 A1 G2 A2 G3 A3 (位置 0-7)
+						// 输出：G0 G0 G0 A0 G1 G1 G1 A1 G2 G2 G2 A2 G3 G3 G3 A3
+						__m128i rgba = _mm_shuffle_epi8(ga, _mm_setr_epi8(
+							0, 0, 0, 1,  // G0 G0 G0 A0
+							2, 2, 2, 3,  // G1 G1 G1 A1
+							4, 4, 4, 5,  // G2 G2 G2 A2
+							6, 6, 6, 7   // G3 G3 G3 A3
+						));
+						
+						_mm_storeu_si128(reinterpret_cast<__m128i*>(dst + i * 4), rgba);
+					}
+					
+					// 处理剩余像素
+					for (; i < pixelCount; ++i)
+					{
+						uint8_t gray = src[i * 2];
+						uint8_t alpha = src[i * 2 + 1];
+						dst[i * 4 + 0] = gray;
+						dst[i * 4 + 1] = gray;
+						dst[i * 4 + 2] = gray;
+						dst[i * 4 + 3] = alpha;
+					}
+#else
+					// 标量优化：展开循环，每次处理4个像素
+					size_t i = 0;
+					for (; i + 4 <= pixelCount; i += 4)
+					{
+						uint8_t g0 = src[i * 2]; uint8_t a0 = src[i * 2 + 1];
+						uint8_t g1 = src[i * 2 + 2]; uint8_t a1 = src[i * 2 + 3];
+						uint8_t g2 = src[i * 2 + 4]; uint8_t a2 = src[i * 2 + 5];
+						uint8_t g3 = src[i * 2 + 6]; uint8_t a3 = src[i * 2 + 7];
+						
+						dst[i * 4 + 0] = g0; dst[i * 4 + 1] = g0; dst[i * 4 + 2] = g0; dst[i * 4 + 3] = a0;
+						dst[i * 4 + 4] = g1; dst[i * 4 + 5] = g1; dst[i * 4 + 6] = g1; dst[i * 4 + 7] = a1;
+						dst[i * 4 + 8] = g2; dst[i * 4 + 9] = g2; dst[i * 4 + 10] = g2; dst[i * 4 + 11] = a2;
+						dst[i * 4 + 12] = g3; dst[i * 4 + 13] = g3; dst[i * 4 + 14] = g3; dst[i * 4 + 15] = a3;
+					}
+					
+					// 处理剩余像素
+					for (; i < pixelCount; ++i)
+					{
+						uint8_t gray = src[i * 2];
+						uint8_t alpha = src[i * 2 + 1];
+						dst[i * 4 + 0] = gray;
+						dst[i * 4 + 1] = gray;
+						dst[i * 4 + 2] = gray;
+						dst[i * 4 + 3] = alpha;
+					}
+#endif
+#else
+					// WASM平台：标量实现
 					size_t outIdx = 0;
 					for (size_t i = 0; i < rawData.size(); i += 2)
 					{
@@ -2670,6 +2809,7 @@ namespace shine::image
 						output[outIdx++] = gray;
 						output[outIdx++] = alpha;
 					}
+#endif
 				}
 				break;
 				
