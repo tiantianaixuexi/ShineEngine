@@ -1,13 +1,13 @@
 #pragma once
 
 #include "shine_define.h"
+#include "command_buffer.h"  // 需要完整定义，因为 std::vector<CommandBuffer> 需要知道大小
 #include <vector>
 #include <memory>
 #include <functional>
 
 namespace shine::render
 {
-    class CommandBuffer;
     class RenderingData;
 
     /**
@@ -47,7 +47,7 @@ namespace shine::render
         size_t GetPendingCommandCount() const { return m_CommandBuffers.size(); }
 
     private:
-        std::vector<CommandBuffer*> m_CommandBuffers;
+        std::vector<CommandBuffer> m_CommandBuffers;  // 存储副本而不是指针，避免生命周期问题
         std::function<void(CommandBuffer*)> m_ExecuteCallback;
     };
 }

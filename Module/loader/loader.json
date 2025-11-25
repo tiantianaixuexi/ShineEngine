@@ -1,11 +1,11 @@
 ﻿{
   "name": "loader",
-  "type": "static",
+  "type": "interface",
   "files": [
     "src/loader/loader.h",
-    "src/loader/loader.cpp"
+    "src/loader/core/loader.h"
   ],
   "imports": [],
-  "deps": [  ]
+  "deps": []
 }
 

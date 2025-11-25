@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "shine_define.h"
+#include "render/resources/texture_handle.h"
 #include <vector>
 #include <memory>
 
@@ -8,7 +9,6 @@
 namespace shine::render
 {
     class TextureManager;
-    struct TextureHandle;
 }
 
 namespace shine::manager
@@ -273,6 +273,15 @@ namespace shine::image
             return _renderHandle;
         }
 
+        /**
+         * @brief 获取纹理ID（OpenGL返回GLuint，其他API返回对应的句柄）
+         * 直接返回创建时存储的ID，无需查询
+         * @return 纹理ID，失败返回0
+         */
+        uint32_t getTextureId() const noexcept {
+            return _textureId;
+        }
+
     private:
         u32 _width = 0;
         u32 _height = 0;
@@ -289,6 +298,9 @@ namespace shine::image
 
         // GPU 纹理资源句柄（通过 TextureManager 创建）
         shine::render::TextureHandle _renderHandle;
+        
+        // GPU 纹理ID（创建时存储，避免每次查询）
+        uint32_t _textureId = 0;
     };
 
 }

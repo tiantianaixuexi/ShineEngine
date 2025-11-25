@@ -1,7 +1,6 @@
 #include "ImageViewerView.h"
 #include "imgui.h"
 #include "image/Texture.h"
-#include "render/resources/texture_manager.h"
 
 namespace shine::editor::views
 {
@@ -17,7 +16,6 @@ namespace shine::editor::views
     {
         if (!texture_ || !texture_->isValid())
         {
-            // 如果没有纹理，不显示窗口
             return;
         }
 
@@ -27,21 +25,13 @@ namespace shine::editor::views
             texture_->CreateRenderResource();
         }
 
-        // 直接从 STexture 获取尺寸（不需要通过 TextureManager）
+        // 直接从 texture_ 获取所有需要的信息
         u32 width = texture_->getWidth();
         u32 height = texture_->getHeight();
+        uint32_t textureId = texture_->getTextureId();
         
-        if (width == 0 || height == 0)
-        {
-            return;
-        }
-
-        // 从 TextureManager 获取纹理ID（用于 ImGui 显示）
-        auto& textureManager = shine::render::TextureManager::get();
-        const auto& renderHandle = texture_->getRenderHandle();
-        uint32_t textureId = textureManager.GetTextureId(renderHandle);
-        
-        if (textureId == 0)
+        // 统一检查：如果尺寸或纹理ID无效，不显示
+        if (width == 0 || height == 0 || textureId == 0)
         {
             return;
         }
@@ -64,7 +54,7 @@ namespace shine::editor::views
             displayWidth = displayHeight / aspectRatio;
         }
 
-        // 显示图像（将纹理ID转换为ImTextureID）
+        // 显示图像（直接从 texture_ 获取的纹理ID）
         ImGui::Image((ImTextureID)(intptr_t)textureId,
             ImVec2(displayWidth, displayHeight));
 

@@ -962,7 +962,7 @@ namespace shine::loader
         return result;
     }
 
-    std::vector<gltfLoader::MeshData> gltfLoader::extractMeshData() const
+    std::vector<MeshData> gltfLoader::extractMeshData() const
     {
         std::vector<MeshData> result;
 
@@ -1192,6 +1192,21 @@ namespace shine::loader
         
         const Scene& scene = _model.scenes[sceneIndex];
         return scene.nodes;
+    }
+
+    size_t gltfLoader::getMeshCount() const noexcept
+    {
+        if (!_loaded)
+        {
+            return 0;
+        }
+
+        size_t count = 0;
+        for (const auto& mesh : _model.meshes)
+        {
+            count += mesh.primitives.size();
+        }
+        return count;
     }
 
 }

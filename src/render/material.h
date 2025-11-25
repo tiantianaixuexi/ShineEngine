@@ -9,6 +9,7 @@
 
 #include "shader_manager.h"
 #include "pipeline/command_buffer.h"
+#include "render/command/command_list.h"
 
 
 namespace shine::render
@@ -202,22 +203,19 @@ namespace shine::render
         }
 
         // 最小接口：绑定Program并设置材质参数（不包含相关模型变换）
-        void bind(CommandBuffer& cmdBuffer)
+        void bind(command::ICommandList& cmdList)
         {
 #ifdef SHINE_OPENGL
             ensureCompiled();
             if (m_Program == 0) return;
-            cmdBuffer.UseProgram(static_cast<std::uint64_t>(m_Program));
-            // Uniform 设置需要在执行时进行，这里先记录到命令缓冲区
-            // 注意：由于 CommandBuffer 不直接支持 uniform 设置，我们需要扩展它
-            // 暂时保留直接调用 glUniform（在 Execute 时处理）
-            // TODO: 扩展 CommandBuffer 支持 uniform 设置
-            if (m_LocationBaseColor >= 0) glUniform3f(m_LocationBaseColor, m_BaseColor[0], m_BaseColor[1], m_BaseColor[2]);
-            if (m_LocationAmbient   >= 0) glUniform3f(m_LocationAmbient,   m_Ambient[0],   m_Ambient[1],   m_Ambient[2]);
-            if (m_LocationShininess >= 0) glUniform1f(m_LocationShininess, m_Shininess);
-            if (m_LocationMetallic  >= 0) glUniform1f(m_LocationMetallic,  m_Metallic);
-            if (m_LocationRoughness >= 0) glUniform1f(m_LocationRoughness, m_Roughness);
-            if (m_LocationAo        >= 0) glUniform1f(m_LocationAo,        m_Ao);
+            cmdList.useProgram(static_cast<std::uint64_t>(m_Program));
+            // Uniform 设置通过命令列表记录，延迟到执行时
+            if (m_LocationBaseColor >= 0) cmdList.setUniform3f(m_LocationBaseColor, m_BaseColor[0], m_BaseColor[1], m_BaseColor[2]);
+            if (m_LocationAmbient   >= 0) cmdList.setUniform3f(m_LocationAmbient,   m_Ambient[0],   m_Ambient[1],   m_Ambient[2]);
+            if (m_LocationShininess >= 0) cmdList.setUniform1f(m_LocationShininess, m_Shininess);
+            if (m_LocationMetallic  >= 0) cmdList.setUniform1f(m_LocationMetallic,  m_Metallic);
+            if (m_LocationRoughness >= 0) cmdList.setUniform1f(m_LocationRoughness, m_Roughness);
+            if (m_LocationAo        >= 0) cmdList.setUniform1f(m_LocationAo,        m_Ao);
 #endif
         }
 

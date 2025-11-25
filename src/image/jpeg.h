@@ -10,6 +10,7 @@
 #include <memory>
 
 #include "loader/loader.h"
+#include "loader/image/image_loader.h"
 
 namespace shine::util
 {
@@ -97,7 +98,7 @@ namespace shine::image
 	 * 
 	 * @note 当前实现支持标准 JPEG 格式，渐进式 JPEG 支持待完善
 	 */
-	class jpeg : public loader::IAssetLoader
+	class jpeg : public loader::IImageLoader
 	{
 	public:
 		// ========================================================================

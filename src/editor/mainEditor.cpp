@@ -5,6 +5,9 @@
 
 #include "fmt/format.h"
 #include "imgui.h"
+#include "editor/views/SceneHierarchyView.h"
+#include "editor/views/PropertiesView.h"
+#include "editor/views/ImageViewerView.h"
 namespace shine::editor::main_editor {
 
 	MainEditor::MainEditor()

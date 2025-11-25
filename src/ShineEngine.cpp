@@ -33,6 +33,7 @@
 
 // 全局模块导入
 #include "editor/mainEditor.h"
+#include "editor/views/ImageViewerView.h"
 #include "fmt/format.h"
 
 #include "render/core/render_backend.h"
@@ -138,7 +139,7 @@ extern "C" {
 }
 #endif
 
-        // 平台检查宏
+// 平台检查宏
 #if defined(SHINE_PLATFORM_X64)
     #pragma message("Building for x64 platform")
 #elif defined(SHINE_PLATFORM_WASM)
@@ -404,75 +405,74 @@ int main(int argc, char** argv) {
 	{
 		shine::util::FunctionTimer __function_timer__("加载纹理", shine::util::TimerPrecision::Nanoseconds);
 		
-		auto texture = shine::manager::AssetManager::Get().LoadTexture("K:\\post_metallicRoughness.png");
+		auto texture = shine::manager::AssetManager::Get().LoadTexture("test_texture.png");
 		if (texture && mainEditor->imageViewerView)
 		{
 			mainEditor->imageViewerView->SetTexture(texture);
 		}
 	}
 
-		// ========================================================================
-		// 方式2：使用 STexture 资源类（适用于需要保留CPU数据的场景）
-		// ========================================================================
-		// {
-		//     shine::image::STexture texture;
-		//     
-		//     // 从 AssetHandle 初始化（利用 AssetManager 的资源）
-		//     auto assetHandle = assetManager.LoadImage("texture.png");
-		//     if (texture.InitializeFromAsset(assetHandle))
-		//     {
-		//         fmt::println("STexture: 从 AssetHandle 初始化成功");
-		//         
-		//         // 可以修改纹理数据（如果需要）
-		//         // auto& data = texture.getData();
-		//         // data[0] = shine::image::RGBA8(255, 0, 0, 255);
-		//         
-		//         // 创建 GPU 纹理资源（直接调用，内部使用 TextureManager 单例）
-		//         auto handle = texture.CreateRenderResource();
-		//         if (handle.isValid())
-		//         {
-		//             fmt::println("STexture: GPU 纹理创建成功");
-		//         }
-		//     }
-		// }
+	// ========================================================================
+	// 方式2：使用 STexture 资源类（适用于需要保留CPU数据的场景）
+	// ========================================================================
+	// {
+	//     shine::image::STexture texture;
+	//     
+	//     // 从 AssetHandle 初始化（利用 AssetManager 的资源）
+	//     auto assetHandle = assetManager.LoadImage("texture.png");
+	//     if (texture.InitializeFromAsset(assetHandle))
+	//     {
+	//         fmt::println("STexture: 从 AssetHandle 初始化成功");
+	//         
+	//         // 可以修改纹理数据（如果需要）
+	//         // auto& data = texture.getData();
+	//         // data[0] = shine::image::RGBA8(255, 0, 0, 255);
+	//         
+	//         // 创建 GPU 纹理资源（直接调用，内部使用 TextureManager 单例）
+	//         auto handle = texture.CreateRenderResource();
+	//         if (handle.isValid())
+	//         {
+	//             fmt::println("STexture: GPU 纹理创建成功");
+	//         }
+	//     }
+	// }
 
-		// ========================================================================
-		// 方式3：快捷方式 - 直接从文件创建纹理（内部会使用 AssetManager）
-		// 适用于：简单场景，不需要复用资源的情况
-		// ========================================================================
-		// auto quickHandle = textureManager.CreateTextureFromFile(texturePath);
-		// if (quickHandle.isValid())
-		// {
-		//     fmt::println("快捷方式: 纹理创建成功");
-		// }
+	// ========================================================================
+	// 方式3：快捷方式 - 直接从文件创建纹理（内部会使用 AssetManager）
+	// 适用于：简单场景，不需要复用资源的情况
+	// ========================================================================
+	// auto quickHandle = textureManager.CreateTextureFromFile(texturePath);
+	// if (quickHandle.isValid())
+	// {
+	//     fmt::println("快捷方式: 纹理创建成功");
+	// }
 
-		// ========================================================================
-		// 方式4：从内存数据创建（适用于网络下载、程序生成等场景）
-		// ========================================================================
-		// {
-		//     unsigned char* imageData = ...;
-		//     size_t dataSize = ...;
-		//     
-		//     // 先通过 AssetManager 从内存加载
-		//     auto memAssetHandle = assetManager.LoadImageFromMemory(imageData, dataSize, "png");
-		//     if (memAssetHandle.isValid())
-		//     {
-		//         // 再创建纹理
-		//         auto memTextureHandle = textureManager.CreateTextureFromAsset(memAssetHandle);
-		//     }
-		// }
+	// ========================================================================
+	// 方式4：从内存数据创建（适用于网络下载、程序生成等场景）
+	// ========================================================================
+	// {
+	//     unsigned char* imageData = ...;
+	//     size_t dataSize = ...;
+	//     
+	//     // 先通过 AssetManager 从内存加载
+	//     auto memAssetHandle = assetManager.LoadImageFromMemory(imageData, dataSize, "png");
+	//     if (memAssetHandle.isValid())
+	//     {
+	//         // 再创建纹理
+	//         auto memTextureHandle = textureManager.CreateTextureFromAsset(memAssetHandle);
+	//     }
+	// }
 
-		// ========================================================================
-		// 资源统计信息
-		// ========================================================================
-		size_t textureCount, totalMemory;
-		shine::render::TextureManager::get().GetTextureStats(textureCount, totalMemory);
-		fmt::println("纹理统计: GPU纹理数量={}, 估算内存={} KB", textureCount, totalMemory / 1024);
-		
-		// 注意：AssetManager 的资源统计需要额外实现，这里只是示例
-		fmt::println("提示: AssetManager 管理资源加载，TextureManager 管理 GPU 纹理");
-		fmt::println("     同一资源可以被多个纹理复用，提高内存效率");
-	}
+	// ========================================================================
+	// 资源统计信息
+	// ========================================================================
+	size_t textureCount, totalMemory;
+	shine::render::TextureManager::get().GetTextureStats(textureCount, totalMemory);
+	fmt::println("纹理统计: GPU纹理数量={}, 估算内存={} KB", textureCount, totalMemory / 1024);
+	
+	// 注意：AssetManager 的资源统计需要额外实现，这里只是示例
+	fmt::println("提示: AssetManager 管理资源加载，TextureManager 管理 GPU 纹理");
+	fmt::println("     同一资源可以被多个纹理复用，提高内存效率");
 
 
 

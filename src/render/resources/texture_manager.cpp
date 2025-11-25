@@ -2,7 +2,7 @@
 #include "render/core/render_backend.h"
 #include "image/Texture.h"
 #include "fmt/format.h"
-#include "util/function_timer.h"
+#include "util/timer/function_timer.h"
 
 namespace shine::render
 {
@@ -11,7 +11,7 @@ namespace shine::render
         ReleaseAllTextures();
     }
 
-    void TextureManager::Initialize(backend::IRenderBackend* renderBackend)
+    void TextureManager::Initialize(render::backend::IRenderBackend* renderBackend)
     {
         renderBackend_ = renderBackend;
     }
@@ -123,7 +123,7 @@ namespace shine::render
         shine::util::FunctionTimer timer("TextureManager::CreateTextureFromFile", shine::util::TimerPrecision::Nanoseconds);
 
         // 使用 AssetManager 加载图片
-        auto assetHandle = manager::AssetManager::Get().LoadImage(filePath);
+        auto assetHandle = manager::AssetManager::Get().LoadTextureAsset(filePath);
         if (!assetHandle.isValid())
         {
             fmt::println("TextureManager: 图片加载失败: {}", filePath);

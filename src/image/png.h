@@ -10,6 +10,7 @@
 #include <memory>
 
 #include "loader/loader.h"
+#include "loader/image/image_loader.h"
 
 namespace shine::image
 {
@@ -193,7 +194,7 @@ namespace shine::image
 	 * 
 	 * @see https://www.w3.org/TR/png-3/
 	 */
-	class png : public shine::loader::IAssetLoader
+	class png : public shine::loader::IImageLoader
 	{
 	public:
 		// ========================================================================
@@ -309,11 +310,11 @@ namespace shine::image
 		std::expected<void, std::string> parsePngFile(std::string_view filePath);
 
 		/**
-		 * @brief 检查数据是否为有效的 PNG 文件
+		 * @brief 检查数据是否为有效的 PNG 文件（只验证文件头和IHDR块，不解析后续块）
 		 * @param content 文件内容
 		 * @return true 如果是有效的 PNG 文件
 		 */
-		constexpr bool IsPngFile(std::span<const std::byte> content) noexcept;
+		bool IsPngFile(std::span<const std::byte> content) noexcept;
 
 		// ========================================================================
 		// 公共接口：PNG 块解析（内部使用，但保留为公共接口以便扩展）

@@ -1,16 +1,18 @@
 ﻿#pragma once
 
-
 #include <array>
 #include <unordered_map>
 #include <unordered_set>
-
-
+#include <memory>
 
 #include "shine_define.h"
 #include "util/singleton.h"
-#include "render/render_backend.h"
-
+#include "render/core/render_backend.h"
+#include "render/pipeline/rendering_data.h"
+#include "render/pipeline/scriptable_render_context.h"
+#include "render/pipeline/render_pipeline_asset.h"
+#include "render/pipeline/render_pipeline.h"
+#include "render/resources/texture_manager.h"
 
 namespace shine::gameplay
 {
@@ -41,7 +43,7 @@ namespace shine::render
         RendererService() = default;
 
         // 注入应用后端（必须先调用）
-        void init(backend::IRenderBackend* backend) noexcept { m_Backend = backend; }
+        void init(backend::IRenderBackend* backend) noexcept;
 
         // 创建/销毁视图（当前实现基于封装后端的单一 FBO，返回句柄不为1）
         ViewportHandle createViewport(int width, int height) noexcept;
@@ -60,13 +62,26 @@ namespace shine::render
         void registerObject(shine::gameplay::SObject* object) noexcept { if (object) m_SceneObjects.insert(object); }
         void unregisterObject(shine::gameplay::SObject* object) noexcept { m_SceneObjects.erase(object); }
 
+        // 设置渲染管线资源
+        void setRenderPipelineAsset(std::shared_ptr<RenderPipelineAsset> asset) noexcept;
+
     private:
+        // 收集渲染数据
+        RenderingData collectRenderingData(ViewportHandle handle, shine::gameplay::Camera* camera) noexcept;
+
+        // 设置渲染上下文
+        void setupRenderContext() noexcept;
 
         backend::IRenderBackend* m_Backend { nullptr };
         std::unordered_map<ViewportHandle, ViewportRecord> m_Viewports;
         ViewportHandle m_NextHandle { 1 };
 
         std::unordered_set<shine::gameplay::SObject*> m_SceneObjects;
+
+        // 渲染管线相关
+        std::shared_ptr<RenderPipelineAsset> m_RenderPipelineAsset;
+        std::shared_ptr<RenderPipeline> m_RenderPipeline;
+        ScriptableRenderContext m_RenderContext;
     };
 }
 

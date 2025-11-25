@@ -33,6 +33,10 @@ namespace shine::render::opengl3
         void drawIndexedTriangles(s32 indexCount, command::IndexType indexType,
                                   u64 indexBufferOffsetBytes = 0) override;
 
+        // Uniforms
+        void setUniform1f(s32 location, float value) override;
+        void setUniform3f(s32 location, float x, float y, float z) override;
+
         // UI
         void imguiRender(void* drawData) override;
 

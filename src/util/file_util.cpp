@@ -405,6 +405,18 @@ namespace shine::util
 #endif
 	}
 
+	std::string get_file_extension(SString filename)
+	{
+		std::string filenameStr(filename);
+		const auto idx = filenameStr.rfind('.');
+		if (idx == std::string::npos || idx == 0 || idx == filenameStr.length() - 1)
+		{
+			return "";
+		}
+		// 返回不包含点号的扩展名
+		return filenameStr.substr(idx + 1);
+	}
+
 	std::string get_file_name(SString filepath)
 	{
 		std::string pathStr(filepath);

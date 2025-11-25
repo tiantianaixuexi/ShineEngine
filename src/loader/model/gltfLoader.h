@@ -1,6 +1,7 @@
 ﻿#pragma once
 
-#include "loader.h"
+#include "loader/core/loader.h"
+#include "loader/model/model_loader.h"
 #include <vector>
 #include <string>
 #include <memory>
@@ -14,7 +15,7 @@
 namespace shine::loader
 {
 
-    class  gltfLoader : public IAssetLoader
+    class  gltfLoader : public IModelLoader
     {
 
         public:
@@ -33,37 +34,13 @@ namespace shine::loader
             virtual const char* getName() const override { return "gltfLoader"; }
             virtual const char* getVersion() const override { return "1.0.0"; }
 
-            // 数据访问方法
-            bool isLoaded() const { return _loaded; }
+            // ========================================================================
+            // IModelLoader 接口实现
+            // ========================================================================
 
-            
-            // 顶点颜色结构（RGBA）
-            struct VertexColor {
-                float r = 1.0f;
-                float g = 1.0f;
-                float b = 1.0f;
-                float a = 1.0f;
-                
-                VertexColor() = default;
-                VertexColor(float _r, float _g, float _b, float _a = 1.0f) 
-                    : r(_r), g(_g), b(_b), a(_a) {}
-            };
-            
-            // 提取网格数据（转换为项目内部格式）
-            struct MeshData {
-                std::string name;
-                std::vector<math::FVector3f> vertices;
-                std::vector<math::FVector3f> normals;
-                std::vector<math::FVector2f> texcoords;
-                std::vector<VertexColor> colors;  // 顶点颜色（如果存在）
-                std::vector<uint32_t> indices;
-                math::FVector3f translation{0.0f};
-                math::FRotator3f rotation{0.0f, 0.0f, 0.0f};
-                math::FVector3f scale{1.0f};
-                int materialIndex = -1;  // 材质索引
-            };
-            
-            std::vector<MeshData> extractMeshData() const;
+            bool isLoaded() const noexcept override { return _loaded; }
+            std::vector<MeshData> extractMeshData() const override;
+            size_t getMeshCount() const noexcept override;
             
             // 获取场景数量
             size_t getSceneCount() const { return _model.scenes.size(); }

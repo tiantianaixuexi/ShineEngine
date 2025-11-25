@@ -216,6 +216,13 @@ namespace shine::util
 #endif
 
 	/**
+	 * @brief 从给定的文件名中提取文件扩展名（不包含点）
+	 * @param filename 文件名
+	 * @return 成功返回扩展名（不包含点），失败返回空字符串
+	 */
+	std::string get_file_extension(SString filename);
+
+	/**
 	 * @brief 获取文件名（不含路径）
 	 * @param filepath 完整文件路径
 	 * @return 文件名
