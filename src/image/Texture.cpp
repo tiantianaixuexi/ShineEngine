@@ -141,31 +141,6 @@ namespace shine::image
         _data = std::move(rgbaData);
     }
 
-    void STexture::updateData(const std::vector<RGBA8>& rgbaData)
-    {
-        // 确保数据大小一致
-        if (rgbaData.size() != static_cast<size_t>(_width * _height))
-        {
-            // 数据大小不匹配，这是一个错误
-            return;
-        }
-
-        // 更新CPU数据
-        _data = rgbaData;
-
-        // 如果有GPU资源，更新它
-        if (_renderHandle.isValid())
-        {
-            auto& textureManager = shine::render::TextureManager::get();
-            textureManager.UpdateTexture(_renderHandle, rgbaData.data(), _width, _height);
-        }
-        else
-        {
-            // 如果没有GPU资源，创建它
-            CreateRenderResource();
-        }
-    }
-
     // 获取纹理信息（已在头文件中内联实现，这里不需要重复）
 
     // 设置纹理参数
