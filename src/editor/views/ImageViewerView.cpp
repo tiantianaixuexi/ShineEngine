@@ -3,17 +3,17 @@
 #include "image/Texture.h"
 #include <algorithm>
 
+using namespace shine::image;
+
 namespace shine::editor::views
 {
     ImageViewerView::ImageViewerView()
-        : zoom_(1.0f)
-        , panOffset_(0, 0)
+        : isOpen_(true)
+        , zoom_(1.0f)
+        , panOffset_(0.0f, 0.0f)
         , fitToWindow_(true)
         , isDragging_(false)
-        , lastMousePos_(0, 0)
-        , showGrid_(false)
-        , useCheckerboard_(true)
-        , backgroundColor_(0.2f, 0.2f, 0.2f, 1.0f)
+        , lastMousePos_(0.0f, 0.0f)
     {
     }
 
@@ -66,8 +66,8 @@ namespace shine::editor::views
             ImGui::NextColumn();
 
             // 右侧列
-            ImGui::Text("数据大小: %.2f KB", static_cast<float>(texture_->getDataSize() * sizeof(RGBA8)) / 1024.0f);
-            ImGui::Text("纹理类型: %s", texture_->getType() == shine::image::TextureType::_2D ? "2D" : "其他");
+            ImGui::Text("数据大小: %.2f KB", static_cast<float>(texture_->getDataSize() * sizeof(shine::image::RGBA8)) / 1024.0f);
+            ImGui::Text("纹理类型: %s", texture_->getType() == TextureType::TEXTURE_2D ? "2D" : "其他");
 
             // 格式信息
             const char* formatStr = "未知";
@@ -115,14 +115,8 @@ namespace shine::editor::views
         if (ImGui::SliderFloat("缩放%", &zoom_, 0.01f, 10.0f, "%.1f%%"))
         {
             fitToWindow_ = false;
-            panOffset_ = ImVec2(0, 0);
+            panOffset_ = shine::math::FVector2f(0, 0);
         }
-        ImGui::SameLine();
-        ImGui::Checkbox("显示网格", &showGrid_);
-        ImGui::SameLine();
-        ImGui::Checkbox("棋盘格背景", &useCheckerboard_);
-        ImGui::SameLine();
-        ImGui::ColorEdit3("背景色", (float*)&backgroundColor_, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
         ImGui::Separator();
 
         // 计算显示尺寸
@@ -157,84 +151,47 @@ namespace shine::editor::views
             displayHeight = static_cast<float>(height) * zoom_;
         }
 
-        // 显示图像
+        // 创建可滚动的子窗口来显示图片
+        ImVec2 childSize = ImGui::GetContentRegionAvail();
+
+        // 如果有平移，确保子窗口足够大以容纳平移的图片
+        float minChildWidth = displayWidth;
+        float minChildHeight = displayHeight;
+
+        if (panOffset_.X != 0.0f)
+        {
+            minChildWidth += std::abs(panOffset_.X);
+        }
+        if (panOffset_.Y != 0.0f)
+        {
+            minChildHeight += std::abs(panOffset_.Y);
+        }
+
+        childSize.x = (childSize.x > minChildWidth) ? childSize.x : minChildWidth;
+        childSize.y = (childSize.y > minChildHeight) ? childSize.y : minChildHeight;
+
+        ImGui::BeginChild("ImageViewerChild", childSize, false,
+            ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysHorizontalScrollbar |
+            ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar);
+
+        // 计算图片显示位置（考虑平移）
         ImVec2 imagePos = ImGui::GetCursorScreenPos();
-
-        // 绘制背景
-        ImDrawList* drawList = ImGui::GetWindowDrawList();
-        ImVec2 bgMin = imagePos;
-        ImVec2 bgMax = ImVec2(imagePos.x + displayWidth, imagePos.y + displayHeight);
-
-        if (useCheckerboard_)
+        if (panOffset_.X != 0.0f || panOffset_.Y != 0.0f)
         {
-            // 绘制棋盘格背景
-            const float checkerSize = 16.0f; // 每个方块的大小
-            ImU32 color1 = IM_COL32(128, 128, 128, 255); // 深灰
-            ImU32 color2 = IM_COL32(192, 192, 192, 255); // 浅灰
-
-            for (float y = bgMin.y; y < bgMax.y; y += checkerSize)
-            {
-                for (float x = bgMin.x; x < bgMax.x; x += checkerSize)
-                {
-                    ImVec2 minPos = ImVec2(x, y);
-                    ImVec2 maxPos = ImVec2(std::min(x + checkerSize, bgMax.x), std::min(y + checkerSize, bgMax.y));
-
-                    int checkerX = static_cast<int>(x / checkerSize);
-                    int checkerY = static_cast<int>(y / checkerSize);
-                    ImU32 color = ((checkerX + checkerY) % 2 == 0) ? color1 : color2;
-
-                    drawList->AddRectFilled(minPos, maxPos, color);
-                }
-            }
-        }
-        else
-        {
-            // 绘制纯色背景
-            ImU32 bgColor = ImGui::ColorConvertFloat4ToU32(backgroundColor_);
-            drawList->AddRectFilled(bgMin, bgMax, bgColor);
+            imagePos.x += panOffset_.X;
+            imagePos.y += panOffset_.Y;
+            ImGui::SetCursorScreenPos(imagePos);
         }
 
+        // 显示图像
         ImGui::Image((ImTextureID)(intptr_t)textureId,
             ImVec2(displayWidth, displayHeight));
 
-        // 绘制网格（当缩放足够大且启用网格显示时）
-        if (showGrid_ && zoom_ >= 4.0f) // 只在高缩放时显示网格
-        {
-            ImDrawList* drawList = ImGui::GetWindowDrawList();
-
-            // 计算每个像素在屏幕上的大小
-            float pixelWidth = displayWidth / width;
-            float pixelHeight = displayHeight / height;
-
-            // 只在像素足够大时绘制网格
-            if (pixelWidth >= 2.0f && pixelHeight >= 2.0f)
-            {
-                ImU32 gridColor = IM_COL32(128, 128, 128, 64); // 半透明灰色
-
-                // 绘制垂直线
-                for (u32 x = 1; x < width; ++x)
-                {
-                    float screenX = imagePos.x + x * pixelWidth;
-                    drawList->AddLine(
-                        ImVec2(screenX, imagePos.y),
-                        ImVec2(screenX, imagePos.y + displayHeight),
-                        gridColor, 1.0f);
-                }
-
-                // 绘制水平线
-                for (u32 y = 1; y < height; ++y)
-                {
-                    float screenY = imagePos.y + y * pixelHeight;
-                    drawList->AddLine(
-                        ImVec2(imagePos.x, screenY),
-                        ImVec2(imagePos.x + displayWidth, screenY),
-                        gridColor, 1.0f);
-                }
-            }
-        }
-
         // 鼠标交互处理
-        if (ImGui::IsItemHovered())
+        bool isImageHovered = ImGui::IsItemHovered();
+
+        // 处理像素检查器和缩放
+        if (isImageHovered)
         {
             // 像素检查器
             ImVec2 mousePos = ImGui::GetMousePos();
@@ -299,7 +256,7 @@ namespace shine::editor::views
                 // 应用缩放
                 float zoomFactor = (wheel > 0) ? 1.2f : 0.8f;
                 float newZoom = zoom_ * zoomFactor;
-                newZoom = std::max(0.01f, std::min(10.0f, newZoom));
+                newZoom = (newZoom < 0.01f) ? 0.01f : ((newZoom > 10.0f) ? 10.0f : newZoom);
 
                 // 调整平移以保持鼠标下的像素位置
                 if (newZoom != zoom_)
@@ -310,10 +267,14 @@ namespace shine::editor::views
                         pixelPos.x * zoom_ * displayWidth / width,
                         pixelPos.y * zoom_ * displayHeight / height
                     );
-                    panOffset_ = ImVec2(offset.x - newOffset.x, offset.y - newOffset.y);
+                    panOffset_ = shine::math::FVector2f(offset.x - newOffset.x, offset.y - newOffset.y);
                 }
             }
+        }
 
+        // 处理拖拽平移（需要在子窗口的任何地方都能拖拽）
+        if (ImGui::IsWindowHovered())
+        {
             // 鼠标拖拽平移（中键或Alt+左键）
             if ((ImGui::IsMouseDragging(ImGuiMouseButton_Middle) ||
                  (ImGui::IsMouseDragging(ImGuiMouseButton_Left) && ImGui::GetIO().KeyAlt)))
@@ -321,14 +282,15 @@ namespace shine::editor::views
                 if (!isDragging_)
                 {
                     isDragging_ = true;
-                    lastMousePos_ = mousePos;
+                    ImVec2 mousePos = ImGui::GetMousePos();
+                    lastMousePos_ = shine::math::FVector2f(mousePos.x, mousePos.y);
                 }
                 else
                 {
                     ImVec2 currentMousePos = ImGui::GetMousePos();
-                    ImVec2 delta = ImVec2(currentMousePos.x - lastMousePos_.x, currentMousePos.y - lastMousePos_.y);
-                    panOffset_ = ImVec2(panOffset_.x + delta.x, panOffset_.y + delta.y);
-                    lastMousePos_ = currentMousePos;
+                    ImVec2 delta = ImVec2(currentMousePos.x - lastMousePos_.X, currentMousePos.y - lastMousePos_.Y);
+                    panOffset_.Set() = shine::math::FVector2f(panOffset_.X + delta.x, panOffset_.Y + delta.y);
+                    lastMousePos_ = shine::math::FVector2f(currentMousePos.x, currentMousePos.y);
                     fitToWindow_ = false;
                 }
             }
@@ -342,19 +304,8 @@ namespace shine::editor::views
             isDragging_ = false;
         }
 
-        // 应用平移到图片显示（通过设置光标位置）
-        if (panOffset_.x != 0.0f || panOffset_.y != 0.0f)
-        {
-            ImVec2 adjustedPos = ImVec2(imagePos.x + panOffset_.x, imagePos.y + panOffset_.y);
-            ImGui::SetCursorScreenPos(adjustedPos);
+        ImGui::EndChild();
 
-            // 重新显示图片（带平移）
-            ImGui::Image((ImTextureID)(intptr_t)textureId,
-                ImVec2(displayWidth, displayHeight));
-
-            // 恢复光标位置
-            ImGui::SetCursorScreenPos(ImVec2(imagePos.x, imagePos.y + displayHeight));
-        }
 
         ImGui::End();
     }
@@ -372,21 +323,21 @@ namespace shine::editor::views
     void ImageViewerView::FitToWindow()
     {
         fitToWindow_ = true;
-        panOffset_ = ImVec2(0, 0);
+        panOffset_ = shine::math::FVector2f(0, 0);
     }
 
     void ImageViewerView::ZoomToActualSize()
     {
         fitToWindow_ = false;
         zoom_ = 1.0f;
-        panOffset_ = ImVec2(0, 0);
+        panOffset_ = shine::math::FVector2f(0, 0);
     }
 
     void ImageViewerView::SetZoom(float zoom)
     {
         fitToWindow_ = false;
-        zoom_ = std::max(0.01f, std::min(10.0f, zoom)); // 限制缩放范围在0.01到10之间
-        panOffset_ = ImVec2(0, 0); // 重置平移
+        zoom_ = (zoom < 0.01f) ? 0.01f : ((zoom > 10.0f) ? 10.0f : zoom); // 限制缩放范围在0.01到10之间
+        panOffset_ = shine::math::FVector2f(0, 0); // 重置平移
     }
 }
 
