@@ -76,19 +76,6 @@ namespace shine::editor::views
         texture_ = texture;
     }
 
-    void ImageViewerView::SetTexture(shine::image::STexture* texture)
-    {
-        if (texture)
-        {
-            // 从原始指针创建共享指针（不管理生命周期，只是临时持有）
-            texture_ = std::shared_ptr<shine::image::STexture>(texture, [](shine::image::STexture*) {});
-        }
-        else
-        {
-            texture_.reset();
-        }
-    }
-
     void ImageViewerView::ClearTexture()
     {
         texture_.reset();

@@ -24,10 +24,9 @@ namespace shine::editor::views
         
         /**
          * @brief 设置纹理资源（直接使用 STexture，更简单）
-         * @param texture STexture 资源指针（可以是共享指针或原始指针）
+         * @param texture STexture 资源共享指针（使用 shared_ptr 确保生命周期安全）
          */
         void SetTexture(std::shared_ptr<shine::image::STexture> texture);
-        void SetTexture(shine::image::STexture* texture);
         
         void ClearTexture();
 
