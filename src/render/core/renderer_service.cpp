@@ -4,7 +4,7 @@
 #include "render/resources/texture_manager.h"
 #include "render/pipeline/render_pipeline_asset.h"
 #include "render/pipeline/command_buffer.h"
-#include "render/command/opengl_command_list.h"
+#include "render/command/command_list.h"
 #include "gameplay/object.h"
 #include "gameplay/component/component.h"
 #include "manager/CameraManager.h"
