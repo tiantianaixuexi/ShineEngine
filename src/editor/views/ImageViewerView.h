@@ -68,7 +68,7 @@ namespace shine::editor::views
 
         // 图像处理方法
         void RenderImageWithEffects();
-        shine::math::FVector2f ApplyColorAdjustments(const shine::math::FVector2f& color) const;
+        void ApplyColorAdjustments(float& r, float& g, float& b, float& a) const;
         float GetChannelValue(ChannelMode mode, float r, float g, float b, float a) const;
     };
 }

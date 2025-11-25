@@ -118,7 +118,7 @@ namespace shine::editor::views
         }
         ImGui::SameLine();
         ImGui::SetNextItemWidth(100);
-        if (ImGui::SliderFloat("缩放%", &zoom_, 0.01f, 10.0f, "%.1f%%"))
+        if (ImGui::SliderFloat("缩放%", &zoom_, 0.01f, 10.0f, "%.2f"))
         {
             fitToWindow_ = false;
             panOffset_.Set(0, 0);
@@ -209,8 +209,9 @@ namespace shine::editor::views
         if (fitToWindow_)
         {
             ImVec2 availSize = ImGui::GetContentRegionAvail();
-            float windowAspect = availSize.x / availSize.y;
-            float imageAspect = static_cast<float>(width) / static_cast<float>(height);
+            // 防止除零错误
+            float windowAspect = (availSize.y > 0.0f) ? (availSize.x / availSize.y) : 1.0f;
+            float imageAspect = (height > 0) ? (static_cast<float>(width) / static_cast<float>(height)) : 1.0f;
 
             if (imageAspect > windowAspect)
             {
@@ -284,25 +285,29 @@ namespace shine::editor::views
                 float channelValue = GetChannelValue(channelMode_, rgba.X, rgba.Y, bgra.X, bgra.Y);
 
                 // 应用颜色调整
-                shine::math::FVector2f adjustedColor = ApplyColorAdjustments(shine::math::FVector2f(rgba.X, rgba.Y));
+                float adjustedR = rgba.X;
+                float adjustedG = rgba.Y;
+                float adjustedB = bgra.X;
+                float adjustedA = bgra.Y;
+                ApplyColorAdjustments(adjustedR, adjustedG, adjustedB, adjustedA);
 
                 // 转换为灰度（如果去色）
                 if (desaturate_)
                 {
-                    float gray = 0.299f * adjustedColor.X + 0.587f * adjustedColor.Y + 0.114f * bgra.X;
-                    adjustedColor.X = adjustedColor.Y = bgra.X = gray;
+                    float gray = 0.299f * adjustedR + 0.587f * adjustedG + 0.114f * adjustedB;
+                    adjustedR = adjustedG = adjustedB = gray;
                 }
 
                 // 应用通道模式
                 if (channelMode_ != ChannelMode::RGBA)
                 {
-                    adjustedColor.X = adjustedColor.Y = bgra.X = channelValue;
+                    adjustedR = adjustedG = adjustedB = channelValue;
                 }
 
-                processedData[i].r = static_cast<u8>((adjustedColor.X < 0.0f) ? 0.0f : ((adjustedColor.X > 1.0f) ? 255.0f : (adjustedColor.X * 255.0f)));
-                processedData[i].g = static_cast<u8>((adjustedColor.Y < 0.0f) ? 0.0f : ((adjustedColor.Y > 1.0f) ? 255.0f : (adjustedColor.Y * 255.0f)));
-                processedData[i].b = static_cast<u8>((bgra.X < 0.0f) ? 0.0f : ((bgra.X > 1.0f) ? 255.0f : (bgra.X * 255.0f)));
-                processedData[i].a = static_cast<u8>((bgra.Y < 0.0f) ? 0.0f : ((bgra.Y > 1.0f) ? 255.0f : (bgra.Y * 255.0f)));
+                processedData[i].r = static_cast<u8>((adjustedR < 0.0f) ? 0.0f : ((adjustedR > 1.0f) ? 255.0f : (adjustedR * 255.0f)));
+                processedData[i].g = static_cast<u8>((adjustedG < 0.0f) ? 0.0f : ((adjustedG > 1.0f) ? 255.0f : (adjustedG * 255.0f)));
+                processedData[i].b = static_cast<u8>((adjustedB < 0.0f) ? 0.0f : ((adjustedB > 1.0f) ? 255.0f : (adjustedB * 255.0f)));
+                processedData[i].a = static_cast<u8>((adjustedA < 0.0f) ? 0.0f : ((adjustedA > 1.0f) ? 255.0f : (adjustedA * 255.0f)));
             }
 
             // TODO: 创建临时纹理并显示处理后的图像
@@ -376,10 +381,10 @@ namespace shine::editor::views
                 // 计算鼠标相对于图片中心的偏移
                 ImVec2 offset = ImVec2(mousePos.x - imageCenter.x, mousePos.y - imageCenter.y);
 
-                // 计算缩放前的实际像素位置
+                // 计算缩放前的实际像素位置（相对于图片左上角的像素坐标）
                 ImVec2 pixelPos = ImVec2(
-                    (offset.x / zoom_) / displayWidth * width,
-                    (offset.y / zoom_) / displayHeight * height
+                    (offset.x / zoom_) + width * 0.5f,   // 从中心偏移转换到像素坐标
+                    (offset.y / zoom_) + height * 0.5f
                 );
 
                 // 应用缩放
@@ -391,9 +396,10 @@ namespace shine::editor::views
                 if (newZoom != zoom_)
                 {
                     zoom_ = newZoom;
+                    // 计算新的中心偏移
                     ImVec2 newOffset = ImVec2(
-                        pixelPos.x * zoom_ * displayWidth / width,
-                        pixelPos.y * zoom_ * displayHeight / height
+                        (pixelPos.x - width * 0.5f) * newZoom,   // 从像素坐标转换回屏幕偏移
+                        (pixelPos.y - height * 0.5f) * newZoom
                     );
                     panOffset_.Set(offset.x - newOffset.x, offset.y - newOffset.y);
                 }
@@ -434,33 +440,35 @@ namespace shine::editor::views
         ImGui::EndChild();
     }
 
-    shine::math::FVector2f ImageViewerView::ApplyColorAdjustments(const shine::math::FVector2f& color) const
+    void ImageViewerView::ApplyColorAdjustments(float& r, float& g, float& b, float& a) const
     {
-        // 这里简化实现，只处理r和g分量
-        // 实际应该处理r,g,b,a四个分量
-        shine::math::FVector2f result = color;
-
         // 亮度调整
-        result.X += brightness_;
-        result.Y += brightness_;
+        r += brightness_;
+        g += brightness_;
+        b += brightness_;
 
         // 对比度调整
-        result.X = (result.X - 0.5f) * contrast_ + 0.5f;
-        result.Y = (result.Y - 0.5f) * contrast_ + 0.5f;
+        r = (r - 0.5f) * contrast_ + 0.5f;
+        g = (g - 0.5f) * contrast_ + 0.5f;
+        b = (b - 0.5f) * contrast_ + 0.5f;
 
-        // 饱和度调整 (简化版本，基于当前r,g分量)
+        // 饱和度调整
         if (saturation_ != 1.0f)
         {
-            float gray = 0.299f * result.X + 0.587f * result.Y + 0.114f * 0.5f; // 假设b=0.5
-            result.X = gray + (result.X - gray) * saturation_;
-            result.Y = gray + (result.Y - gray) * saturation_;
+            // 计算亮度（luminance）
+            float luminance = 0.299f * r + 0.587f * g + 0.114f * b;
+
+            // 应用饱和度
+            r = luminance + (r - luminance) * saturation_;
+            g = luminance + (g - luminance) * saturation_;
+            b = luminance + (b - luminance) * saturation_;
         }
 
         // 限制在0-1范围内
-        result.X = (result.X < 0.0f) ? 0.0f : ((result.X > 1.0f) ? 1.0f : result.X);
-        result.Y = (result.Y < 0.0f) ? 0.0f : ((result.Y > 1.0f) ? 1.0f : result.Y);
-
-        return result;
+        r = (r < 0.0f) ? 0.0f : ((r > 1.0f) ? 1.0f : r);
+        g = (g < 0.0f) ? 0.0f : ((g > 1.0f) ? 1.0f : g);
+        b = (b < 0.0f) ? 0.0f : ((b > 1.0f) ? 1.0f : b);
+        a = (a < 0.0f) ? 0.0f : ((a > 1.0f) ? 1.0f : a);
     }
 
     float ImageViewerView::GetChannelValue(ChannelMode mode, float r, float g, float b, float a) const
