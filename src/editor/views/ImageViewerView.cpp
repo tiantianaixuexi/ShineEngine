@@ -21,6 +21,12 @@ namespace shine::editor::views
         , saturation_(1.0f)
         , hueShift_(0.0f, 0.0f)
         , needsReprocessing_(true)
+        , cachedChannelMode_(ChannelMode::RGBA)
+        , cachedDesaturate_(false)
+        , cachedBrightness_(0.0f)
+        , cachedContrast_(1.0f)
+        , cachedSaturation_(1.0f)
+        , cachedHueShift_(0.0f, 0.0f)
     {
     }
 
@@ -200,6 +206,14 @@ namespace shine::editor::views
         texture_ = texture;
         processedTexture_.reset();
         needsReprocessing_ = true;
+
+        // 重置缓存参数，确保下次处理时能正确比较
+        cachedChannelMode_ = ChannelMode::RGBA;
+        cachedDesaturate_ = false;
+        cachedBrightness_ = 0.0f;
+        cachedContrast_ = 1.0f;
+        cachedSaturation_ = 1.0f;
+        cachedHueShift_.Set(0.0f, 0.0f);
     }
 
     void ImageViewerView::ClearTexture()
@@ -233,8 +247,17 @@ namespace shine::editor::views
         if (!texture_ || !texture_->isValid())
             return;
 
-        // 如果没有处理需求，直接使用原始纹理（但不修改processedTexture_的引用）
-        if (channelMode_ == ChannelMode::RGBA && !desaturate_ &&
+        // 检查处理参数是否发生变化
+        bool paramsChanged = (channelMode_ != cachedChannelMode_ ||
+                             desaturate_ != cachedDesaturate_ ||
+                             brightness_ != cachedBrightness_ ||
+                             contrast_ != cachedContrast_ ||
+                             saturation_ != cachedSaturation_ ||
+                             hueShift_.X != cachedHueShift_.X ||
+                             hueShift_.Y != cachedHueShift_.Y);
+
+        // 如果没有处理需求且参数没有变化，直接使用原始纹理
+        if (!paramsChanged && channelMode_ == ChannelMode::RGBA && !desaturate_ &&
             brightness_ == 0.0f && contrast_ == 1.0f &&
             saturation_ == 1.0f && hueShift_.X == 0.0f)
         {
@@ -244,6 +267,14 @@ namespace shine::editor::views
             return;
         }
 
+        // 如果参数没有变化且已处理过，直接返回
+        if (!paramsChanged && processedTexture_ && processedTexture_->hasRenderResource())
+        {
+            needsReprocessing_ = false;
+            return;
+        }
+
+        // 参数发生变化，需要重新处理
         // 创建或更新处理后的纹理
         if (!processedTexture_)
         {
@@ -301,6 +332,14 @@ namespace shine::editor::views
             processedTexture_->ReleaseRenderResource();
         }
         processedTexture_->CreateRenderResource();
+
+        // 更新缓存的参数
+        cachedChannelMode_ = channelMode_;
+        cachedDesaturate_ = desaturate_;
+        cachedBrightness_ = brightness_;
+        cachedContrast_ = contrast_;
+        cachedSaturation_ = saturation_;
+        cachedHueShift_ = hueShift_;
 
         needsReprocessing_ = false;
     }

@@ -61,8 +61,14 @@ namespace shine::editor::views
         float saturation_;                 // 饱和度调整 (0.0 to 2.0)
         shine::math::FVector2f hueShift_;  // 色相偏移 (x: 色相, y: 强度)
 
-        // 处理状态跟踪
+        // 处理状态跟踪和缓存
         bool needsReprocessing_;           // 是否需要重新处理图像
+        ChannelMode cachedChannelMode_;    // 缓存的上次处理参数
+        bool cachedDesaturate_;
+        float cachedBrightness_;
+        float cachedContrast_;
+        float cachedSaturation_;
+        shine::math::FVector2f cachedHueShift_;
 
         // 缩放控制方法
         void FitToWindow();
