@@ -637,14 +637,19 @@ namespace shine::image
 					auto [alphData, alphSize] = findChunkData(dataSpan, "ALPH");
 					if (alphData)
 					{
-						std::vector<uint8_t> alphaData(_width * _height);
-						auto alphaResult = decodeALPH(alphData, alphSize, alphaData);
+						// 修复变量遮蔽：使用不同的变量名避免遮蔽 alphData 指针
+						std::vector<uint8_t> alphaOutput(_width * _height);
+						auto alphaResult = decodeALPH(alphData, alphSize, alphaOutput);
 						if (alphaResult.has_value())
 						{
-							// 合并 Alpha 通道到 RGBA 数据
-							for (size_t i = 0; i < _width * _height; ++i)
+							// 合并 Alpha 通道到 RGBA 数据（优化：直接内存访问）
+							const uint8_t* alphaSrc = alphaOutput.data();
+							uint8_t* rgbaDst = imageData.data() + 3; // Alpha 通道偏移
+							const size_t pixelCount = _width * _height;
+							
+							for (size_t i = 0; i < pixelCount; ++i)
 							{
-								imageData[i * 4 + 3] = alphaData[i];
+								rgbaDst[i * 4] = alphaSrc[i];
 							}
 						}
 					}
