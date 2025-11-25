@@ -2511,7 +2511,6 @@ namespace shine::image
 				{
 					const uint8_t* src = rawData.data();
 					uint8_t* dst = output.data();
-					const size_t pixelCount = rawData.size();
 					
 #ifndef __EMSCRIPTEN__
 #if defined(__SSE4_1__) && (defined(_MSC_VER) || defined(__GNUC__) || defined(__clang__))
@@ -2520,8 +2519,8 @@ namespace shine::image
 					size_t i = 0;
 					const __m128i alpha = _mm_set1_epi8(0xFF);
 					
-					// 确保至少有4个像素才使用SIMD
-					for (; i + 4 <= pixelCount; i += 4)
+					// 确保至少有16字节可用才使用SIMD
+					for (; i + 4 <= pixelCount && (i + 16) <= rawData.size(); i += 4)
 					{
 						// 加载4个灰度值（只使用低4字节）
 						__m128i gray = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src + i));
@@ -2733,7 +2732,6 @@ namespace shine::image
 				{
 					const uint8_t* src = rawData.data();
 					uint8_t* dst = output.data();
-					const size_t pixelCount = rawData.size() / 2;
 					
 #ifndef __EMSCRIPTEN__
 #if defined(__SSE4_1__) && (defined(_MSC_VER) || defined(__GNUC__) || defined(__clang__))
@@ -2741,8 +2739,8 @@ namespace shine::image
 					// 格式：G A G A G A G A -> G G G A G G G A G G G A G G G A
 					size_t i = 0;
 					
-					// 确保至少有4个像素（8字节）才使用SIMD
-					for (; i + 4 <= pixelCount; i += 4)
+					// 确保至少有16字节可用才使用SIMD
+					for (; i + 4 <= pixelCount && (i * 2 + 16) <= rawData.size(); i += 4)
 					{
 						// 加载8字节：G0 A0 G1 A1 G2 A2 G3 A3
 						__m128i ga = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src + i * 2));
