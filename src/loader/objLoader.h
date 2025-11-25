@@ -65,10 +65,10 @@ namespace shine::loader
         std::vector<MeshData> extractMeshData() const;
         
         // 获取组/对象数量
-        size_t getGroupCount() const { return _groups.size(); }
+        size_t getGroupCount() const { return _model.groups.size(); }
         
         // 获取材质数量
-        size_t getMaterialCount() const { return _materials.size(); }
+        size_t getMaterialCount() const { return _model.materials.size(); }
 
     private:
         // OBJ 文件格式结构
