@@ -405,7 +405,7 @@ int main(int argc, char** argv) {
 	{
 		shine::util::FunctionTimer __function_timer__("加载纹理", shine::util::TimerPrecision::Nanoseconds);
 		
-		auto texture = shine::manager::AssetManager::Get().LoadTexture("test_texture.png");
+		auto texture = shine::manager::AssetManager::Get().LoadTexture("C:\\Users\\ly\\Downloads\\20251106-170123.png");
 		if (texture && mainEditor->imageViewerView)
 		{
 			mainEditor->imageViewerView->SetTexture(texture);

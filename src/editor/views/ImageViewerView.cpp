@@ -115,7 +115,7 @@ namespace shine::editor::views
         if (ImGui::SliderFloat("缩放%", &zoom_, 0.01f, 10.0f, "%.1f%%"))
         {
             fitToWindow_ = false;
-            panOffset_ = shine::math::FVector2f(0, 0);
+            panOffset_.Set(0, 0);
         }
         ImGui::Separator();
 
@@ -267,7 +267,7 @@ namespace shine::editor::views
                         pixelPos.x * zoom_ * displayWidth / width,
                         pixelPos.y * zoom_ * displayHeight / height
                     );
-                    panOffset_ = shine::math::FVector2f(offset.x - newOffset.x, offset.y - newOffset.y);
+                    panOffset_.Set(offset.x - newOffset.x, offset.y - newOffset.y);
                 }
             }
         }
@@ -283,14 +283,14 @@ namespace shine::editor::views
                 {
                     isDragging_ = true;
                     ImVec2 mousePos = ImGui::GetMousePos();
-                    lastMousePos_ = shine::math::FVector2f(mousePos.x, mousePos.y);
+                    lastMousePos_.Set(mousePos.x, mousePos.y);
                 }
                 else
                 {
                     ImVec2 currentMousePos = ImGui::GetMousePos();
                     ImVec2 delta = ImVec2(currentMousePos.x - lastMousePos_.X, currentMousePos.y - lastMousePos_.Y);
-                    panOffset_.Set() = shine::math::FVector2f(panOffset_.X + delta.x, panOffset_.Y + delta.y);
-                    lastMousePos_ = shine::math::FVector2f(currentMousePos.x, currentMousePos.y);
+                    panOffset_.Set(panOffset_.X + delta.x,panOffset_.Y + delta.y);
+                    lastMousePos_.Set(currentMousePos.x, currentMousePos.y);
                     fitToWindow_ = false;
                 }
             }
@@ -323,21 +323,21 @@ namespace shine::editor::views
     void ImageViewerView::FitToWindow()
     {
         fitToWindow_ = true;
-        panOffset_ = shine::math::FVector2f(0, 0);
+        panOffset_.Set(0, 0);
     }
 
     void ImageViewerView::ZoomToActualSize()
     {
         fitToWindow_ = false;
         zoom_ = 1.0f;
-        panOffset_ = shine::math::FVector2f(0, 0);
+        panOffset_.Set(0, 0);
     }
 
     void ImageViewerView::SetZoom(float zoom)
     {
         fitToWindow_ = false;
         zoom_ = (zoom < 0.01f) ? 0.01f : ((zoom > 10.0f) ? 10.0f : zoom); // 限制缩放范围在0.01到10之间
-        panOffset_ = shine::math::FVector2f(0, 0); // 重置平移
+        panOffset_.Set(0, 0); // 重置平移
     }
 }
 
