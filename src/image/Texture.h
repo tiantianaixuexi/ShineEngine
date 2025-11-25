@@ -1,13 +1,20 @@
 ﻿#pragma once
 
 #include "shine_define.h"
-
 #include <vector>
+#include <memory>
 
+// 前向声明（避免循环依赖）
+namespace shine::render
+{
+    class TextureManager;
+    struct TextureHandle;
+}
 
-
-
-
+namespace shine::manager
+{
+    struct AssetHandle;
+}
 
 namespace shine::image
 {
@@ -168,26 +175,65 @@ namespace shine::image
         MIRRORED_REPEAT,    // 镜像重复
     };
 
+    /**
+     * @brief 纹理资源类（类似 UE5 的 UTexture）
+     * 存储纹理数据和元数据，通过 TextureManager 创建 GPU 纹理资源
+     */
     class STexture
     {
     public:
         STexture();
         ~STexture();
 
-        void InitHandle(u32 w, u32 h);
+        /**
+         * @brief 初始化纹理资源（从数据创建）
+         * @param width 纹理宽度
+         * @param height 纹理高度
+         * @param data RGBA数据
+         */
+        void Initialize(u32 width, u32 height, const std::vector<RGBA8>& data);
 
+        /**
+         * @brief 从内存数据初始化
+         * @param imageData RGBA字节数据
+         * @param width 纹理宽度
+         * @param height 纹理高度
+         */
+        void InitializeFromMemory(const unsigned char* imageData, u32 width, u32 height);
+
+        /**
+         * @brief 从 AssetHandle 初始化（从已加载的图片资源创建）
+         * @param assetHandle 资源句柄
+         * @return 成功返回true
+         */
+        bool InitializeFromAsset(const manager::AssetHandle& assetHandle);
+
+        /**
+         * @brief 创建 GPU 纹理资源（通过 TextureManager 单例）
+         * @return 纹理句柄，失败返回无效句柄
+         */
+        shine::render::TextureHandle CreateRenderResource();
+
+        /**
+         * @brief 释放 GPU 纹理资源（通过 TextureManager 单例）
+         */
+        void ReleaseRenderResource();
+
+        /**
+         * @brief 更新纹理数据（如果已创建 GPU 资源，需要重新创建）
+         */
         void setData(std::vector<unsigned char>& imageData) noexcept;
         void setData(std::vector<RGBA8>& rgbaData) noexcept;
 
         // 获取纹理信息
-        u32 getWidth() const noexcept;
-        u32 getHeight() const noexcept;
-        u32 getDepth() const noexcept;
-        TextureFormat getFormat() const noexcept;
-        TextureType getType() const noexcept;
-        size_t getDataSize() const noexcept;
+        u32 getWidth() const noexcept { return _width; }
+        u32 getHeight() const noexcept { return _height; }
+        u32 getDepth() const noexcept { return _depth; }
+        TextureFormat getFormat() const noexcept { return _format; }
+        TextureType getType() const noexcept { return _type; }
+        size_t getDataSize() const noexcept { return _data.size(); }
 
-        // 获取原始数据指针，用于OpenGL纹理上传
+        // 获取原始数据指针
         const void* getDataPtr() const noexcept { return _data.data(); }
         void* getDataPtr() noexcept { return _data.data(); }
 
@@ -206,14 +252,26 @@ namespace shine::image
         void setFilter(TextureFilter minFilter, TextureFilter magFilter);
         void setWrap(TextureWrap s, TextureWrap t, TextureWrap r = TextureWrap::REPEAT);
 
+        /**
+         * @brief 检查纹理资源是否有效（有数据）
+         */
         bool isValid() const noexcept {
-            return textureHandle != 0;
+            return !_data.empty() && _width > 0 && _height > 0;
         }
 
-        u64 &getHandle() noexcept
-		{
-            return textureHandle;
-		}
+        /**
+         * @brief 检查是否已创建 GPU 纹理资源
+         */
+        bool hasRenderResource() const noexcept {
+            return _renderHandle.isValid();
+        }
+
+        /**
+         * @brief 获取渲染资源句柄
+         */
+        const shine::render::TextureHandle& getRenderHandle() const noexcept {
+            return _renderHandle;
+        }
 
     private:
         u32 _width = 0;
@@ -229,7 +287,8 @@ namespace shine::image
         
         std::vector<RGBA8> _data;
 
-        u64 textureHandle;
+        // GPU 纹理资源句柄（通过 TextureManager 创建）
+        shine::render::TextureHandle _renderHandle;
     };
 
 }

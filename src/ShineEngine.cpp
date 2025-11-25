@@ -35,17 +35,19 @@
 #include "editor/mainEditor.h"
 #include "fmt/format.h"
 
-#include "render/render_backend.h"
+#include "render/core/render_backend.h"
 #include "render/render_backend_export.h"
 #include "gameplay/camera.h"
 
-#include "image/png.h"
+#include "render/resources/texture_manager.h"
+#include "image/Texture.h"
 
 #include "gameplay/object.h"
 #include "gameplay/component/StaticMeshComponent.h"
 #include "gameplay/mesh/StaticMesh.h"
 #include "manager/CameraManager.h"
 #include "manager/InputManager.h"
+#include "manager/AssetManager.h"
 #include "timer/function_timer.h"
 
 #include "util/fps_controller.h"
@@ -61,9 +63,6 @@
 
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-int my_image_width = 0;
-int my_image_height = 0;
-GLuint my_png_texture = 0;  // PNG纹理ID
 shine::render::backend::IRenderBackend* RenderBackend = nullptr;
 
 shine::gameplay::Camera g_Camera("默认相机");
@@ -75,7 +74,11 @@ shine::util::EngineFPSManager g_FPSManager(60.0,
 	120.0); // 编辑器60FPS，游戏120FPS
 
 // 初始化共享组件
-void InitSharedComponents() {}
+void InitSharedComponents() 
+{
+	// 初始化资源管理器（单例，自动管理生命周期）
+	shine::manager::AssetManager::Get().Initialize();
+}
 
 void InitGlobalData() {
 	// auto& plugins = shine::manager::PluginsManager::get();
@@ -397,58 +400,78 @@ int main(int argc, char** argv) {
         shine::render::RendererService::get().registerObject(&g_TestActor);
     }
 	
+	// 加载纹理示例（类似 UE5 的 LoadObject，一步到位）
 	{
-		shine::util::FunctionTimer __function_timer__("解析图片",shine::util::TimerPrecision::Nanoseconds);
-		std::vector<unsigned char> buffer;
-		unsigned h = 0;
-		unsigned w = 0;
-
-
-        shine::image::png _png;
-        _png.loadFromFile("K:\\post_metallicRoughness.png");
-        // 解码PNG图像
-        auto decodeResult = _png.decode();
-        if (decodeResult.has_value())
-        {
-            fmt::println("PNG解码成功: {}x{}", _png.getWidth(), _png.getHeight());
-
-            // 创建OpenGL纹理
-            const auto& imageData = _png.getImageData();
-            if (!imageData.empty())
-            {
-                glGenTextures(1, &my_png_texture);
-                glBindTexture(GL_TEXTURE_2D, my_png_texture);
-
-                // 设置纹理参数
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-                // 上传纹理数据
-                glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-                    static_cast<GLsizei>(_png.getWidth()),
-                    static_cast<GLsizei>(_png.getHeight()),
-                    0, GL_RGBA, GL_UNSIGNED_BYTE, imageData.data());
-
-                my_image_width = static_cast<int>(_png.getWidth());
-                my_image_height = static_cast<int>(_png.getHeight());
-
-                fmt::println("PNG纹理创建成功: {}x{}", my_image_width, my_image_height);
-            }
-            else
-            {
-                fmt::println("PNG图像数据为空");
-            }
-        }
-        else
-        {
-            fmt::println("PNG解码失败: {}", decodeResult.error());
-        }
-
-
+		shine::util::FunctionTimer __function_timer__("加载纹理", shine::util::TimerPrecision::Nanoseconds);
 		
+		auto texture = shine::manager::AssetManager::Get().LoadTexture("K:\\post_metallicRoughness.png");
+		if (texture && mainEditor->imageViewerView)
+		{
+			mainEditor->imageViewerView->SetTexture(texture);
+		}
+	}
+
+		// ========================================================================
+		// 方式2：使用 STexture 资源类（适用于需要保留CPU数据的场景）
+		// ========================================================================
+		// {
+		//     shine::image::STexture texture;
+		//     
+		//     // 从 AssetHandle 初始化（利用 AssetManager 的资源）
+		//     auto assetHandle = assetManager.LoadImage("texture.png");
+		//     if (texture.InitializeFromAsset(assetHandle))
+		//     {
+		//         fmt::println("STexture: 从 AssetHandle 初始化成功");
+		//         
+		//         // 可以修改纹理数据（如果需要）
+		//         // auto& data = texture.getData();
+		//         // data[0] = shine::image::RGBA8(255, 0, 0, 255);
+		//         
+		//         // 创建 GPU 纹理资源（直接调用，内部使用 TextureManager 单例）
+		//         auto handle = texture.CreateRenderResource();
+		//         if (handle.isValid())
+		//         {
+		//             fmt::println("STexture: GPU 纹理创建成功");
+		//         }
+		//     }
+		// }
+
+		// ========================================================================
+		// 方式3：快捷方式 - 直接从文件创建纹理（内部会使用 AssetManager）
+		// 适用于：简单场景，不需要复用资源的情况
+		// ========================================================================
+		// auto quickHandle = textureManager.CreateTextureFromFile(texturePath);
+		// if (quickHandle.isValid())
+		// {
+		//     fmt::println("快捷方式: 纹理创建成功");
+		// }
+
+		// ========================================================================
+		// 方式4：从内存数据创建（适用于网络下载、程序生成等场景）
+		// ========================================================================
+		// {
+		//     unsigned char* imageData = ...;
+		//     size_t dataSize = ...;
+		//     
+		//     // 先通过 AssetManager 从内存加载
+		//     auto memAssetHandle = assetManager.LoadImageFromMemory(imageData, dataSize, "png");
+		//     if (memAssetHandle.isValid())
+		//     {
+		//         // 再创建纹理
+		//         auto memTextureHandle = textureManager.CreateTextureFromAsset(memAssetHandle);
+		//     }
+		// }
+
+		// ========================================================================
+		// 资源统计信息
+		// ========================================================================
+		size_t textureCount, totalMemory;
+		textureManager.GetTextureStats(textureCount, totalMemory);
+		fmt::println("纹理统计: GPU纹理数量={}, 估算内存={} KB", textureCount, totalMemory / 1024);
+		
+		// 注意：AssetManager 的资源统计需要额外实现，这里只是示例
+		fmt::println("提示: AssetManager 管理资源加载，TextureManager 管理 GPU 纹理");
+		fmt::println("     同一资源可以被多个纹理复用，提高内存效率");
 	}
 
 
@@ -578,31 +601,6 @@ int main(int argc, char** argv) {
 		}
 
 
-		if (my_png_texture != 0) {
-			ImGui::Begin("PNG Image Viewer");
-			ImGui::Text("Image Size: %d x %d", my_image_width, my_image_height);
-			ImGui::Separator();
-
-			// 计算显示尺寸（保持宽高比，最大宽度800）
-			float maxWidth = 800.0f;
-			float aspectRatio = static_cast<float>(my_image_height) / static_cast<float>(my_image_width);
-			float displayWidth = maxWidth;
-			float displayHeight = maxWidth * aspectRatio;
-
-			// 如果高度太大，限制高度
-			if (displayHeight > 600.0f) {
-				displayHeight = 600.0f;
-				displayWidth = displayHeight / aspectRatio;
-			}
-
-			// 显示图像
-			ImGui::Image((ImTextureID)(intptr_t)my_png_texture,
-				ImVec2(displayWidth, displayHeight));
-
-			ImGui::End();
-		}
-
-
         // 编辑器UI渲染
         mainEditor->Render();
         shine::manager::CameraManager::get().getMainCamera()->Apply();
@@ -616,6 +614,13 @@ int main(int argc, char** argv) {
 
 	// 清理ImGui
 	RenderBackend->ClearUp(hwnd);
+
+	// 清理编辑器
+	if (mainEditor)
+	{
+		delete mainEditor;
+		mainEditor = nullptr;
+	}
 
 	::DestroyWindow(hwnd);
 	::UnregisterClassW(wc.lpszClassName, wc.hInstance);
