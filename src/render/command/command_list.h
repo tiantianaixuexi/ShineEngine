@@ -49,6 +49,10 @@ namespace shine::render::command
         virtual void drawIndexedTriangles(s32 indexCount, IndexType indexType,
                                          u64 indexBufferOffsetBytes = 0) = 0;
 
+        // Uniforms
+        virtual void setUniform1f(s32 location, float value) = 0;
+        virtual void setUniform3f(s32 location, float x, float y, float z) = 0;
+
         // UI
         virtual void imguiRender(void* drawData) = 0; // backend-specific draw data
 

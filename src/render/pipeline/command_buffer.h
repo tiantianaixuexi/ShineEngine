@@ -34,6 +34,8 @@ namespace shine::render
         void bindVertexArray(u64 vaoHandle) override;
         void drawTriangles(s32 firstVertex, s32 vertexCount) override;
         void drawIndexedTriangles(s32 indexCount, command::IndexType indexType, u64 indexBufferOffsetBytes = 0) override;
+        void setUniform1f(s32 location, float value) override;
+        void setUniform3f(s32 location, float x, float y, float z) override;
         void imguiRender(void* drawData) override;
         void swapBuffers(void* nativeSwapContext) override;
 
@@ -102,6 +104,16 @@ namespace shine::render
         void DrawIndexedTriangles(s32 indexCount, command::IndexType indexType, u64 indexBufferOffsetBytes = 0);
 
         /**
+         * @brief 设置 uniform float
+         */
+        void SetUniform1f(s32 location, float value);
+
+        /**
+         * @brief 设置 uniform vec3
+         */
+        void SetUniform3f(s32 location, float x, float y, float z);
+
+        /**
          * @brief 渲染 ImGui
          */
         void RenderImGui(void* drawData);
@@ -139,6 +151,8 @@ namespace shine::render
             BindVertexArray,
             DrawTriangles,
             DrawIndexedTriangles,
+            SetUniform1f,
+            SetUniform3f,
             RenderImGui,
             SwapBuffers
         };
@@ -158,6 +172,8 @@ namespace shine::render
                 u64 vaoHandle;
                 struct { s32 firstVertex, vertexCount; } drawTriangles;
                 struct { s32 indexCount; command::IndexType indexType; u64 offset; } drawIndexed;
+                struct { s32 location; float value; } uniform1f;
+                struct { s32 location; float x, y, z; } uniform3f;
                 void* drawData;
                 void* swapContext;
             };

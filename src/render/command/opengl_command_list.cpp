@@ -110,6 +110,22 @@ namespace shine::render::opengl3
         }
     }
 
+    void OpenGLCommandList::setUniform1f(s32 location, float value)
+    {
+        if (location >= 0)
+        {
+            glUniform1f(location, value);
+        }
+    }
+
+    void OpenGLCommandList::setUniform3f(s32 location, float x, float y, float z)
+    {
+        if (location >= 0)
+        {
+            glUniform3f(location, x, y, z);
+        }
+    }
+
     void OpenGLCommandList::imguiRender(void* drawData)
     {
         // ImGui OpenGL3 backend expects ImDrawData*

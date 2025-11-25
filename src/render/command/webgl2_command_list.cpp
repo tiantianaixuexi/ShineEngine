@@ -77,6 +77,22 @@ namespace shine::render::webgl2
         glDrawElements(GL_TRIANGLES, indexCount, glIndexType, offsetPtr);
     }
 
+    void WebGL2CommandList::setUniform1f(s32 location, float value)
+    {
+        if (location >= 0)
+        {
+            glUniform1f(location, value);
+        }
+    }
+
+    void WebGL2CommandList::setUniform3f(s32 location, float x, float y, float z)
+    {
+        if (location >= 0)
+        {
+            glUniform3f(location, x, y, z);
+        }
+    }
+
     void WebGL2CommandList::imguiRender(void* drawData)
     {
         // ImGui OpenGL3 backend can work with WebGL2/OpenGL ES 3.0

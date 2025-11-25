@@ -26,6 +26,8 @@ namespace shine::render
     {
         m_Buffer.DrawIndexedTriangles(indexCount, indexType, indexBufferOffsetBytes);
     }
+    void CommandBufferAdapter::setUniform1f(s32 location, float value) { m_Buffer.SetUniform1f(location, value); }
+    void CommandBufferAdapter::setUniform3f(s32 location, float x, float y, float z) { m_Buffer.SetUniform3f(location, x, y, z); }
     void CommandBufferAdapter::imguiRender(void* drawData) { m_Buffer.RenderImGui(drawData); }
     void CommandBufferAdapter::swapBuffers(void* nativeSwapContext) { m_Buffer.SwapBuffers(nativeSwapContext); }
 
@@ -115,6 +117,22 @@ namespace shine::render
         m_Commands.push_back(cmd);
     }
 
+    void CommandBuffer::SetUniform1f(s32 location, float value)
+    {
+        Command cmd{};  // 确保 union 被正确初始化
+        cmd.type = CommandType::SetUniform1f;
+        cmd.uniform1f = { location, value };
+        m_Commands.push_back(cmd);
+    }
+
+    void CommandBuffer::SetUniform3f(s32 location, float x, float y, float z)
+    {
+        Command cmd{};  // 确保 union 被正确初始化
+        cmd.type = CommandType::SetUniform3f;
+        cmd.uniform3f = { location, x, y, z };
+        m_Commands.push_back(cmd);
+    }
+
     void CommandBuffer::RenderImGui(void* drawData)
     {
         Command cmd{};  // 确保 union 被正确初始化
@@ -171,6 +189,12 @@ namespace shine::render
                 break;
             case CommandType::DrawIndexedTriangles:
                 cmdList.drawIndexedTriangles(cmd.drawIndexed.indexCount, cmd.drawIndexed.indexType, cmd.drawIndexed.offset);
+                break;
+            case CommandType::SetUniform1f:
+                cmdList.setUniform1f(cmd.uniform1f.location, cmd.uniform1f.value);
+                break;
+            case CommandType::SetUniform3f:
+                cmdList.setUniform3f(cmd.uniform3f.location, cmd.uniform3f.x, cmd.uniform3f.y, cmd.uniform3f.z);
                 break;
             case CommandType::RenderImGui:
                 // 重要：ImGui::GetDrawData() 返回的指针只在当前帧有效
