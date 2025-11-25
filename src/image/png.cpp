@@ -22,6 +22,8 @@
 
 #include "util/encoding/byte_convert.h"
 #include "util/encoding/bit_reader.h"
+#include "util/encoding/huffman_tree.h"
+#include "util/encoding/huffman_decoder.h"
 
 
 /**
@@ -1562,177 +1564,15 @@ namespace shine::image
 		}
 	}
 	
-	// Huffman 树结构
-	struct HuffmanTree
-	{
-		std::vector<uint32_t> codes;      // Huffman 码
-		std::vector<uint32_t> lengths;    // 码长度
-		std::vector<uint8_t> table_len;   // 查找表：长度
-		std::vector<uint16_t> table_value; // 查找表：值
-		uint32_t maxbitlen = 0;
-		uint32_t numcodes = 0;
-		
-		void init(uint32_t numcodes_val, uint32_t maxbitlen_val)
-		{
-			numcodes = numcodes_val;
-			maxbitlen = maxbitlen_val;
-			codes.clear();
-			lengths.clear();
-			table_len.clear();
-			table_value.clear();
-		}
-	};
+	// 使用通用的 HuffmanTree（来自 util/encoding/huffman_tree.h）
+	using HuffmanTree = util::HuffmanTree;
 	
-	// 从码长度构建 Huffman 树
+	// 从码长度构建 Huffman 树（使用通用实现）
 	static std::expected<HuffmanTree, std::string> buildHuffmanTree(
 		const uint32_t* bitlen, size_t numcodes, uint32_t maxbitlen)
 	{
-		HuffmanTree tree;
-		tree.init(static_cast<uint32_t>(numcodes), maxbitlen);
-		
-		// 优化：一次性分配并复制长度
-		tree.codes.resize(numcodes);
-		tree.lengths.assign(bitlen, bitlen + numcodes);
-		
-		// 步骤1：统计每个长度的数量
-		std::vector<uint32_t> blcount(maxbitlen + 1, 0);
-		std::vector<uint32_t> nextcode(maxbitlen + 1, 0);
-		
-		for (size_t i = 0; i < numcodes; ++i)
-		{
-			if (tree.lengths[i] <= maxbitlen)
-			{
-				++blcount[tree.lengths[i]];
-			}
-		}
-		
-		// 步骤2：生成下一个码值
-		uint32_t code = 0;
-		for (uint32_t bits = 1; bits <= maxbitlen; ++bits)
-		{
-			code = (code + blcount[bits - 1]) << 1;
-			nextcode[bits] = code;
-		}
-		
-		// 步骤3：生成所有码
-		for (size_t n = 0; n < numcodes; ++n)
-		{
-			if (tree.lengths[n] != 0)
-			{
-				tree.codes[n] = nextcode[tree.lengths[n]]++;
-				tree.codes[n] &= ((1u << tree.lengths[n]) - 1u);
-			}
-		}
-		
-		// 步骤4：构建查找表
-		constexpr uint32_t headsize = 1u << FIRSTBITS;
-		constexpr uint32_t mask = headsize - 1u;
-		
-		// 优化：计算最大长度并预分配查找表空间
-		std::vector<uint32_t> maxlens(headsize, 0);
-		for (size_t i = 0; i < numcodes; ++i)
-		{
-			uint32_t l = tree.lengths[i];
-			if (l <= FIRSTBITS) continue;
-			
-			uint32_t symbol = tree.codes[i];
-			uint32_t index = reverseBits(symbol >> (l - FIRSTBITS), FIRSTBITS);
-			if (index < headsize)
-			{
-				maxlens[index] = (std::max)(maxlens[index], l);
-			}
-		}
-		
-		// 计算总表大小并一次性分配
-		size_t size = headsize;
-		for (uint32_t i = 0; i < headsize; ++i)
-		{
-			uint32_t l = maxlens[i];
-			if (l > FIRSTBITS)
-			{
-				size += (1u << (l - FIRSTBITS));
-			}
-		}
-		
-		// 优化：一次性分配所有空间，避免多次resize
-		tree.table_len.resize(size, 16); // 16 表示未使用
-		tree.table_value.resize(size, INVALIDSYMBOL);
-		
-		// 填充第一层表（长符号）
-		size_t pointer = headsize;
-		for (uint32_t i = 0; i < headsize; ++i)
-		{
-			uint32_t l = maxlens[i];
-			if (l > FIRSTBITS)
-			{
-				tree.table_len[i] = static_cast<uint8_t>(l);
-				tree.table_value[i] = static_cast<uint16_t>(pointer);
-				pointer += (1u << (l - FIRSTBITS));
-			}
-		}
-		
-		// 填充符号
-		for (size_t i = 0; i < numcodes; ++i)
-		{
-			uint32_t l = tree.lengths[i];
-			if (l == 0) continue;
-			
-			uint32_t symbol = tree.codes[i];
-			uint32_t reverse = reverseBits(symbol, l);
-			
-			if (l <= FIRSTBITS)
-			{
-				// 短符号，完全在第一层表中
-				uint32_t num = 1u << (FIRSTBITS - l);
-				for (uint32_t j = 0; j < num; ++j)
-				{
-					uint32_t index = reverse | (j << l);
-					if (index < headsize && tree.table_len[index] == 16)
-					{
-						tree.table_len[index] = static_cast<uint8_t>(l);
-						tree.table_value[index] = static_cast<uint16_t>(i);
-					}
-				}
-			}
-			else
-			{
-				// 长符号，需要第二层查找
-				uint32_t index = reverse & mask;
-				if (index < headsize)
-				{
-					uint32_t maxlen = tree.table_len[index];
-					if (maxlen >= l)
-					{
-						uint32_t tablelen = maxlen - FIRSTBITS;
-						uint32_t start = tree.table_value[index];
-						uint32_t num = 1u << (tablelen - (l - FIRSTBITS));
-						
-						for (uint32_t j = 0; j < num; ++j)
-						{
-							uint32_t reverse2 = reverse >> FIRSTBITS;
-							uint32_t index2 = start + (reverse2 | (j << (l - FIRSTBITS)));
-							if (index2 < size)
-							{
-								tree.table_len[index2] = static_cast<uint8_t>(l);
-								tree.table_value[index2] = static_cast<uint16_t>(i);
-							}
-						}
-					}
-				}
-			}
-		}
-		
-		// 填充无效符号
-		for (size_t i = 0; i < size; ++i)
-		{
-			if (tree.table_len[i] == 16)
-			{
-				tree.table_len[i] = (i < headsize) ? 1 : (FIRSTBITS + 1);
-				tree.table_value[i] = INVALIDSYMBOL;
-			}
-		}
-		
-		return tree;
+		// 使用通用实现
+		return util::buildHuffmanTree(bitlen, numcodes, maxbitlen);
 	}
 	
 	// 从固定树构建 Huffman 树（BTYPE=1）
@@ -1762,43 +1602,8 @@ namespace shine::image
 		return std::make_pair(std::move(tree_ll.value()), std::move(tree_d.value()));
 	}
 	
-	// Huffman 解码符号
-	static uint32_t huffmanDecodeSymbol(util::BitReader& reader, const HuffmanTree& tree)
-	{
-		// 优化：确保有足够的位用于第一层查找（最多15位）
-		reader.ensureBits(FIRSTBITS);
-		uint32_t code = reader.peekBits(FIRSTBITS);
-		if (code >= tree.table_len.size())
-		{
-			return INVALIDSYMBOL;
-		}
-		
-		uint8_t l = tree.table_len[code];
-		uint16_t value = tree.table_value[code];
-		
-		if (l <= FIRSTBITS)
-		{
-			reader.advanceBits(l);
-			return value;
-		}
-		else
-		{
-			reader.advanceBits(FIRSTBITS);
-			// 优化：确保有足够的位用于第二层查找（最多15位）
-			reader.ensureBits(l - FIRSTBITS);
-			uint32_t code2 = reader.peekBits(l - FIRSTBITS);
-			uint32_t index2 = value + code2;
-			
-			if (index2 >= tree.table_len.size())
-			{
-				return INVALIDSYMBOL;
-			}
-			
-			uint8_t l2 = tree.table_len[index2];
-			reader.advanceBits(l2 - FIRSTBITS);
-			return tree.table_value[index2];
-		}
-	}
+	// Huffman 解码符号（使用通用实现）
+	// 注意：直接使用 util::huffmanDecodeSymbol 避免函数调用不明确
 	
 	// 解压缩 Huffman 块（BTYPE=1 或 2）
 	// 注意：output 参数用于累积所有块的数据，使得距离码可以引用之前块的数据
@@ -1873,7 +1678,7 @@ namespace shine::image
 					return std::unexpected("数据不足：无法读取代码长度码");
 				}
 				reader.ensureBits(25);
-				uint32_t code = huffmanDecodeSymbol(reader, tree_cl);
+				uint32_t code = util::huffmanDecodeSymbol(reader, tree_cl);
 				
 				if (code == INVALIDSYMBOL)
 				{
@@ -1965,7 +1770,7 @@ namespace shine::image
 			}
 			
 			// 解码符号（huffmanDecodeSymbol内部会调用ensureBits，这里不需要重复调用）
-			uint32_t code_ll = huffmanDecodeSymbol(reader, tree_ll);
+			uint32_t code_ll = util::huffmanDecodeSymbol(reader, tree_ll);
 			
 			if (code_ll == INVALIDSYMBOL)
 			{
@@ -1990,7 +1795,7 @@ namespace shine::image
 				}
 				
 				// 解码距离码（huffmanDecodeSymbol内部会调用ensureBits）
-				uint32_t code_d = huffmanDecodeSymbol(reader, tree_d);
+				uint32_t code_d = util::huffmanDecodeSymbol(reader, tree_d);
 				
 				if (code_d == INVALIDSYMBOL || code_d > 29)
 				{
