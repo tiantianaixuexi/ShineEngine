@@ -338,10 +338,37 @@ void WebGL2RenderBackend::ClearUp(HWND hwnd)
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
-    // Cleanup WebGL2/OpenGL ES
+    
+    // Cleanup WebGL2/OpenGL ES resources
+    
+    // Cleanup all viewport FBOs
+    for (auto& [handle, viewport] : m_Viewports)
+    {
+        if (viewport.fbo) glDeleteFramebuffers(1, &viewport.fbo);
+        if (viewport.color) glDeleteTextures(1, &viewport.color);
+        if (viewport.depth) glDeleteRenderbuffers(1, &viewport.depth);
+    }
+    m_Viewports.clear();
+    
+    // Cleanup default framebuffer resources
+    if (g_FramebufferObject) glDeleteFramebuffers(1, &g_FramebufferObject);
+    if (g_FramebufferTexture) glDeleteTextures(1, &g_FramebufferTexture);
+    if (g_DepthRenderbuffer) glDeleteRenderbuffers(1, &g_DepthRenderbuffer);
+    g_FramebufferObject = 0;
+    g_FramebufferTexture = 0;
+    g_DepthRenderbuffer = 0;
+    
+    // Cleanup UBOs
+    if (m_CameraUbo) glDeleteBuffers(1, &m_CameraUbo);
+    if (m_LightUbo) glDeleteBuffers(1, &m_LightUbo);
+    m_CameraUbo = 0;
+    m_LightUbo = 0;
 
     CleanupDevice(hwnd);
-    wglDeleteContext(g_hRC);
+    if (g_hRC) {
+        wglDeleteContext(g_hRC);
+        g_hRC = nullptr;
+    }
 }
 
 void WebGL2RenderBackend::UpdateCameraUBO()

@@ -43,8 +43,8 @@ public:
     GLuint g_DepthRenderbuffer = 0;
 
     // Windows OpenGL context
-    HGLRC g_hRC;
-    HDC g_hdc;
+    HGLRC g_hRC = nullptr;
+    HDC g_hdc = nullptr;
 
     // Global camera UBO, std140, binding=0
     GLuint m_CameraUbo = 0;
