@@ -7,8 +7,8 @@
 
 #include <GL/glew.h>
 
-#include "shader_manager.h"
-#include "pipeline/command_buffer.h"
+#include "render/resources/shader_manager.h"
+#include "render/pipeline/command_buffer.h"
 
 
 namespace shine::render

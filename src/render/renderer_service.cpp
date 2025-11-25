@@ -1,11 +1,31 @@
 ﻿#include "renderer_service.h"
 
-
 #include "render/render_backend.h"
+#include "render/pipeline/render_pipeline_asset.h"
+#include "render/pipeline/command_buffer.h"
+#include "render/command/opengl_command_list.h"
 #include "gameplay/object.h"
 #include "gameplay/component/component.h"
+#include "manager/CameraManager.h"
+#include "manager/light_manager.h"
+
 namespace shine::render
 {
+    void RendererService::init(backend::IRenderBackend* backend) noexcept
+    {
+        m_Backend = backend;
+        m_TextureManager.Initialize(backend);
+
+        // 创建默认渲染管线资源
+        if (!m_RenderPipelineAsset)
+        {
+            m_RenderPipelineAsset = std::make_shared<DefaultRenderPipelineAsset>();
+            m_RenderPipeline = m_RenderPipelineAsset->CreatePipeline();
+        }
+
+        // 设置渲染上下文的执行回调
+        setupRenderContext();
+    }
     ViewportHandle RendererService::createViewport(int width, int height) noexcept
     {
         if (!m_Backend) return 0;
@@ -44,24 +64,104 @@ namespace shine::render
 
     void RendererService::renderView(ViewportHandle handle, shine::gameplay::Camera* camera) noexcept
     {
-        (void)camera; // 当前后端从CameraManager读取相机，后续可传参
         if (!m_Backend || handle == 0) return;
+        if (!m_RenderPipeline) return;
 
-        // 通过回调将场景对象的组件渲染提交到CommandList
-        m_Backend->RenderSceneWith(handle, [this](shine::render::command::ICommandList& cmd){
-            for (auto* obj : m_SceneObjects) {
-                if (!obj) continue;
-                for (auto& compPtr : obj->getComponents()) {
-                    compPtr->onRender(cmd);
-                }
-            }
-        });
+        // 收集渲染数据
+        RenderingData renderingData = collectRenderingData(handle, camera);
+
+        // 清空渲染上下文
+        m_RenderContext.Clear();
+
+        // 执行渲染管线
+        m_RenderPipeline->Render(m_RenderContext, renderingData);
+
+        // 执行所有提交的命令
+        m_RenderContext.Execute();
     }
 
     void RendererService::endFrame(const std::array<float,4>& clear_color) noexcept
     {
         if (!m_Backend) return;
         m_Backend->RenderToFramebuffer(clear_color);
+    }
+
+    void RendererService::setRenderPipelineAsset(std::shared_ptr<RenderPipelineAsset> asset) noexcept
+    {
+        if (asset)
+        {
+            m_RenderPipelineAsset = asset;
+            m_RenderPipeline = asset->CreatePipeline();
+        }
+    }
+
+    RenderingData RendererService::collectRenderingData(ViewportHandle handle, shine::gameplay::Camera* camera) noexcept
+    {
+        RenderingData data;
+
+        // 设置主相机
+        if (camera)
+        {
+            data.mainCamera = camera;
+            data.cameras.push_back(camera);
+        }
+        else
+        {
+            // 如果没有传入相机，从 CameraManager 获取主相机
+            auto* mainCam = shine::manager::CameraManager::get().getMainCamera();
+            if (mainCam)
+            {
+                data.mainCamera = mainCam;
+                data.cameras.push_back(mainCam);
+            }
+        }
+
+        // 设置光源管理器
+        data.lightManager = &shine::manager::LightManager::get();
+
+        // 收集场景对象
+        data.sceneObjects.reserve(m_SceneObjects.size());
+        for (auto* obj : m_SceneObjects)
+        {
+            if (obj)
+            {
+                data.sceneObjects.push_back(obj);
+            }
+        }
+
+        // 设置视口信息
+        auto it = m_Viewports.find(handle);
+        if (it != m_Viewports.end())
+        {
+            data.viewport.handle = handle;
+            data.viewport.width = it->second.width;
+            data.viewport.height = it->second.height;
+        }
+
+        return data;
+    }
+
+    void RendererService::setupRenderContext() noexcept
+    {
+        // 设置执行回调，将 CommandBuffer 的命令执行到后端
+        // 使用 RenderSceneWith 的回调机制来执行命令
+        m_RenderContext.SetExecuteCallback([this](CommandBuffer* cmdBuffer) {
+            if (!cmdBuffer || !m_Backend) return;
+
+            // 获取当前视口句柄（使用第一个视口，或默认0）
+            ViewportHandle viewportHandle = 0;
+            if (!m_Viewports.empty())
+            {
+                viewportHandle = m_Viewports.begin()->first;
+            }
+
+            // 通过 RenderSceneWith 执行命令
+            // 这会绑定正确的FBO并执行命令
+            m_Backend->RenderSceneWith(static_cast<s32>(viewportHandle), [cmdBuffer](shine::render::command::ICommandList& cmdList) {
+                // 执行命令缓冲区中的所有命令
+                cmdBuffer->Execute(cmdList);
+            });
+        });
     }
 }
 
