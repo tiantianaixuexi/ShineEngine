@@ -1,13 +1,25 @@
 ﻿#include "mainEditor.h"
 
 #include <cstdint>
-
+#include <memory>
 
 #include "fmt/format.h"
 #include "imgui.h"
 namespace shine::editor::main_editor {
 
-	MainEditor::MainEditor() {}
+	MainEditor::MainEditor()
+	{
+	}
+
+	MainEditor::~MainEditor()
+	{
+		delete myButton;
+		delete assetsBrower;
+		delete editorView;
+		delete sceneHierarchyView;
+		delete propertiesView;
+		delete imageViewerView;
+	}
 
 	void MainEditor::Init(render::backend::IRenderBackend* render) {
 
@@ -39,6 +51,15 @@ namespace shine::editor::main_editor {
         Renderer->init(RenderBackend);
         editorView = new EditorView::EditView();
         editorView->Init(Renderer);
+
+		// 初始化场景层级视图
+		sceneHierarchyView = new views::SceneHierarchyView();
+
+		// 初始化属性面板
+		propertiesView = new views::PropertiesView();
+
+		// 初始化图片查看器（不再需要 Init，直接使用即可）
+		imageViewerView = new views::ImageViewerView();
 	}
 
 	void MainEditor::Render() {
@@ -115,6 +136,29 @@ namespace shine::editor::main_editor {
 
 		// 编辑视图由 EditorView 渲染
         editorView->Render();
+
+		// 渲染场景层级视图
+		if (sceneHierarchyView)
+		{
+			sceneHierarchyView->Render();
+			// 同步选中对象到属性面板
+			if (propertiesView)
+			{
+				propertiesView->SetSelectedObject(sceneHierarchyView->GetSelectedObject());
+			}
+		}
+
+		// 渲染属性面板
+		if (propertiesView)
+		{
+			propertiesView->Render();
+		}
+
+		// 渲染图片查看器
+		if (imageViewerView)
+		{
+			imageViewerView->Render();
+		}
 
 		// 渲染ImGui界面
 		ImGui::Render();

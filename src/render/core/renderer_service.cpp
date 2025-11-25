@@ -1,6 +1,7 @@
 ﻿#include "renderer_service.h"
 
-#include "render/render_backend.h"
+#include "render/core/render_backend.h"
+#include "render/resources/texture_manager.h"
 #include "render/pipeline/render_pipeline_asset.h"
 #include "render/pipeline/command_buffer.h"
 #include "render/command/opengl_command_list.h"
@@ -14,7 +15,9 @@ namespace shine::render
     void RendererService::init(backend::IRenderBackend* backend) noexcept
     {
         m_Backend = backend;
-        m_TextureManager.Initialize(backend);
+        
+        // 初始化纹理管理器（单例）
+        TextureManager::get().Initialize(backend);
 
         // 创建默认渲染管线资源
         if (!m_RenderPipelineAsset)

@@ -1,41 +1,117 @@
 ﻿#include "Texture.h"
-
-
-#include <memory>
-#include <gl/glew.h>
-
-
+#include "render/resources/texture_manager.h"
+#include "manager/AssetManager.h"
+#include "loader/image/image_loader.h"
+#include <cstring>
 
 namespace shine::image
 {
-
     STexture::STexture()
     {
     }
 
     STexture::~STexture()
-    { 
+    {
+        // 注意：GPU 资源应该在外部通过 ReleaseRenderResource 释放
+        // 这里不自动释放，因为 TextureManager 管理生命周期
     }
 
-    void STexture::InitHandle(u32 w, u32 h)
+    void STexture::Initialize(u32 width, u32 height, const std::vector<RGBA8>& data)
     {
-        // RGBA设置为4字节对齐
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        _width = width;
+        _height = height;
+        _data = data;
+    }
 
-        GLuint image_texture;
-        glGenTextures(1, &image_texture);
-        glBindTexture(GL_TEXTURE_2D, image_texture);
+    void STexture::InitializeFromMemory(const unsigned char* imageData, u32 width, u32 height)
+    {
+        _width = width;
+        _height = height;
+        
+        size_t pixelCount = width * height;
+        _data.resize(pixelCount);
+        
+        if (imageData)
+        {
+            std::memcpy(_data.data(), imageData, pixelCount * RGBA8::size());
+        }
+    }
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    bool STexture::InitializeFromAsset(const manager::AssetHandle& assetHandle)
+    {
+        if (!assetHandle.isValid() || assetHandle.type != manager::EAssetType::Image)
+        {
+            return false;
+        }
 
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, &_data);
+        // 获取加载器
+        auto* loader = manager::AssetManager::Get().GetImageLoader(assetHandle);
+        if (!loader || !loader->isDecoded())
+        {
+            return false;
+        }
 
-        _width = w;
-        _height = h;
-        textureHandle = image_texture;
+        // 从加载器获取数据
+        const auto& imageData = loader->getImageData();
+        _width = static_cast<u32>(loader->getWidth());
+        _height = static_cast<u32>(loader->getHeight());
 
+        if (imageData.empty() || _width == 0 || _height == 0)
+        {
+            return false;
+        }
+
+        // 复制数据到 RGBA8 格式
+        size_t pixelCount = _width * _height;
+        _data.resize(pixelCount);
+        std::memcpy(_data.data(), imageData.data(), imageData.size());
+
+        return true;
+    }
+
+    shine::render::TextureHandle STexture::CreateRenderResource()
+    {
+        if (!isValid())
+        {
+            return shine::render::TextureHandle{};
+        }
+
+        // 如果已经创建过，先释放旧的
+        if (_renderHandle.isValid())
+        {
+            ReleaseRenderResource();
+        }
+
+        // 通过 TextureManager 单例创建纹理
+        auto& textureManager = shine::render::TextureManager::get();
+        
+        shine::render::TextureCreateInfo createInfo;
+        createInfo.width = _width;
+        createInfo.height = _height;
+        createInfo.data = _data.data();
+        createInfo.generateMipmaps = (_minFilter == TextureFilter::LINEAR_MIPMAP_LINEAR || 
+                                      _minFilter == TextureFilter::LINEAR_MIPMAP_NEAREST ||
+                                      _minFilter == TextureFilter::NEAREST_MIPMAP_LINEAR ||
+                                      _minFilter == TextureFilter::NEAREST_MIPMAP_NEAREST);
+        createInfo.linearFilter = (_magFilter == TextureFilter::LINEAR || 
+                                   _minFilter == TextureFilter::LINEAR ||
+                                   _minFilter == TextureFilter::LINEAR_MIPMAP_LINEAR ||
+                                   _minFilter == TextureFilter::LINEAR_MIPMAP_NEAREST);
+        createInfo.clampToEdge = (_wrapS == TextureWrap::CLAMP_TO_EDGE || 
+                                  _wrapS == TextureWrap::CLAMP_TO_BORDER);
+
+        _renderHandle = textureManager.CreateTexture(createInfo);
+        return _renderHandle;
+    }
+
+    void STexture::ReleaseRenderResource()
+    {
+        if (_renderHandle.isValid())
+        {
+            auto& textureManager = shine::render::TextureManager::get();
+            textureManager.ReleaseTexture(_renderHandle);
+            _renderHandle = shine::render::TextureHandle{};
+        }
     }
 
     void STexture::setData(std::vector<unsigned char>& imageData) noexcept
@@ -53,21 +129,7 @@ namespace shine::image
         _data = std::move(rgbaData);
     }
 
-    // 获取纹理信息
-    uint32_t STexture::getWidth() const noexcept
-    {
-        return _width;
-    }
-
-    uint32_t STexture::getHeight() const noexcept
-    {
-        return _height;
-    }
-
-    uint32_t STexture::getDepth() const noexcept
-    {
-        return _depth;
-    }
+    // 获取纹理信息（已在头文件中内联实现，这里不需要重复）
 
     TextureFormat STexture::getFormat() const noexcept
     {
