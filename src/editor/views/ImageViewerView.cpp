@@ -61,8 +61,9 @@ namespace shine::editor::views
         ImGui::Begin("图片查看器", &isOpen_);
 
         // 创建左右分割布局
-        float leftPanelWidth = ImGui::GetContentRegionAvail().x * 0.7f; // 左侧占70%
-        float rightPanelWidth = ImGui::GetContentRegionAvail().x * 0.3f; // 右侧占30%
+        float availableWidth = ImGui::GetContentRegionAvail().x;
+        float leftPanelWidth = availableWidth * 0.65f; // 左侧占65%，留出空间给ImGui间距
+        float rightPanelWidth = availableWidth * 0.3f;  // 右侧占30%
 
         // 左侧：图像显示区域
         ImGui::BeginChild("ImageArea", ImVec2(leftPanelWidth, 0), true);
@@ -259,7 +260,7 @@ namespace shine::editor::views
         // 如果没有处理需求且参数没有变化，直接使用原始纹理
         if (!paramsChanged && channelMode_ == ChannelMode::RGBA && !desaturate_ &&
             brightness_ == 0.0f && contrast_ == 1.0f &&
-            saturation_ == 1.0f && hueShift_.X == 0.0f)
+            saturation_ == 1.0f && hueShift_.X == 0.0f && hueShift_.Y == 0.0f)
         {
             // 不需要处理时，清空processedTexture_，在渲染时直接使用texture_
             processedTexture_.reset();
@@ -323,15 +324,8 @@ namespace shine::editor::views
             processedData[i].a = static_cast<u8>((a < 0.0f) ? 0.0f : ((a > 1.0f) ? 255.0f : (a * 255.0f)));
         }
 
-        // 更新纹理数据
-        processedTexture_->setData(processedData);
-
-        // 重新创建GPU资源以应用新数据
-        if (processedTexture_->hasRenderResource())
-        {
-            processedTexture_->ReleaseRenderResource();
-        }
-        processedTexture_->CreateRenderResource();
+        // 更新纹理数据（高效地只更新GPU数据）
+        processedTexture_->updateData(processedData);
 
         // 更新缓存的参数
         cachedChannelMode_ = channelMode_;
@@ -578,6 +572,22 @@ namespace shine::editor::views
             r = luminance + (r - luminance) * saturation_;
             g = luminance + (g - luminance) * saturation_;
             b = luminance + (b - luminance) * saturation_;
+        }
+
+        // 色相调整
+        if (hueShift_.X != 0.0f || hueShift_.Y != 0.0f)
+        {
+            // 将RGB转换到HSV
+            float h, s, v;
+            ImGui::ColorConvertRGBtoHSV(r, g, b, h, s, v);
+
+            // 应用色相偏移 (hueShift_.X 是cos值, hueShift_.Y 是sin值)
+            float hueOffset = atan2f(hueShift_.Y, hueShift_.X);
+            h = fmodf(h + hueOffset, 1.0f);
+            if (h < 0.0f) h += 1.0f;
+
+            // 转换回RGB
+            ImGui::ColorConvertHSVtoRGB(h, s, v, r, g, b);
         }
 
         // 限制在0-1范围内
