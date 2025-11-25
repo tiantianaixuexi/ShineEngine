@@ -1,0 +1,17 @@
+{
+  "name": "webp",
+  "files": [
+    "src/image/webp.h",
+    "src/image/webp.cpp"
+  ],
+  "deps": [
+    "loader",
+    "shine_define",
+    "memory_util",
+    "file_util"
+  ],
+  "defines": [],
+  "type": "static",
+  "platform": ["Windows", "Wasm", "Linux"]
+}
+

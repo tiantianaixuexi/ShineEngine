@@ -1,0 +1,14 @@
+{
+  "name": "memory_util",
+  "files": [
+    "src/util/memory_util.h",
+    "src/util/memory_util.cpp"
+  ],
+  "deps": [
+    "shine_define"
+  ],
+  "defines": [],
+  "type": "static",
+  "platform": ["Windows", "Wasm", "Linux"]
+}
+
