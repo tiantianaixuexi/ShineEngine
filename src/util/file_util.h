@@ -458,6 +458,16 @@ namespace shine::util
 	std::string JoinPath(SString base, SString part);
 
 	/**
+	 * @brief 连接多个路径部分（基础版本：单个参数）
+	 * @param first 路径部分
+	 * @return 路径字符串
+	 */
+	inline std::string JoinPath(SString first)
+	{
+		return std::string(first);
+	}
+
+	/**
 	 * @brief 连接多个路径部分
 	 * @param parts 路径部分列表
 	 * @return 连接后的路径
@@ -466,7 +476,12 @@ namespace shine::util
 	std::string JoinPath(SString first, Args... rest)
 	{
 		std::string result = std::string(first);
-		((result = JoinPath(result, rest)), ...);
+		// 使用迭代方式避免递归，确保调用非模板版本的 JoinPath
+		std::string parts[] = { std::string(rest)... };
+		for (const auto& part : parts)
+		{
+			result = JoinPath(result, part);
+		}
 		return result;
 	}
 
