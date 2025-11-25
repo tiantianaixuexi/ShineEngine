@@ -466,7 +466,7 @@ int main(int argc, char** argv) {
 		// 资源统计信息
 		// ========================================================================
 		size_t textureCount, totalMemory;
-		textureManager.GetTextureStats(textureCount, totalMemory);
+		shine::render::TextureManager::get().GetTextureStats(textureCount, totalMemory);
 		fmt::println("纹理统计: GPU纹理数量={}, 估算内存={} KB", textureCount, totalMemory / 1024);
 		
 		// 注意：AssetManager 的资源统计需要额外实现，这里只是示例
