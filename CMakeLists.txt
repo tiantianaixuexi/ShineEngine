@@ -925,6 +925,22 @@ if(WIN32)
 endif()
 
 # ================================
+# 复制第三方库 DLL 文件到输出目录
+# ================================
+if(WIN32 AND TARGET MainEngine)
+    # 复制 GLEW DLL 文件到 exe 目录
+    add_custom_command(TARGET MainEngine POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/src/third/lib/glew32.dll"
+            "${CMAKE_SOURCE_DIR}/exe/glew32.dll"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/src/third/lib/glew32d.dll"
+            "${CMAKE_SOURCE_DIR}/exe/glew32d.dll"
+        COMMENT "Copying GLEW DLL files to exe directory..."
+    )
+endif()
+
+# ================================
 # 模块配置文件目标（VS中编辑JSON）
 # ================================
 get_property(MODULE_JSON_FILES GLOBAL PROPERTY "ALL_MODULE_FILES")
