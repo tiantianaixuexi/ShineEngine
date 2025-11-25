@@ -235,11 +235,12 @@ namespace shine::image
 			return 0;
 		}
 		
-		// 读取块大小（小端序，不包括块头）
-		uint32_t chunkSize = util::read_le32(data, offset);
+		// RIFF 块格式：[ChunkID (4 bytes)][ChunkSize (4 bytes)]
+		// 先读取块类型（4 字节 ASCII）
+		std::memcpy(chunkType.data(), data.data() + offset, 4);
 		
-		// 读取块类型（4 字节 ASCII）
-		std::memcpy(chunkType.data(), data.data() + offset + 4, 4);
+		// 然后读取块大小（小端序，不包括块头）
+		uint32_t chunkSize = util::read_le32(data, offset + 4);
 		
 		return chunkSize;
 	}
@@ -1101,7 +1102,8 @@ namespace shine::image
 					}
 					
 					// 更新 pixelIdx，跳过已复制的像素
-					pixelIdx += copyCount;
+					// 注意：需要减1，因为 for 循环会自动递增 pixelIdx
+					pixelIdx += copyCount - 1;
 					
 					// 跳过当前循环的剩余部分，因为已经处理了多个像素
 					continue;
