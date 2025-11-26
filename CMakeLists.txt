@@ -977,6 +977,39 @@ if(MSVC)
 endif()
 
 # ================================
+# 脚本文件目标（VS中查看脚本）
+# ================================
+file(GLOB_RECURSE SCRIPT_FILES "${CMAKE_SOURCE_DIR}/script/*.ts" "${CMAKE_SOURCE_DIR}/script/*.js")
+if(SCRIPT_FILES)
+    add_custom_target(Scripts SOURCES ${SCRIPT_FILES})
+    set_target_properties(Scripts PROPERTIES
+        FOLDER "Scripts"
+        EXCLUDE_FROM_ALL TRUE
+        EXCLUDE_FROM_DEFAULT_BUILD TRUE
+    )
+
+    foreach(script_file ${SCRIPT_FILES})
+        set_source_files_properties("${script_file}" PROPERTIES
+            VS_TOOL_OVERRIDE "Text"
+            HEADER_FILE_ONLY TRUE
+        )
+    endforeach()
+
+    if(MSVC)
+        foreach(script_file ${SCRIPT_FILES})
+            file(RELATIVE_PATH rel_path "${CMAKE_SOURCE_DIR}/script" "${script_file}")
+            get_filename_component(file_dir "${rel_path}" DIRECTORY)
+            if(file_dir AND NOT file_dir STREQUAL ".")
+                string(REPLACE "/" "\\" group_path "${file_dir}")
+            else()
+                set(group_path "Scripts")
+            endif()
+            source_group("${group_path}" FILES "${script_file}")
+        endforeach()
+    endif()
+endif()
+
+# ================================
 # 构建信息输出
 # ================================
 message(STATUS "=== Build Configuration ===")
