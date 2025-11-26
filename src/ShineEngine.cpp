@@ -1,12 +1,12 @@
-﻿#include "util/shine_define.h"
+﻿#include "file_util.h"
+#include "util/shine_define.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
 #ifdef  SHINE_PLATFORM_WIN64
-#include "sol/sol.hpp"
-#include "luajit/luajit.h"
-#include "luajit/lauxlib.h"
+
+
 #include <windows.h>
 #include <shellapi.h>
 #include <GL/glew.h>
@@ -54,7 +54,7 @@
 #include "util/fps_controller.h"
 
 
-
+#include "quickjs/quickjs.h"
 
 
 
@@ -148,161 +148,26 @@ extern "C" {
     #pragma message("Building for unknown platform")
 #endif
 
-// 全局的应用程序编辑器入口点
+static JSValue js_MoveActor(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
+{
+	int actorID = 0;
+	double x = 0.0, y = 0.0;
+	JS_ToInt32(ctx, &actorID, argv[0]);
+	JS_ToFloat64(ctx, &x, argv[1]);
+	JS_ToFloat64(ctx, &y, argv[2]);
+
+	fmt::println("[C++] Actor {} << move to {},{}", actorID, x, y);
+	return JS_UNDEFINED;
+}
+
+static JSValue js_Log(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+	const char* msg = JS_ToCString(ctx, argv[0]);
+
+	JS_FreeCString(ctx, msg);
+	return JS_UNDEFINED;
+}
+
 int main(int argc, char** argv) {
-	// std::string data = shine::base64::base64_test("fuck");
-	// fmt::println("base64:{}", data);
-
-	//shine::util::win32::api();
-
-
-
-    // {
-    //     shine::model::obj obj;
-    //     auto result = obj.parseObjFile("E:\\c++\\shine_optimization_tool\\model\\test.obj");
-    //     if(result.has_value())
-    //     {
-        //         fmt::println("加载obj文件成功");
-    //     }
-    //     else
-    //     {
-        //         fmt::println("加载obj文件失败:{}", result.error());
-    //     }
-    // }
-
-
-    // sol::state lua;
-    // lua.open_libraries(sol::lib::base);
-
-    // // 手动加载luaJIT的jit库
-    // luaL_requiref(lua.lua_state(), "jit", luaopen_jit, 0);
-    // lua_pop(lua.lua_state(), 1); // 移除requiref栈下的结果
-
-    // // 绑定游戏对象到Lua
-    // auto gameObjectType = lua.new_usertype<shine::gameplay::SObject>("GameObject",
-    //     // 构造函数
-    //     sol::constructors<shine::gameplay::SObject()>(),
-
-    //     // 属性
-    //     "name", sol::property(&shine::gameplay::SObject::getName, &shine::gameplay::SObject::setName),
-    //     "active", sol::property(&shine::gameplay::SObject::isActive, &shine::gameplay::SObject::setActive),
-    //     "visible", sol::property(&shine::gameplay::SObject::isVisible, &shine::gameplay::SObject::setVisible),
-
-    //     // 生命周期方法
-    //     "OnInit", &shine::gameplay::SObject::OnInit,
-    //     "BeginPlay", &shine::gameplay::SObject::onBeginPlay,
-    //     "Tick", &shine::gameplay::SObject::onTick,
-
-    //     // 组件管理
-    //     "addComponent", &shine::gameplay::SObject::addComponent<shine::gameplay::component::StaticMeshComponent>
-    // );
-
-    // // 绑定组件基类
-    // auto componentType = lua.new_usertype<shine::gameplay::component::UComponent>("Component",
-    //     "BeginPlay", &shine::gameplay::component::UComponent::onBeginPlay,
-    //     "Tick", &shine::gameplay::component::UComponent::onTick
-    // );
-
-    // // 绑定静态网格组件
-    // auto staticMeshComponentType = lua.new_usertype<shine::gameplay::component::StaticMeshComponent>("StaticMeshComponent",
-    //     sol::base_classes, sol::bases<shine::gameplay::component::UComponent>()
-    // );
-
-    // // 绑定数学库
-    // lua.new_usertype<shine::math::Vector3>("Vector3",
-    //     sol::constructors<shine::math::Vector3(), shine::math::Vector3(float, float, float)>(),
-    //     "x", &shine::math::Vector3::x,
-    //     "y", &shine::math::Vector3::y,
-    //     "z", &shine::math::Vector3::z
-    // );
-
-    // // 绑定输入管理器
-    // lua.new_usertype<shine::input_manager::InputManager>("InputManager",
-    //     "isKeyPressed", &shine::input_manager::InputManager::isKeyPressed,
-    //     "isMouseButtonPressed", &shine::input_manager::InputManager::isMouseButtonPressed,
-    //     "getMousePosition", &shine::input_manager::InputManager::getMousePosition
-    // );
-
-    // // 创建全局输入管理器访问
-    // lua["Input"] = &shine::input_manager::InputManager::get();
-
-    // // 测试脚本 - 完整的游戏脚本系统展示
-    // lua.script(R"(
-    //     print('=== LuaJIT 脚本系统展示 ===')
-
-    //     -- 创建高级脚本组件
-    //     ScriptComponent = {}
-    //     ScriptComponent.__index = ScriptComponent
-
-    //     function ScriptComponent:new()
-    //         local self = setmetatable({}, ScriptComponent)
-    //         self.rotationSpeed = 1.0
-    //         self.moveSpeed = 0.5
-    //         self.position = Vector3(0, 0, 0)
-    //         self.timeElapsed = 0
-    //         return self
-    //     end
-
-    //     function ScriptComponent:BeginPlay()
-    //         print("ScriptComponent: BeginPlay called!")
-    //         print("Initial position: (" .. self.position.x .. ", " .. self.position.y .. ", " .. self.position.z .. ")")
-    //     end
-
-    //     function ScriptComponent:Tick(deltaTime)
-    //         -- 绱Н鏃堕棿
-    //         self.timeElapsed = self.timeElapsed + deltaTime
-
-    //         -- 绠€鍗曠殑鏃嬭浆閫昏緫
-    //         self.rotationSpeed = self.rotationSpeed + deltaTime * 0.1
-
-    //         -- 绠€鍗曠殑绉诲姩閫昏緫 - 鍦嗗懆杩愬姩
-    //         local radius = 2.0
-    //         self.position.x = math.cos(self.timeElapsed) * radius
-    //         self.position.z = math.sin(self.timeElapsed) * radius
-    //         self.position.y = math.sin(self.timeElapsed * 2) * 0.5
-
-    //         -- 妫€鏌ヨ緭鍏?
-    //         if Input:isKeyPressed(87) then -- W键
-    //             print("W key pressed!")
-    //         end
-
-    //         -- 姣忕鎵撳嵃涓€娆＄姸鎬?
-    //         if math.floor(self.timeElapsed) ~= math.floor(self.timeElapsed - deltaTime) then
-    //             print(string.format("ScriptComponent: Time=%.1f, Pos=(%.2f, %.2f, %.2f), Speed=%.2f",
-    //                 self.timeElapsed, self.position.x, self.position.y, self.position.z, self.rotationSpeed))
-    //         end
-    //     end
-
-    //     -- 创建游戏对象
-    //     local obj = GameObject()
-    //     obj.name = "MyScriptedObject"
-    //     print("Created object: " .. obj.name)
-
-    //     -- 初始化对象生命周期
-    //     obj:OnInit()
-    //     obj:BeginPlay()
-
-    //     -- 添加C++原生组件
-    //     local meshComp = obj:addComponent(StaticMeshComponent())
-    //     print("Added StaticMeshComponent")
-
-    //     -- 设置对象属性
-    //     obj.active = true
-    //     obj.visible = true
-
-    //     -- 创建并运行Lua脚本组件
-    //     local scriptComp = ScriptComponent:new()
-    //     obj.ScriptComponent = scriptComp
-
-    //     -- 调用脚本组件的BeginPlay
-    //     scriptComp:BeginPlay()
-
-    //     -- 存储到全局变量供后续使用
-    //     GlobalGameObject = obj
-
-    //     print('=== 鑴氭湰绯荤粺鍒濆鍖栧畬鎴?===')
-    //     print('按W键测试输入系统')
-    // )");
 
 
 #ifdef _WIN32
@@ -412,99 +277,80 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	// ========================================================================
-	// 方式2：使用 STexture 资源类（适用于需要保留CPU数据的场景）
-	// ========================================================================
-	// {
-	//     shine::image::STexture texture;
-	//     
-	//     // 从 AssetHandle 初始化（利用 AssetManager 的资源）
-	//     auto assetHandle = assetManager.LoadImage("texture.png");
-	//     if (texture.InitializeFromAsset(assetHandle))
-	//     {
-	//         fmt::println("STexture: 从 AssetHandle 初始化成功");
-	//         
-	//         // 可以修改纹理数据（如果需要）
-	//         // auto& data = texture.getData();
-	//         // data[0] = shine::image::RGBA8(255, 0, 0, 255);
-	//         
-	//         // 创建 GPU 纹理资源（直接调用，内部使用 TextureManager 单例）
-	//         auto handle = texture.CreateRenderResource();
-	//         if (handle.isValid())
-	//         {
-	//             fmt::println("STexture: GPU 纹理创建成功");
-	//         }
-	//     }
-	// }
-
-	// ========================================================================
-	// 方式3：快捷方式 - 直接从文件创建纹理（内部会使用 AssetManager）
-	// 适用于：简单场景，不需要复用资源的情况
-	// ========================================================================
-	// auto quickHandle = textureManager.CreateTextureFromFile(texturePath);
-	// if (quickHandle.isValid())
-	// {
-	//     fmt::println("快捷方式: 纹理创建成功");
-	// }
-
-	// ========================================================================
-	// 方式4：从内存数据创建（适用于网络下载、程序生成等场景）
-	// ========================================================================
-	// {
-	//     unsigned char* imageData = ...;
-	//     size_t dataSize = ...;
-	//     
-	//     // 先通过 AssetManager 从内存加载
-	//     auto memAssetHandle = assetManager.LoadImageFromMemory(imageData, dataSize, "png");
-	//     if (memAssetHandle.isValid())
-	//     {
-	//         // 再创建纹理
-	//         auto memTextureHandle = textureManager.CreateTextureFromAsset(memAssetHandle);
-	//     }
-	// }
-
+	
 	// ========================================================================
 	// 资源统计信息
 	// ========================================================================
-	size_t textureCount, totalMemory;
-	shine::render::TextureManager::get().GetTextureStats(textureCount, totalMemory);
-	fmt::println("纹理统计: GPU纹理数量={}, 估算内存={} KB", textureCount, totalMemory / 1024);
+	//size_t textureCount, totalMemory;
+	//shine::render::TextureManager::get().GetTextureStats(textureCount, totalMemory);
+	//fmt::println("纹理统计: GPU纹理数量={}, 估算内存={} KB", textureCount, totalMemory / 1024);
 	
 	// 注意：AssetManager 的资源统计需要额外实现，这里只是示例
-	fmt::println("提示: AssetManager 管理资源加载，TextureManager 管理 GPU 纹理");
-	fmt::println("     同一资源可以被多个纹理复用，提高内存效率");
+	//fmt::println("提示: AssetManager 管理资源加载，TextureManager 管理 GPU 纹理");
+	//fmt::println("     同一资源可以被多个纹理复用，提高内存效率");
 
 
 
-	// 涓诲惊鐜?
+	JSRuntime* runtime = JS_NewRuntime();
+	JSContext* ctx = JS_NewContext(runtime);
+
+	JSValue global = JS_GetGlobalObject(ctx);
+	JS_SetPropertyStr(ctx, global, "MoveActor", JS_NewCFunction(ctx, js_MoveActor, "MoveActor", 3));
+	JS_SetPropertyStr(ctx, global, "Log",JS_NewCFunction(ctx, js_Log, "Log", 1));
+	JS_FreeValue(ctx, global);
+
+	JSValue updateFunc{};
+	auto result = shine::util::read_file_text("../build/script/game.js");
+	if (result.has_value())
+	{
+		std::string scriptCode = result.value();
+		JS_Eval(ctx, scriptCode.c_str(), scriptCode.size(), "game.js", JS_EVAL_TYPE_GLOBAL);
+
+		// 获取 update 函数
+		updateFunc = JS_GetPropertyStr(ctx, JS_GetGlobalObject(ctx), "update");
+		if (!JS_IsFunction(ctx, updateFunc)) {
+			fmt::print("update function not found in script");
+			return 1;
+		}
+	}
+	else
+	{
+		fmt::print("无法读取脚本文件: {}", result.error());
+	}
+	
 	bool done = false;
 	while (!done) {
 		// FPS控制 - 帧开始
 		g_FPSManager.BeginFrame();
+		const double dt_d = g_FPSManager.GetCurrentDeltaTime();
+		const float dt = static_cast<float>(dt_d);
+        g_TestActor.onTick(dt);
 
-        g_TestActor.onTick(g_FPSManager.GetCurrentDeltaTime());
+		JSValue arg = JS_NewFloat64(ctx, dt_d); // 转换为秒
+		JSValue ret = JS_Call(ctx, updateFunc, JS_UNDEFINED, 1, &arg);
+		JS_FreeValue(ctx, arg);
 
-        // // 执行Lua对象的Tick
-        // if (lua["GlobalGameObject"] != sol::nil)
-        // {
-        //     auto globalObj = lua["GlobalGameObject"];
-        //     if (globalObj != sol::nil)
-        //     {
-        //         auto objTable = globalObj.as<sol::table>();
-        //         // 调用游戏对象的Tick方法
-        //         objTable["Tick"](objTable, g_FPSManager.GetCurrentDeltaTime());
+		if (JS_IsException(ret)) {
+			JSValue error = JS_GetException(ctx);
 
-        //         // 调用附加的脚本组件的Tick方法
-        //         if (objTable["ScriptComponent"] != sol::nil)
-        //         {
-        //             auto scriptComp = objTable["ScriptComponent"];
-        //             if (scriptComp != sol::nil)
-        //             {
-        //                 scriptComp.as<sol::table>()["Tick"](scriptComp, g_FPSManager.GetCurrentDeltaTime());
-        //             }
-        //         }
-        //     }
-        // }
+			// 转成字符串
+			const char* error_str = JS_ToCString(ctx, error);
+			fmt::print("脚本运行时错误: {}\n", error_str);
+			JS_FreeCString(ctx, error_str);
+
+			// 处理 error.stack (traceback)
+			JSValue stack = JS_GetPropertyStr(ctx, error, "stack");
+			if (!JS_IsUndefined(stack)) {
+				const char* stack_str = JS_ToCString(ctx, stack);
+				fmt::print("脚本调用栈:\n{}\n", stack_str);
+				JS_FreeCString(ctx, stack_str);
+			}
+
+			JS_FreeValue(ctx, stack);
+			JS_FreeValue(ctx, error);
+		}
+		JS_FreeValue(ctx, ret);
+
 
 		// Poll and handle messages (inputs, window resize, etc.)
 		MSG msg;
@@ -588,15 +434,6 @@ int main(int argc, char** argv) {
 			ImGui::Text("Debug Info:");
 			ImGui::TextWrapped("%s", g_FPSManager.GetDebugInfo().c_str());
 
-			ImGui::End();
-		}
-
-		// 3. Show another simple window
-		if (show_another_window) {
-			ImGui::Begin("Another Window", &show_another_window);
-			ImGui::Text("Hello from another window!");
-			if (ImGui::Button("Close Me"))
-				show_another_window = false;
 			ImGui::End();
 		}
 
