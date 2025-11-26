@@ -43,7 +43,6 @@ namespace shine::gameplay
         // 名字管理
         [[nodiscard]] const std::string& getName() const noexcept { return _name; }
         void setName(const std::string& name) { _name = name; }
-        void setName(std::string&& name) { _name = std::move(name); }
 
     private:
         // 事件 Flag

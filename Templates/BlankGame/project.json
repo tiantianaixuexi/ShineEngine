@@ -1,0 +1,7 @@
+{
+  "name": "BlankGame",
+  "engineVersion": "1.0.0",
+  "template": "Blank Game",
+  "description": "Empty game project with basic setup",
+  "category": "Games"
+}

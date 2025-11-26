@@ -1,11 +1,12 @@
 {
   "name": "EngineLauncher",
-  "files": [
-    "src/launcher.cpp"
+  "dirs": [
+    "Program/launch"
   ],
   "deps": [
     "fmt",
-    "shine_define"
+    "shine_define",
+    "imgui"
   ],
   "defines": [
     "LAUNCHER_BUILD",
