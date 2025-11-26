@@ -1,4 +1,4 @@
-﻿#include "opengl3_backend.h"
+#include "opengl3_backend.h"
 
 
 #include <memory>

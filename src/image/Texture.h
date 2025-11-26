@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "shine_define.h"
 #include "render/resources/texture_handle.h"

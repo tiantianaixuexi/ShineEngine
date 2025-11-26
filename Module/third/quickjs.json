@@ -1,0 +1,21 @@
+{
+    "name": "quickjs",
+    "type": "third",
+    "files": [
+        "src/third/quickjs/quickjs.h",
+        "src/third/quickjs/quickjs-libc.h"
+    ],
+    "link": {
+        "debug": {
+            "lib": [
+                "qjsd.lib"
+            ]
+        },
+        "release": {
+            "lib": [
+                "qjs.lib"
+            ]
+        }
+    },
+    "comment": "QuickJS JavaScript引擎静态库"
+}
