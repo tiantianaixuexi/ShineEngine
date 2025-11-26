@@ -1,0 +1,10 @@
+{
+    "name": "path_util",
+    "type": "static",
+    "files": [
+      "src/util/path_util.h",
+      "src/util/path_util.cpp"
+    ],
+    "deps": ["shine_define"],
+    "comment": "路径处理工具"
+}

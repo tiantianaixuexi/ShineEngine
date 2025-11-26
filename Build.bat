@@ -36,6 +36,7 @@ set "CMAKE_COMMON_FLAGS=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 set "CLEAN_FIRST="
 set "CMD="
 set "MODULE_ARG="
+set "EXE_ARG="
 set "MODULE_REBUILD=ON"
 set "MODULE_CONFIG=Debug"
 
@@ -65,11 +66,21 @@ if not defined CMD (
         rem Save next argument as module name (using %~2, since %~1 is "module")
         if not "%~2"=="" set "MODULE_ARG=%~2"
     )
+    if "%~1"=="exe" (
+        rem Save next argument as executable name (using %~2, since %~1 is "exe")
+        if not "%~2"=="" set "EXE_ARG=%~2"
+    )
 ) else (
     rem If CMD is already set to "module", the next argument is the module name
     if "%CMD%"=="module" (
         if "%MODULE_ARG%"=="" (
             if not "%~1"=="" set "MODULE_ARG=%~1"
+        )
+    )
+    rem If CMD is already set to "exe", the next argument is the executable name
+    if "%CMD%"=="exe" (
+        if "%EXE_ARG%"=="" (
+            if not "%~1"=="" set "EXE_ARG=%~1"
         )
     )
 )
@@ -190,8 +201,8 @@ call :log_info "WASM build feature not yet implemented, stay tuned"
 goto end_script
 
 :cmd_exe
-if "%~2"=="" call :error_exit "Executable name not specified"
-call :build_generic "%~2" "Debug" "ON" "FALSE"
+if "%EXE_ARG%"=="" call :error_exit "Executable name not specified"
+call :build_generic "%EXE_ARG%" "Debug" "ON" "FALSE"
 goto end_script
 
 :cmd_module
