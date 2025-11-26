@@ -919,7 +919,7 @@ endforeach()
 target_link_libraries(MainEngine PRIVATE
     $<$<CONFIG:Debug>:glew32d>
     $<$<CONFIG:Release>:glew32>
-    $<$<PLATFORM_ID:Windows>:opengl32;glu32;dxgi;luajit;lua51>
+    $<$<PLATFORM_ID:Windows>:opengl32;glu32;dxgi>
 )
 
 # 设置运行时环境变量
