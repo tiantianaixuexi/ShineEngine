@@ -17,19 +17,15 @@
   "platform": [
     "Windows"
   ],
-  "third": {
-    "lib": {
-      "debug": [
-        "glew32d.lib",
-        "opengl32.lib",
-        "glu32.lib",
-        "dxgi.lib"
-      ],
-      "release": [
-        "glew32.lib",
-        "opengl32.lib",
-        "glu32.lib",
-        "dxgi.lib"
+  "link": {
+    "debug": {
+      "lib": [
+        "glew32d.lib"
+      ]
+    },
+    "release": {
+      "lib": [
+        "glew32.lib"
       ]
     }
   },

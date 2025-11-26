@@ -515,11 +515,13 @@ foreach(module_name ${MODULE_LIST})
     # 可执行文件特殊配置
     if(is_executable)
         target_compile_options(${name} PRIVATE $<$<CONFIG:Release>:/GL>)
-        target_link_directories(${name} PRIVATE ${CMAKE_SOURCE_DIR}/exe)
+        target_link_directories(${name} PRIVATE ${CMAKE_SOURCE_DIR}/exe ${CMAKE_SOURCE_DIR}/src/third/lib)
         target_link_libraries(${name} PRIVATE
             $<$<CONFIG:Debug>:glew32d>
             $<$<CONFIG:Release>:glew32>
             $<$<PLATFORM_ID:Windows>:opengl32;glu32;dxgi>
+            $<$<CONFIG:Debug>:qjsd>
+            $<$<CONFIG:Release>:qjs>
         )
         set_target_properties(${name} PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/exe"
@@ -631,8 +633,11 @@ foreach(module_name ${MODULE_LIST})
             get_property(dep_files GLOBAL PROPERTY "MODULE_${dep}_FILES")
             get_property(dep_types GLOBAL PROPERTY "MODULE_${dep}_TYPES")
 
+            # 检查依赖是否是 exe 类型，exe 类型不应该被当作库来链接
+            check_module_type("${dep_types}" "exe" dep_is_executable)
+
             set(needs_link FALSE)
-            if(dep STREQUAL "fmt" OR "${dep_files}" MATCHES "\\.(cpp|ixx|cppm)$")
+            if(NOT dep_is_executable AND (dep STREQUAL "fmt" OR "${dep_files}" MATCHES "\\.(cpp|ixx|cppm)$"))
                 set(needs_link TRUE)
             endif()
 
