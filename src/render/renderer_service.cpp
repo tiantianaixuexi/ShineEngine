@@ -1,11 +1,10 @@
 ﻿#include "renderer_service.h"
 
-#include "render/core/render_backend.h"
+#include "render/backend/render_backend.h"
 #include "render/pipeline/render_pipeline_asset.h"
 #include "render/pipeline/command_buffer.h"
 #include "render/command/command_list.h"
 #include "gameplay/object.h"
-#include "gameplay/component/component.h"
 #include "manager/CameraManager.h"
 #include "manager/light_manager.h"
 
@@ -130,8 +129,7 @@ namespace shine::render
         }
 
         // 设置视口信息
-        auto it = m_Viewports.find(handle);
-        if (it != m_Viewports.end())
+        if (const auto it = m_Viewports.find(handle); it != m_Viewports.end())
         {
             data.viewport.handle = handle;
             data.viewport.width = it->second.width;

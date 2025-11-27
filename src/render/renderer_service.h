@@ -7,7 +7,7 @@
 
 #include "shine_define.h"
 #include "util/singleton.h"
-#include "render/core/render_backend.h"
+#include "render/backend/render_backend.h"
 #include "render/pipeline/rendering_data.h"
 #include "render/pipeline/scriptable_render_context.h"
 #include "render/pipeline/render_pipeline_asset.h"
@@ -37,7 +37,7 @@ namespace shine::render
     };
 
     // 渲染服务，管理一个后端实例，管理多个视图（第一步先支持单视图，后续扩展）
-	class RendererService : public shine::util::Singleton<RendererService>
+	class RendererService : public util::Singleton<RendererService>
     {
     public:
         RendererService() = default;

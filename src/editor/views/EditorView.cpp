@@ -21,7 +21,7 @@ void EditView::Init(render::RendererService* renderer) {
     Renderer = renderer;
     // 创建一个与窗口大小类似的视口（这里写死，后面可以在WM_SIZE中更新）
     if (Renderer) {
-    Viewport = Renderer->createViewport(1280, 720);
+		Viewport = Renderer->createViewport(1280, 720);
     }
 
 }

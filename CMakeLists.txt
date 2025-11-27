@@ -491,7 +491,7 @@ foreach(module_name ${MODULE_LIST})
 
     # 设置VS文件夹层级
     if(is_executable)
-        set_target_properties(${name} PROPERTIES FOLDER "Launchers")
+        set_target_properties(${name} PROPERTIES FOLDER "Program")
     else()
         get_vs_folder_path(${module_file} vs_folder_path)
         set_target_properties(${name} PROPERTIES FOLDER "${vs_folder_path}")
@@ -528,7 +528,7 @@ foreach(module_name ${MODULE_LIST})
             RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/exe"
             OUTPUT_NAME_DEBUG "${name}d"
             OUTPUT_NAME_RELEASE "${name}"
-            FOLDER "Launchers"
+            FOLDER "Program"
         )
     endif()
 
@@ -932,7 +932,7 @@ endif()
 # ================================
 # 复制第三方库 DLL 文件到输出目录
 # ================================
-if(WIN32 AND TARGET MainEngine)
+if(WIN32 AND TARGET MainEngine OR is_executable)
     # 复制 GLEW DLL 文件到 exe 目录
     add_custom_command(TARGET MainEngine POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -979,7 +979,7 @@ endif()
 # ================================
 # 脚本文件目标（VS中查看脚本）
 # ================================
-file(GLOB_RECURSE SCRIPT_FILES "${CMAKE_SOURCE_DIR}/script/*.ts" "${CMAKE_SOURCE_DIR}/script/*.js")
+file(GLOB_RECURSE SCRIPT_FILES "${CMAKE_SOURCE_DIR}/script/*.ts" "${CMAKE_SOURCE_DIR}/script/*.js" "${CMAKE_SOURCE_DIR}/build/script/*.js")
 if(SCRIPT_FILES)
     add_custom_target(Scripts SOURCES ${SCRIPT_FILES})
     set_target_properties(Scripts PROPERTIES

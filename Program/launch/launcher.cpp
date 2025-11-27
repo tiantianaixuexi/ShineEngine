@@ -13,7 +13,6 @@ namespace fs = std::filesystem;
 
 // OpenGL includes
 #include <GL/glew.h>
-#include <GL/wglew.h>
 
 // Launcher GUI
 #include "launcher_gui.h"

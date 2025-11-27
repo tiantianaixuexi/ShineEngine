@@ -125,7 +125,7 @@ namespace shine::util {
     };
 
     // 游戏引擎FPS管理器
-    class EngineFPSManager {
+    class EngineFPSManager : public Singleton<EngineFPSManager>{
     private:
         FPSController m_editorUIController;
         FPSController m_gameController;
