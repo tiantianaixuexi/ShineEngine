@@ -2,6 +2,8 @@
 
 #include <vector>
 
+
+#include "util/shine_define.h"
 #include "util/singleton.h"
 
 namespace shine::windows
@@ -22,6 +24,17 @@ namespace shine::windows
 		}
 	};
 
+	struct FWindowInfo
+	{
+		HWND  hwnd {};
+		int     width = 0;
+		int     height = 0;
+
+		FWindowInfo()
+		{
+
+		}
+	};
 
 	class WindowsDeviceInfo : public util::Singleton<WindowsDeviceInfo>
 	{
@@ -37,5 +50,13 @@ namespace shine::windows
 		void InitDisplayInfo();
 	};
 
+
+
+	class WindowsInfo : public util::Singleton<WindowsInfo>
+	{
+
+	public:
+		FWindowInfo info;
+	};
 
 }

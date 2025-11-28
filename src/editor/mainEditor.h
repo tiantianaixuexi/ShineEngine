@@ -2,7 +2,7 @@
 
 #include "widget/shineButton.h"
 #include "editor/browers/AssetsBrower.h"
-#include "render/core/render_backend.h"
+#include "render/backend/render_backend.h"
 #include "editor/views/EditorView.h"
 
 // 前向声明

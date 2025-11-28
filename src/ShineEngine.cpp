@@ -1,5 +1,4 @@
 #include "file_util.h"
-#include "path_util.h"
 #include "util/shine_define.h"
 
 
@@ -25,12 +24,14 @@
 
 #include "manager/CameraManager.h"
 #include "platform/InitWindows.h"
+#include "platform/WindowsInfo.h"
 #include "timer/function_timer.h"
 
 #include "util/fps_controller.h"
 
 
 #include "quickjs/quickjs.h"
+#include "render/renderManager.h"
 
 
 using namespace shine;
@@ -130,6 +131,7 @@ int main(int argc, char** argv) {
 	//fmt::println("     同一资源可以被多个纹理复用，提高内存效率");
 
 
+	auto& info = windows::WindowsInfo::get().info;
 
 	auto& g_FPSManager = util::EngineFPSManager::get();
 	bool done = false;
@@ -154,7 +156,7 @@ int main(int argc, char** argv) {
 			break;
 
 		// 判断窗口是否最小化
-		if (::IsIconic(hwnd)) {
+		if (::IsIconic(info.hwnd)) {
 			Sleep(10);
 			continue;
 		}
@@ -181,7 +183,7 @@ int main(int argc, char** argv) {
 	}
 
 	// 清理ImGui
-	RenderBackend->ClearUp(hwnd);
+	render::RenderManager::get().GetRenderBackend()->ClearUp(info.hwnd);
 
 	// 清理编辑器
 	if (mainEditor)
@@ -190,8 +192,8 @@ int main(int argc, char** argv) {
 		mainEditor = nullptr;
 	}
 
-	::DestroyWindow(hwnd);
-	::UnregisterClassW(wc.lpszClassName, wc.hInstance);
+	::DestroyWindow(info.hwnd);
+	//::UnregisterClassW(wc.lpszClassName, wc.hInstance);
 
 	return 0;
 }

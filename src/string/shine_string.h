@@ -35,7 +35,6 @@ namespace shine
         const char* operator*() const { return Data.c_str(); }
         const char* C_Str() const { return Data.c_str(); }
         char* GetCharData() { return Data.data(); }
-        size_t Len() const { return Data.length(); }
         bool IsEmpty() const { return Data.empty(); }
 
         // Iterators

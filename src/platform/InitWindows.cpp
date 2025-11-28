@@ -1,16 +1,22 @@
 #include "InitWindows.h"
 
-#include <imgui/imgui.h>
 
+#include "util/shine_define.h"
 
 #include "WindowsInfo.h"
+
 #include "manager/InputManager.h"
+
+#include "imgui.h"
+#include "render/renderManager.h"
+
+// Forward-declare WndProc handler from imgui Win32 backend (header intentionally leaves it commented out)
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace shine::windows
 {
 
 	LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
 
 	bool InitWindowsPlatform()
 	{
@@ -21,35 +27,37 @@ namespace shine::windows
 
 		// Create application window
 		WNDCLASSEXW wc = { sizeof(wc),
-						  CS_OWNDC,
-						  WndProc,
-						  0L,
-						  0L,
-						  GetModuleHandle(nullptr),
-						  nullptr,
-						  nullptr,
-						  nullptr,
-						  nullptr,
-						  L"ImGui Example",
-						  nullptr };
+					  CS_OWNDC,
+					  WndProc,
+					  0L,
+					  0L,
+					  GetModuleHandle(nullptr),
+					  nullptr,
+					  nullptr,
+					  nullptr,
+					  nullptr,
+					  L"ImGui Example",
+					  nullptr };
 		::RegisterClassExW(&wc);
-		HWND hwnd = ::CreateWindowExW(WS_EX_ACCEPTFILES, wc.lpszClassName,
+		WindowsInfo::get().info.hwnd = ::CreateWindowExW(WS_EX_ACCEPTFILES, wc.lpszClassName,
 			L"ShineEngine",
 			WS_OVERLAPPEDWINDOW, 0, 0, mainDisplay.workSize[0], mainDisplay.workSize[1],
 			nullptr, nullptr, wc.hInstance, nullptr);
 
 
-		// Initialize
-		RenderBackend = new shine::render::backend::SRenderBackend();
-
-		if (const int result = RenderBackend->init(hwnd, wc); result != 0)
+		auto& info = WindowsInfo::get().info;
+		
+		render::RenderManager::get().CreateRenderBackend();
+		if (const int result = render::RenderManager::get().GetRenderBackend()->init(info.hwnd, wc); result != 0)
 		{
 			return result;
 		}
 
+		render::RenderManager::get().GetRenderBackend()->InitImguiBackend(info.hwnd);
+
 		// Show the window
-		::ShowWindow(hwnd, SW_MAXIMIZE);
-		::UpdateWindow(hwnd);
+		::ShowWindow(info.hwnd, SW_MAXIMIZE);
+		::UpdateWindow(info.hwnd);
 
 		// 初始化 Imgui 
 		ImGui::CreateContext();
@@ -61,19 +69,16 @@ namespace shine::windows
 		ImGui::StyleColorsDark();
 
 
-		RenderBackend->InitImguiBackend(hwnd);
+
 
 		// Load Fonts
 		io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\simkai.ttf", 18.0f, nullptr,
 			io.Fonts->GetGlyphRangesChineseFull());
 
+		return true;
 	}
 
 
-	extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd,
-		UINT msg,
-		WPARAM wParam,
-		LPARAM lParam);
 
 	LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
@@ -83,7 +88,7 @@ namespace shine::windows
 
 		case WM_SIZE:
 			if (wParam != SIZE_MINIMIZED) {
-				RenderBackend->ReSizeFrameBuffer(LOWORD(lParam), HIWORD(lParam));
+				render::RenderManager::get().GetRenderBackend()->ReSizeFrameBuffer(LOWORD(lParam), HIWORD(lParam));
 			}
 			return 0;
 

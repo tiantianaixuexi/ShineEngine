@@ -22,8 +22,8 @@ namespace shine::editor
 	{
 		auto& g_FPSManager = util::EngineFPSManager::get();
 
-		static double editorFps = g_FPSManager.getEditorController().GetTargetFPS();
-		static double gameFps = g_FPSManager.getGameController().GetTargetFPS();
+		static double editorFps = g_FPSManager.GetEditorController().GetTargetFPS();
+		static double gameFps = g_FPSManager.GetGameController().GetTargetFPS();
 		static float  editorFPS_float = static_cast<float>(editorFps);
 		static float  gameFPS_float = static_cast<float>(gameFps);
 

@@ -1,7 +1,8 @@
 ﻿#pragma once
 
-#include "backend/opengl/opengl3_backend.h"
-#include "backend/webgl2/webgl2_backend.h"
+#include "opengl/opengl3_backend.h"
+#include "webgl2/webgl2_backend.h"
+#include "opengl/opengl3_backend.h"
 
 namespace shine::render::backend
 {

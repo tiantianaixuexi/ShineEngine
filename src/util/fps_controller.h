@@ -1,7 +1,10 @@
 ﻿#pragma once
 
 
-#include <string> 
+#include <string>
+
+#include "singleton.h"
+#include "util/shine_define.h"
 
 
 #include "fmt/format.h"

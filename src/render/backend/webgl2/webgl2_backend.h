@@ -11,7 +11,7 @@
 #include <GL/glew.h>
 
 #include "imgui.h"
-#include "render/core/render_backend.h"
+#include "render/backend/render_backend.h"
 
 namespace shine::render::webgl2
 {
