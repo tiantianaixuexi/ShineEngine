@@ -5,9 +5,12 @@
 
 #include "fmt/format.h"
 #include "imgui.h"
+
 #include "editor/views/SceneHierarchyView.h"
 #include "editor/views/PropertiesView.h"
 #include "editor/views/ImageViewerView.h"
+#include "views/MainEditor/MainEditorToolbar.h"
+
 namespace shine::editor::main_editor {
 
 	MainEditor::MainEditor()
@@ -24,11 +27,11 @@ namespace shine::editor::main_editor {
 		delete imageViewerView;
 	}
 
-	void MainEditor::Init(render::backend::IRenderBackend* render) {
+	void MainEditor::Init() {
 
-		RenderBackend = render;
 
 		myButton = new widget::button::shineButton("应用编辑");
+
 		myButton->SetOnPressed([]() {
 			fmt::println("应用编辑按钮被按下");
 			// 在这里添加按钮按下后的编辑
@@ -46,14 +49,17 @@ namespace shine::editor::main_editor {
 
 		myButton->SetOnUnHovered([]() { fmt::println("应用编辑按钮停止"); });
 
-		assetsBrower = new editor::assets_brower::AssetsBrower();
+
+		mainEditorToolbar = new views::SMainEditorToolbar(this);
+
+		
+		assetsBrower = new assets_brower::AssetsBrower();
 		assetsBrower->Start();
 
+
         // 初始化渲染服务（单实例封装）
-        Renderer = &render::RendererService::get();
-        Renderer->init(RenderBackend);
         editorView = new EditorView::EditView();
-        editorView->Init(Renderer);
+        editorView->Init();
 
 		// 初始化场景层级视图
 		sceneHierarchyView = new views::SceneHierarchyView();
@@ -65,11 +71,16 @@ namespace shine::editor::main_editor {
 		imageViewerView = new views::ImageViewerView();
 	}
 
+
+	static ImGuiDockNodeFlags mainDockNodeFlags = ImGuiDockNodeFlags_None;
+	static ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+	static bool isDragging = false;
 	void MainEditor::Render() {
 
-		ImGuiDockNodeFlags mainDockNodeFlags = ImGuiDockNodeFlags_None;
-		ImGuiWindowFlags window_flags =
-			ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+		static bool showWindows = true;
+		ImGui::ShowDemoWindow(&showWindows);
+
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
 
 		ImGui::SetNextWindowPos(viewport->Pos);
@@ -78,63 +89,15 @@ namespace shine::editor::main_editor {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-		window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-		window_flags |=
-			ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-
+		                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 		ImGui::Begin("DockSpace Demo", &mainDocker, window_flags);
 		ImGui::PopStyleVar(2);
 		ImGuiID MainDock_id = ImGui::GetID("Engine Main Dock");
 		ImGui::DockSpace(MainDock_id, ImVec2(0.0f, 0.0f), mainDockNodeFlags);
 		ImGui::End();
 
-		if (ImGui::BeginMainMenuBar()) {
-			if (ImGui::BeginMenu("File")) {
-				ImGui::MenuItem("(demo menu)", nullptr, false, false);
-				if (ImGui::MenuItem("New")) {
-				}
-				if (ImGui::MenuItem("Open", "Ctrl+O")) {
-				}
-				if (ImGui::BeginMenu("Open Recent")) {
-					ImGui::MenuItem("fish_hat.c");
-					ImGui::MenuItem("fish_hat.inl");
-					ImGui::MenuItem("fish_hat.h");
-					if (ImGui::BeginMenu("More..")) {
-						ImGui::MenuItem("Hello");
-						ImGui::MenuItem("Sailor");
-						if (ImGui::BeginMenu("Recurse..")) {
-							ImGui::EndMenu();
-						}
-						ImGui::EndMenu();
-					}
-					ImGui::EndMenu();
-				}
-				if (ImGui::MenuItem("Save", "Ctrl+S")) {
-				}
-				if (ImGui::MenuItem("Save As..")) {
-				}
-
-				ImGui::Separator();
-				ImGui::EndMenu();
-			}
-			if (ImGui::BeginMenu("Edit")) {
-				if (ImGui::MenuItem("Undo", "CTRL+Z")) {
-				}
-				if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {
-				} // Disabled item
-				ImGui::Separator();
-				if (ImGui::MenuItem("Cut", "CTRL+X")) {
-				}
-				if (ImGui::MenuItem("Copy", "CTRL+C")) {
-				}
-				if (ImGui::MenuItem("Paste", "CTRL+V")) {
-				}
-				ImGui::EndMenu();
-			}
-			ImGui::EndMainMenuBar();
-		}
-
+		
+		mainEditorToolbar->Render();
 		assetsBrower->Render();
 
 		// 编辑视图由 EditorView 渲染
@@ -165,6 +128,11 @@ namespace shine::editor::main_editor {
 
 		// 渲染ImGui界面
 		ImGui::Render();
+	}
+
+	bool MainEditor::setAssetBorwerOpen()
+	{
+		return assetsBrower->SetShow();
 	}
 } // namespace shine::editor::main_editor
 

@@ -1,6 +1,8 @@
 ﻿#pragma once
 
 #include<string>
+#include <vector>
+#include <mutex>
 
 
 #include "imgui.h"
@@ -24,12 +26,16 @@ namespace shine::editor::assets_brower
             
             void Start();
             void Render();
+            bool SetShow() noexcept;
 
+  
 
         private:
             ImGuiID NextItemId = 0;
 
             void AddItem();
+
+ 
     };
 
 } // namespace shine::editor::assets_brower

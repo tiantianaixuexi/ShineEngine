@@ -1,6 +1,7 @@
 ﻿{
   "name": "imgui",
   "type": "static",
+  "dirs": ["src/third/imgui"],
   "files": [
     "src/third/imgui/imgui.h",
     "src/third/imgui/imgui.cpp",
@@ -10,11 +11,11 @@
     "src/third/imgui/backends/imgui_impl_opengl3.cpp",
     "src/third/imgui/backends/imgui_impl_win32.cpp"
   ],
-  "deps": ["shine_define"],
+  "deps": [ "shine_define" ],
   "defines": [
     "IMGUI_DEFINE_MATH_OPERATORS",
     "SHINE_IMGUI"
   ],
-  "platform": ["Windows", "Wasm"]
+  "platform": [ "Windows", "Wasm" ]
 }
 

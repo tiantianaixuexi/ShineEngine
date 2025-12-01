@@ -51,7 +51,7 @@ namespace shine::render
         void resizeViewport(ViewportHandle handle, int width, int height) noexcept;
 
         // 获取视图纹理，用于ImGui 显示
-        unsigned int getViewportTexture(ViewportHandle handle) const noexcept;
+        unsigned long long  getViewportTexture(ViewportHandle handle) const noexcept;
 
         // 帧流程与视图渲染（最小实现，后续支持多视窗、多相机）
         void beginFrame() noexcept;

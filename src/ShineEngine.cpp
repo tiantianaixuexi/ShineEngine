@@ -33,7 +33,6 @@
 #include "quickjs/quickjs.h"
 #include "render/renderManager.h"
 
-
 using namespace shine;
 
 #ifdef SHINE_OPENGL
@@ -46,25 +45,25 @@ shine::render::backend::IRenderBackend* RenderBackend = nullptr;
 
 shine::gameplay::Camera g_Camera("默认相机");
 
-
-static JSValue js_MoveActor(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
-{
-	int actorID = 0;
-	double x = 0.0, y = 0.0;
-	JS_ToInt32(ctx, &actorID, argv[0]);
-	JS_ToFloat64(ctx, &x, argv[1]);
-	JS_ToFloat64(ctx, &y, argv[2]);
-
-	fmt::println("[C++] Actor {} << move to {},{}", actorID, x, y);
-	return JS_UNDEFINED;
-}
-
-static JSValue js_Log(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-	const char* msg = JS_ToCString(ctx, argv[0]);
-
-	JS_FreeCString(ctx, msg);
-	return JS_UNDEFINED;
-}
+//
+//static JSValue js_MoveActor(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
+//{
+//	int actorID = 0;
+//	double x = 0.0, y = 0.0;
+//	JS_ToInt32(ctx, &actorID, argv[0]);
+//	JS_ToFloat64(ctx, &x, argv[1]);
+//	JS_ToFloat64(ctx, &y, argv[2]);
+//
+//	fmt::println("[C++] Actor {} << move to {},{}", actorID, x, y);
+//	return JS_UNDEFINED;
+//}
+//
+//static JSValue js_Log(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+//	const char* msg = JS_ToCString(ctx, argv[0]);
+//
+//	JS_FreeCString(ctx, msg);
+//	return JS_UNDEFINED;
+//}
 
 int main(int argc, char** argv) {
 
@@ -75,7 +74,7 @@ int main(int argc, char** argv) {
 
 	windows::InitWindowsPlatform();
 
-
+	auto& info = windows::WindowsInfo::get().info;
 
 	// camera
 	shine::manager::CameraManager::get().setMainCamera(&g_Camera);
@@ -84,15 +83,13 @@ int main(int argc, char** argv) {
 	std::array<float, 4> clear_color = { 0.45f, 0.55f, 0.60f, 1.00f };
 
 
+	RenderBackend = render::RenderManager::get().GetRenderBackend();
 
-	// 创建帧缓冲
-	RenderBackend->g_Width = 1280;
-	RenderBackend->g_Height = 720;
-	RenderBackend->CreateFrameBuffer();
+
 
 	shine::editor::main_editor::MainEditor* mainEditor = nullptr;
 	mainEditor = new shine::editor::main_editor::MainEditor();
-	mainEditor->Init(RenderBackend);
+	mainEditor->Init();
 
 
 
@@ -131,7 +128,6 @@ int main(int argc, char** argv) {
 	//fmt::println("     同一资源可以被多个纹理复用，提高内存效率");
 
 
-	auto& info = windows::WindowsInfo::get().info;
 
 	auto& g_FPSManager = util::EngineFPSManager::get();
 	bool done = false;
@@ -155,28 +151,19 @@ int main(int argc, char** argv) {
 		if (done)
 			break;
 
-		// 判断窗口是否最小化
-		if (::IsIconic(info.hwnd)) {
-			Sleep(10);
-			continue;
-		}
-
-        // Start the Dear ImGui frame
-        RenderBackend->ImguiNewFrame();
-
-        // 渲染服务，帧开始（保留，留给未来跨线程渲染时用）
+        // 渲染服务，帧开始
         render::RendererService::get().beginFrame();
 
-		
-		ImGui::NewFrame();
 
         // 编辑器UI渲染
         mainEditor->Render();
-
+		
         manager::CameraManager::get().getMainCamera()->Apply();
 
         // 统一用渲染服务提供帧缓冲渲染/显示
         render::RendererService::get().endFrame(clear_color);
+
+
 
 		// FPS控制 - 帧结束
 		g_FPSManager.EndFrame();

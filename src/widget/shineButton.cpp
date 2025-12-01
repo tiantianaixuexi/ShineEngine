@@ -1,4 +1,4 @@
-﻿#include "shineButton.h"
+#include "shineButton.h"
 
 
 #include "fmt/format.h"

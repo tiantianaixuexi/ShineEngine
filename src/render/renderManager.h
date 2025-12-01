@@ -3,6 +3,7 @@
 #include "singleton.h"
 #include "backend/render_backend_export.h"
 
+
 namespace shine::render
 {
 
@@ -17,7 +18,7 @@ namespace shine::render
 	public:
 
 
-		void CreateRenderBackend();
+		backend::SRenderBackend* CreateRenderBackend();
 
 
 		backend::SRenderBackend* GetRenderBackend()  noexcept

@@ -16,14 +16,10 @@
 namespace shine::editor::EditorView
 {
 
-void EditView::Init(render::RendererService* renderer) {
+void EditView::Init() {
 
-    Renderer = renderer;
     // 创建一个与窗口大小类似的视口（这里写死，后面可以在WM_SIZE中更新）
-    if (Renderer) {
-		Viewport = Renderer->createViewport(1280, 720);
-    }
-
+	Viewport = render::RendererService::get().createViewport(1280, 720);
 }
 
 void EditView::Render() {
@@ -57,13 +53,14 @@ void EditView::Render() {
     ImVec2 rightSize = ImVec2(ImGui::GetContentRegionAvail().x, viewportPanelSize.y - h);
 
     // 渲染到该视口的FBO，再显示其纹理
-    if (Renderer && Viewport) {
+    if ( Viewport) {
+		auto& renderer = render::RendererService::get();
       // 当前面板大小改变时，动态调整渲染视口与相机宽高比，避免图像拉伸变形
-      int w = (int)rightSize.x; if (w < 1) w = 1;
-      int h = (int)rightSize.y; if (h < 1) h = 1;
+      int w = static_cast<int>(rightSize.x); if (w < 1) w = 1;
+      int h = static_cast<int>(rightSize.y); if (h < 1) h = 1;
       static int lastW = 0, lastH = 0;
       if (w != lastW || h != lastH) {
-        Renderer->resizeViewport(Viewport, w, h);
+          renderer.resizeViewport(Viewport, w, h);
         if (auto cam = shine::manager::CameraManager::get().getMainCamera()) {
           cam->SetPerspective(cam->fov, (float)w / (float)h, cam->nearPlane, cam->farPlane);
         }
@@ -71,9 +68,9 @@ void EditView::Render() {
       }
 
       if (auto camera = shine::manager::CameraManager::get().getMainCamera()) {
-        Renderer->renderView(Viewport, camera);
+          renderer.renderView(Viewport, camera);
       }
-      ImGui::Image((ImTextureID)(static_cast<long long>(Renderer->getViewportTexture(Viewport))), rightSize);
+      ImGui::Image(renderer.getViewportTexture(Viewport), rightSize);
     } else {
       ImGui::InvisibleButton("EditorViewportArea", rightSize);
     }

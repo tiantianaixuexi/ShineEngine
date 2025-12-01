@@ -87,6 +87,7 @@ namespace shine::render::opengl3
 	{
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
 	}
 
 	bool OpenGLRenderBackend::CreateDevice(HWND hwnd)
@@ -313,7 +314,7 @@ void OpenGLRenderBackend::BindViewport(s32 handle)
     glBindFramebuffer(GL_FRAMEBUFFER, it->second.fbo);
 }
 
-unsigned int OpenGLRenderBackend::GetViewportTexture(s32 handle)
+unsigned long long OpenGLRenderBackend::GetViewportTexture(u32 handle)
 {
     auto it = m_Viewports.find(handle);
     if (it == m_Viewports.end()) return GetFramebufferTexture();

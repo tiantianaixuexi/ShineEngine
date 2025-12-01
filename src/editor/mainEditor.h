@@ -2,7 +2,6 @@
 
 #include "widget/shineButton.h"
 #include "editor/browers/AssetsBrower.h"
-#include "render/backend/render_backend.h"
 #include "editor/views/EditorView.h"
 
 // 前向声明
@@ -11,6 +10,7 @@ namespace shine::editor::views
     class SceneHierarchyView;
     class PropertiesView;
     class ImageViewerView;
+	class SMainEditorToolbar;
 }
 
 namespace shine::editor::main_editor
@@ -24,23 +24,24 @@ namespace shine::editor::main_editor
 		MainEditor();
 		~MainEditor();
 
-        void Init(render::backend::IRenderBackend* render);
+        void Init();
 		void Render();
-
-
 
 
 		bool mainDocker = true;
 
 
-        render::backend::IRenderBackend* RenderBackend = nullptr;
-        render::RendererService* Renderer = nullptr;
+
+		bool setAssetBorwerOpen();
+
+	 private:
 
 
 		assets_brower::AssetsBrower* assetsBrower = nullptr;
         EditorView::EditView* editorView = nullptr;
 
 		// 视图窗口
+		views::SMainEditorToolbar* mainEditorToolbar = nullptr;
 		views::SceneHierarchyView* sceneHierarchyView = nullptr;
 		views::PropertiesView* propertiesView = nullptr;
 		views::ImageViewerView* imageViewerView = nullptr;

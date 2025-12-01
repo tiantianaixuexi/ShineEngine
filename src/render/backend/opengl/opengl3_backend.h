@@ -95,7 +95,7 @@ struct ViewportInfo {
         virtual void DestroyViewport(s32 handle) override;
         virtual void ResizeViewport(s32 handle, int width, int height) override;
         virtual void BindViewport(s32 handle) override;
-        virtual unsigned int GetViewportTexture(s32 handle) override;
+        virtual unsigned long long  GetViewportTexture(u32 handle) override;
 
 		virtual void ReSizeFrameBuffer(int width, int height);
 

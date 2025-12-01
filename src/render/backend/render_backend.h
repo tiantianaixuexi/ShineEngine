@@ -66,7 +66,7 @@ namespace shine::render::backend
 		virtual void DestroyViewport(s32 /*handle*/) {}
 		virtual void ResizeViewport(s32 /*handle*/, int /*width*/, int /*height*/) {}
 		virtual void BindViewport(s32 /*handle*/) {}
-		virtual unsigned int GetViewportTexture(s32 /*handle*/) { return GetFramebufferTexture(); }
+		virtual unsigned long long GetViewportTexture(u32 /*handle*/) { return GetFramebufferTexture(); }
 
 		//  清理
 		virtual void ClearUp(HWND hwnd) = 0;

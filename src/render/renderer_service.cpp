@@ -50,7 +50,7 @@ namespace shine::render
         if (it != m_Viewports.end()) { it->second.width = width; it->second.height = height; }
     }
 
-    unsigned int RendererService::getViewportTexture(ViewportHandle handle) const noexcept
+    unsigned long long  RendererService::getViewportTexture(ViewportHandle handle) const noexcept
     {
         if (!m_Backend || handle == 0) return 0;
         return m_Backend->GetViewportTexture(handle);
@@ -58,7 +58,7 @@ namespace shine::render
 
     void RendererService::beginFrame() noexcept
     {
-        // 目前 ImGui 已在应用层创建，这里无需额外处理
+        m_Backend->ImguiNewFrame();
     }
 
     void RendererService::renderView(ViewportHandle handle, shine::gameplay::Camera* camera) noexcept
@@ -81,7 +81,6 @@ namespace shine::render
 
     void RendererService::endFrame(const std::array<float,4>& clear_color) noexcept
     {
-        if (!m_Backend) return;
         m_Backend->RenderToFramebuffer(clear_color);
     }
 

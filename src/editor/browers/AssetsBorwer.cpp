@@ -2,7 +2,9 @@
 
 
 #include <string>
-
+#include <locale>
+#include "file_util.h"
+#include "string_util.h"
 
 
 namespace shine::editor::assets_brower {
@@ -14,6 +16,8 @@ void AssetsBrower::Start()
 
 void AssetsBrower::Render() {
 
+    if (!isOpen) return;
+    
     if (ImGui::Begin(title.c_str(), &isOpen))
     {
         if (ImGui::BeginMenuBar()) {
@@ -59,11 +63,17 @@ void AssetsBrower::Render() {
             // ImGuiMultiSelectIO* ms_io = ImGui::BeginMultiSelect(ms_flags,)
         }
 
+
         ImGui::EndChild();
     }
 
     ImGui::End();
     
+}
+
+bool AssetsBrower::SetShow() noexcept
+{
+	return (isOpen == true ? isOpen = false : isOpen = true);
 }
 
 void AssetsBrower::AddItem() {
@@ -80,6 +90,8 @@ void AssetsBrower::AddItem() {
   }
   RequestSort = true;
 }
+
+
 
 } // namespace shine::editor::assets_brower
 

@@ -11,11 +11,11 @@ namespace shine::editor::EditorView
 	{
 	public:
 
-        void Init(render::RendererService* renderer);
+        void Init();
 		void Render();
 
     private:
-        shine::render::RendererService* Renderer = nullptr;
+
         shine::render::ViewportHandle Viewport = 0;
 	};
 

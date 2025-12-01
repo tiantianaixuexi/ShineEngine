@@ -233,7 +233,7 @@ public:
 	void directDispatch(const Event & e, Args ...args) const
 	{
 		if(! internal_::ForEachMixins<MixinRoot, Mixins, DoMixinBeforeDispatch>::forEach(
-			this, typename std::add_lvalue_reference<Args>::type(args)...)) {
+			this, typename std::add_lvalue_reference_t<Args>(args)...)) {
 			return;
 		}
 

@@ -124,17 +124,17 @@ namespace shine::gameplay
 
     void Camera::Apply()
     {
-            // 设置投影矩阵
-            glMatrixMode(GL_PROJECTION);
-            glLoadIdentity();
-            FMatrix4d P = GetProjectionMatrixM();
-            glLoadMatrixd(P.data());
+        // 设置投影矩阵
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        FMatrix4d P = GetProjectionMatrixM();
+        glLoadMatrixd(P.data());
 
-            // 设置模型视图矩阵
-            glMatrixMode(GL_MODELVIEW);
-            glLoadIdentity();
-            FMatrix4d V = GetViewMatrixM();
-            glLoadMatrixd(V.data());
+        // 设置模型视图矩阵
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        FMatrix4d V = GetViewMatrixM();
+        glLoadMatrixd(V.data());
     }
 
     FMatrix4d Camera::GetProjectionMatrixM() const noexcept

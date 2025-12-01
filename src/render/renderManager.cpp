@@ -6,10 +6,10 @@
 namespace shine::render
 {
 
-	void RenderManager::CreateRenderBackend()
+	backend::SRenderBackend* RenderManager::CreateRenderBackend()
 	{
-		RenderBackend = new backend::SRenderBackend();
+		return RenderBackend = new backend::SRenderBackend();
 	}
 
-
+	
 }
