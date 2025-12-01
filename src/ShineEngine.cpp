@@ -68,6 +68,11 @@ shine::gameplay::Camera g_Camera("默认相机");
 int main(int argc, char** argv) {
 
 
+	for (int i =0 ;i<argc;i++)
+	{
+		fmt::println("命令行参数[{}]: {}", i, argv[i]);
+	}
+
 #ifdef _WIN32
 	SetConsoleOutputCP(CP_UTF8);
 #endif
