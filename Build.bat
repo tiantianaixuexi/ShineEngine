@@ -37,6 +37,7 @@ set "CLEAN_FIRST="
 set "CMD="
 set "MODULE_ARG="
 set "EXE_ARG="
+set "TEST_ARG="
 set "MODULE_REBUILD=ON"
 set "MODULE_CONFIG=Debug"
 
@@ -56,7 +57,7 @@ if /i "%~1"=="--no-rebuild-deps" (
     goto parse_args
 )
 if /i "%~1"=="--release" (
-    if "%CMD%"=="module" set "MODULE_CONFIG=Release"
+    set "MODULE_CONFIG=Release"
     shift
     goto parse_args
 )
@@ -70,6 +71,10 @@ if not defined CMD (
         rem Save next argument as executable name (using %~2, since %~1 is "exe")
         if not "%~2"=="" set "EXE_ARG=%~2"
     )
+    if "%~1"=="test" (
+        rem Save next argument as test name
+        if not "%~2"=="" set "TEST_ARG=%~2"
+    )
 ) else (
     rem If CMD is already set to "module", the next argument is the module name
     if "%CMD%"=="module" (
@@ -81,6 +86,12 @@ if not defined CMD (
     if "%CMD%"=="exe" (
         if "%EXE_ARG%"=="" (
             if not "%~1"=="" set "EXE_ARG=%~1"
+        )
+    )
+    rem If CMD is already set to "test", the next argument is the test name
+    if "%CMD%"=="test" (
+        if "%TEST_ARG%"=="" (
+            if not "%~1"=="" set "TEST_ARG=%~1"
         )
     )
 )
@@ -102,6 +113,7 @@ if "%CMD%"=="exe" goto cmd_exe
 if "%CMD%"=="module" goto cmd_module
 if "%CMD%"=="clean" goto cmd_clean
 if "%CMD%"=="list" goto cmd_list
+if "%CMD%"=="test" goto cmd_test
 if "%CMD%"=="compile_commands" goto cmd_compile_commands
 goto show_help
 
@@ -238,6 +250,13 @@ if exist "Module" (
 )
 goto end_script
 
+:cmd_test
+if "%TEST_ARG%"=="" set "TEST_ARG=TestRunner"
+set "CMAKE_COMMON_FLAGS=%CMAKE_COMMON_FLAGS% -DBUILD_TESTING=ON"
+if "%MODULE_CONFIG%"=="" set "MODULE_CONFIG=Debug"
+call :build_generic "%TEST_ARG%" "%MODULE_CONFIG%" "ON" "TRUE"
+goto end_script
+
 :show_help
 echo Usage: build.bat [run|x64|release|exe|module|clean|list|compile_commands] [args]
 echo.
@@ -246,6 +265,7 @@ echo   x64             Build MainEngine (Debug)
 echo   release         Build MainEngine (Release)
 echo   exe [name]      Build specified executable (e.g. EngineLauncher)
 echo   module [name]   Build specified module
+echo   test            Build and run tests
 echo   clean           Clean build files
 echo   compile_commands Generate compile_commands.json for clangd
 echo.

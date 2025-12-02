@@ -1,0 +1,10 @@
+{
+  "name": "yyjson",
+  "files": [
+    "src/third/yyjson/yyjson.cpp",
+    "src/third/yyjson/yyjson.h"
+  ],
+  "type": "static",
+  "platform": ["Windows"],
+  "defines": []
+}
