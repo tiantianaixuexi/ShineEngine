@@ -9,7 +9,7 @@
 #include <bit>
 #include <array>
 
-#include "util/memory_util.h"
+
 #include "util/file_util.h"
 #include "util/encoding/byte_convert.h"
 #include "util/encoding/bit_reader.h"
@@ -20,7 +20,6 @@
 namespace shine::image
 {
 	using namespace util;
-	using MemoryPoolManager = util::MemoryPoolManager;
 
 	// ============================================================================
 	// WebP 格式常量定义

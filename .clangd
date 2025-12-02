@@ -35,6 +35,6 @@ If:
 Diagnostics:
   ClangTidy:
     Add: ["-*"]
-    Remove: 
+    Remove:
       - "unused-parameter"
       - "missing-prototypes"

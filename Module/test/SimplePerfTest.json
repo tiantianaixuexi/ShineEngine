@@ -1,0 +1,21 @@
+{
+  "name": "SimplePerfTest",
+  "dirs": [
+    "test/SimplePerfTest"
+  ],
+  "deps": [
+    "yyjson",
+    "fmt",
+    "shine_json"
+  ],
+  "defines": [
+    "TEST_BUILD"
+  ],
+  "type": [
+    "exe"
+  ],
+  "platform": [
+    "Windows"
+  ],
+  "output": "exe/SimplePerfTest.exe"
+}
