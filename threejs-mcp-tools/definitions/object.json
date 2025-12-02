@@ -1,0 +1,235 @@
+{
+  "category": "object",
+  "name": "对象工具",
+  "description": "Object Tools",
+  "tools": [
+    {
+      "name": "three_create_mesh",
+      "description": "创建一个网格对象（几何体+材质）。Create a mesh object (geometry + material).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "geometryId": {
+            "type": "string",
+            "description": "几何体ID（由几何体创建工具返回）。Geometry ID (returned by geometry creation tools)."
+          },
+          "materialId": {
+            "type": "string",
+            "description": "材质ID（由材质创建工具返回）。Material ID (returned by material creation tools)."
+          },
+          "name": {
+            "type": "string",
+            "description": "对象名称。Object name.",
+            "default": null
+          },
+          "position": {
+            "type": "object",
+            "description": "对象位置 {x, y, z}。Object position {x, y, z}.",
+            "properties": {
+              "x": {"type": "number", "default": 0},
+              "y": {"type": "number", "default": 0},
+              "z": {"type": "number", "default": 0}
+            }
+          },
+          "rotation": {
+            "type": "object",
+            "description": "对象旋转（弧度）{x, y, z}。Object rotation in radians {x, y, z}.",
+            "properties": {
+              "x": {"type": "number", "default": 0},
+              "y": {"type": "number", "default": 0},
+              "z": {"type": "number", "default": 0}
+            }
+          },
+          "scale": {
+            "type": "object",
+            "description": "对象缩放 {x, y, z}。Object scale {x, y, z}.",
+            "properties": {
+              "x": {"type": "number", "default": 1},
+              "y": {"type": "number", "default": 1},
+              "z": {"type": "number", "default": 1}
+            }
+          },
+          "visible": {
+            "type": "boolean",
+            "description": "对象是否可见。Whether the object is visible.",
+            "default": true
+          }
+        },
+        "required": ["geometryId", "materialId"]
+      }
+    },
+    {
+      "name": "three_create_line",
+      "description": "创建线对象。Create a line object.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "geometryId": {
+            "type": "string",
+            "description": "几何体ID（应使用BufferGeometry）。Geometry ID (should use BufferGeometry)."
+          },
+          "materialId": {
+            "type": "string",
+            "description": "材质ID（应使用LineBasicMaterial或LineDashedMaterial）。Material ID (should use LineBasicMaterial or LineDashedMaterial)."
+          },
+          "position": {
+            "type": "object",
+            "description": "对象位置 {x, y, z}。Object position {x, y, z}.",
+            "properties": {
+              "x": {"type": "number", "default": 0},
+              "y": {"type": "number", "default": 0},
+              "z": {"type": "number", "default": 0}
+            }
+          }
+        },
+        "required": ["geometryId", "materialId"]
+      }
+    },
+    {
+      "name": "three_create_points",
+      "description": "创建点对象。Create a points object.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "geometryId": {
+            "type": "string",
+            "description": "几何体ID。Geometry ID."
+          },
+          "materialId": {
+            "type": "string",
+            "description": "材质ID（应使用PointsMaterial）。Material ID (should use PointsMaterial)."
+          },
+          "position": {
+            "type": "object",
+            "description": "对象位置 {x, y, z}。Object position {x, y, z}.",
+            "properties": {
+              "x": {"type": "number", "default": 0},
+              "y": {"type": "number", "default": 0},
+              "z": {"type": "number", "default": 0}
+            }
+          }
+        },
+        "required": ["geometryId", "materialId"]
+      }
+    },
+    {
+      "name": "three_set_object_position",
+      "description": "设置对象的位置。Set the position of an object.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "objectId": {
+            "type": "string",
+            "description": "对象ID。Object ID."
+          },
+          "position": {
+            "type": "object",
+            "description": "新位置 {x, y, z}。New position {x, y, z}.",
+            "properties": {
+              "x": {"type": "number"},
+              "y": {"type": "number"},
+              "z": {"type": "number"}
+            },
+            "required": ["x", "y", "z"]
+          }
+        },
+        "required": ["objectId", "position"]
+      }
+    },
+    {
+      "name": "three_set_object_rotation",
+      "description": "设置对象的旋转（使用欧拉角，单位：弧度）。Set the rotation of an object (using Euler angles in radians).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "objectId": {
+            "type": "string",
+            "description": "对象ID。Object ID."
+          },
+          "rotation": {
+            "type": "object",
+            "description": "新旋转 {x, y, z}（弧度）。New rotation {x, y, z} in radians.",
+            "properties": {
+              "x": {"type": "number"},
+              "y": {"type": "number"},
+              "z": {"type": "number"}
+            },
+            "required": ["x", "y", "z"]
+          }
+        },
+        "required": ["objectId", "rotation"]
+      }
+    },
+    {
+      "name": "three_set_object_scale",
+      "description": "设置对象的缩放。Set the scale of an object.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "objectId": {
+            "type": "string",
+            "description": "对象ID。Object ID."
+          },
+          "scale": {
+            "type": "object",
+            "description": "新缩放 {x, y, z}。New scale {x, y, z}.",
+            "properties": {
+              "x": {"type": "number"},
+              "y": {"type": "number"},
+              "z": {"type": "number"}
+            },
+            "required": ["x", "y", "z"]
+          }
+        },
+        "required": ["objectId", "scale"]
+      }
+    },
+    {
+      "name": "three_get_object_info",
+      "description": "获取对象的详细信息。Get detailed information about an object.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "objectId": {
+            "type": "string",
+            "description": "对象ID。Object ID."
+          }
+        },
+        "required": ["objectId"]
+      }
+    },
+    {
+      "name": "three_clone_object",
+      "description": "克隆对象（创建对象的副本）。Clone an object (create a copy of the object).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "objectId": {
+            "type": "string",
+            "description": "要克隆的对象ID。Object ID to clone."
+          },
+          "recursive": {
+            "type": "boolean",
+            "description": "是否递归克隆子对象。Whether to recursively clone child objects.",
+            "default": true
+          }
+        },
+        "required": ["objectId"]
+      }
+    },
+    {
+      "name": "three_dispose_object",
+      "description": "释放对象资源（释放几何体和材质的内存）。Dispose object resources (free memory for geometry and material).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "objectId": {
+            "type": "string",
+            "description": "要释放的对象ID。Object ID to dispose."
+          }
+        },
+        "required": ["objectId"]
+      }
+    }
+  ]
+}

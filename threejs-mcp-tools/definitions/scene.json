@@ -1,0 +1,151 @@
+{
+  "category": "scene",
+  "name": "场景管理工具",
+  "description": "Scene Management Tools",
+  "tools": [
+    {
+      "name": "three_create_scene",
+      "description": "创建一个新的Three.js场景。Create a new Three.js scene.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "background": {
+            "type": "string",
+            "description": "场景背景颜色（十六进制格式，如'#000000'）。Scene background color in hex format (e.g., '#000000').",
+            "default": null
+          },
+          "fog": {
+            "type": "object",
+            "description": "场景雾效配置。Scene fog configuration.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "linear",
+                  "exponential"
+                ],
+                "description": "雾效类型：'linear'（线性雾）或'exponential'（指数雾）。Fog type: 'linear' or 'exponential'."
+              },
+              "color": {
+                "type": "string",
+                "description": "雾的颜色（十六进制格式）。Fog color in hex format."
+              },
+              "near": {
+                "type": "number",
+                "description": "线性雾的起始距离。Linear fog near distance."
+              },
+              "far": {
+                "type": "number",
+                "description": "线性雾的结束距离或指数雾的密度。Linear fog far distance or exponential fog density."
+              }
+            }
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "three_add_object_to_scene",
+      "description": "向场景添加对象。Add an object to a scene.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sceneId": {
+            "type": "string",
+            "description": "场景ID（由three_create_scene返回）。Scene ID (returned by three_create_scene)."
+          },
+          "objectId": {
+            "type": "string",
+            "description": "对象ID（由对象创建工具返回）。Object ID (returned by object creation tools)."
+          }
+        },
+        "required": [
+          "sceneId",
+          "objectId"
+        ]
+      }
+    },
+    {
+      "name": "three_remove_object_from_scene",
+      "description": "从场景移除对象。Remove an object from a scene.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sceneId": {
+            "type": "string",
+            "description": "场景ID。Scene ID."
+          },
+          "objectId": {
+            "type": "string",
+            "description": "对象ID。Object ID."
+          }
+        },
+        "required": [
+          "sceneId",
+          "objectId"
+        ]
+      }
+    },
+    {
+      "name": "three_get_scene_objects",
+      "description": "获取场景中所有对象的列表。Get a list of all objects in a scene.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sceneId": {
+            "type": "string",
+            "description": "场景ID。Scene ID."
+          }
+        },
+        "required": [
+          "sceneId"
+        ]
+      }
+    },
+    {
+      "name": "three_set_scene_background",
+      "description": "设置场景背景。Set the scene background.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sceneId": {
+            "type": "string",
+            "description": "场景ID。Scene ID."
+          },
+          "background": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "背景颜色（十六进制格式）。Background color in hex format."
+              },
+              {
+                "type": "string",
+                "description": "纹理ID（由纹理创建工具返回）。Texture ID (returned by texture creation tools)."
+              }
+            ]
+          }
+        },
+        "required": [
+          "sceneId",
+          "background"
+        ]
+      }
+    },
+    {
+      "name": "three_export_scene_json",
+      "description": "导出场景为JSON格式。Export scene to JSON format.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sceneId": {
+            "type": "string",
+            "description": "场景ID。Scene ID."
+          }
+        },
+        "required": [
+          "sceneId"
+        ]
+      }
+    }
+  ]
+}

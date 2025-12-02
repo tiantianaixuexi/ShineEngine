@@ -1,0 +1,100 @@
+{
+  "category": "renderer",
+  "name": "渲染器工具",
+  "description": "Renderer Tools",
+  "tools": [
+    {
+      "name": "three_create_renderer",
+      "description": "创建一个WebGL渲染器。Create a WebGL renderer.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "width": {
+            "type": "number",
+            "description": "渲染器宽度（像素）。Renderer width in pixels.",
+            "default": 800
+          },
+          "height": {
+            "type": "number",
+            "description": "渲染器高度（像素）。Renderer height in pixels.",
+            "default": 600
+          },
+          "antialias": {
+            "type": "boolean",
+            "description": "是否启用抗锯齿。Whether to enable antialiasing.",
+            "default": true
+          },
+          "alpha": {
+            "type": "boolean",
+            "description": "是否启用透明背景。Whether to enable transparent background.",
+            "default": false
+          },
+          "backgroundColor": {
+            "type": "string",
+            "description": "背景颜色（十六进制格式）。Background color in hex format.",
+            "default": "#000000"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "three_render_scene",
+      "description": "使用渲染器渲染场景。Render a scene using a renderer.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "rendererId": {
+            "type": "string",
+            "description": "渲染器ID（由three_create_renderer返回）。Renderer ID (returned by three_create_renderer)."
+          },
+          "sceneId": {
+            "type": "string",
+            "description": "场景ID（由three_create_scene返回）。Scene ID (returned by three_create_scene)."
+          },
+          "cameraId": {
+            "type": "string",
+            "description": "相机ID（由相机创建工具返回）。Camera ID (returned by camera creation tools)."
+          }
+        },
+        "required": ["rendererId", "sceneId", "cameraId"]
+      }
+    },
+    {
+      "name": "three_get_renderer_canvas",
+      "description": "获取渲染器的画布数据（Base64编码的PNG图像）。Get the renderer canvas data (Base64 encoded PNG image).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "rendererId": {
+            "type": "string",
+            "description": "渲染器ID。Renderer ID."
+          }
+        },
+        "required": ["rendererId"]
+      }
+    },
+    {
+      "name": "three_set_renderer_size",
+      "description": "设置渲染器尺寸。Set the renderer size.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "rendererId": {
+            "type": "string",
+            "description": "渲染器ID。Renderer ID."
+          },
+          "width": {
+            "type": "number",
+            "description": "新宽度（像素）。New width in pixels."
+          },
+          "height": {
+            "type": "number",
+            "description": "新高度（像素）。New height in pixels."
+          }
+        },
+        "required": ["rendererId", "width", "height"]
+      }
+    }
+  ]
+}

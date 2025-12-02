@@ -1,0 +1,248 @@
+{
+  "category": "camera",
+  "name": "相机工具",
+  "description": "Camera Tools",
+  "tools": [
+    {
+      "name": "three_create_perspective_camera",
+      "description": "创建一个透视相机。Create a perspective camera.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "fov": {
+            "type": "number",
+            "description": "视野角度（度）。Field of view in degrees.",
+            "default": 50,
+            "minimum": 0,
+            "maximum": 180
+          },
+          "aspect": {
+            "type": "number",
+            "description": "宽高比。Aspect ratio.",
+            "default": 1
+          },
+          "near": {
+            "type": "number",
+            "description": "近裁剪平面距离。Near clipping plane distance.",
+            "default": 0.1
+          },
+          "far": {
+            "type": "number",
+            "description": "远裁剪平面距离。Far clipping plane distance.",
+            "default": 2000
+          },
+          "position": {
+            "type": "object",
+            "description": "相机位置 {x, y, z}。Camera position {x, y, z}.",
+            "properties": {
+              "x": {
+                "type": "number",
+                "default": 0
+              },
+              "y": {
+                "type": "number",
+                "default": 0
+              },
+              "z": {
+                "type": "number",
+                "default": 0
+              }
+            }
+          },
+          "lookAt": {
+            "type": "object",
+            "description": "相机朝向目标点 {x, y, z}。Camera look-at target {x, y, z}.",
+            "properties": {
+              "x": {
+                "type": "number",
+                "default": 0
+              },
+              "y": {
+                "type": "number",
+                "default": 0
+              },
+              "z": {
+                "type": "number",
+                "default": 0
+              }
+            }
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "three_create_orthographic_camera",
+      "description": "创建一个正交相机。Create an orthographic camera.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "left": {
+            "type": "number",
+            "description": "左裁剪平面。Left clipping plane.",
+            "default": -1
+          },
+          "right": {
+            "type": "number",
+            "description": "右裁剪平面。Right clipping plane.",
+            "default": 1
+          },
+          "top": {
+            "type": "number",
+            "description": "上裁剪平面。Top clipping plane.",
+            "default": 1
+          },
+          "bottom": {
+            "type": "number",
+            "description": "下裁剪平面。Bottom clipping plane.",
+            "default": -1
+          },
+          "near": {
+            "type": "number",
+            "description": "近裁剪平面距离。Near clipping plane distance.",
+            "default": 0.1
+          },
+          "far": {
+            "type": "number",
+            "description": "远裁剪平面距离。Far clipping plane distance.",
+            "default": 2000
+          },
+          "position": {
+            "type": "object",
+            "description": "相机位置 {x, y, z}。Camera position {x, y, z}.",
+            "properties": {
+              "x": {
+                "type": "number",
+                "default": 0
+              },
+              "y": {
+                "type": "number",
+                "default": 0
+              },
+              "z": {
+                "type": "number",
+                "default": 0
+              }
+            }
+          },
+          "lookAt": {
+            "type": "object",
+            "description": "相机朝向目标点 {x, y, z}。Camera look-at target {x, y, z}.",
+            "properties": {
+              "x": {
+                "type": "number",
+                "default": 0
+              },
+              "y": {
+                "type": "number",
+                "default": 0
+              },
+              "z": {
+                "type": "number",
+                "default": 0
+              }
+            }
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "three_set_camera_look_at",
+      "description": "设置相机朝向目标点。Set the camera to look at a target point.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cameraId": {
+            "type": "string",
+            "description": "相机ID。Camera ID."
+          },
+          "target": {
+            "type": "object",
+            "description": "目标点 {x, y, z}。Target point {x, y, z}.",
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "z": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "x",
+              "y",
+              "z"
+            ]
+          }
+        },
+        "required": [
+          "cameraId",
+          "target"
+        ]
+      }
+    },
+    {
+      "name": "three_set_camera_position",
+      "description": "设置相机位置。Set the camera position.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cameraId": {
+            "type": "string",
+            "description": "相机ID。Camera ID."
+          },
+          "position": {
+            "type": "object",
+            "description": "新位置 {x, y, z}。New position {x, y, z}.",
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "z": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "x",
+              "y",
+              "z"
+            ]
+          }
+        },
+        "required": [
+          "cameraId",
+          "position"
+        ]
+      }
+    },
+    {
+      "name": "three_set_camera_fov",
+      "description": "设置透视相机的视野角度（仅对透视相机有效）。Set the field of view for a perspective camera (only for perspective cameras).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cameraId": {
+            "type": "string",
+            "description": "相机ID。Camera ID."
+          },
+          "fov": {
+            "type": "number",
+            "description": "视野角度（度）。Field of view in degrees.",
+            "minimum": 0,
+            "maximum": 180
+          }
+        },
+        "required": [
+          "cameraId",
+          "fov"
+        ]
+      }
+    }
+  ]
+}
