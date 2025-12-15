@@ -1,5 +1,57 @@
+﻿#include "util/shine_define.h"
+
+#ifdef SHINE_PLATFORM_WASN
+
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#include <GLES/gl2.h>
+
+static void update()
+{
+    auto t = emscripten_get_now();
+    glClear(GL_COLOR_BUFFER_BIT);
+}
+
+int main(int argc,char** argv)
+{
+
+	EmscriptenWebGLContextAttributes  attrs;
+	attrs.alpha = false;
+    attrs.depth = true;
+    attrs.stencil = true;
+    attrs.antialias = true;
+    attrs.premultipliedAlpha = false;
+    attrs.preserveDrawingBuffer = false;
+    attrs.preferLowPowerToHighPerformance = false;
+    attrs.failIfMajorPerformanceCaveat = false;
+    attrs.majorVersion = 1;
+    attrs.minorVersion = 0;
+    attrs.enableExtensionsByDefault = false;
+
+	int ctx = emscripten_webgl_create_context(0, &attrs);
+    if(!ctx)
+    {
+        printf("Webgl ctx could not be created!\n");
+        return -1;
+    }    
+
+    emscripten_webgl_make_context_current(ctx);
+    glClearColor(0,0,1,1);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+
+	emscripten_set_main_loop(WasmMainLoop, 0, 1);
+
+    return 1;
+}
+
+
+
+#else
+
+
+
 #include "file_util.h"
-#include "util/shine_define.h"
 
 
 
@@ -45,25 +97,6 @@ shine::render::backend::IRenderBackend* RenderBackend = nullptr;
 
 shine::gameplay::Camera g_Camera("默认相机");
 
-//
-//static JSValue js_MoveActor(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
-//{
-//	int actorID = 0;
-//	double x = 0.0, y = 0.0;
-//	JS_ToInt32(ctx, &actorID, argv[0]);
-//	JS_ToFloat64(ctx, &x, argv[1]);
-//	JS_ToFloat64(ctx, &y, argv[2]);
-//
-//	fmt::println("[C++] Actor {} << move to {},{}", actorID, x, y);
-//	return JS_UNDEFINED;
-//}
-//
-//static JSValue js_Log(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-//	const char* msg = JS_ToCString(ctx, argv[0]);
-//
-//	JS_FreeCString(ctx, msg);
-//	return JS_UNDEFINED;
-//}
 
 int main(int argc, char** argv) {
 
@@ -86,51 +119,14 @@ int main(int argc, char** argv) {
 
 
 	std::array<float, 4> clear_color = { 0.45f, 0.55f, 0.60f, 1.00f };
-
+	
 
 	RenderBackend = render::RenderManager::get().GetRenderBackend();
-
 
 
 	shine::editor::main_editor::MainEditor* mainEditor = nullptr;
 	mainEditor = new shine::editor::main_editor::MainEditor();
 	mainEditor->Init();
-
-
-
-    //// 创建一个三维立方体网格并加载到对象上，注册到渲染服务
-    //{
-    //    auto mesh = std::make_shared<shine::gameplay::StaticMesh>();
-    //    mesh->initCubeWithNormals();
-    //    // 使用全局共享的PBR材质，可在UI调节点参数
-    //    mesh->setMaterial(shine::render::Material::GetPBR());
-    //    auto* smc = g_TestActor.addComponent<shine::gameplay::component::StaticMeshComponent>();
-    //    smc->setMesh(mesh);
-    //    shine::render::RendererService::get().registerObject(&g_TestActor);
-    //}
-	//
-	//// 加载纹理示例（类似 UE5 的 LoadObject，一步到位）
-	//{
-	//	shine::util::FunctionTimer __function_timer__("加载纹理", shine::util::TimerPrecision::Nanoseconds);
-	//	
-	//	auto texture = shine::manager::AssetManager::Get().LoadTexture("test_texture.png");
-	//	if (texture && mainEditor->imageViewerView)
-	//	{
-	//		mainEditor->imageViewerView->SetTexture(texture);
-	//	}
-	//}
-
-	
-	// ========================================================================
-	// 资源统计信息
-	// ========================================================================
-	//size_t textureCount, totalMemory;
-	//shine::render::TextureManager::get().GetTextureStats(textureCount, totalMemory);
-	//fmt::println("纹理统计: GPU纹理数量={}, 估算内存={} KB", textureCount, totalMemory / 1024);
-	
-	// 注意：AssetManager 的资源统计需要额外实现，这里只是示例
-	//fmt::println("提示: AssetManager 管理资源加载，TextureManager 管理 GPU 纹理");
-	//fmt::println("     同一资源可以被多个纹理复用，提高内存效率");
 
 
 
@@ -142,8 +138,6 @@ int main(int argc, char** argv) {
 		g_FPSManager.BeginFrame();
 		const double dt_d = g_FPSManager.GetCurrentDeltaTime();
 		const float dt = static_cast<float>(dt_d);
-        //g_TestActor.onTick(dt);
-
 
 		// Poll and handle messages (inputs, window resize, etc.)
 		MSG msg;
@@ -153,6 +147,7 @@ int main(int argc, char** argv) {
 			if (msg.message == WM_QUIT)
 				done = true;
 		}
+
 		if (done)
 			break;
 
@@ -163,15 +158,15 @@ int main(int argc, char** argv) {
         // 编辑器UI渲染
         mainEditor->Render();
 		
+		// 应用摄像机
         manager::CameraManager::get().getMainCamera()->Apply();
 
         // 统一用渲染服务提供帧缓冲渲染/显示
         render::RendererService::get().endFrame(clear_color);
 
-
-
 		// FPS控制 - 帧结束
 		g_FPSManager.EndFrame();
+
 	}
 
 	// 清理ImGui
@@ -190,3 +185,4 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
+#endif

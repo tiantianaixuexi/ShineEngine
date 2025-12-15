@@ -35,6 +35,7 @@ concept MathPoint = FloatingPoint<T> || IntPoint<T>;
 
 // C++23 数学常量
 namespace shine::math::constants {
+    
     template<FloatingPoint T>
     constexpr T pi = std::numbers::pi_v<T>;
     
@@ -79,7 +80,6 @@ namespace shine::math
 
     [[nodiscard]] inline  double FastInvSqrt(double x) noexcept
     {
-
         
         #ifdef __EMSCRIPTEN__
             return 1.0 / std::sqrt(x);

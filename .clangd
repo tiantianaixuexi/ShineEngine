@@ -1,8 +1,11 @@
 CompileFlags:
   # 优先使用 compile_commands.json（CMake 生成）
-  CompilationDatabase: build
+  CompilationDatabase: build-clang
   Add:
-    - "-std=c++23"
+    # 让 clangd 按 MSVC(cl) 风格解析 compile_commands.json 里的参数
+    - "--driver-mode=cl"
+    # 至少启用 C++20/23（你的代码里用了 concepts / std::numbers）
+    - "/std:c++latest"
     - "-fdeclspec"
     - "-D_WIN32"
     - "-D_WIN64"

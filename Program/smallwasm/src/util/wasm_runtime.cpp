@@ -1,0 +1,116 @@
+// wasm_runtime.cpp
+// Minimal runtime bits for -nostdlib wasm32 builds:
+// - malloc/free implementation
+// - C++ atexit stubs (avoid importing __cxa_atexit)
+
+using uintptr_t = __UINTPTR_TYPE__;
+using size_t = __SIZE_TYPE__;
+
+extern "C" {
+extern unsigned char __heap_base;
+unsigned long __builtin_wasm_memory_size(int) noexcept;
+unsigned long __builtin_wasm_memory_grow(int, unsigned long) noexcept;
+}
+
+static inline uintptr_t align_up(uintptr_t x, uintptr_t a) { return (x + (a - 1)) & ~(a - 1); }
+static constexpr uintptr_t kAlign = 16;
+static constexpr uintptr_t kPageSize = 64u * 1024u;
+
+struct Block {
+  size_t size;
+  Block* next;
+};
+
+static uintptr_t g_heap_ptr = 0;
+static Block* g_free_list = nullptr;
+
+static void ensure_heap_inited() {
+  if (g_heap_ptr == 0) g_heap_ptr = align_up(reinterpret_cast<uintptr_t>(&__heap_base), kAlign);
+}
+
+static bool ensure_capacity(uintptr_t need_end) {
+  unsigned long pages_now = __builtin_wasm_memory_size(0);
+  uintptr_t bytes_now = static_cast<uintptr_t>(pages_now) * kPageSize;
+  if (need_end <= bytes_now) return true;
+  uintptr_t need_bytes = need_end - bytes_now;
+  unsigned long need_pages = static_cast<unsigned long>((need_bytes + kPageSize - 1) / kPageSize);
+  unsigned long old = __builtin_wasm_memory_grow(0, need_pages);
+  return old != 0xFFFFFFFFul;
+}
+
+extern "C" void* malloc(size_t size) {
+  if (size == 0) return nullptr;
+  ensure_heap_inited();
+  size = static_cast<size_t>(align_up(static_cast<uintptr_t>(size), kAlign));
+
+  Block** prevp = &g_free_list;
+  for (Block* b = g_free_list; b; b = b->next) {
+    if (b->size >= size) {
+      *prevp = b->next;
+
+      uintptr_t b_addr = reinterpret_cast<uintptr_t>(b);
+      uintptr_t payload_addr = b_addr + sizeof(Block);
+      uintptr_t new_payload_addr = payload_addr + size;
+      uintptr_t new_block_addr = align_up(new_payload_addr, kAlign);
+      uintptr_t b_end = payload_addr + b->size;
+
+      if (new_block_addr + sizeof(Block) + kAlign <= b_end) {
+        Block* nb = reinterpret_cast<Block*>(new_block_addr);
+        uintptr_t nb_payload = new_block_addr + sizeof(Block);
+        nb->size = static_cast<size_t>(b_end - nb_payload);
+        nb->next = g_free_list;
+        g_free_list = nb;
+        b->size = size;
+      }
+      return reinterpret_cast<void*>(payload_addr);
+    }
+    prevp = &b->next;
+  }
+
+  uintptr_t block_addr = align_up(g_heap_ptr, kAlign);
+  uintptr_t payload_addr = block_addr + sizeof(Block);
+  uintptr_t end = payload_addr + size;
+  if (!ensure_capacity(end)) return nullptr;
+
+  Block* b = reinterpret_cast<Block*>(block_addr);
+  b->size = size;
+  b->next = nullptr;
+  g_heap_ptr = end;
+  return reinterpret_cast<void*>(payload_addr);
+}
+
+extern "C" void free(void* p) {
+  if (!p) return;
+  uintptr_t payload_addr = reinterpret_cast<uintptr_t>(p);
+  Block* b = reinterpret_cast<Block*>(payload_addr - sizeof(Block));
+  b->next = g_free_list;
+  g_free_list = b;
+}
+
+// ---- C++ new operators (keep wasm small; no exceptions) ----
+// Some code may use `new` even under -fno-exceptions. Provide minimal operators.
+void* operator new(size_t n) {
+  if (void* p = malloc(n)) return p;
+  __builtin_trap();
+}
+void* operator new[](size_t n) {
+  if (void* p = malloc(n)) return p;
+  __builtin_trap();
+}
+
+// ---- C++ delete operators (avoid importing _ZdlPv / _ZdlPvm) ----
+// When using virtual functions, the compiler may emit a deleting destructor which
+// references these operators, even if you never call delete yourself.
+void operator delete(void* p) noexcept { free(p); }
+void operator delete(void* p, size_t) noexcept { free(p); }
+void operator delete[](void* p) noexcept { free(p); }
+void operator delete[](void* p, size_t) noexcept { free(p); }
+
+// ---- C++ runtime stubs (avoid importing __cxa_atexit under -nostdlib) ----
+extern "C" {
+void* __dso_handle = (void*)0;
+int __cxa_atexit(void (*)(void*), void*, void*) { return 0; }
+void __cxa_finalize(void*) {}
+void __cxa_pure_virtual() {}
+}
+

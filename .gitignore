@@ -15,3 +15,7 @@ exe/
 cache/
 compiler=msvc/
 .cache/
+
+# smallwasm demo outputs
+Program/smallwasm/build-wasm/
+Program/smallwasm/web/dist/

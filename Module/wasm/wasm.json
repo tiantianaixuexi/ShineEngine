@@ -1,0 +1,13 @@
+﻿{
+  "name": "wasm",
+  "type": "static",
+  "dirs": [
+    "src/wasm/"
+  ],
+  "platfprm": [
+    "wasm"
+  ], 
+  "deps": [],
+  "comment": ""
+}
+

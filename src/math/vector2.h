@@ -1,8 +1,13 @@
 ﻿#pragma once
 
+#ifndef SHINE_PLATFORM_WASM
 #include <string>
+#endif
+
 #include "math/mathDef.h"
 #include "math/mathUtil.h"
+
+
 
 namespace shine::math
 {
@@ -14,7 +19,16 @@ namespace shine::math
         T X;
         T Y;
 
-      
+        
+#ifndef SHINE_PLATFORM_WASM
+
+        [[nodiscard]] std::string ToString() const
+        {
+            return "(" + std::to_string(X) + ", " + std::to_string(Y) + ")";
+        }
+
+#endif
+
         static constexpr vector2<T> Zero() { return vector2<T>(0, 0); }
         static constexpr vector2<T> One() { return vector2<T>(1, 1); }
         static constexpr vector2<T> UnitX() { return vector2<T>(1, 0); }
@@ -24,7 +38,7 @@ namespace shine::math
         static constexpr vector2<T> Up() { return vector2<T>(0, 1); }
         static constexpr vector2<T> Down() { return vector2<T>(0, -1); }
 
-      
+
         constexpr vector2() noexcept : X(0), Y(0) {}
         constexpr vector2(T scalar) noexcept : X(scalar), Y(scalar) {}
         constexpr vector2(T x, T y) noexcept : X(x), Y(y) {}
@@ -35,7 +49,7 @@ namespace shine::math
         constexpr vector2(vector2<T>&& other) noexcept = default;
         constexpr vector2<T>& operator=(vector2<T>&& other) noexcept = default;
 
-       
+
         [[nodiscard]] constexpr vector2<T> operator+(const vector2<T>& v) const noexcept
         {
             return vector2<T>(X + v.X, Y + v.Y);
@@ -148,7 +162,7 @@ namespace shine::math
             return *this;
         }
 
-       
+
         [[nodiscard]] constexpr bool operator==(const vector2<T>& v) const noexcept
         {
             return X == v.X && Y == v.Y;
@@ -181,13 +195,13 @@ namespace shine::math
             return a.Cross(b);
         }
 
- 
+
         [[nodiscard]] bool Equals(const vector2<T>& v, T tolerance) const noexcept
         {
             return Abs(X - v.X) <= tolerance && Abs(Y - v.Y) <= tolerance;
         }
 
-   
+
         [[nodiscard]] constexpr T LengthSquared() const noexcept
         {
             return X * X + Y * Y;
@@ -198,7 +212,7 @@ namespace shine::math
             return Sqrt(LengthSquared());
         }
 
-       
+
         bool Normalize(T tolerance = SMALL_NUMBER) noexcept
         {
             const T squareSum = LengthSquared();
@@ -246,7 +260,7 @@ namespace shine::math
             return Min(Abs(X), Abs(Y));
         }
 
-   
+
         [[nodiscard]] static T Distance(const vector2<T>& v1, const vector2<T>& v2) noexcept
         {
             return (v2 - v1).Length();
@@ -257,26 +271,26 @@ namespace shine::math
             return (v2 - v1).LengthSquared();
         }
 
-      
+
         [[nodiscard]] static constexpr vector2<T> Lerp(const vector2<T>& a, const vector2<T>& b, T t) noexcept
         {
             t = Clamp(t, static_cast<T>(0), static_cast<T>(1));
             return a + (b - a) * t;
         }
 
-     
+
         [[nodiscard]] constexpr vector2<T> GetPerpendicular() const noexcept
         {
             return vector2<T>(-Y, X);
         }
 
-      
+
         [[nodiscard]] vector2<T> Reflect(const vector2<T>& normal) const noexcept
         {
             return *this - normal * (static_cast<T>(2) * Dot(normal));
         }
 
-     
+
         [[nodiscard]] constexpr T& operator[](int index) noexcept
         {
             return (index == 0) ? X : Y;
@@ -287,11 +301,6 @@ namespace shine::math
             return (index == 0) ? X : Y;
         }
 
-      
-        [[nodiscard]] std::string ToString() const
-        {
-            return "(" + std::to_string(X) + ", " + std::to_string(Y) + ")";
-        }
 
         // 限制向量长度
         [[nodiscard]] vector2<T> ClampLength(T maxLength) const noexcept

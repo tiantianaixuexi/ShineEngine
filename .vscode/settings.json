@@ -21,7 +21,11 @@
     // 限制内存使用（MB）
     "--limit-results=100",
     // 启用跳转到定义
-    "--header-insertion=never"
+    "--header-insertion=never",
+    // 指定编译数据库目录（MSVC + Ninja）
+    "--compile-commands-dir=build-clang",
+    // 让 clangd 能正确探测 MSVC 标准库/系统 include 路径
+    "--query-driver=C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\*\\\\VC\\\\Tools\\\\MSVC\\\\*\\\\bin\\\\Hostx64\\\\x64\\\\cl.exe"
   ],
   // clangd 检查文件模式
   "clangd.checkUpdates": true,
