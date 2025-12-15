@@ -30,7 +30,7 @@ struct TexLoader {
     int* out_h = nullptr;
   };
 
-  Req req[16];
+  Req req[16] = {};
   int next = 1;
 
   inline void set_wh_from_tex(int ctxId, int texId, int* out_w, int* out_h) {

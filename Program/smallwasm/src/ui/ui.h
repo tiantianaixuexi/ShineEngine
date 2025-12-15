@@ -16,9 +16,9 @@ public:
   float w = 0.2f;
   float h = 0.1f;
 
-  int visible = 1;
-  int hot = 0;     // pointer is over
-  int active = 0;  // pressed
+  unsigned  int  visible   :1   = 1;
+  unsigned  int  isOver    :1   = 0;     // pointer is over
+  unsigned  int  isPressed :1   = 0;   // pressed
 
   // Optional pixel layout (professional-ish, responsive):
   // If enabled, onResize() converts pixel sizes/offsets into NDC.
@@ -45,8 +45,8 @@ public:
   }
 
   virtual void pointer(float px, float py, int isDown) {
-    hot = hit(px, py);
-    if (!isDown) active = 0;
+    isOver = hit(px, py);
+    if (!isDown) isPressed = 0;
   }
 
   // Called when viewport size changes (w/h are canvas pixel size).

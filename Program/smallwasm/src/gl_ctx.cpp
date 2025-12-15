@@ -455,19 +455,14 @@ extern "C" void init(int tri_count) {
   g_btn = shine::ui::Button::create();
   g_btn->bindOnClick(
       [](shine::ui::Button* self, void* /*user*/) {
+
         LOG("button clicked");
-        g_btn->setPosPx(150.0f, 12.0f);
-        // Browser URL (JS will normalize/encode it for fetch).
-        g_btn->setBgUrl("asset/金币.png");
-        // If your style tint alpha is < 1, textures can look faint.
-        // if (g_btn->style) g_btn->style->bg_tex_tint = {1.0f, 1.0f, 1.0f, 1.0f};
-        (void)self;
       },
       nullptr
   );
-
+  g_btn->setBgUrl("asset/金币.png");
   // Responsive layout: bottom-left, 12px padding, 220x64 px
-  g_btn->setLayoutPx(0.0f, 0.0f, 12.0f, 12.0f, 220.0f, 64.0f);
+  g_btn->setLayoutPx(0.0f, 0.0f, 12.0f, 12.0f, 64.0f, 64.0f);
   ui_add(g_btn);
 
   // Responsive layout: bottom-right, 12px padding, 220x160 px

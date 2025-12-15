@@ -10,7 +10,7 @@ goto :main
 :error_exit
 echo Error: %~1
 echo.
-pause
+if not defined NO_PAUSE pause
 exit /b 1
 
 :log_info
@@ -33,17 +33,25 @@ set "GENERATOR_NAME=Visual Studio 18 2026"
 set "BUILD_DIR=build"
 set "ARCH_ARGS=-A x64"
 set "CMAKE_COMMON_FLAGS=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+set "CMAKE_WASM_EXTRA_FLAGS="
 set "CLEAN_FIRST="
 set "CMD="
 set "MODULE_ARG="
 set "EXE_ARG="
 set "TEST_ARG="
+set "WASM_ARG="
 set "MODULE_REBUILD=ON"
 set "MODULE_CONFIG=Debug"
+set "NO_PAUSE="
 
 ::: Parse Arguments
 :parse_args
 if "%~1"=="" goto args_done
+if /i "%~1"=="--no-pause" (
+    set "NO_PAUSE=1"
+    shift
+    goto parse_args
+)
 if "%~1"=="--clean-first" (
     set "CLEAN_FIRST=--clean-first"
     shift
@@ -67,6 +75,10 @@ if not defined CMD (
         rem Save next argument as module name (using %~2, since %~1 is "module")
         if not "%~2"=="" set "MODULE_ARG=%~2"
     )
+    if "%~1"=="wasm" (
+        rem Save next argument as wasm target name (using %~2, since %~1 is "wasm")
+        if not "%~2"=="" set "WASM_ARG=%~2"
+    )
     if "%~1"=="exe" (
         rem Save next argument as executable name (using %~2, since %~1 is "exe")
         if not "%~2"=="" set "EXE_ARG=%~2"
@@ -80,6 +92,12 @@ if not defined CMD (
     if "%CMD%"=="module" (
         if "%MODULE_ARG%"=="" (
             if not "%~1"=="" set "MODULE_ARG=%~1"
+        )
+    )
+    rem If CMD is already set to "wasm", the next argument is the wasm target name
+    if "%CMD%"=="wasm" (
+        if "%WASM_ARG%"=="" (
+            if not "%~1"=="" set "WASM_ARG=%~1"
         )
     )
     rem If CMD is already set to "exe", the next argument is the executable name
@@ -209,7 +227,19 @@ if /i "!RUN_CHOICE!"=="y" call :run_executable "MainEngine" "Release"
 goto end_script
 
 :cmd_wasm
-call :log_info "WASM build feature not yet implemented, stay tuned"
+rem WASM dispatcher: build wasm target within the main solution/build dir (wasm is part of ShineEngine).
+if "%WASM_ARG%"=="" set "WASM_ARG=smallwasm"
+if "%MODULE_CONFIG%"=="" set "MODULE_CONFIG=Debug"
+
+call :log_info "Building wasm target (%WASM_ARG%) ..."
+rem Avoid re-configure spam; reuse existing main build dir if already configured.
+if exist "%BUILD_DIR%\\CMakeCache.txt" (
+    call :log_info "Using existing build directory: %BUILD_DIR%"
+    cmake --build %BUILD_DIR% --config %MODULE_CONFIG% --target %WASM_ARG% --parallel %CLEAN_FIRST% || call :error_exit "Build failed"
+    call :log_success "Build successful!"
+) else (
+    call :build_generic "%WASM_ARG%" "%MODULE_CONFIG%" "OFF" "FALSE"
+)
 goto end_script
 
 :cmd_exe
@@ -258,19 +288,24 @@ call :build_generic "%TEST_ARG%" "%MODULE_CONFIG%" "ON" "TRUE"
 goto end_script
 
 :show_help
-echo Usage: build.bat [run|x64|release|exe|module|clean|list|compile_commands] [args]
+echo Usage: build.bat [run|x64|release|wasm|exe|module|clean|list|test|compile_commands] [args]
 echo.
 echo   run             Build MainEngine (Debug) and run
 echo   x64             Build MainEngine (Debug)
 echo   release         Build MainEngine (Release)
+echo   wasm [name]     Build wasm target (default: smallwasm; add --release for Release)
 echo   exe [name]      Build specified executable (e.g. EngineLauncher)
 echo   module [name]   Build specified module
 echo   test            Build and run tests
 echo   clean           Clean build files
 echo   compile_commands Generate compile_commands.json for clangd
 echo.
+echo Global flags:
+echo   --release        Use Release config (for module/wasm/test)
+echo   --no-pause       Do not pause at script end (CI-friendly)
+echo.
 goto end_script
 
 :end_script
-pause
+if not defined NO_PAUSE pause
 exit /b 0

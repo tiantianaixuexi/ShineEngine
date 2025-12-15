@@ -107,7 +107,7 @@ public:
   }
 
   inline void multiply_set(const Matrix4 &a) noexcept {
-    // r = a * b (column-major)
+
     for (int col = 0; col < 4; ++col) {
       for (int row = 0; row < 4; ++row) {
         float sum = 0.0f;

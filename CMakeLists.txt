@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.28)
 project(ShineEngine VERSION 1.0.0 LANGUAGES CXX)
 
+# --------------------------------
+# Special configure modes
+# --------------------------------
+# When ON, only create `subcmake` module targets (wasm dispatch) and skip the rest of the engine graph.
+option(SHINE_WASM_DISPATCH_ONLY "Configure only wasm(subcmake) dispatch targets (quiet & fast)" OFF)
+# When ON, suppress most module-related message(STATUS ...) output.
+option(SHINE_QUIET_MODULE_MESSAGES "Suppress module status messages during configure" OFF)
+
 # 设置C++标准
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -198,7 +206,8 @@ endfunction()
 function(parse_and_categorize_modules)
     find_module_configs(ALL_MODULE_FILES "Module")
     categorize_modules_by_type(${ALL_MODULE_FILES})
-    set(MODULE_TYPES lib static shared exe third)
+    # NOTE: "subcmake" is a nested/foreign CMake project built via a custom target (UTILITY).
+    set(MODULE_TYPES lib static shared exe third subcmake)
     foreach(type ${MODULE_TYPES})
         set_property(GLOBAL PROPERTY "MODULES_BY_TYPE_${type}" "${${type}_MODULES}")
     endforeach()
@@ -254,6 +263,31 @@ function(parse_and_cache_modules)
         # 解析类型
         parse_json_type(${json_content} type_list)
 
+        # 解析 subcmake 配置（可选）
+        set(subcmake_source "")
+        set(subcmake_build "")
+        set(subcmake_generator "")
+        set(subcmake_target "")
+        set(subcmake_configure_args "")
+        string(JSON subcmake_type ERROR_VARIABLE subcmake_err TYPE ${json_content} "subcmake")
+        if(NOT subcmake_err)
+            string(JSON subcmake_source ERROR_VARIABLE _e1 GET ${json_content} "subcmake" "source")
+            string(JSON subcmake_build ERROR_VARIABLE _e2 GET ${json_content} "subcmake" "build")
+            string(JSON subcmake_generator ERROR_VARIABLE _e3 GET ${json_content} "subcmake" "generator")
+            string(JSON subcmake_target ERROR_VARIABLE _e4 GET ${json_content} "subcmake" "target")
+            # NOTE: string(JSON) does NOT support dot-path. Must parse nested arrays via path segments.
+            string(JSON cfg_len ERROR_VARIABLE cfg_err LENGTH ${json_content} "subcmake" "configure")
+            if(NOT cfg_err AND cfg_len GREATER 0)
+                math(EXPR cfg_len "${cfg_len} - 1")
+                foreach(i RANGE 0 ${cfg_len})
+                    string(JSON cfg_item GET ${json_content} "subcmake" "configure" ${i})
+                    if(cfg_item)
+                        list(APPEND subcmake_configure_args ${cfg_item})
+                    endif()
+                endforeach()
+            endif()
+        endif()
+
         # 缓存到全局属性
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_NAME" ${name})
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_FILES" "${files_list}")
@@ -263,6 +297,11 @@ function(parse_and_cache_modules)
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_RELEASE" "${third_lib_release_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_PLATFORMS" "${platform_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_TYPES" "${type_list}")
+        set_property(GLOBAL PROPERTY "MODULE_${module_name}_SUBCMAKE_SOURCE" "${subcmake_source}")
+        set_property(GLOBAL PROPERTY "MODULE_${module_name}_SUBCMAKE_BUILD" "${subcmake_build}")
+        set_property(GLOBAL PROPERTY "MODULE_${module_name}_SUBCMAKE_GENERATOR" "${subcmake_generator}")
+        set_property(GLOBAL PROPERTY "MODULE_${module_name}_SUBCMAKE_TARGET" "${subcmake_target}")
+        set_property(GLOBAL PROPERTY "MODULE_${module_name}_SUBCMAKE_CONFIGURE_ARGS" "${subcmake_configure_args}")
         
         # 预判断是否是 INTERFACE 库（用于后续依赖链接）
         set(is_interface_predicted FALSE)
@@ -406,11 +445,26 @@ foreach(module_name ${MODULE_LIST})
     get_property(third_libs_release GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_RELEASE")
     get_property(platforms GLOBAL PROPERTY "MODULE_${module_name}_PLATFORMS")
     get_property(types GLOBAL PROPERTY "MODULE_${module_name}_TYPES")
+    get_property(subcmake_source GLOBAL PROPERTY "MODULE_${module_name}_SUBCMAKE_SOURCE")
+    get_property(subcmake_build GLOBAL PROPERTY "MODULE_${module_name}_SUBCMAKE_BUILD")
+    get_property(subcmake_generator GLOBAL PROPERTY "MODULE_${module_name}_SUBCMAKE_GENERATOR")
+    get_property(subcmake_target GLOBAL PROPERTY "MODULE_${module_name}_SUBCMAKE_TARGET")
+    get_property(subcmake_configure_args GLOBAL PROPERTY "MODULE_${module_name}_SUBCMAKE_CONFIGURE_ARGS")
 
     find_module_file(${module_name} module_file)
 
-    if(NOT files)
-        message(STATUS "Skip empty module: ${name}")
+    # subcmake 模块允许 files 为空（因为它不参与本工程编译，只负责触发子工程构建）
+    check_module_type("${types}" "subcmake" is_subcmake)
+
+    # WASM dispatch-only mode: only keep subcmake modules (e.g. smallwasm / other wasm projects).
+    if(SHINE_WASM_DISPATCH_ONLY AND NOT is_subcmake)
+        continue()
+    endif()
+
+    if(NOT files AND NOT is_subcmake)
+        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+            message(STATUS "Skip empty module: ${name}")
+        endif()
         continue()
     endif()
 
@@ -425,6 +479,67 @@ foreach(module_name ${MODULE_LIST})
         endif()
     endforeach()
 
+    # subcmake：独立子工程构建（UTILITY target），不参与本工程编译/链接
+    if(is_subcmake)
+        if(NOT subcmake_source)
+            set(subcmake_source "Program/${module_name}")
+        endif()
+        if(NOT subcmake_build)
+            set(subcmake_build "Program/${module_name}/build")
+        endif()
+        if(NOT subcmake_generator)
+            set(subcmake_generator "Ninja")
+        endif()
+        if(NOT subcmake_target)
+            set(subcmake_target "all")
+        endif()
+
+        # 分流：不同配置写到不同 build 目录，避免 Debug/Release 相互污染
+        set(_subcmake_src "${CMAKE_SOURCE_DIR}/${subcmake_source}")
+        set(_subcmake_bld_base "${CMAKE_SOURCE_DIR}/${subcmake_build}")
+        set(_subcmake_bld "${_subcmake_bld_base}/$<CONFIG>")
+
+        # NOTE: add_custom_target() does not support EXCLUDE_FROM_ALL.
+        # Not adding ALL already means it won't build by default.
+        # Attach SOURCES so Visual Studio shows the files under this single target (no extra *_files target).
+        add_custom_target(${name}
+            COMMAND ${CMAKE_COMMAND} -S "${_subcmake_src}" -B "${_subcmake_bld}" -G "${subcmake_generator}"
+                    -DCMAKE_BUILD_TYPE=$<CONFIG>
+                    -DSMALLWASM_DEBUG=$<IF:$<CONFIG:Debug>,ON,OFF>
+                    -DLLVM_ROOT=$ENV{LLVM_ROOT}
+                    -DWASMOPT=$ENV{WASMOPT}
+                    ${subcmake_configure_args}
+            COMMAND ${CMAKE_COMMAND} --build "${_subcmake_bld}" --target "${subcmake_target}"
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            VERBATIM
+            SOURCES ${files}
+        )
+        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+            message(STATUS "  ${name} -> SUBCMAKE")
+        endif()
+
+        # VS 文件夹层级
+        get_vs_folder_path(${module_file} vs_folder_path)
+        set_target_properties(${name} PROPERTIES FOLDER "${vs_folder_path}")
+
+        # VS 过滤器：让 smallwasm 的文件在 VS 中按目录树展示（src/ui, web 等）
+        if(MSVC AND files)
+            set(_subcmake_abs_files "")
+            foreach(_f ${files})
+                list(APPEND _subcmake_abs_files "${CMAKE_SOURCE_DIR}/${_f}")
+            endforeach()
+            # Use the sub-project root so filters are relative (src/..., web/...) instead of full repo paths.
+            source_group(TREE "${CMAKE_SOURCE_DIR}/${subcmake_source}" FILES ${_subcmake_abs_files})
+        endif()
+
+        # NOTE: no ${name}_files target; VS browsing uses the SOURCES attached to ${name}.
+
+        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+            message(STATUS "Module: ${name}")
+        endif()
+        continue()
+    endif()
+
     # 检查模块类型
     check_module_type("${types}" "exe" is_executable)
     check_module_type("${types}" "static" is_static)
@@ -438,37 +553,55 @@ foreach(module_name ${MODULE_LIST})
     # 根据模块类型创建目标
     if(is_executable)
         add_executable(${name} EXCLUDE_FROM_ALL)
-        message(STATUS "  ${name} -> EXECUTABLE (Excluded from ALL)")
+        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+            message(STATUS "  ${name} -> EXECUTABLE (Excluded from ALL)")
+        endif()
     elseif(is_static)
         add_library(${name} STATIC)
-        message(STATUS "  ${name} -> STATIC")
+        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+            message(STATUS "  ${name} -> STATIC")
+        endif()
     elseif(is_shared)
         add_library(${name} SHARED)
-        message(STATUS "  ${name} -> SHARED")
+        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+            message(STATUS "  ${name} -> SHARED")
+        endif()
     elseif(is_third)
         add_library(${name} INTERFACE)
         set(is_interface TRUE)
         set(has_sources FALSE)
-        message(STATUS "  ${name} -> INTERFACE (third party)")
+        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+            message(STATUS "  ${name} -> INTERFACE (third party)")
+        endif()
     elseif(NOT source_files AND header_files)
         add_library(${name} INTERFACE)
         set(is_interface TRUE)
         set(has_sources FALSE)
-        message(STATUS "  ${name} -> INTERFACE (header only)")
+        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+            message(STATUS "  ${name} -> INTERFACE (header only)")
+        endif()
     elseif(is_lib OR source_files)
         add_library(${name} STATIC)
-        message(STATUS "  ${name} -> STATIC")
+        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+            message(STATUS "  ${name} -> STATIC")
+        endif()
     else()
         add_library(${name} SHARED)
-        message(STATUS "  ${name} -> SHARED (default)")
+        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+            message(STATUS "  ${name} -> SHARED (default)")
+        endif()
     endif()
 
     # 添加源文件和头文件
     if(is_third)
-        message(STATUS "  添加第三方库文件: 无源文件")
+        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+            message(STATUS "  添加第三方库文件: 无源文件")
+        endif()
     elseif(is_interface)
         target_sources(${name} INTERFACE ${header_files})
-        message(STATUS "  添加接口库文件: ${header_files}")
+        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+            message(STATUS "  添加接口库文件: ${header_files}")
+        endif()
     else()
         if(header_files)
             target_sources(${name} PUBLIC ${header_files})
@@ -557,8 +690,15 @@ foreach(module_name ${MODULE_LIST})
         CXX_EXTENSIONS OFF
     )
 
-    message(STATUS "Module: ${name}")
+    if(NOT SHINE_QUIET_MODULE_MESSAGES)
+        message(STATUS "Module: ${name}")
+    endif()
 endforeach()
+
+# In WASM dispatch-only mode we stop here: only subcmake targets are needed.
+if(SHINE_WASM_DISPATCH_ONLY)
+    return()
+endif()
 
 # ================================
 # 依赖关系解析
@@ -875,7 +1015,8 @@ foreach(module_name ${MODULE_LIST})
     get_property(types GLOBAL PROPERTY "MODULE_${module_name}_TYPES")
     
     check_module_type("${types}" "exe" is_executable)
-    if(NOT is_executable AND TARGET ${name})
+    check_module_type("${types}" "subcmake" is_subcmake)
+    if(NOT is_executable AND NOT is_subcmake AND TARGET ${name})
         add_dependencies(MainEngine ${name})
         # 对于 INTERFACE 库（如 fmt），使用 PUBLIC 链接以确保第三方库链接能传递
         check_module_type("${types}" "third" is_third_party)

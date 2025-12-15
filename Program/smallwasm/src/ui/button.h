@@ -21,7 +21,7 @@ public:
     int clicked = 0; // set to 1 on mouse up inside
 
 
-    inline void setStyle(ButtonStyle* s) { style = s; }
+    inline void setStyle(ButtonStyle* s) noexcept { style = s; }
 
     inline void bindOnClick(OnClickFn fn, void* user = nullptr) {
         onClickFn = fn;
@@ -57,38 +57,27 @@ public:
 
         Element::init();
 
-        style = new ButtonStyle();
-        style->bg_idle   = {0.18f, 0.18f, 0.20f, 1.0f};
-        style->bg_hot    = {0.24f, 0.24f, 0.28f, 1.0f};
-        style->bg_active = {0.14f, 0.34f, 0.82f, 1.0f};
-        style->radius_px = 14.0f;
-        style->border_px = 1.5f;
-        style->border_color = {1.0f, 1.0f, 1.0f, 0.12f};
-        style->shadow_offset_px_x = 0.0f;
-        style->shadow_offset_px_y = -3.0f;
-        style->shadow_blur_px = 12.0f;
-        style->shadow_spread_px = 0.5f;
-        style->shadow_color = {0.0f, 0.0f, 0.0f, 0.45f};
-        //style->bg_texId = bgTex;
-        style->bg_tex_tint = {1.0f, 1.0f, 1.0f, 0.35f};
+        style = shine::ui::DefaultButtonStyle();
     }
 
     void pointer(float px, float py, int isDown) override {
-        const int hitNow = hit(px, py);
-        hot = hitNow;
+        isOver = hit(px, py);
+    
 
         if (isDown) {
-            if (hitNow)
-                active = 1;
+            // pressed 
+            if (isOver){
+                isPressed = true;
+            };
             return;
         }
 
         // mouse up
-        if (active && hitNow) {
-            clicked = 1;
+        if (isPressed && isOver) {
+            clicked = true;
             if (onClickFn) onClickFn(this, onClickUser);
         }
-        active = 0;
+        isPressed = false;
     }
 
     void onResize(int view_w, int view_h) override {
@@ -96,12 +85,14 @@ public:
     }
 
     void render(int ctxId) override {
-        ButtonStyle local{};
-        const ButtonStyle* s = style ? style : &local;
+        
+        if(!visible) return;
+
+        const ButtonStyle* s = style;
 
         const Color4* bg = &s->bg_idle;
-        if (active) bg = &s->bg_active;
-        else if (hot) bg = &s->bg_hot;
+        if (isPressed) bg = &s->bg_active;
+        else if (isOver) bg = &s->bg_hot;
 
         // Make hover feedback VERY obvious (even with bg texture):
         float border_px = s->border_px;
@@ -111,15 +102,15 @@ public:
         float border_a = s->border_color.a;
         float texTint_a = s->bg_tex_tint.a;
 
-        if (hot && !active) {
-            border_px = border_px * 2.0f;
-            border_r = 1.0f;
-            border_g = 1.0f;
-            border_b = 1.0f;
-            border_a = 0.85f;
-            texTint_a = texTint_a + 0.25f;
-            if (texTint_a > 1.0f) texTint_a = 1.0f;
-        }
+        // if (isOver && !isPressed) {
+        //     border_px = border_px * 2.0f;
+        //     border_r = 1.0f;
+        //     border_g = 1.0f;
+        //     border_b = 1.0f;
+        //     border_a = 0.85f;
+        //     texTint_a = texTint_a + 0.25f;
+        //     if (texTint_a > 1.0f) texTint_a = 1.0f;
+        // }
 
         // Rounded background (optionally textured) + border + shadow.
         ui_draw_round_rect(

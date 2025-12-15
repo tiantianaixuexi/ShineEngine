@@ -10,9 +10,9 @@ struct Color4 {
 };
 
 struct ButtonStyle {
-  Color4 bg_idle  {0.20f, 0.20f, 0.20f, 1.0f};
-  Color4 bg_hot   {0.30f, 0.30f, 0.30f, 1.0f};
-  Color4 bg_active{0.15f, 0.35f, 0.80f, 1.0f};
+  Color4 bg_idle    { 1.0f, 1.0f, 1.0f, 1.0f };
+  Color4 bg_hot		{ 0.8f, 0.8f, 0.8f, 1.0f };
+  Color4 bg_active  { 0.9f, 0.9f, 0.9f, 1.0f };
 
   float radius_px = 10.0f;
 
@@ -31,6 +31,24 @@ struct ButtonStyle {
   int bg_texId = 0;
   // Background texture tint (multiplied with sampled texture).
   Color4 bg_tex_tint{1.0f, 1.0f, 1.0f, 1.0f};
+};
+
+static ButtonStyle* DefaultButtonStyle() noexcept {
+  ButtonStyle* style = new ButtonStyle();
+  style->bg_idle   = {1.0f, 1.0f, 1.0f, 1.0f};
+  style->bg_hot    = {0.8f, 0.8f, 0.8f, 1.0f};
+  style->bg_active = {0.9f, 0.9f, 0.9f, 1.0f};
+  style->radius_px = 0.0f;
+  style->border_px = 0.0f;
+  style->border_color = {0.0f, 0.0f, 0.0f, 0.0f};
+  style->shadow_offset_px_x = 0.0f;
+  style->shadow_offset_px_y = 0.0f;
+  style->shadow_blur_px = 0.0f;
+  style->shadow_spread_px = 0.0f;
+  style->shadow_color = {0.0f, 0.0f, 0.0f, 0.0f};
+  //style->bg_texId = bgTex;
+  style->bg_tex_tint = {1.0f, 1.0f, 1.0f, 1.0f};
+  return style;
 };
 
 } } // namespace shine::ui
