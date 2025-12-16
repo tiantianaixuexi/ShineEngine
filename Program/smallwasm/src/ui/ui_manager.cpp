@@ -1,7 +1,6 @@
 #include "ui_manager.h"
 
-namespace shine {
-namespace ui {
+namespace shine::ui {
 
 static UIManager s_uiMgr;
 
@@ -71,4 +70,3 @@ void UIManager::onPointer(float px, float py, int isDown) {
 }
 
 } // namespace ui
-} // namespace shine

@@ -19,10 +19,10 @@ public:
   Node* parent = nullptr;
 
   // Scene hierarchy (Node children)
-  shine::wasm::SVector<Node*> children;
+  wasm::SVector<Node*> children;
 
   // Components mounted on THIS node
-  shine::wasm::SVector<Component*> components;
+  wasm::SVector<Component*> components;
 
   explicit Node(const char* debugName = nullptr) noexcept : Object(debugName) {}
   virtual ~Node() = default;

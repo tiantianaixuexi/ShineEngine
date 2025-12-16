@@ -1,7 +1,5 @@
 #pragma once
 
-#include "command_buffer.h"
-#include "../util/wasm_compat.h"
 #include "../Container/SVector.h" // Fixed include path case sensitivity?
 
 namespace shine {

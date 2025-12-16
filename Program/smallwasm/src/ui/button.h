@@ -3,6 +3,8 @@
 #include "ui.h"
 #include "style.h"
 #include "../graphics/renderer_2d.h"
+#include "../graphics/texture_manager.h"
+#include "../logfmt.h"
 
 namespace shine::ui {
 
@@ -13,37 +15,49 @@ public:
     ButtonStyle* style = nullptr;
 
   // Callback binding (WASM-friendly, no STL).
-    using OnClickFn = void(*)(Button* self, void* user);
-    OnClickFn onClickFn = nullptr;
-    void* onClickUser = nullptr;
+    using OnButtonEvent = void(*)(Button* self);
+
+
+    OnButtonEvent ClickEvent   = nullptr;
+    OnButtonEvent HoverEvent   = nullptr;
+    OnButtonEvent UnHoverEvent = nullptr;
+
 
   // state
     int clicked = 0; // set to 1 on mouse up inside
-
+    
 
     inline void setStyle(ButtonStyle* s) noexcept { style = s; }
 
-    inline void bindOnClick(OnClickFn fn, void* user = nullptr) {
-        onClickFn = fn;
-        onClickUser = user;
+    inline void bindOnClick(OnButtonEvent fn)  noexcept
+	{
+        ClickEvent = fn;
     }
 
+    inline void bindHoverEvent(OnButtonEvent fn) noexcept
+    {
+    	HoverEvent =  fn;
+    }
+
+    inline void bindUnHoverEvent(OnButtonEvent fn) noexcept
+    {
+        UnHoverEvent = fn;
+    }
+    
+
     inline void setBgUrl(const char* url) {
-        if (!style) return;
-        ui_tex_request_url(url, shine::wasm::raw_strlen(url), &style->bg_texId, nullptr, nullptr);
+        const int result = TMINST.request_url(url, shine::wasm::raw_strlen(url), &style->bg_texId, nullptr, nullptr);
+        LOG("resulet:", style->bg_texId);
     }
 
     inline void setBgDataUrl(const char* dataUrl) {
-        if (!style) return;
-        ui_tex_request_dataurl(dataUrl, shine::wasm::raw_strlen(dataUrl), &style->bg_texId, nullptr, nullptr);
+        TMINST.request_dataurl(dataUrl, shine::wasm::raw_strlen(dataUrl), &style->bg_texId, nullptr, nullptr);
     }
 
     inline void setBgBase64(const char* mime, const char* b64) {
-        if (!style) return;
-        ui_tex_request_base64(
-            mime, 
-            shine::wasm::raw_strlen(mime), 
-            b64, shine::wasm::raw_strlen(b64), 
+        TMINST.request_base64(mime,
+            shine::wasm::raw_strlen(mime),
+            b64, shine::wasm::raw_strlen(b64),
             &style->bg_texId, nullptr, nullptr);
     }
 
@@ -57,27 +71,39 @@ public:
 
         Element::init();
 
-        style = shine::ui::DefaultButtonStyle();
+        style = DefaultButtonStyle();
     }
 
     void pointer(float px, float py, int isDown) override {
-        isOver = hit(px, py);
-    
 
+        isOver = hit(px, py);
+
+    
+        if (isOver && HoverEvent)
+        {
+        	HoverEvent(this);
+        }
+        
         if (isDown) {
             // pressed 
             if (isOver){
                 isPressed = true;
-            };
+            }
             return;
         }
 
         // mouse up
         if (isPressed && isOver) {
             clicked = true;
-            if (onClickFn) onClickFn(this, onClickUser);
+            if (ClickEvent) ClickEvent(this);
         }
+
         isPressed = false;
+
+        if (UnHoverEvent)
+        {
+            UnHoverEvent(this);
+        }
     }
 
     void onResize(int view_w, int view_h) override {

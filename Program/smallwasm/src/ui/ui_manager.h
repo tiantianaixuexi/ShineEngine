@@ -3,8 +3,7 @@
 #include "ui.h"
 #include "../Container/SVector.h"
 
-namespace shine {
-namespace ui {
+namespace shine::ui {
 
 class UIManager {
 public:
@@ -28,5 +27,4 @@ private:
     shine::wasm::SVector<Element*> m_elements;
 };
 
-} // namespace ui
-} // namespace shine
+} // 

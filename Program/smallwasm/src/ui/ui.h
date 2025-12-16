@@ -16,13 +16,19 @@ public:
   float w = 100.0f;
   float h = 50.0f;
 
-  unsigned  int  visible   :1   = 1;
-  unsigned  int  isOver    :1   = 0;     // pointer is over
-  unsigned  int  isPressed :1   = 0;   // pressed
+  union {
+      struct {
+          bool visible : 1;
+          bool isOver : 1;
+          bool isPressed : 1;
+          bool reserved : 5;
+      };
+      unsigned char flags;   // 一条指令就能读/写全部位
+  };
 
-  // Optional pixel layout (professional-ish, responsive):
-  // If enabled, onResize() converts layout rules into Center-Pixels.
-  int layout_enabled = 0;
+  // 对齐8bit 
+  unsigned char  _pad0[7];
+
   float anchor_ndc_x = 0.0f; // [-1..1]  -1=Left, 0=Center, 1=Right
   float anchor_ndc_y = 0.0f; // [-1..1]  -1=Bottom, 0=Center, 1=Top (Y is UP in NDC/Layout)
   float offset_px_x = 0.0f;  // +right in pixels
@@ -34,11 +40,16 @@ public:
   int view_w = 1;
   int view_h = 1;
 
+
+
   virtual ~Element() = default;
 
-  virtual void init() {}
+  virtual void init()
+  {
+      visible = true;
+  }
 
-  virtual int hit(float px, float py) const {
+  virtual  bool hit(float px, float py) const {
     const float hx = w * 0.5f;
     const float hy = h * 0.5f;
     return (px >= (x - hx) && px <= (x + hx) && py >= (y - hy) && py <= (y + hy)) ? 1 : 0;
@@ -55,7 +66,6 @@ public:
     this->view_w = (view_w < 1) ? 1 : view_w;
     this->view_h = (view_h < 1) ? 1 : view_h;
 
-    if (!layout_enabled) return;
     
     // Convert Layout (NDC anchors + Pixel offsets) -> Absolute Pixels (Center)
     // Coords: Top-Left (0,0), +Y Down.
@@ -88,7 +98,6 @@ public:
   inline void setLayoutPx(float anchorXndc, float anchorYndc,
                           float offPxX, float offPxY,
                           float pxW, float pxH) {
-    layout_enabled = 1;
     anchor_ndc_x = anchorXndc;
     anchor_ndc_y = anchorYndc;
     offset_px_x = offPxX;
@@ -108,17 +117,12 @@ public:
     size_px_h = pxH;
   }
 
-  virtual void render(int /*ctxId*/) {}
+  virtual void render(int /*ctxId*/)
+  {
+	  
+  }
 };
 
-extern "C" int ui_tex_request_url(const char* url, int urlLen, int* out_texId, int* out_w, int* out_h);
-extern "C" int ui_tex_request_dataurl(const char* dataurl, int dataLen, int* out_texId, int* out_w, int* out_h);
-extern "C" int ui_tex_request_base64(const char* mime, int mimeLen, const char* b64, int b64Len,
-                                     int* out_texId, int* out_w, int* out_h);
-
-// Render helpers implemented by the demo (gl_ctx.cpp).
-extern "C" void ui_draw_rect_col(int ctxId, float cx, float cy, float w, float h, float r, float g, float b);
-extern "C" void ui_draw_rect_uv(int ctxId, float cx, float cy, float w, float h, int texId);
 
 
 } } // namespace shine::ui

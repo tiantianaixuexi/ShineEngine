@@ -1,6 +1,7 @@
 #include "renderer_2d.h"
 #include "gl_api.h"
 #include "../util/wasm_compat.h"
+#include "command_buffer.h"
 
 namespace shine {
 namespace graphics {

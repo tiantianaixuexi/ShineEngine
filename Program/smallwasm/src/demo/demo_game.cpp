@@ -1,9 +1,7 @@
 #include "demo_game.h"
 #include "../graphics/gl_api.h"
 #include "../graphics/command_buffer.h"
-#include "../graphics/renderer_2d.h"
 #include "../util/wasm_compat.h"
-#include "../util/logger.h"
 #include "../game/component.h"
 #include "../game/transform.h"
 #include "../game/sprite_renderer.h"
@@ -12,6 +10,8 @@
 #include "../ui/button.h"
 #include "../ui/image.h"
 #include "../ui/ui_manager.h" // Added UIManager
+
+#include "../logfmt.h"
 
 using namespace shine::graphics;
 
@@ -23,6 +23,7 @@ DemoGame* g_demo_game = nullptr;
 // ----------------------------------------------------------------------------
 
 struct PulseColor final : public shine::game::Component {
+
     shine::game::SpriteRenderer* sr = nullptr;
     float base = 0.25f;
     explicit PulseColor(shine::game::SpriteRenderer* target) : sr(target) {
@@ -81,7 +82,7 @@ static const char kFS_INST[] =
 // DemoGame Implementation
 // ----------------------------------------------------------------------------
 
-static void demo_on_mode_click(shine::ui::Button* w, void* userData) {
+static void demo_on_mode_click(shine::ui::Button* w) {
   if (g_demo_game) {
       g_demo_game->render_mode = (g_demo_game->render_mode == 0) ? 1 : 0;
       LOG("render_mode", g_demo_game->render_mode);
@@ -95,6 +96,7 @@ static void demo_on_mode_click(shine::ui::Button* w, void* userData) {
 // }
 
 void DemoGame::onInit(shine::engine::Engine& app) {
+
     g_demo_game = this;
     int ctx = app.getCtx();
 
@@ -105,6 +107,7 @@ void DemoGame::onInit(shine::engine::Engine& app) {
     );
     vbo = gl_create_buffer(ctx);
     vao_basic = gl_create_vertex_array(ctx);
+    
     
     // Bind VAO before setting up attribs!
     gl_bind_vertex_array(ctx, vao_basic);
@@ -160,13 +163,16 @@ void DemoGame::onInit(shine::engine::Engine& app) {
     shine::ui::UIManager::instance().clear();
 
     btn = shine::ui::Button::create();
-    btn->bindOnClick([](shine::ui::Button*, void*){ LOG("button clicked"); }, nullptr);
+    btn->bindOnClick([](shine::ui::Button*){ LOG("button clicked"); });
+    btn->bindHoverEvent([](shine::ui::Button*) { LOG("button Hover"); });
+    btn->bindUnHoverEvent([](shine::ui::Button*) { LOG("button UnHover"); });
     btn->setBgUrl("asset/金币.png");
-    btn->setLayoutPx(0.0f, 0.0f, 12.0f, 12.0f, 64.0f, 64.0f);
+    btn->setLayoutPx(0.5f, 0.5f, 12.0f, 12.0f, 128.0f, 128.0f);
+
     shine::ui::UIManager::instance().add(btn);
 
     btn_mode = shine::ui::Button::create();
-    btn_mode->bindOnClick(demo_on_mode_click, nullptr);
+    btn_mode->bindOnClick(demo_on_mode_click);
     btn_mode->setLayoutPx(-1.0f, 1.0f, 12.0f, -12.0f, 160.0f, 48.0f);
     shine::ui::UIManager::instance().add(btn_mode);
 
@@ -175,18 +181,6 @@ void DemoGame::onInit(shine::engine::Engine& app) {
     img->texId = js_create_texture_checker(ctx, 64);
     shine::ui::UIManager::instance().add(img);
 
-    // Texture requests
-    #ifdef DEBUG
-    static const char kTinyPng[] =
-      "data:image/png;base64,"
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8"
-      "/w8AAn8B9p9pYwAAAABJRU5ErkJggg==";
-    // Fix: use namespace or include
-    // shine::graphics::TextureManager is not included here? It is included at bottom.
-    // We need to move include up or forward declare.
-    // Moving include up.
-    shine::ui::ui_tex_request_dataurl(kTinyPng, (int)(sizeof(kTinyPng) - 1), &img->texId, &img->texW, &img->texH);
-    #endif
 }
 
 void DemoGame::onResize(shine::engine::Engine& app, int w, int h) {
@@ -236,6 +230,8 @@ void DemoGame::onPointer(shine::engine::Engine& app, float x, float y, int isDow
     int h = app.getHeight();
     float px = (x + 1.0f) * 0.5f * (float)w;
     float py = (1.0f - y) * 0.5f * (float)h;
+
+    LOG2("onPointer:", px, py);
 
     // UI pointer
     shine::ui::UIManager::instance().onPointer(px, py, isDown);
@@ -338,17 +334,4 @@ extern "C" void on_tex_failed(int reqId, int errCode) {
 // Factory implementation
 Game* CreateGame() {
     return new DemoGame();
-}
-
-// Global Texture Request helpers (still used by UI)
-// These should ideally be in Engine or Graphics system.
-extern "C" int ui_tex_request_url(const char* url, int urlLen, int* out_texId, int* out_w, int* out_h) {
-    return shine::graphics::TextureManager::instance().request_url(SHINE_ENGINE.getCtx(), url, urlLen, out_texId, out_w, out_h);
-}
-extern "C" int ui_tex_request_dataurl(const char* dataurl, int dataLen, int* out_texId, int* out_w, int* out_h) {
-    return shine::graphics::TextureManager::instance().request_dataurl(SHINE_ENGINE.getCtx(), dataurl, dataLen, out_texId, out_w, out_h);
-}
-extern "C" int ui_tex_request_base64(const char* mime, int mimeLen, const char* b64, int b64Len,
-                                     int* out_texId, int* out_w, int* out_h) {
-    return shine::graphics::TextureManager::instance().request_base64(SHINE_ENGINE.getCtx(), mime, mimeLen, b64, b64Len, out_texId, out_w, out_h);
 }

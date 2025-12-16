@@ -1,21 +1,12 @@
 #pragma once
 
-#include "../graphics/gl_api.h" // Fixed include path?
-// engine.h is in src/engine/
-// gl_api.h is in src/graphics/
-// So ../graphics/gl_api.h is correct.
-// But error said "graphics/gl_api.h" file not found in previous attempt (I used "graphics/gl_api.h" in my first write).
-// I should use "../graphics/gl_api.h".
+
 #include "../util/timer.h"
-#include "../util/tex_loader.h"
-#include "../game/scene.h"
-#include "../ui/ui.h"
 
 // Forward declaration
 class Game;
 
-namespace shine {
-namespace engine {
+namespace shine::engine {
 
 // Engine: Singleton managing the core application state.
 // Replaces the old DemoApp and global g_* variables.
@@ -65,7 +56,5 @@ private:
 };
 
 } // namespace engine
-} // namespace shine
-
 // Global macro for easy access during refactoring
 #define SHINE_ENGINE (shine::engine::Engine::instance())

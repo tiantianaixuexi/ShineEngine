@@ -74,6 +74,7 @@ async function loadBitmapFromUrl(url) {
   return await createImageBitmap(blob);
 }
 
+
 function makeDataUrl(mime, b64) {
   const m = (mime && mime.length) ? mime : 'image/png';
   return `data:${m};base64,${b64}`;
@@ -129,7 +130,9 @@ async function runApp(canvas, hud) {
     }
     // data url
     return await loadBitmapFromUrl(value);
-  }
+    }
+
+ 
 
   function createTextureFromBitmap(c, bmp) {
     const gl = c.gl;
@@ -148,7 +151,10 @@ async function runApp(canvas, hud) {
   }
 
   function texNotifyOk(reqId, texId, w, h) {
-    if (!wasmExports || !wasmExports.on_tex_loaded) return;
+    if (!wasmExports || !wasmExports.on_tex_loaded) {
+        console.warn('texNotifyOk: no wasmExports.on_tex_loaded');
+        return;
+    }
     wasmExports.on_tex_loaded(reqId | 0, texId | 0, w | 0, h | 0);
   }
   function texNotifyFail(reqId, errCode) {
@@ -163,8 +169,15 @@ async function runApp(canvas, hud) {
 
   function texEnsureLoad(c, key, kind, src) {
     const hit = c.texCache.get(key);
-    if (hit && hit.state === 'ready') return hit;
-    if (hit && hit.state === 'pending') return null;
+    if (hit && hit.state === 'ready') {
+        console.warn('texEnsureLoad hit');
+        return hit;
+    }
+      if (hit && hit.state === 'pending') {
+          console.warn('texEnsureLoad pending');
+        return null;
+      }
+
     c.texCache.set(key, { state: 'pending', reqIds: [] });
     (async () => {
       try {
@@ -176,7 +189,8 @@ async function runApp(canvas, hud) {
 
         const pending = c.texCache.get(key);
         const reqs = pending && pending.reqIds ? pending.reqIds.slice() : [];
-        c.texCache.set(key, { state: 'ready', texId, w, h });
+          c.texCache.set(key, { state: 'ready', texId, w, h });
+          console.info('texEnsureLoad ready');
         for (const r of reqs) texNotifyOk(r, texId, w, h);
       } catch (e) {
         const pending = c.texCache.get(key);
@@ -189,8 +203,10 @@ async function runApp(canvas, hud) {
     return null;
   }
 
+
   const imports = {
     env: {
+
 
       js_console_log(msgPtr, len) {
         console.log(strSlice(mem, msgPtr, len));
@@ -368,6 +384,7 @@ async function runApp(canvas, hud) {
         texEnsureLoad(c, key, 'url', url);
         return 0;
       },
+
       js_tex_load_dataurl_sync(ctxId, dataPtr, dataLen) {
         const c = ctx(ctxId);
         const dataUrl = strSlice(mem, dataPtr, dataLen);
@@ -774,6 +791,7 @@ async function runApp(canvas, hud) {
   if (!mem) throw new Error('expected exported memory');
   const e = instance.exports;
   wasmExports = e;
+
 
   // init demo
   const TRI_COUNT = 1500;
