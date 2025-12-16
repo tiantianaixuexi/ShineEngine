@@ -1,0 +1,7 @@
+{
+  "name": "shine_json",
+  "type": "static",
+  "dirs": ["src/util/json"],
+  "deps": [],
+  "platform": ["Windows"]
+}
