@@ -2,9 +2,9 @@
 
 #include "ui.h"
 #include "style.h"
+#include "../graphics/renderer_2d.h"
 
-
-namespace shine { namespace ui {
+namespace shine::ui {
 
 class Button : public Element {
 
@@ -112,9 +112,11 @@ public:
         //     if (texTint_a > 1.0f) texTint_a = 1.0f;
         // }
 
+
+        
         // Rounded background (optionally textured) + border + shadow.
-        ui_draw_round_rect(
-            ctxId, x, y, w, h,
+        graphics::Renderer2D::instance().drawRoundRect(
+            x, y, w, h,
             s->radius_px,
             bg->r, bg->g, bg->b, bg->a,
             s->bg_texId,
@@ -126,8 +128,9 @@ public:
             s->shadow_color.r, s->shadow_color.g, s->shadow_color.b, s->shadow_color.a
         );
 
+
     }
 
 };
 
-} } // namespace shine::ui
+}// namespace shine::ui

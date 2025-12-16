@@ -23,9 +23,16 @@ struct Block {
 
 static uintptr_t g_heap_ptr = 0;
 static Block* g_free_list = nullptr;
+static uintptr_t g_heap_base = 0;
+static unsigned int g_alloc_count = 0;
+static unsigned int g_free_count = 0;
+static unsigned int g_alloc_fail_count = 0;
 
 static void ensure_heap_inited() {
-  if (g_heap_ptr == 0) g_heap_ptr = align_up(reinterpret_cast<uintptr_t>(&__heap_base), kAlign);
+  if (g_heap_ptr == 0) {
+    g_heap_base = align_up(reinterpret_cast<uintptr_t>(&__heap_base), kAlign);
+    g_heap_ptr = g_heap_base;
+  }
 }
 
 static bool ensure_capacity(uintptr_t need_end) {
@@ -62,6 +69,7 @@ extern "C" void* malloc(size_t size) {
         g_free_list = nb;
         b->size = size;
       }
+      ++g_alloc_count;
       return reinterpret_cast<void*>(payload_addr);
     }
     prevp = &b->next;
@@ -70,12 +78,16 @@ extern "C" void* malloc(size_t size) {
   uintptr_t block_addr = align_up(g_heap_ptr, kAlign);
   uintptr_t payload_addr = block_addr + sizeof(Block);
   uintptr_t end = payload_addr + size;
-  if (!ensure_capacity(end)) return nullptr;
+  if (!ensure_capacity(end)) {
+    ++g_alloc_fail_count;
+    return nullptr;
+  }
 
   Block* b = reinterpret_cast<Block*>(block_addr);
   b->size = size;
   b->next = nullptr;
   g_heap_ptr = end;
+  ++g_alloc_count;
   return reinterpret_cast<void*>(payload_addr);
 }
 
@@ -85,6 +97,40 @@ extern "C" void free(void* p) {
   Block* b = reinterpret_cast<Block*>(payload_addr - sizeof(Block));
   b->next = g_free_list;
   g_free_list = b;
+  ++g_free_count;
+}
+
+// ---- Heap stats (for monitoring) ----
+extern "C" unsigned int wasm_heap_alloc_count() { return g_alloc_count; }
+extern "C" unsigned int wasm_heap_free_count() { return g_free_count; }
+extern "C" unsigned int wasm_heap_alloc_fail_count() { return g_alloc_fail_count; }
+extern "C" unsigned int wasm_heap_used_bytes() {
+  ensure_heap_inited();
+  if (g_heap_ptr <= g_heap_base) return 0;
+  return (unsigned int)(g_heap_ptr - g_heap_base);
+}
+extern "C" unsigned int wasm_heap_free_list_bytes() {
+  unsigned int sum = 0;
+  for (Block* b = g_free_list; b; b = b->next) sum += (unsigned int)b->size;
+  return sum;
+}
+extern "C" unsigned int wasm_heap_capacity_bytes() {
+  // total linear memory in bytes
+  unsigned long pages_now = __builtin_wasm_memory_size(0);
+  uintptr_t bytes_now = static_cast<uintptr_t>(pages_now) * kPageSize;
+  ensure_heap_inited();
+  if (bytes_now <= g_heap_base) return 0;
+  return (unsigned int)(bytes_now - g_heap_base);
+}
+
+// Addresses (wasm32 offsets) for debugging heap/global overlap.
+extern "C" unsigned int wasm_heap_base_addr() {
+  ensure_heap_inited();
+  return (unsigned int)g_heap_base;
+}
+extern "C" unsigned int wasm_heap_ptr_addr() {
+  ensure_heap_inited();
+  return (unsigned int)g_heap_ptr;
 }
 
 // ---- C++ new operators (keep wasm small; no exceptions) ----

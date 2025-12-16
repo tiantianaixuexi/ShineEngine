@@ -56,6 +56,20 @@ set(GL_SRC "${CMAKE_CURRENT_LIST_DIR}/src/gl_ctx.cpp")
 set(GL_OBJ "${CMAKE_BINARY_DIR}/gl_ctx.o")
 set(RT_SRC "${CMAKE_CURRENT_LIST_DIR}/src/util/wasm_runtime.cpp")
 set(RT_OBJ "${CMAKE_BINARY_DIR}/wasm_runtime.o")
+set(OBJ_SRC "${CMAKE_CURRENT_LIST_DIR}/src/game/object.cpp")
+set(OBJ_OBJ "${CMAKE_BINARY_DIR}/object.o")
+set(CMD_SRC "${CMAKE_CURRENT_LIST_DIR}/src/graphics/command_buffer.cpp")
+set(CMD_OBJ "${CMAKE_BINARY_DIR}/command_buffer.o")
+set(R2D_SRC "${CMAKE_CURRENT_LIST_DIR}/src/graphics/renderer_2d.cpp")
+set(R2D_OBJ "${CMAKE_BINARY_DIR}/renderer_2d.o")
+set(TEX_SRC "${CMAKE_CURRENT_LIST_DIR}/src/graphics/texture_manager.cpp")
+set(TEX_OBJ "${CMAKE_BINARY_DIR}/texture_manager.o")
+set(UI_SRC "${CMAKE_CURRENT_LIST_DIR}/src/ui/ui_manager.cpp")
+set(UI_OBJ "${CMAKE_BINARY_DIR}/ui_manager.o")
+set(ENG_SRC "${CMAKE_CURRENT_LIST_DIR}/src/engine/engine.cpp")
+set(ENG_OBJ "${CMAKE_BINARY_DIR}/engine.o")
+set(DEMO_SRC "${CMAKE_CURRENT_LIST_DIR}/src/demo/demo_game.cpp")
+set(DEMO_OBJ "${CMAKE_BINARY_DIR}/demo_game.o")
 set(GL_RAW "${TMP_DIR}/output.gl.raw.wasm")
 set(GL_WASM "${DIST_DIR}/output.gl.wasm")
 set(GL_MAP_REPORT "${TMP_DIR}/output.gl.map.report.txt")
@@ -83,8 +97,26 @@ endif()
 set(SMALLWASM_LD_FLAGS
   --no-entry --export-memory --allow-undefined
   --export=malloc --export=free
-  --export=init --export=frame --export=on_resize --export=ui_pointer
+  --export=init --export=frame --export=resize --export=ui_pointer
   --export=on_tex_loaded --export=on_tex_failed
+  --export=get_render_mode
+  --export=get_draw_calls
+  --export=get_vertex_count
+  --export=get_instance_count
+  --export=get_cmd_count
+  --export=get_ctx_id
+  --export=get_inited
+  --export=get_frame_no
+  --export=get_app_addr
+  --export=get_app_size
+  --export=wasm_heap_alloc_count
+  --export=wasm_heap_free_count
+  --export=wasm_heap_alloc_fail_count
+  --export=wasm_heap_used_bytes
+  --export=wasm_heap_free_list_bytes
+  --export=wasm_heap_capacity_bytes
+  --export=wasm_heap_base_addr
+  --export=wasm_heap_ptr_addr
 )
 string(JOIN " " SMALLWASM_LD_FLAGS_STR ${SMALLWASM_LD_FLAGS})
 
@@ -94,8 +126,25 @@ add_custom_command(
   DEPENDS "${GL_SRC}"
           "${CMAKE_CURRENT_LIST_DIR}/src/logfmt.h"
           "${CMAKE_CURRENT_LIST_DIR}/src/util/wasm_compat.h"
+          "${CMAKE_CURRENT_LIST_DIR}/src/util/timer.h"
+          "${CMAKE_CURRENT_LIST_DIR}/src/util/stat.h"
           "${CMAKE_CURRENT_LIST_DIR}/src/math/Matrix4.h"
           "${CMAKE_CURRENT_LIST_DIR}/src/Container/SArray.h"
+          "${CMAKE_CURRENT_LIST_DIR}/src/Container/SVector.h"
+          "${CMAKE_CURRENT_LIST_DIR}/src/game/object.h"
+          "${CMAKE_CURRENT_LIST_DIR}/src/game/component.h"
+          "${CMAKE_CURRENT_LIST_DIR}/src/game/node.h"
+          "${CMAKE_CURRENT_LIST_DIR}/src/game/scene.h"
+          "${CMAKE_CURRENT_LIST_DIR}/src/game/render_context.h"
+          "${CMAKE_CURRENT_LIST_DIR}/src/game/transform.h"
+          "${CMAKE_CURRENT_LIST_DIR}/src/game/sprite_renderer.h"
+  VERBATIM
+)
+
+add_custom_command(
+  OUTPUT "${OBJ_OBJ}"
+  COMMAND "${SMALLWASM_CLANG}" ${SMALLWASM_CXX_FLAGS} -c "${OBJ_SRC}" -o "${OBJ_OBJ}"
+  DEPENDS "${OBJ_SRC}" "${CMAKE_CURRENT_LIST_DIR}/src/game/object.h"
   VERBATIM
 )
 add_custom_command(
@@ -106,9 +155,51 @@ add_custom_command(
 )
 
 add_custom_command(
+  OUTPUT "${CMD_OBJ}"
+  COMMAND "${SMALLWASM_CLANG}" ${SMALLWASM_CXX_FLAGS} -c "${CMD_SRC}" -o "${CMD_OBJ}"
+  DEPENDS "${CMD_SRC}"
+  VERBATIM
+)
+
+add_custom_command(
+  OUTPUT "${R2D_OBJ}"
+  COMMAND "${SMALLWASM_CLANG}" ${SMALLWASM_CXX_FLAGS} -c "${R2D_SRC}" -o "${R2D_OBJ}"
+  DEPENDS "${R2D_SRC}"
+  VERBATIM
+)
+
+add_custom_command(
+  OUTPUT "${TEX_OBJ}"
+  COMMAND "${SMALLWASM_CLANG}" ${SMALLWASM_CXX_FLAGS} -c "${TEX_SRC}" -o "${TEX_OBJ}"
+  DEPENDS "${TEX_SRC}"
+  VERBATIM
+)
+
+add_custom_command(
+  OUTPUT "${UI_OBJ}"
+  COMMAND "${SMALLWASM_CLANG}" ${SMALLWASM_CXX_FLAGS} -c "${UI_SRC}" -o "${UI_OBJ}"
+  DEPENDS "${UI_SRC}"
+  VERBATIM
+)
+
+add_custom_command(
+  OUTPUT "${ENG_OBJ}"
+  COMMAND "${SMALLWASM_CLANG}" ${SMALLWASM_CXX_FLAGS} -c "${ENG_SRC}" -o "${ENG_OBJ}"
+  DEPENDS "${ENG_SRC}"
+  VERBATIM
+)
+
+add_custom_command(
+  OUTPUT "${DEMO_OBJ}"
+  COMMAND "${SMALLWASM_CLANG}" ${SMALLWASM_CXX_FLAGS} -c "${DEMO_SRC}" -o "${DEMO_OBJ}"
+  DEPENDS "${DEMO_SRC}"
+  VERBATIM
+)
+
+add_custom_command(
   OUTPUT "${GL_RAW}"
-  COMMAND "${SMALLWASM_WASM_LD}" ${SMALLWASM_LD_FLAGS} --strip-all "${GL_OBJ}" "${RT_OBJ}" -o "${GL_RAW}"
-  DEPENDS "${GL_OBJ}" "${RT_OBJ}"
+  COMMAND "${SMALLWASM_WASM_LD}" ${SMALLWASM_LD_FLAGS} --strip-all "${GL_OBJ}" "${RT_OBJ}" "${OBJ_OBJ}" "${CMD_OBJ}" "${R2D_OBJ}" "${TEX_OBJ}" "${UI_OBJ}" "${ENG_OBJ}" "${DEMO_OBJ}" -o "${GL_RAW}"
+  DEPENDS "${GL_OBJ}" "${RT_OBJ}" "${OBJ_OBJ}" "${CMD_OBJ}" "${R2D_OBJ}" "${TEX_OBJ}" "${UI_OBJ}" "${ENG_OBJ}" "${DEMO_OBJ}"
   VERBATIM
 )
 
@@ -124,15 +215,15 @@ set(GL_MAP_RAW "${TMP_DIR}/output.gl.map.raw.wasm")
 if(WIN32)
   add_custom_command(
     OUTPUT "${GL_MAP_TXT}" "${GL_MAP_RAW}"
-    COMMAND powershell -NoProfile -Command "& '${SMALLWASM_WASM_LD}' ${SMALLWASM_LD_FLAGS_STR} '${GL_OBJ}' '${RT_OBJ}' -o '${GL_MAP_RAW}' --print-map | Out-File -Encoding ascii '${GL_MAP_TXT}'"
-    DEPENDS "${GL_OBJ}" "${RT_OBJ}"
+    COMMAND powershell -NoProfile -Command "& '${SMALLWASM_WASM_LD}' ${SMALLWASM_LD_FLAGS_STR} '${GL_OBJ}' '${RT_OBJ}' '${OBJ_OBJ}' '${CMD_OBJ}' '${R2D_OBJ}' '${TEX_OBJ}' '${UI_OBJ}' '${ENG_OBJ}' '${DEMO_OBJ}' -o '${GL_MAP_RAW}' --print-map | Out-File -Encoding ascii '${GL_MAP_TXT}'"
+    DEPENDS "${GL_OBJ}" "${RT_OBJ}" "${OBJ_OBJ}" "${CMD_OBJ}" "${R2D_OBJ}" "${TEX_OBJ}" "${UI_OBJ}" "${ENG_OBJ}" "${DEMO_OBJ}"
     VERBATIM
   )
 else()
   add_custom_command(
     OUTPUT "${GL_MAP_TXT}" "${GL_MAP_RAW}"
-    COMMAND /bin/sh -c "\"${SMALLWASM_WASM_LD}\" ${SMALLWASM_LD_FLAGS_STR} \"${GL_OBJ}\" \"${RT_OBJ}\" -o \"${GL_MAP_RAW}\" --print-map > \"${GL_MAP_TXT}\""
-    DEPENDS "${GL_OBJ}" "${RT_OBJ}"
+    COMMAND /bin/sh -c "\"${SMALLWASM_WASM_LD}\" ${SMALLWASM_LD_FLAGS_STR} \"${GL_OBJ}\" \"${RT_OBJ}\" \"${OBJ_OBJ}\" \"${CMD_OBJ}\" \"${R2D_OBJ}\" \"${TEX_OBJ}\" \"${UI_OBJ}\" \"${ENG_OBJ}\" \"${DEMO_OBJ}\" -o \"${GL_MAP_RAW}\" --print-map > \"${GL_MAP_TXT}\""
+    DEPENDS "${GL_OBJ}" "${RT_OBJ}" "${OBJ_OBJ}" "${CMD_OBJ}" "${R2D_OBJ}" "${TEX_OBJ}" "${UI_OBJ}" "${ENG_OBJ}" "${DEMO_OBJ}"
     VERBATIM
   )
 endif()

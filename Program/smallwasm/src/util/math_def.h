@@ -7,12 +7,24 @@ const float two_pi = 6.28318530717958647692f;
 
 namespace shine::math
 {
-    float wrap_pi(float a) {
+    static float wrap_pi(float a) {
         while (a > pi)
             a -= two_pi;
         while (a < -pi)
             a += two_pi;
         return a;
+    }
+
+    static float sin_approx(float x);
+
+    static float sin(float x) {
+        return sin_approx(x);
+    }
+    
+    static float cos_approx(float x);
+
+    static float cos(float x) {
+        return cos_approx(x);
     }
 
     // abs
