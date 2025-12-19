@@ -25,6 +25,7 @@ public:
 
   // state
     int clicked = 0; // set to 1 on mouse up inside
+    int _wasDown = 0;
     
 
     inline void setStyle(ButtonStyle* s) noexcept { style = s; }
@@ -36,7 +37,7 @@ public:
 
     inline void bindHoverEvent(OnButtonEvent fn) noexcept
     {
-    	HoverEvent =  fn;
+        HoverEvent =  fn;
     }
 
     inline void bindUnHoverEvent(OnButtonEvent fn) noexcept
@@ -75,35 +76,33 @@ public:
     }
 
     void pointer(float px, float py, int isDown) override {
+        const bool wasOver = isOver;
+        const bool nowOver = hit(px, py);
+        isOver = nowOver;
 
-        isOver = hit(px, py);
-
-    
-        if (isOver && HoverEvent)
-        {
-        	HoverEvent(this);
+        if (nowOver && !wasOver && HoverEvent) {
+            HoverEvent(this);
+        } else if (!nowOver && wasOver && UnHoverEvent) {
+            UnHoverEvent(this);
         }
-        
+
         if (isDown) {
-            // pressed 
-            if (isOver){
-                isPressed = true;
+            if (!_wasDown) {
+                clicked = 0;
+                if (nowOver) isPressed = true;
             }
+            _wasDown = 1;
             return;
         }
 
-        // mouse up
-        if (isPressed && isOver) {
-            clicked = true;
-            if (ClickEvent) ClickEvent(this);
+        if (_wasDown) {
+            if (isPressed && nowOver) {
+                clicked = 1;
+                if (ClickEvent) ClickEvent(this);
+            }
+            isPressed = false;
         }
-
-        isPressed = false;
-
-        if (UnHoverEvent)
-        {
-            UnHoverEvent(this);
-        }
+        _wasDown = 0;
     }
 
     void onResize(int view_w, int view_h) override {

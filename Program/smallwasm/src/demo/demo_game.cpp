@@ -167,24 +167,26 @@ void DemoGame::onInit(shine::engine::Engine& app) {
     btn->bindHoverEvent([](shine::ui::Button*) { LOG("button Hover"); });
     btn->bindUnHoverEvent([](shine::ui::Button*) { LOG("button UnHover"); });
     btn->setBgUrl("asset/金币.png");
-    btn->setLayoutPx(0.5f, 0.5f, 12.0f, 12.0f, 128.0f, 128.0f);
+    btn->setLayoutRelMin(0.0f, 0.0f, 0.0f, 0.0f, 0.18f);
 
     shine::ui::UIManager::instance().add(btn);
 
     btn_mode = shine::ui::Button::create();
     btn_mode->bindOnClick(demo_on_mode_click);
-    btn_mode->setLayoutPx(-1.0f, 1.0f, 12.0f, -12.0f, 160.0f, 48.0f);
+    btn_mode->setLayoutRel(-1.0f, 1.0f, 12.0f, -12.0f, 0.24f, 0.08f);
     shine::ui::UIManager::instance().add(btn_mode);
 
     img = new shine::ui::Image();
-    img->setLayoutPx(1.0f, -1.0f, -12.0f, 12.0f, 220.0f, 160.0f);
+    img->setLayoutRel(1.0f, -1.0f, -12.0f, 12.0f, 0.30f, 0.22f);
     img->texId = js_create_texture_checker(ctx, 64);
     shine::ui::UIManager::instance().add(img);
 
 }
 
 void DemoGame::onResize(shine::engine::Engine& app, int w, int h) {
-    shine::ui::UIManager::instance().onResize(w, h);
+    (void)app;
+    (void)w;
+    (void)h;
 }
 
 void DemoGame::onUpdate(shine::engine::Engine& app, float t) {
@@ -231,7 +233,7 @@ void DemoGame::onPointer(shine::engine::Engine& app, float x, float y, int isDow
     float px = (x + 1.0f) * 0.5f * (float)w;
     float py = (1.0f - y) * 0.5f * (float)h;
 
-    LOG2("onPointer:", px, py);
+    LOG2("onPointer:", x, y);
 
     // UI pointer
     shine::ui::UIManager::instance().onPointer(px, py, isDown);

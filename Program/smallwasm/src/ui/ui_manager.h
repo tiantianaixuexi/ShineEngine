@@ -25,6 +25,8 @@ public:
 
 private:
     shine::wasm::SVector<Element*> m_elements;
+    int m_viewW = 0;
+    int m_viewH = 0;
 };
 
 } // 

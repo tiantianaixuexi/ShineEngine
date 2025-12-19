@@ -2,6 +2,7 @@
 #include "../graphics/gl_api.h"
 #include "../graphics/command_buffer.h"
 #include "../graphics/renderer_2d.h"
+#include "../ui/ui_manager.h"
 #include "../util/wasm_compat.h"
 #include "../game/game.h"
 #include "../logfmt.h"
@@ -47,6 +48,8 @@ void Engine::onResize(int w, int h) {
     
     graphics::Renderer2D::instance().m_viewW = w;
     graphics::Renderer2D::instance().m_viewH = h;
+
+    shine::ui::UIManager::instance().onResize(w, h);
 
     if (m_game) {
         m_game->onResize(*this, w, h);

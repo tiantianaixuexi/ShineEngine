@@ -819,19 +819,32 @@ async function runApp(canvas, hud) {
     canvas.setPointerCapture(ev.pointerId);
     const p = toNDC(ev);
     if (e.pointer) e.pointer(p.x, p.y, 1);
-    else if (e.ui_pointer) e.ui_pointer(p.x, p.y, 1);
   });
   canvas.addEventListener('pointermove', (ev) => {
     const p = toNDC(ev);
     if (e.pointer) e.pointer(p.x, p.y, ptrDown);
-    else if (e.ui_pointer) e.ui_pointer(p.x, p.y, ptrDown);
   });
   canvas.addEventListener('pointerup', (ev) => {
     ptrDown = 0;
     const p = toNDC(ev);
     if (e.pointer) e.pointer(p.x, p.y, 0);
-    else if (e.ui_pointer) e.ui_pointer(p.x, p.y, 0);
   });
+  window.addEventListener('resize', () => {
+    const { w, h } = resizeCanvasToWindow(canvas);
+    if (frame._lastW !== w || frame._lastH !== h) {
+      frame._lastW = w;
+      frame._lastH = h;
+      if (e.resize) e.resize(w, h);
+      else if (e.on_resize) e.on_resize(w, h);
+    }
+  });
+  {
+    const { w, h } = resizeCanvasToWindow(canvas);
+    frame._lastW = w;
+    frame._lastH = h;
+    if (e.resize) e.resize(w, h);
+    else if (e.on_resize) e.on_resize(w, h);
+  }
 
   let lastT = performance.now();
   let fps = 0;

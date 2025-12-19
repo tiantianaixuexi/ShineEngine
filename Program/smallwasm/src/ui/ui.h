@@ -23,10 +23,10 @@ public:
           bool isPressed : 1;
           bool reserved : 5;
       };
-      unsigned char flags;   // Ò»ÌõÖ¸Áî¾ÍÄÜ¶Á/Ð´È«²¿Î»
+      unsigned char flags;   // Ò»ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½Ü¶ï¿½/Ð´È«ï¿½ï¿½Î»
   };
 
-  // ¶ÔÆë8bit 
+  // ï¿½ï¿½ï¿½ï¿½8bit 
   unsigned char  _pad0[7];
 
   float anchor_ndc_x = 0.0f; // [-1..1]  -1=Left, 0=Center, 1=Right
@@ -35,6 +35,9 @@ public:
   float offset_px_y = 0.0f;  // +up in pixels
   float size_px_w = 0.0f;    // >0 enables px-sized element
   float size_px_h = 0.0f;
+  float size_rel_w = 0.0f;
+  float size_rel_h = 0.0f;
+  float size_rel_min = 0.0f;
 
   // Last known viewport size (pixels). Updated on onResize().
   int view_w = 1;
@@ -79,8 +82,17 @@ public:
     x = base_x + offset_px_x;
     y = base_y - offset_px_y;
 
-    if (size_px_w > 0.0f) w = size_px_w;
-    if (size_px_h > 0.0f) h = size_px_h;
+    if (size_rel_min > 0.0f) {
+        float min_wh = (this->view_w < this->view_h) ? (float)this->view_w : (float)this->view_h;
+        float s = min_wh * size_rel_min;
+        w = s;
+        h = s;
+    } else {
+        if (size_rel_w > 0.0f) w = (float)this->view_w * size_rel_w;
+        else if (size_px_w > 0.0f) w = size_px_w;
+        if (size_rel_h > 0.0f) h = (float)this->view_h * size_rel_h;
+        else if (size_px_h > 0.0f) h = size_px_h;
+    }
 
     // Automatic Pivot adjustment based on Anchor
     // Left (-1): Pivot Left (x += w/2)
@@ -104,6 +116,39 @@ public:
     offset_px_y = offPxY;
     size_px_w = pxW;
     size_px_h = pxH;
+    size_rel_w = 0.0f;
+    size_rel_h = 0.0f;
+    size_rel_min = 0.0f;
+  }
+
+
+  inline void setLayoutRel(float anchorXndc, float anchorYndc,
+                           float offPxX, float offPxY,
+                           float relW, float relH) {
+    anchor_ndc_x = anchorXndc;
+    anchor_ndc_y = anchorYndc;
+    offset_px_x = offPxX;
+    offset_px_y = offPxY;
+    size_px_w = 0.0f;
+    size_px_h = 0.0f;
+    size_rel_w = relW;
+    size_rel_h = relH;
+    size_rel_min = 0.0f;
+  }
+
+
+  inline void setLayoutRelMin(float anchorXndc, float anchorYndc,
+                              float offPxX, float offPxY,
+                              float relMin) {
+    anchor_ndc_x = anchorXndc;
+    anchor_ndc_y = anchorYndc;
+    offset_px_x = offPxX;
+    offset_px_y = offPxY;
+    size_px_w = 0.0f;
+    size_px_h = 0.0f;
+    size_rel_w = 0.0f;
+    size_rel_h = 0.0f;
+    size_rel_min = relMin;
   }
 
 
@@ -115,6 +160,27 @@ public:
   inline void setSizePx(float pxW, float pxH) noexcept {
     size_px_w = pxW;
     size_px_h = pxH;
+    size_rel_w = 0.0f;
+    size_rel_h = 0.0f;
+    size_rel_min = 0.0f;
+  }
+
+
+  inline void setSizeRel(float relW, float relH) noexcept {
+    size_px_w = 0.0f;
+    size_px_h = 0.0f;
+    size_rel_w = relW;
+    size_rel_h = relH;
+    size_rel_min = 0.0f;
+  }
+
+
+  inline void setSizeRelMin(float relMin) noexcept {
+    size_px_w = 0.0f;
+    size_px_h = 0.0f;
+    size_rel_w = 0.0f;
+    size_rel_h = 0.0f;
+    size_rel_min = relMin;
   }
 
   virtual void render(int /*ctxId*/)

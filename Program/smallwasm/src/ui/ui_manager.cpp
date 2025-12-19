@@ -11,6 +11,9 @@ UIManager& UIManager::instance() {
 void UIManager::add(Element* e) {
     if (!e) return;
     m_elements.push_back(e);
+    if (m_viewW > 0 && m_viewH > 0) {
+        e->onResize(m_viewW, m_viewH);
+    }
 }
 
 void UIManager::remove(Element* e) {
@@ -39,6 +42,8 @@ void UIManager::clear() {
 }
 
 void UIManager::onResize(int w, int h) {
+    m_viewW = w;
+    m_viewH = h;
     for (unsigned int i = 0; i < m_elements.size(); ++i) {
         Element* e = m_elements[i];
         if (e) e->onResize(w, h);

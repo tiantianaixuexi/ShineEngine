@@ -97,7 +97,7 @@ endif()
 set(SMALLWASM_LD_FLAGS
   --no-entry --export-memory --allow-undefined
   --export=malloc --export=free
-  --export=init --export=frame --export=resize --export=ui_pointer
+  --export=init --export=frame --export=resize --export=pointer
   --export=on_tex_loaded --export=on_tex_failed
   --export=get_render_mode
   --export=get_draw_calls
