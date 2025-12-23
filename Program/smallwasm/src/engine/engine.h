@@ -35,8 +35,8 @@ public:
     // (We are moving step-by-step)
     int m_ctx = 0;
     bool m_inited = false;
-    int m_width = 1;
-    int m_height = 1;
+    int m_width = 0;
+    int m_height = 0;
     int m_frameNo = 0;
 
     // Timer

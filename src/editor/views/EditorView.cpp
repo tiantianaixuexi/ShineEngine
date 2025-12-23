@@ -62,7 +62,7 @@ void EditView::Render() {
       if (w != lastW || h != lastH) {
           renderer.resizeViewport(Viewport, w, h);
         if (auto cam = shine::manager::CameraManager::get().getMainCamera()) {
-          cam->SetPerspective(cam->fov, (float)w / (float)h, cam->nearPlane, cam->farPlane);
+          cam->SetPerspective(cam->fov, static_cast<float>(w) / static_cast<float>(h), cam->nearPlane, cam->farPlane);
         }
         lastW = w; lastH = h;
       }

@@ -1,5 +1,5 @@
 #include "engine/engine.h"
-#include "graphics/command_buffer.h"
+#include "graphics/wasm_command_buffer.h"
 #include "util/wasm_compat.h"
 
 // ======================================================================================
@@ -33,6 +33,7 @@ extern "C"
 		ENGINE.pointer(x_ndc, y_ndc, isDown);
 	}
 
+#if defined(DEBUG) && DEBUG
 	// 5. Getters for JS
 	int get_context_handle() {
 		return ENGINE.getCtx();
@@ -57,6 +58,7 @@ extern "C"
 	int get_instance_count() {
 		return shine::graphics::CommandBuffer::instance().getInstances();
 	}
+#endif
 
 
 }

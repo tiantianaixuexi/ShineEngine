@@ -1,7 +1,6 @@
 #pragma once
 
-#include "shine_define.h"
-#include <memory>
+
 
 namespace shine::gameplay
 {

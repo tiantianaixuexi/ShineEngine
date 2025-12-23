@@ -35,10 +35,9 @@ static inline int raw_strlen(const char* s) noexcept {
   return n;
 }
 
-static inline int ptr_i32(const void* p) noexcept {
-  // wasm32: pointers fit in i32 offsets
-  return (int)(unsigned long)(uintptr_t)p;
-}
+static inline int ptr_i32(const void* p) noexcept {return (int)(unsigned long)(uintptr_t)p; }
+
+static inline int f2i(float f)  noexcept { return *(int*)&f; }
 
 } // namespace shine::wasm
 

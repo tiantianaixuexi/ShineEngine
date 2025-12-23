@@ -23,6 +23,7 @@ static constexpr int CMD_UNIFORM2F = 13;
 static constexpr int CMD_UNIFORM4F = 14;
 static constexpr int CMD_DRAW_ARRAYS_INSTANCED = 15;
 static constexpr int CMD_BIND_VAO = 16;
+static constexpr int CMD_SETUP_VIEW_SAMPLER2D = 17;
 
 class CommandBuffer {
 public:

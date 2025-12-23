@@ -1,4 +1,4 @@
-#include "render/resources/texture_manager.h"
+#include "render/resources/TextureManager.h"
 #include "render/backend/render_backend.h"
 #include "image/Texture.h"
 #include "fmt/format.h"

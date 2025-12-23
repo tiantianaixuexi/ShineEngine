@@ -58,8 +58,8 @@ set(RT_SRC "${CMAKE_CURRENT_LIST_DIR}/src/util/wasm_runtime.cpp")
 set(RT_OBJ "${CMAKE_BINARY_DIR}/wasm_runtime.o")
 set(OBJ_SRC "${CMAKE_CURRENT_LIST_DIR}/src/game/object.cpp")
 set(OBJ_OBJ "${CMAKE_BINARY_DIR}/object.o")
-set(CMD_SRC "${CMAKE_CURRENT_LIST_DIR}/src/graphics/command_buffer.cpp")
-set(CMD_OBJ "${CMAKE_BINARY_DIR}/command_buffer.o")
+set(CMD_SRC "${CMAKE_CURRENT_LIST_DIR}/src/graphics/wasm_command_buffer.cpp")
+set(CMD_OBJ "${CMAKE_BINARY_DIR}/wasm_command_buffer.o")
 set(R2D_SRC "${CMAKE_CURRENT_LIST_DIR}/src/graphics/renderer_2d.cpp")
 set(R2D_OBJ "${CMAKE_BINARY_DIR}/renderer_2d.o")
 set(TEX_SRC "${CMAKE_CURRENT_LIST_DIR}/src/graphics/texture_manager.cpp")
@@ -99,25 +99,26 @@ set(SMALLWASM_LD_FLAGS
   --export=malloc --export=free
   --export=init --export=frame --export=resize --export=pointer
   --export=on_tex_loaded --export=on_tex_failed
-  --export=get_render_mode
-  --export=get_draw_calls
-  --export=get_vertex_count
-  --export=get_instance_count
-  --export=get_cmd_count
-  --export=get_ctx_id
-  --export=get_inited
-  --export=get_frame_no
-  --export=get_app_addr
-  --export=get_app_size
-  --export=wasm_heap_alloc_count
-  --export=wasm_heap_free_count
-  --export=wasm_heap_alloc_fail_count
-  --export=wasm_heap_used_bytes
-  --export=wasm_heap_free_list_bytes
-  --export=wasm_heap_capacity_bytes
-  --export=wasm_heap_base_addr
-  --export=wasm_heap_ptr_addr
 )
+if(SMALLWASM_DEBUG)
+  list(APPEND SMALLWASM_LD_FLAGS
+    --export=get_context_handle
+    --export=is_inited
+    --export=get_frame_no
+    --export=get_draw_calls
+    --export=get_vertex_count
+    --export=get_instance_count
+    --export=get_cmd_count
+    --export=wasm_heap_alloc_count
+    --export=wasm_heap_free_count
+    --export=wasm_heap_alloc_fail_count
+    --export=wasm_heap_used_bytes
+    --export=wasm_heap_free_list_bytes
+    --export=wasm_heap_capacity_bytes
+    --export=wasm_heap_base_addr
+    --export=wasm_heap_ptr_addr
+  )
+endif()
 string(JOIN " " SMALLWASM_LD_FLAGS_STR ${SMALLWASM_LD_FLAGS})
 
 add_custom_command(

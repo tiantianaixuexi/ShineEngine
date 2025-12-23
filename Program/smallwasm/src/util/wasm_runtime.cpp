@@ -100,6 +100,7 @@ extern "C" void free(void* p) {
   ++g_free_count;
 }
 
+#if defined(DEBUG) && DEBUG
 // ---- Heap stats (for monitoring) ----
 extern "C" unsigned int wasm_heap_alloc_count() { return g_alloc_count; }
 extern "C" unsigned int wasm_heap_free_count() { return g_free_count; }
@@ -132,6 +133,7 @@ extern "C" unsigned int wasm_heap_ptr_addr() {
   ensure_heap_inited();
   return (unsigned int)g_heap_ptr;
 }
+#endif
 
 // ---- C++ new operators (keep wasm small; no exceptions) ----
 // Some code may use `new` even under -fno-exceptions. Provide minimal operators.
@@ -159,4 +161,3 @@ int __cxa_atexit(void (*)(void*), void*, void*) { return 0; }
 void __cxa_finalize(void*) {}
 void __cxa_pure_virtual() {}
 }
-

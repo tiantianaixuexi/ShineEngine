@@ -1,4 +1,4 @@
-#include "command_buffer.h"
+#include "wasm_command_buffer.h"
 
 namespace shine {
 namespace graphics {

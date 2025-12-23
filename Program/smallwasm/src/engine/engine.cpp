@@ -1,6 +1,6 @@
 #include "engine.h"
 #include "../graphics/gl_api.h"
-#include "../graphics/command_buffer.h"
+#include "../graphics/wasm_command_buffer.h"
 #include "../graphics/renderer_2d.h"
 #include "../ui/ui_manager.h"
 #include "../util/wasm_compat.h"
@@ -42,7 +42,7 @@ void Engine::init(int triCount) {
 }
 
 void Engine::onResize(int w, int h) {
-   // LOG2("Engine::onResize", w, h);
+    LOG2("Engine::onResize", w, h);
     m_width = w;
     m_height = h;
     
@@ -68,6 +68,7 @@ void Engine::frame(float t) {
 
     // Reset command buffer
     graphics::cmd_reset();
+    graphics::Renderer2D::instance().begin();
 
 
     
@@ -83,6 +84,8 @@ void Engine::frame(float t) {
         m_game->onUpdate(*this, t);
         m_game->onRender(*this, t);
     }
+
+    graphics::Renderer2D::instance().end();
 
     // Submit commands
     CommandBuffer& cb = CommandBuffer::instance();

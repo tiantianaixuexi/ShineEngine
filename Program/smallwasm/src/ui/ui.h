@@ -1,54 +1,91 @@
 #pragma once
 
 // Minimal UI system (wasm-friendly, no STL).
-// Coordinate space: NDC (-1..1). Origin center. +Y up.
+// Coordinate space: Pixels. Origin top-left. +Y down.
 
 #include "../util/wasm_compat.h"
-
+#include "../logfmt.h"
 namespace shine { namespace ui {
 
 class Element {
 public:
 
-  // Rect in Pixels (previously NDC, now converted to Pixels for Renderer2D)
-  float x = 0.0f; // Center X
-  float y = 0.0f; // Center Y
-  float w = 100.0f;
-  float h = 50.0f;
+  // ==========================================
+  // [1. 布局配置] (设置这些值来控制 UI 位置)
+  // ==========================================
 
-  union {
-      struct {
-          bool visible : 1;
-          bool isOver : 1;
-          bool isPressed : 1;
-          bool reserved : 5;
-      };
-      unsigned char flags;   // һ��ָ����ܶ�/дȫ��λ
-  };
+  // 锚点范围（UE5/UMG CanvasSlot 的 Anchors 概念，归一化 0..1）
+  // - (0,0) = 左上角；(1,1) = 右下角
+  // - min==max 表示不拉伸：元素挂在某个点上
+  // - min!=max 表示拉伸：元素在锚点框内按边距撑开
+  float anchor_min_x = 0.0f;
+  float anchor_min_y = 0.0f;
+  float anchor_max_x = 0.0f;
+  float anchor_max_y = 0.0f;
 
-  // ����8bit 
-  unsigned char  _pad0[7];
+  // 对齐/枢轴（UE5/UMG 的 Alignment / Pivot 概念，归一化 0..1）
+  // - (0,0) 表示元素的左上角对齐到锚点解算出来的位置
+  // - (0.5,0.5) 表示元素中心对齐
+  // - (1,1) 表示右下角对齐
+  float align_x = 0.0f;
+  float align_y = 0.0f;
 
-  float anchor_ndc_x = 0.0f; // [-1..1]  -1=Left, 0=Center, 1=Right
-  float anchor_ndc_y = 0.0f; // [-1..1]  -1=Bottom, 0=Center, 1=Top (Y is UP in NDC/Layout)
-  float offset_px_x = 0.0f;  // +right in pixels
-  float offset_px_y = 0.0f;  // +up in pixels
-  float size_px_w = 0.0f;    // >0 enables px-sized element
-  float size_px_h = 0.0f;
+  // Offsets（像素）
+  // - 非拉伸（min==max）时：
+  //   - offset_left_px / offset_top_px      表示位置（相对锚点点的像素偏移）
+  //   - offset_right_px / offset_bottom_px  表示尺寸（宽/高，像素）
+  // - 拉伸（min!=max）时：
+  //   - offset_left_px / offset_top_px      表示左/上边距（px）
+  //   - offset_right_px / offset_bottom_px  表示右/下边距（px）
+  float offset_left_px = 0.0f;
+  float offset_top_px = 0.0f;
+  float offset_right_px = 100.0f;
+  float offset_bottom_px = 50.0f;
+
+  // 相对尺寸（屏幕百分比，0.0 表示不启用）
+  // - 仅在“非拉伸（min==max）”时生效，用来覆盖 offset_right_px/offset_bottom_px 的像素尺寸
+  // - 例如 size_rel_w=0.2 表示宽度 = view_w * 0.2
   float size_rel_w = 0.0f;
   float size_rel_h = 0.0f;
-  float size_rel_min = 0.0f;
 
-  // Last known viewport size (pixels). Updated on onResize().
+
+  // ==========================================
+  // [2. 计算结果] (系统自动计算，请勿手动修改)
+  // ==========================================
+
+  // 最终的屏幕绝对坐标 (像素)
+  float x = 0.0f; // 中心 X
+  float y = 0.0f; // 中心 Y
+  float w = 100.0f; // 宽度
+  float h = 50.0f;  // 高度
+
+  // 当前视口大小缓存
   int view_w = 1;
   int view_h = 1;
 
+
+  // ==========================================
+  // [3. 内部状态]
+  // ==========================================
+  union {
+      struct {
+          bool visible : 1;   // 是否可见
+          bool isOver : 1;    // 鼠标是否悬停
+          bool isPressed : 1; // 鼠标是否按下
+          bool reserved : 5;  // 保留位
+      };
+      unsigned char flags;   // 用于对齐/批量操作
+  };
+
+  // 8bit 对齐 
+  unsigned char  _pad0[7];
 
 
   virtual ~Element() = default;
 
   virtual void init()
   {
+      flags = 0;
       visible = true;
   }
 
@@ -63,124 +100,119 @@ public:
     if (!isDown) isPressed = 0;
   }
 
-  // Called when viewport size changes (w/h are canvas pixel size).
-  // Override in derived class (and call Element::onResize if you use layout).
+  // 当视口大小改变时调用
   virtual void onResize(int view_w, int view_h) {
+    LOG2("Element::onResize", view_w, view_h);
     this->view_w = (view_w < 1) ? 1 : view_w;
     this->view_h = (view_h < 1) ? 1 : view_h;
 
-    
-    // Convert Layout (NDC anchors + Pixel offsets) -> Absolute Pixels (Center)
-    // Coords: Top-Left (0,0), +Y Down.
-    // Anchors: -1=Left, 1=Right, -1=Bottom, 1=Top.
-    
-    float base_x = (anchor_ndc_x + 1.0f) * 0.5f * (float)this->view_w;
-    // Y-flip: 1.0(Top) -> 0.0, -1.0(Bottom) -> H
-    float base_y = (1.0f - anchor_ndc_y) * 0.5f * (float)this->view_h;
+    const float vw = (float)this->view_w;
+    const float vh = (float)this->view_h;
 
-    // Apply offsets (+Y is Up in layout, so subtract from Pixel Y which is Down)
-    x = base_x + offset_px_x;
-    y = base_y - offset_px_y;
+    const float ax0 = anchor_min_x * vw;
+    const float ay0 = anchor_min_y * vh;
+    const float ax1 = anchor_max_x * vw;
+    const float ay1 = anchor_max_y * vh;
 
-    if (size_rel_min > 0.0f) {
-        float min_wh = (this->view_w < this->view_h) ? (float)this->view_w : (float)this->view_h;
-        float s = min_wh * size_rel_min;
-        w = s;
-        h = s;
+    const float dx = anchor_max_x - anchor_min_x;
+    const float dy = anchor_max_y - anchor_min_y;
+    const float adx = (dx < 0.0f) ? -dx : dx;
+    const float ady = (dy < 0.0f) ? -dy : dy;
+    const bool stretch_x = (adx > 0.000001f);
+    const bool stretch_y = (ady > 0.000001f);
+
+    float top_left_x = 0.0f;
+    float top_left_y = 0.0f;
+
+    if (stretch_x) {
+      top_left_x = ax0 + offset_left_px;
+      const float br_x = ax1 - offset_right_px;
+      w = br_x - top_left_x;
     } else {
-        if (size_rel_w > 0.0f) w = (float)this->view_w * size_rel_w;
-        else if (size_px_w > 0.0f) w = size_px_w;
-        if (size_rel_h > 0.0f) h = (float)this->view_h * size_rel_h;
-        else if (size_px_h > 0.0f) h = size_px_h;
+      top_left_x = ax0 + offset_left_px;
+      if (size_rel_w > 0.0f) w = vw * size_rel_w;
+      else w = offset_right_px;
     }
 
-    // Automatic Pivot adjustment based on Anchor
-    // Left (-1): Pivot Left (x += w/2)
-    // Right (1): Pivot Right (x -= w/2)
-    // Top (1): Pivot Top (y += h/2)
-    // Bottom (-1): Pivot Bottom (y -= h/2)
-    
-    if (anchor_ndc_x < -0.9f) x += w * 0.5f;
-    else if (anchor_ndc_x > 0.9f) x -= w * 0.5f;
-    
-    if (anchor_ndc_y > 0.9f) y += h * 0.5f;
-    else if (anchor_ndc_y < -0.9f) y -= h * 0.5f;
+    if (stretch_y) {
+      top_left_y = ay0 + offset_top_px;
+      const float br_y = ay1 - offset_bottom_px;
+      h = br_y - top_left_y;
+    } else {
+      top_left_y = ay0 + offset_top_px;
+      if (size_rel_h > 0.0f) h = vh * size_rel_h;
+      else h = offset_bottom_px;
+    }
+
+    if (w < 0.0f) w = 0.0f;
+    if (h < 0.0f) h = 0.0f;
+
+    top_left_x -= align_x * w;
+    top_left_y -= align_y * h;
+
+    x = top_left_x + w * 0.5f;
+    y = top_left_y + h * 0.5f;
   }
 
-  inline void setLayoutPx(float anchorXndc, float anchorYndc,
-                          float offPxX, float offPxY,
-                          float pxW, float pxH) {
-    anchor_ndc_x = anchorXndc;
-    anchor_ndc_y = anchorYndc;
-    offset_px_x = offPxX;
-    offset_px_y = offPxY;
-    size_px_w = pxW;
-    size_px_h = pxH;
+  inline void setAnchors(float min_x, float min_y, float max_x, float max_y) noexcept {
+    anchor_min_x = min_x;
+    anchor_min_y = min_y;
+    anchor_max_x = max_x;
+    anchor_max_y = max_y;
+  }
+
+  inline void setAnchorPoint(float x01, float y01) noexcept {
+    setAnchors(x01, y01, x01, y01);
+  }
+
+  inline void setAlignment(float ax01, float ay01) noexcept {
+    align_x = ax01;
+    align_y = ay01;
+  }
+
+  inline void setOffsetsPx(float left, float top, float right, float bottom) noexcept {
+    offset_left_px = left;
+    offset_top_px = top;
+    offset_right_px = right;
+    offset_bottom_px = bottom;
+  }
+
+  inline void setLayoutPx(float anchor_x01, float anchor_y01,
+                          float pos_px_x, float pos_px_y,
+                          float size_px_w, float size_px_h) noexcept {
+    setAnchorPoint(anchor_x01, anchor_y01);
+    offset_left_px = pos_px_x;
+    offset_top_px = pos_px_y;
+    offset_right_px = size_px_w;
+    offset_bottom_px = size_px_h;
     size_rel_w = 0.0f;
     size_rel_h = 0.0f;
-    size_rel_min = 0.0f;
+    onResize(view_w, view_h);
   }
 
-
-  inline void setLayoutRel(float anchorXndc, float anchorYndc,
-                           float offPxX, float offPxY,
-                           float relW, float relH) {
-    anchor_ndc_x = anchorXndc;
-    anchor_ndc_y = anchorYndc;
-    offset_px_x = offPxX;
-    offset_px_y = offPxY;
-    size_px_w = 0.0f;
-    size_px_h = 0.0f;
-    size_rel_w = relW;
-    size_rel_h = relH;
-    size_rel_min = 0.0f;
+  inline void setLayoutRel(float anchor_x01, float anchor_y01,
+                           float pos_px_x, float pos_px_y,
+                           float rel_w, float rel_h) noexcept {
+    setAnchorPoint(anchor_x01, anchor_y01);
+    offset_left_px = pos_px_x;
+    offset_top_px = pos_px_y;
+    size_rel_w = rel_w;
+    size_rel_h = rel_h;
+    onResize(view_w, view_h);
   }
-
-
-  inline void setLayoutRelMin(float anchorXndc, float anchorYndc,
-                              float offPxX, float offPxY,
-                              float relMin) {
-    anchor_ndc_x = anchorXndc;
-    anchor_ndc_y = anchorYndc;
-    offset_px_x = offPxX;
-    offset_px_y = offPxY;
-    size_px_w = 0.0f;
-    size_px_h = 0.0f;
-    size_rel_w = 0.0f;
-    size_rel_h = 0.0f;
-    size_rel_min = relMin;
-  }
-
 
   inline void setPosPx(float pxX, float pxY) noexcept {
-    offset_px_x = pxX;
-    offset_px_y = pxY;
+    offset_left_px = pxX;
+    offset_top_px = pxY;
+    onResize(view_w, view_h);
   }
 
   inline void setSizePx(float pxW, float pxH) noexcept {
-    size_px_w = pxW;
-    size_px_h = pxH;
+    offset_right_px = pxW;
+    offset_bottom_px = pxH;
     size_rel_w = 0.0f;
     size_rel_h = 0.0f;
-    size_rel_min = 0.0f;
-  }
-
-
-  inline void setSizeRel(float relW, float relH) noexcept {
-    size_px_w = 0.0f;
-    size_px_h = 0.0f;
-    size_rel_w = relW;
-    size_rel_h = relH;
-    size_rel_min = 0.0f;
-  }
-
-
-  inline void setSizeRelMin(float relMin) noexcept {
-    size_px_w = 0.0f;
-    size_px_h = 0.0f;
-    size_rel_w = 0.0f;
-    size_rel_h = 0.0f;
-    size_rel_min = relMin;
+    onResize(view_w, view_h);
   }
 
   virtual void render(int /*ctxId*/)

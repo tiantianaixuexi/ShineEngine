@@ -253,9 +253,8 @@ async function runApp(canvas, hud) {
         const id = strSlice(mem, canvasIdPtr, canvasIdLen);
         const el = document.getElementById(id);
         if (!el) throw new Error(`canvas id not found: ${id}`);
-        // Prefer WebGL2 when available (instancing + GPU timer queries).
-        const gl = el.getContext('webgl2') || el.getContext('webgl');
-        if (!gl) throw new Error('WebGL not supported');
+        const gl = el.getContext('webgl2');
+        if (!gl) throw new Error('WebGL2 not supported');
         // Enable derivatives for rounded-rect AA shader.
         gl.getExtension('OES_standard_derivatives');
         // Enable alpha blending (needed for shadows/rounded AA).
@@ -769,6 +768,15 @@ async function runApp(canvas, hud) {
             }
             case 14: { // uniform4f: loc_id, f0,f1,f2,f3 (bits)
               gl.uniform4f(c.uniforms[a0], i2f(a1), i2f(a2), i2f(a3), i2f(a4));
+              break;
+            }
+            case 17: { // setupViewSampler2D: viewLoc, wBits, hBits, samplerLoc, unit
+              gl.uniform2f(c.uniforms[a0], i2f(a1), i2f(a2));
+              if (curActiveTex !== a4) {
+                gl.activeTexture(gl.TEXTURE0 + a4);
+                curActiveTex = a4;
+              }
+              gl.uniform1i(c.uniforms[a3], a4);
               break;
             }
             default:

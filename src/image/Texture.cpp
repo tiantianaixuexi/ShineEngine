@@ -1,5 +1,5 @@
 ﻿#include "Texture.h"
-#include "render/resources/texture_manager.h"
+#include "render/resources/TextureManager.h"
 #include "manager/AssetManager.h"
 #include "loader/image/image_loader.h"
 #include <cstring>

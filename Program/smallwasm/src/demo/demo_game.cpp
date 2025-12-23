@@ -1,6 +1,6 @@
 #include "demo_game.h"
 #include "../graphics/gl_api.h"
-#include "../graphics/command_buffer.h"
+#include "../graphics/wasm_command_buffer.h"
 #include "../util/wasm_compat.h"
 #include "../game/component.h"
 #include "../game/transform.h"
@@ -40,9 +40,20 @@ struct PulseColor final : public shine::game::Component {
 
 struct KillOnClick final : public shine::game::Component {
     KillOnClick() { setTypeId<KillOnClick>(); }
-    void onPointer(float /*x*/, float /*y*/, int isDown) override {
+    void onPointer(float x, float y, int isDown) override {
         if (!isDown) return;
-        if (node) node->markPendingKill();
+        if (!node) return;
+        auto* tr = node->getComponent<shine::game::Transform>();
+        if (!tr) return;
+
+        float cx, cy;
+        tr->worldXY(cx, cy);
+        const float w = tr->w;
+        const float h = tr->h;
+
+        if (x < cx - w * 0.5f || x > cx + w * 0.5f) return;
+        if (y < cy - h * 0.5f || y > cy + h * 0.5f) return;
+        node->markPendingKill();
     }
 };
 
@@ -51,42 +62,52 @@ struct KillOnClick final : public shine::game::Component {
 // ----------------------------------------------------------------------------
 
 static const char kVS[] =
-  "attribute vec2 aPos;\n"
-  "attribute vec3 aCol;\n"
-  "varying vec3 vCol;\n"
+  "#version 300 es\n"
+  "precision mediump float;\n"
+  "in vec2 aPos;\n"
+  "in vec3 aCol;\n"
+  "out vec3 vCol;\n"
   "void main(){ vCol = aCol; gl_Position = vec4(aPos,0.0,1.0); }\n";
 
 static const char kFS[] =
+  "#version 300 es\n"
   "precision mediump float;\n"
-  "varying vec3 vCol;\n"
-  "void main(){ gl_FragColor = vec4(vCol, 1.0); }\n";
+  "in vec3 vCol;\n"
+  "out vec4 outColor;\n"
+  "void main(){ outColor = vec4(vCol, 1.0); }\n";
 
 static const char kVS_INST[] =
-  "attribute vec2 aPos;\n"
-  "attribute vec3 aCol;\n"
-  "attribute vec3 aOffsetScale;\n" // xy offset, z scale
-  "attribute vec3 aICol;\n"
-  "varying vec3 vCol;\n"
+  "#version 300 es\n"
+  "precision mediump float;\n"
+  "in vec2 aPos;\n"
+  "in vec3 aCol;\n"
+  "in vec3 aOffsetScale;\n" // xy offset, z scale
+  "in vec3 aICol;\n"
+  "out vec3 vCol;\n"
   "void main(){\n"
   "  vec2 pos = aOffsetScale.xy + aPos * aOffsetScale.z;\n"
   "  gl_Position = vec4(pos, 0.0, 1.0);\n"
   "  vCol = aICol;\n"
   "}\n";
 
-static const char kFS_INST[] =
-  "precision mediump float;\n"
-  "varying vec3 vCol;\n"
-  "void main(){ gl_FragColor = vec4(vCol, 1.0); }\n";
-
 // ----------------------------------------------------------------------------
 // DemoGame Implementation
 // ----------------------------------------------------------------------------
 
 static void demo_on_mode_click(shine::ui::Button* w) {
+  (void)w;
   if (g_demo_game) {
       g_demo_game->render_mode = (g_demo_game->render_mode == 0) ? 1 : 0;
       LOG("render_mode", g_demo_game->render_mode);
   }
+}
+
+static void demo_rc_draw_rect_col(void* /*user*/, float cx, float cy, float w, float h, float r, float g, float b) {
+    RENDERER_2D.drawRectColor(cx, cy, w, h, r, g, b);
+}
+
+static void demo_rc_draw_rect_tex(void* /*user*/, int texId, float cx, float cy, float w, float h) {
+    RENDERER_2D.drawRectUV(texId, cx, cy, w, h);
 }
 
 // UI list wrapper for legacy ui_add - REMOVED
@@ -99,6 +120,10 @@ void DemoGame::onInit(shine::engine::Engine& app) {
 
     g_demo_game = this;
     int ctx = app.getCtx();
+
+    rc.user = nullptr;
+    rc.drawRectCol = demo_rc_draw_rect_col;
+    rc.drawRectTex = demo_rc_draw_rect_tex;
 
     // Init raw shaders
     prog = gl_create_program(ctx, 
@@ -117,7 +142,7 @@ void DemoGame::onInit(shine::engine::Engine& app) {
     // Init instanced shaders
     prog_inst = gl_create_program_instanced(ctx, 
         gl_create_shader(ctx, GL_VERTEX_SHADER, (int)kVS_INST, sizeof(kVS_INST)-1),
-        gl_create_shader(ctx, GL_FRAGMENT_SHADER, (int)kFS_INST, sizeof(kFS_INST)-1)
+        gl_create_shader(ctx, GL_FRAGMENT_SHADER, (int)kFS, sizeof(kFS)-1)
     );
     // Base quad for instances
     float q[] = {
@@ -146,7 +171,10 @@ void DemoGame::onInit(shine::engine::Engine& app) {
     // player = scene.createNode("Player");
     // Scene helper missing, using root directly.
     player = scene.root.addChildNode<shine::game::Node>("Player");
+    weapon = player->addChildNode<shine::game::Node>("Weapon");
 
+    auto* tPlayer = player->addComponent<shine::game::Transform>();
+    tPlayer->x = 0.0f; tPlayer->y = 0.0f; tPlayer->w = 0.35f; tPlayer->h = 0.35f;
     auto* sPlayer = player->addComponent<shine::game::SpriteRenderer>();
     sPlayer->texId = js_create_texture_checker(ctx, 64);
 
@@ -167,17 +195,19 @@ void DemoGame::onInit(shine::engine::Engine& app) {
     btn->bindHoverEvent([](shine::ui::Button*) { LOG("button Hover"); });
     btn->bindUnHoverEvent([](shine::ui::Button*) { LOG("button UnHover"); });
     btn->setBgUrl("asset/金币.png");
-    btn->setLayoutRelMin(0.0f, 0.0f, 0.0f, 0.0f, 0.18f);
-
+    btn->setAlignment(0.5f, 0.5f);
+    btn->setLayoutRel(0.5f, 0.5f, 0.0f, 0.0f, 0.18f, 0.09f);
+    btn->setLayoutPx(0.5f,0.5f,-50.f,50.f,100.f,100.f);
     shine::ui::UIManager::instance().add(btn);
 
     btn_mode = shine::ui::Button::create();
     btn_mode->bindOnClick(demo_on_mode_click);
-    btn_mode->setLayoutRel(-1.0f, 1.0f, 12.0f, -12.0f, 0.24f, 0.08f);
+    btn_mode->setLayoutRel(0.0f, 0.0f, 12.0f, 12.0f, 0.20f, 0.08f);
     shine::ui::UIManager::instance().add(btn_mode);
 
     img = new shine::ui::Image();
-    img->setLayoutRel(1.0f, -1.0f, -12.0f, 12.0f, 0.30f, 0.22f);
+    img->setAlignment(1.0f, 1.0f);
+    img->setLayoutRel(1.0f, 1.0f, -12.0f, -12.0f, 0.30f, 0.22f);
     img->texId = js_create_texture_checker(ctx, 64);
     shine::ui::UIManager::instance().add(img);
 
@@ -187,6 +217,8 @@ void DemoGame::onResize(shine::engine::Engine& app, int w, int h) {
     (void)app;
     (void)w;
     (void)h;
+
+    //LOG2("Resize:", w, h);
 }
 
 void DemoGame::onUpdate(shine::engine::Engine& app, float t) {
@@ -232,8 +264,6 @@ void DemoGame::onPointer(shine::engine::Engine& app, float x, float y, int isDow
     int h = app.getHeight();
     float px = (x + 1.0f) * 0.5f * (float)w;
     float py = (1.0f - y) * 0.5f * (float)h;
-
-    LOG2("onPointer:", x, y);
 
     // UI pointer
     shine::ui::UIManager::instance().onPointer(px, py, isDown);
@@ -330,6 +360,7 @@ extern "C" void on_tex_loaded(int reqId, int texId, int w, int h) {
     shine::graphics::TextureManager::instance().on_loaded(reqId, texId, w, h);
 }
 extern "C" void on_tex_failed(int reqId, int errCode) { 
+    (void)errCode;
     shine::graphics::TextureManager::instance().on_failed(reqId);
 }
 

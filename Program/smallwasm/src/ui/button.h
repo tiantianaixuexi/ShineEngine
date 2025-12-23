@@ -11,10 +11,13 @@ namespace shine::ui {
 class Button : public Element {
 
 public:
-  // Optional shared style pointer (for reuse across many buttons).
+  // 可选的共享样式指针 (可在多个按钮间复用)
     ButtonStyle* style = nullptr;
 
-  // Callback binding (WASM-friendly, no STL).
+    Color4* needRenderColor = nullptr;
+    
+
+  // 回调绑定 (WASM友好, 不使用STL)
     using OnButtonEvent = void(*)(Button* self);
 
 
@@ -23,8 +26,8 @@ public:
     OnButtonEvent UnHoverEvent = nullptr;
 
 
-  // state
-    int clicked = 0; // set to 1 on mouse up inside
+  // 状态
+    int clicked = 0; // 在内部鼠标抬起时设为 1
     int _wasDown = 0;
     
 
@@ -73,6 +76,7 @@ public:
         Element::init();
 
         style = DefaultButtonStyle();
+        needRenderColor = &style->bg_idle;
     }
 
     void pointer(float px, float py, int isDown) override {
@@ -82,8 +86,10 @@ public:
 
         if (nowOver && !wasOver && HoverEvent) {
             HoverEvent(this);
+            needRenderColor = &style->bg_hot;
         } else if (!nowOver && wasOver && UnHoverEvent) {
             UnHoverEvent(this);
+            needRenderColor = &style->bg_idle;
         }
 
         if (isDown) {
@@ -97,6 +103,7 @@ public:
 
         if (_wasDown) {
             if (isPressed && nowOver) {
+                needRenderColor = &style->bg_hot;
                 clicked = 1;
                 if (ClickEvent) ClickEvent(this);
             }
@@ -115,9 +122,6 @@ public:
 
         const ButtonStyle* s = style;
 
-        const Color4* bg = &s->bg_idle;
-        if (isPressed) bg = &s->bg_active;
-        else if (isOver) bg = &s->bg_hot;
 
         // Make hover feedback VERY obvious (even with bg texture):
         float border_px = s->border_px;
@@ -143,7 +147,7 @@ public:
         graphics::Renderer2D::instance().drawRoundRect(
             x, y, w, h,
             s->radius_px,
-            bg->r, bg->g, bg->b, bg->a,
+            needRenderColor->r, needRenderColor->g, needRenderColor->b, needRenderColor->a,
             s->bg_texId,
             s->bg_tex_tint.r, s->bg_tex_tint.g, s->bg_tex_tint.b, texTint_a,
             border_px,

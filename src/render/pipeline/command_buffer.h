@@ -3,7 +3,6 @@
 #include "shine_define.h"
 #include "render/command/command_list.h"
 #include <vector>
-#include <memory>
 
 namespace shine::render
 {

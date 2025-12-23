@@ -12,7 +12,7 @@
 #include "render/pipeline/scriptable_render_context.h"
 #include "render/pipeline/render_pipeline_asset.h"
 #include "render/pipeline/render_pipeline.h"
-#include "render/resources/texture_manager.h"
+#include "render/resources/TextureManager.h"
 
 namespace shine::gameplay
 {

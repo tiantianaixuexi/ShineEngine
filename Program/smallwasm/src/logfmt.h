@@ -63,6 +63,11 @@ void js_error(const char* fmt, const char* file, int line);
 // =======================
 //  RELEASE = stripped
 // =======================
+#define LOG0(...)
+#define LOG1(...)
+#define LOG2(...)
+#define LOG3(...)
+#define LOG4(...)
 #define LOG(...)
 #define LOGS(...)
 #define LOGSS(...)
