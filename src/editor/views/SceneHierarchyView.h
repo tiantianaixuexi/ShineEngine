@@ -21,7 +21,9 @@ namespace shine::editor::views
 
     private:
         void RenderObjectNode(shine::gameplay::SObject* obj);
-        
+
+
+        std::vector<std::string> testData;
         shine::gameplay::SObject* selectedObject_ = nullptr;
         bool isOpen_ = true;
     };

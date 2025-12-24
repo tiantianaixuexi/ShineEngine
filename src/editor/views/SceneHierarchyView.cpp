@@ -6,10 +6,17 @@ namespace shine::editor::views
 {
     SceneHierarchyView::SceneHierarchyView()
     {
+
+        for (int i = 0;i<100;i++)
+        {
+			testData.emplace_back(fmt::format("测试对象 {}", i));
+        }
     }
 
     SceneHierarchyView::~SceneHierarchyView()
     {
+
+
     }
 
     void SceneHierarchyView::Render()
@@ -23,21 +30,29 @@ namespace shine::editor::views
             // 示例：显示一个测试对象
             bool isSelected = (selectedObject_ != nullptr);
 
-            if (ImGui::Selectable("测试对象", isSelected))
+            for (auto& c : testData)
             {
-                fmt::println("点击了");
-                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                {
-                    fmt::println("点击了鼠标左键");
-                }else if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-                {
-                    fmt::println("点击了鼠标右键");
-                }
-                // 这里可以设置选中的对象
-                // SetSelectedObject(&g_TestActor);
-                
+				if (ImGui::TreeNodeEx(c.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet))
+				{
+                    ImGui::TreePop();
+				}
             }
-            
+
+            //if (ImGui::Selectable("测试对象", isSelected))
+            //{
+            //    fmt::println("点击了");
+            //    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            //    {
+            //        fmt::println("点击了鼠标左键");
+            //    }else if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+            //    {
+            //        fmt::println("点击了鼠标右键");
+            //    }
+            //    // 这里可以设置选中的对象
+            //    // SetSelectedObject(&g_TestActor);
+            //    
+            //}
+            //
             ImGui::TreePop();
         }
 

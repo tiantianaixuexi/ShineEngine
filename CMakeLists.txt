@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 4.1.0)
 project(ShineEngine VERSION 1.0.0 LANGUAGES CXX)
 
 # --------------------------------
@@ -8,6 +8,8 @@ project(ShineEngine VERSION 1.0.0 LANGUAGES CXX)
 option(SHINE_WASM_DISPATCH_ONLY "Configure only wasm(subcmake) dispatch targets (quiet & fast)" OFF)
 # When ON, suppress most module-related message(STATUS ...) output.
 option(SHINE_QUIET_MODULE_MESSAGES "Suppress module status messages during configure" OFF)
+# Target module name for selective output (empty = show all modules)
+set(SHINE_TARGET_MODULE "" CACHE STRING "Target module name for selective output")
 
 # 设置C++标准
 set(CMAKE_CXX_STANDARD 23)
@@ -332,6 +334,79 @@ function(parse_and_cache_modules)
 endfunction()
 
 # ================================
+# 依赖关系计算（缓存优化版本）
+# ================================
+function(compute_module_dependencies target_module result_var)
+    set(dependencies "")
+    set(visited_modules "")
+
+    function(add_module_deps module_name visited_ref deps_ref)
+        set(visited ${${visited_ref}})
+        set(deps ${${deps_ref}})
+
+        list(FIND visited ${module_name} found)
+        if(NOT found EQUAL -1)
+            return()
+        endif()
+
+        list(APPEND visited ${module_name})
+        set(${visited_ref} ${visited} PARENT_SCOPE)
+
+        get_property(module_deps GLOBAL PROPERTY "MODULE_${module_name}_DEPS")
+
+        foreach(dep ${module_deps})
+            if(dep)
+                get_property(dep_name GLOBAL PROPERTY "MODULE_${dep}_NAME")
+                if(dep_name)
+                    list(FIND deps ${dep} dep_found)
+                    if(dep_found EQUAL -1)
+                        list(APPEND deps ${dep})
+                    endif()
+
+                    add_module_deps(${dep} visited_ref deps_ref)
+                    set(deps ${${deps_ref}})
+                endif()
+            endif()
+        endforeach()
+
+        set(${deps_ref} ${deps} PARENT_SCOPE)
+    endfunction()
+
+    add_module_deps(${target_module} visited_modules dependencies)
+    set(${result_var} ${dependencies} PARENT_SCOPE)
+endfunction()
+
+# 全局缓存变量
+set(SHINE_TARGET_DEPS_CACHE "")
+
+function(init_dependency_cache)
+    if(NOT SHINE_TARGET_MODULE STREQUAL "" AND SHINE_TARGET_DEPS_CACHE STREQUAL "")
+        compute_module_dependencies(${SHINE_TARGET_MODULE} deps)
+        set(SHINE_TARGET_DEPS_CACHE "${deps}" CACHE INTERNAL "Target module dependencies" FORCE)
+    endif()
+endfunction()
+
+function(should_show_module module_name)
+    if(SHINE_TARGET_MODULE STREQUAL "")
+        set(SHOULD_SHOW TRUE PARENT_SCOPE)
+        return()
+    endif()
+
+    if(module_name STREQUAL SHINE_TARGET_MODULE)
+        set(SHOULD_SHOW TRUE PARENT_SCOPE)
+        return()
+    endif()
+
+    list(FIND SHINE_TARGET_DEPS_CACHE ${module_name} found)
+    if(NOT found EQUAL -1)
+        set(SHOULD_SHOW TRUE PARENT_SCOPE)
+        return()
+    endif()
+
+    set(SHOULD_SHOW FALSE PARENT_SCOPE)
+endfunction()
+
+# ================================
 # VS文件夹路径生成
 # ================================
 function(get_vs_folder_path module_file result_var)
@@ -434,6 +509,9 @@ endfunction()
 parse_and_cache_modules()
 get_property(MODULE_LIST GLOBAL PROPERTY MODULE_DATA_CACHE)
 
+# 初始化依赖关系缓存
+init_dependency_cache()
+
 # ================================
 # 创建所有模块目标
 # ================================
@@ -462,7 +540,8 @@ foreach(module_name ${MODULE_LIST})
     endif()
 
     if(NOT files AND NOT is_subcmake)
-        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+        should_show_module(${name})
+        if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "Skip empty module: ${name}")
         endif()
         continue()
@@ -534,7 +613,8 @@ foreach(module_name ${MODULE_LIST})
 
         # NOTE: no ${name}_files target; VS browsing uses the SOURCES attached to ${name}.
 
-        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+        should_show_module(${name})
+        if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "Module: ${name}")
         endif()
         continue()
@@ -553,53 +633,62 @@ foreach(module_name ${MODULE_LIST})
     # 根据模块类型创建目标
     if(is_executable)
         add_executable(${name} EXCLUDE_FROM_ALL)
-        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+        should_show_module(${name})
+        if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "  ${name} -> EXECUTABLE (Excluded from ALL)")
         endif()
     elseif(is_static)
         add_library(${name} STATIC)
-        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+        should_show_module(${name})
+        if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "  ${name} -> STATIC")
         endif()
     elseif(is_shared)
         add_library(${name} SHARED)
-        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+        should_show_module(${name})
+        if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "  ${name} -> SHARED")
         endif()
     elseif(is_third)
         add_library(${name} INTERFACE)
         set(is_interface TRUE)
         set(has_sources FALSE)
-        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+        should_show_module(${name})
+        if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "  ${name} -> INTERFACE (third party)")
         endif()
     elseif(NOT source_files AND header_files)
         add_library(${name} INTERFACE)
         set(is_interface TRUE)
         set(has_sources FALSE)
-        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+        should_show_module(${name})
+        if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "  ${name} -> INTERFACE (header only)")
         endif()
     elseif(is_lib OR source_files)
         add_library(${name} STATIC)
-        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+        should_show_module(${name})
+        if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "  ${name} -> STATIC")
         endif()
     else()
         add_library(${name} SHARED)
-        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+        should_show_module(${name})
+        if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "  ${name} -> SHARED (default)")
         endif()
     endif()
 
     # 添加源文件和头文件
     if(is_third)
-        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+        should_show_module(${name})
+        if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "  添加第三方库文件: 无源文件")
         endif()
     elseif(is_interface)
         target_sources(${name} INTERFACE ${header_files})
-        if(NOT SHINE_QUIET_MODULE_MESSAGES)
+        should_show_module(${name})
+        if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "  添加接口库文件: ${header_files}")
         endif()
     else()
@@ -690,7 +779,8 @@ foreach(module_name ${MODULE_LIST})
         CXX_EXTENSIONS OFF
     )
 
-    if(NOT SHINE_QUIET_MODULE_MESSAGES)
+    should_show_module(${name})
+    if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
         message(STATUS "Module: ${name}")
     endif()
 endforeach()
@@ -850,29 +940,24 @@ list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*/imgui/.*")
 list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*/tinygltf/.*")
 
 # 收集所有模块的源文件路径并排除
-# 转换为绝对路径进行比较，避免路径格式问题
 set(EXCLUDE_ABS_PATHS "")
 set(EXCLUDE_REL_PATHS "")
 foreach(module_name ${MODULE_LIST})
     get_property(files GLOBAL PROPERTY "MODULE_${module_name}_FILES")
     foreach(mod_src ${files})
-        # 转换为绝对路径
         get_filename_component(abs_mod_src "${CMAKE_SOURCE_DIR}/${mod_src}" ABSOLUTE)
-        # 规范化路径格式（统一使用正斜杠）
         file(TO_CMAKE_PATH "${abs_mod_src}" abs_mod_src_norm)
         list(APPEND EXCLUDE_ABS_PATHS "${abs_mod_src_norm}")
         list(APPEND EXCLUDE_ABS_PATHS "${abs_mod_src}")
-        # 也添加相对路径
         list(APPEND EXCLUDE_REL_PATHS "${mod_src}")
         file(TO_CMAKE_PATH "${mod_src}" mod_src_norm)
         list(APPEND EXCLUDE_REL_PATHS "${mod_src_norm}")
     endforeach()
 endforeach()
 
-# 排除模块文件
+# 排除模块文件 - 只排除模块目录下的文件，避免影响 MainEngine 的同名文件
 set(FILTERED_SOURCES "")
 foreach(src ${ENGINE_SOURCES})
-    # 转换为绝对路径并规范化
     if(IS_ABSOLUTE "${src}")
         set(abs_src "${src}")
         file(RELATIVE_PATH rel_src "${CMAKE_SOURCE_DIR}" "${src}")
@@ -880,56 +965,29 @@ foreach(src ${ENGINE_SOURCES})
         get_filename_component(abs_src "${CMAKE_SOURCE_DIR}/${src}" ABSOLUTE)
         set(rel_src "${src}")
     endif()
-    # 规范化路径格式（统一使用正斜杠）
     file(TO_CMAKE_PATH "${abs_src}" abs_src_norm)
     file(TO_CMAKE_PATH "${rel_src}" rel_src_norm)
-    # 也尝试将反斜杠替换为正斜杠
     string(REPLACE "\\" "/" abs_src_unix "${abs_src_norm}")
     string(REPLACE "\\" "/" rel_src_unix "${rel_src_norm}")
-    # 检查是否在排除列表中（尝试多种格式）
+
     list(FIND EXCLUDE_ABS_PATHS "${abs_src_norm}" found_abs1)
     list(FIND EXCLUDE_ABS_PATHS "${abs_src}" found_abs2)
     list(FIND EXCLUDE_ABS_PATHS "${abs_src_unix}" found_abs3)
     list(FIND EXCLUDE_REL_PATHS "${rel_src_norm}" found_rel1)
     list(FIND EXCLUDE_REL_PATHS "${rel_src}" found_rel2)
     list(FIND EXCLUDE_REL_PATHS "${rel_src_unix}" found_rel3)
-    # 如果找到匹配（任何格式），则排除该文件
-    # 注意：list(FIND) 返回索引（>=0）表示找到，-1 表示未找到
+
     set(should_exclude FALSE)
     if(found_abs1 GREATER_EQUAL 0 OR found_abs2 GREATER_EQUAL 0 OR found_abs3 GREATER_EQUAL 0 OR
        found_rel1 GREATER_EQUAL 0 OR found_rel2 GREATER_EQUAL 0 OR found_rel3 GREATER_EQUAL 0)
         set(should_exclude TRUE)
     endif()
-    # 如果找到匹配（任何格式），则排除该文件
+
     if(NOT should_exclude)
         list(APPEND FILTERED_SOURCES "${src}")
     endif()
 endforeach()
 set(ENGINE_SOURCES ${FILTERED_SOURCES})
-
-# 最终检查：直接移除模块文件（使用 list(REMOVE_ITEM)）
-foreach(module_name ${MODULE_LIST})
-    get_property(files GLOBAL PROPERTY "MODULE_${module_name}_FILES")
-    foreach(mod_src ${files})
-        get_filename_component(abs_mod_src "${CMAKE_SOURCE_DIR}/${mod_src}" ABSOLUTE)
-        file(TO_CMAKE_PATH "${abs_mod_src}" abs_mod_src_norm)
-        # 尝试多种路径格式移除
-        list(REMOVE_ITEM ENGINE_SOURCES "${abs_mod_src_norm}")
-        list(REMOVE_ITEM ENGINE_SOURCES "${abs_mod_src}")
-        list(REMOVE_ITEM ENGINE_SOURCES "${mod_src}")
-        # 也尝试 Unix 风格的路径
-        string(REPLACE "\\" "/" abs_mod_src_unix "${abs_mod_src_norm}")
-        list(REMOVE_ITEM ENGINE_SOURCES "${abs_mod_src_unix}")
-        # 也尝试匹配文件名（不区分路径）
-        get_filename_component(filename "${mod_src}" NAME)
-        foreach(src ${ENGINE_SOURCES})
-            get_filename_component(src_filename "${src}" NAME)
-            if("${src_filename}" STREQUAL "${filename}")
-                list(REMOVE_ITEM ENGINE_SOURCES "${src}")
-            endif()
-        endforeach()
-    endforeach()
-endforeach()
 list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]gltfLoader\\.h$")
 list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]loader\\.h$")
 list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]lodepng\\.h$")
@@ -947,32 +1005,7 @@ list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]url_util\\.h$")
 list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]timer[/\\\\].*\\.h$")
 
 # 创建主引擎目标
-# 注意：必须确保 ENGINE_SOURCES 中不包含模块文件
 add_executable(MainEngine ${ENGINE_SOURCES})
-
-# 双重保险：只对 MainEngine 目标中的模块文件设置属性以隐藏它们
-# 注意：不能全局设置模块文件属性，否则会阻止模块本身的构建
-if(TARGET MainEngine)
-    get_target_property(target_sources MainEngine SOURCES)
-    if(target_sources)
-        foreach(module_name ${MODULE_LIST})
-            get_property(files GLOBAL PROPERTY "MODULE_${module_name}_FILES")
-            foreach(mod_src ${files})
-                get_filename_component(filename "${mod_src}" NAME)
-                # 只对 MainEngine 目标中的文件设置属性
-                foreach(src ${target_sources})
-                    get_filename_component(src_filename "${src}" NAME)
-                    if("${src_filename}" STREQUAL "${filename}")
-                        set_source_files_properties("${src}" PROPERTIES 
-                            HEADER_FILE_ONLY TRUE
-                            VS_SETTINGS "ExcludeFromBuild=true"
-                        )
-                    endif()
-                endforeach()
-            endforeach()
-        endforeach()
-    endif()
-endif()
 
 target_include_directories(MainEngine PRIVATE ${COMMON_INCLUDE_DIRS})
 target_link_directories(MainEngine PRIVATE
@@ -1009,17 +1042,17 @@ if(MSVC)
     endforeach()
 endif()
 
-# 链接所有模块（排除可执行文件类型）
+# 链接所有模块（排除可执行文件类型）和第三方库
 foreach(module_name ${MODULE_LIST})
     get_property(name GLOBAL PROPERTY "MODULE_${module_name}_NAME")
     get_property(types GLOBAL PROPERTY "MODULE_${module_name}_TYPES")
     
     check_module_type("${types}" "exe" is_executable)
     check_module_type("${types}" "subcmake" is_subcmake)
+    check_module_type("${types}" "third" is_third_party)
+    
     if(NOT is_executable AND NOT is_subcmake AND TARGET ${name})
         add_dependencies(MainEngine ${name})
-        # 对于 INTERFACE 库（如 fmt），使用 PUBLIC 链接以确保第三方库链接能传递
-        check_module_type("${types}" "third" is_third_party)
         get_property(is_interface GLOBAL PROPERTY "MODULE_${module_name}_IS_INTERFACE")
         if(is_third_party OR is_interface)
             target_link_libraries(MainEngine PUBLIC ${name})
@@ -1027,33 +1060,19 @@ foreach(module_name ${MODULE_LIST})
             target_link_libraries(MainEngine PRIVATE ${name})
         endif()
     endif()
-endforeach()
-
-# 确保 MainEngine 也直接链接所有第三方库的链接配置
-# 使用完整路径，与 link_third_party_libs 函数保持一致
-foreach(module_name ${MODULE_LIST})
-    get_property(name GLOBAL PROPERTY "MODULE_${module_name}_NAME")
-    get_property(types GLOBAL PROPERTY "MODULE_${module_name}_TYPES")
-    check_module_type("${types}" "third" is_third_party)
+    
+    # 链接第三方库的静态库文件
     if(is_third_party)
         get_property(third_libs_debug GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_DEBUG")
         get_property(third_libs_release GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_RELEASE")
-        # 调试输出：验证解析是否成功（已确认工作正常，可注释掉）
-        # message(STATUS "MainEngine linking third-party libs for ${name}: Debug=${third_libs_debug}, Release=${third_libs_release}")
-        if(third_libs_debug)
-            foreach(lib ${third_libs_debug})
-                # 使用完整路径，与 link_third_party_libs 函数保持一致
-                target_link_libraries(MainEngine PRIVATE 
-                    $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
-            endforeach()
-        endif()
-        if(third_libs_release)
-            foreach(lib ${third_libs_release})
-                # 使用完整路径，与 link_third_party_libs 函数保持一致
-                target_link_libraries(MainEngine PRIVATE 
-                    $<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
-            endforeach()
-        endif()
+        foreach(lib ${third_libs_debug})
+            target_link_libraries(MainEngine PRIVATE 
+                $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
+        endforeach()
+        foreach(lib ${third_libs_release})
+            target_link_libraries(MainEngine PRIVATE 
+                $<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
+        endforeach()
     endif()
 endforeach()
 
@@ -1072,9 +1091,7 @@ endif()
 
 # ================================
 # 复制第三方库 DLL 文件到输出目录
-# ================================
-if(WIN32 AND TARGET MainEngine OR is_executable)
-    # 复制 GLEW DLL 文件到 exe 目录
+if(WIN32 AND TARGET MainEngine)
     add_custom_command(TARGET MainEngine POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_SOURCE_DIR}/src/third/lib/glew32.dll"
@@ -1108,11 +1125,7 @@ if(MSVC)
     foreach(json_file ${MODULE_JSON_FILES})
         file(RELATIVE_PATH rel_path "${CMAKE_SOURCE_DIR}/Module" "${json_file}")
         get_filename_component(file_dir "${rel_path}" DIRECTORY)
-        if(file_dir AND NOT file_dir STREQUAL ".")
-            string(REPLACE "/" "\\" group_path "${file_dir}")
-        else()
-            set(group_path "")
-        endif()
+        string(REPLACE "/" "\\" group_path "${file_dir}")
         source_group("${group_path}" FILES "${json_file}")
     endforeach()
 endif()
