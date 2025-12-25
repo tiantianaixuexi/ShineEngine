@@ -1,5 +1,11 @@
 ﻿#include "util/shine_define.h"
 
+
+
+#ifdef BUILD_EDITOR
+#include "editor/editorPlayer/editor_play.h"
+#endif
+
 #ifdef SHINE_PLATFORM_WASN
 
 #include <emscripten.h>
@@ -127,6 +133,14 @@ int main(int argc, char** argv) {
 	shine::editor::main_editor::MainEditor* mainEditor = nullptr;
 	mainEditor = new shine::editor::main_editor::MainEditor();
 	mainEditor->Init();
+
+
+	shine::editor::SEditorPlayer& editorPlayer = shine::editor::SEditorPlayer::get();
+
+	editorPlayer.init();
+
+
+	editorPlayer.
 
 
 

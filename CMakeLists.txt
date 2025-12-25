@@ -1007,6 +1007,10 @@ list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]timer[/\\\\].*\\.h$")
 # 创建主引擎目标
 add_executable(MainEngine ${ENGINE_SOURCES})
 
+if(SHINE_BUILD_EDITOR)
+    target_compile_definitions(MainEngine PRIVATE BUILD_EDITOR)
+endif()
+
 target_include_directories(MainEngine PRIVATE ${COMMON_INCLUDE_DIRS})
 target_link_directories(MainEngine PRIVATE
     ${CMAKE_SOURCE_DIR}/exe

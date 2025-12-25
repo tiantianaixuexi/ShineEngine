@@ -40,7 +40,7 @@ namespace shine::util{
 #if defined(_WIN32)
         static LARGE_INTEGER freq = []() {LARGE_INTEGER f;QueryPerformanceFrequency(&f); return f; }();
         LARGE_INTEGER now; QueryPerformanceCounter(&now);
-        return static_cast<T>(now.QuadPart * 1000000000ull / freq.QuadPart);
+        return static_cast<T>(1000000000ull * now.QuadPart / freq.QuadPart);
 #else
         struct timespec ts;
         clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -48,12 +48,8 @@ namespace shine::util{
 #endif
     }
 
-    template float get_now_ms_platform<float>();
-    template double get_now_ms_platform<double>();
 
-    template float now_ns<float>();
-    template double now_ns<double>();
-    template unsigned long long now_ns<unsigned long long>();
+
 
 }
 

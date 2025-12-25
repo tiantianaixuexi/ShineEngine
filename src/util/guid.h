@@ -1,15 +1,13 @@
 ﻿#pragma once
 
 #include "shine_define.h"
-#include <cstdint>
 #include <compare>
 #include <array>
 #include <random>
 #include <string>
-#include <span>
 #include <expected>
-#include <optional>
-#include <algorithm>
+
+#include "timer/timer_util.h"
 
 // 注意：本项目使用 C++23，所有 C++23 特性默认可用
 // 只需针对 WASM 平台做特殊处理
@@ -19,14 +17,14 @@ namespace shine::util
     // 仿Unreal Engine FGuid 类的128-bit 标识符
 	struct FGuid
     {
-        std::uint32_t A {0};
-        std::uint32_t B {0};
-        std::uint32_t C {0};
-        std::uint32_t D {0};
+        u32 A {0};
+        u32 B {0};
+        u32 C {0};
+        u32 D {0};
 
         // 构造
         constexpr FGuid() = default;
-        constexpr FGuid(std::uint32_t a, std::uint32_t b, std::uint32_t c, std::uint32_t d) noexcept
+        constexpr FGuid(u32 a, u32 b, u32 c, u32 d) noexcept
             : A(a), B(b), C(c), D(d) {}
 
         // 验证
@@ -56,25 +54,19 @@ namespace shine::util
          }
 
 
-        // 转字节序列（网络序：大端）
-        [[nodiscard]] std::array<std::uint8_t, 16> ToBytes() const noexcept
-        {
-            auto be32 = [](std::uint32_t v) {
-                return std::array<std::uint8_t, 4>{
-                    static_cast<std::uint8_t>((v >> 24) & 0xFF),
-                    static_cast<std::uint8_t>((v >> 16) & 0xFF),
-                    static_cast<std::uint8_t>((v >> 8) & 0xFF),
-                    static_cast<std::uint8_t>(v & 0xFF)
-                };
-            };
-            std::array<std::uint8_t, 16> out{};
-            auto a = be32(A); auto b = be32(B); auto c = be32(C); auto d = be32(D);
-            std::copy(a.begin(), a.end(), out.begin() + 0);
-            std::copy(b.begin(), b.end(), out.begin() + 4);
-            std::copy(c.begin(), c.end(), out.begin() + 8);
-            std::copy(d.begin(), d.end(), out.begin() + 12);
-            return out;
-        }
+    [[nodiscard]] std::array<u8, 16> ToBytes() const noexcept
+    {
+        return {
+            static_cast<u8>((A >> 24) & 0xFF), static_cast<u8>((A >> 16) & 0xFF),
+            static_cast<u8>((A >> 8) & 0xFF),  static_cast<u8>(A & 0xFF),
+            static_cast<u8>((B >> 24) & 0xFF), static_cast<u8>((B >> 16) & 0xFF),
+            static_cast<u8>((B >> 8) & 0xFF),  static_cast<u8>(B & 0xFF),
+            static_cast<u8>((C >> 24) & 0xFF), static_cast<u8>((C >> 16) & 0xFF),
+            static_cast<u8>((C >> 8) & 0xFF),  static_cast<u8>(C & 0xFF),
+            static_cast<u8>((D >> 24) & 0xFF), static_cast<u8>((D >> 16) & 0xFF),
+            static_cast<u8>((D >> 8) & 0xFF),  static_cast<u8>(D & 0xFF)
+        };
+    }
 
         // 从字节序列构造（网络序：大端）
 #ifdef SHINE_PLATFORM_WASM
@@ -89,67 +81,51 @@ namespace shine::util
             };
             return FGuid{ rd32(bytes.data()+0), rd32(bytes.data()+4), rd32(bytes.data()+8), rd32(bytes.data()+12) };
         }
-        
-        // 重载：接受指针和大小（WASM 兼容）
-        static FGuid FromBytes(const std::uint8_t* bytes, size_t size) noexcept
-        {
-            if (size < 16) {
-                return FGuid{}; // 无效 GUID
-            }
-            auto rd32 = [](const std::uint8_t* p) -> std::uint32_t {
-                return (static_cast<std::uint32_t>(p[0]) << 24) |
-                       (static_cast<std::uint32_t>(p[1]) << 16) |
-                       (static_cast<std::uint32_t>(p[2]) << 8)  |
-                       (static_cast<std::uint32_t>(p[3])      );
-            };
-            return FGuid{ rd32(bytes+0), rd32(bytes+4), rd32(bytes+8), rd32(bytes+12) };
-        }
 #else
-        // C++23: 使用 std::span
-        static FGuid FromBytes(std::span<const std::uint8_t, 16> bytes) noexcept
+
+        // 重载：接受指针和大小（WASM 兼容）
+        static FGuid FromBytes(const std::uint8_t* b) noexcept
         {
-            auto rd32 = [](const std::uint8_t* p) -> std::uint32_t {
-                return (static_cast<std::uint32_t>(p[0]) << 24) |
-                       (static_cast<std::uint32_t>(p[1]) << 16) |
-                       (static_cast<std::uint32_t>(p[2]) << 8)  |
-                       (static_cast<std::uint32_t>(p[3])      );
-            };
-            return FGuid{ rd32(bytes.data()+0), rd32(bytes.data()+4), rd32(bytes.data()+8), rd32(bytes.data()+12) };
+            FGuid g{};
+            g.A = (static_cast<u32>(b[0]) << 24) | (static_cast<u32>(b[1]) << 16) | (static_cast<u32>(b[2]) << 8) | b[3];
+            g.B = (static_cast<u32>(b[4]) << 24) | (static_cast<u32>(b[5]) << 16) | (static_cast<u32>(b[6]) << 8) | b[7];
+            g.C = (static_cast<u32>(b[8]) << 24) | (static_cast<u32>(b[9]) << 16) | (static_cast<u32>(b[10]) << 8) | b[11];
+            g.D = (static_cast<u32>(b[12]) << 24) | (static_cast<u32>(b[13]) << 16) | (static_cast<u32>(b[14]) << 8) | b[15];
+            return g;
         }
 #endif
 
         // GUID 字符串：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx（可选大写字母）
         [[nodiscard]] std::string ToString(bool withBraces = false, bool uppercase = false) const
         {
-            auto bytes = ToBytes();
-            auto hex = [&](std::uint8_t v){
-                constexpr char lower[16] = {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
-                constexpr char upper[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-                const char* tbl = uppercase ? upper : lower;
-                char buf[2];
-                buf[0] = tbl[(v >> 4) & 0xF];
-                buf[1] = tbl[v & 0xF];
-                return std::array<char,2>{buf[0], buf[1]};
-            };
-
-            std::string s;
-            s.reserve(withBraces ? 38 : 36);
-            if (withBraces) s.push_back('{');
-
-            auto push2 = [&](std::uint8_t v){ auto h = hex(v); s.push_back(h[0]); s.push_back(h[1]); };
-            // 8-4-4-4-12 分组
-            for (int i=0;i<4;i++) push2(bytes[i]);
-            s.push_back('-');
-            for (int i=4;i<6;i++) push2(bytes[i]);
-            s.push_back('-');
-            for (int i=6;i<8;i++) push2(bytes[i]);
-            s.push_back('-');
-            for (int i=8;i<10;i++) push2(bytes[i]);
-            s.push_back('-');
-            for (int i=10;i<16;i++) push2(bytes[i]);
-
-            if (withBraces) s.push_back('}');
-            return s;
+               static constexpr char lower[16] = {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
+    static constexpr char upper[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+    const char* tbl = uppercase ? upper : lower;
+    
+    const auto bytes = ToBytes();
+    std::string s;
+    s.resize(withBraces ? 38 : 36);
+    
+    size_t pos = 0;
+    if (withBraces) s[pos++] = '{';
+    
+    auto push2 = [&](int i) {
+        s[pos++] = tbl[(bytes[i] >> 4) & 0xF];
+        s[pos++] = tbl[bytes[i] & 0xF];
+    };
+    
+    for (int i = 0; i < 4; ++i) push2(i);
+    s[pos++] = '-';
+    for (int i = 4; i < 6; ++i) push2(i);
+    s[pos++] = '-';
+    for (int i = 6; i < 8; ++i) push2(i);
+    s[pos++] = '-';
+    for (int i = 8; i < 10; ++i) push2(i);
+    s[pos++] = '-';
+    for (int i = 10; i < 16; ++i) push2(i);
+    
+    if (withBraces) s[pos] = '}';
+    return s;
         }
 
         enum class ParseError { InvalidLength, InvalidChar, InvalidFormat };
@@ -167,7 +143,6 @@ namespace shine::util
         {
             ParseResult result;
             
-            // 允许有或无大括号；统一去除大括号
             size_t startPos = 0;
             if (text.size() == 38 && text.front()=='{' && text.back()=='}') {
                 startPos = 1;
@@ -176,67 +151,47 @@ namespace shine::util
                 result.error = ParseError::InvalidLength;
                 return result;
             }
-            // 使用偏移量访问，避免 substr 的类型问题
             const char* data = text.data() + startPos;
 
-            const auto& hexVal = [](const char c) noexcept ->int {
+            if (data[8] != '-' || data[13] != '-' || data[18] != '-' || data[23] != '-') {
+                result.error = ParseError::InvalidFormat;
+                return result;
+            }
+
+            std::array<std::uint8_t,16> b{};
+            int idx = 0;
+
+            auto hexVal = [](const char c) noexcept ->int {
                 if (c>='0' && c<='9') return c - '0';
                 if (c>='a' && c<='f') return c - 'a' + 10;
                 if (c>='A' && c<='F') return c - 'A' + 10;
                 return -1;
             };
 
-            const auto &readByte = [&](const char hi,const  char lo) noexcept ->std::optional<std::uint8_t>{
-                int h = hexVal(hi), l = hexVal(lo);
-                if (h < 0 || l < 0) return std::nullopt;
-                return static_cast<std::uint8_t>((h<<4) | l);
-            };
-
-            std::array<std::uint8_t,16> b{};
-            // 验证分隔符位置
-            if (data[8] != '-' || data[13] != '-' || data[18] != '-' || data[23] != '-') {
-                result.error = ParseError::InvalidFormat;
-                return result;
-            }
-
-            auto idx = 0;
-            auto take2 = [&](int offset)->bool{
-                auto r = readByte(data[offset], data[offset+1]);
-                if (!r.has_value()) return false;
-                b[idx++] = r.value();
-                return true;
-            };
-
-            // 8-4-4-4-12
             for (int i=0;i<8;i+=2) {
-                if (!take2(i)) {
-                    result.error = ParseError::InvalidChar;
-                    return result;
-                }
+                int h = hexVal(data[i]), l = hexVal(data[i+1]);
+                if (h < 0 || l < 0) { result.error = ParseError::InvalidChar; return result; }
+                b[idx++] = static_cast<std::uint8_t>((h<<4) | l);
             }
             for (int i=9;i<13;i+=2) {
-                if (!take2(i)) {
-                    result.error = ParseError::InvalidChar;
-                    return result;
-                }
+                int h = hexVal(data[i]), l = hexVal(data[i+1]);
+                if (h < 0 || l < 0) { result.error = ParseError::InvalidChar; return result; }
+                b[idx++] = static_cast<std::uint8_t>((h<<4) | l);
             }
             for (int i=14;i<18;i+=2) {
-                if (!take2(i)) {
-                    result.error = ParseError::InvalidChar;
-                    return result;
-                }
+                int h = hexVal(data[i]), l = hexVal(data[i+1]);
+                if (h < 0 || l < 0) { result.error = ParseError::InvalidChar; return result; }
+                b[idx++] = static_cast<std::uint8_t>((h<<4) | l);
             }
             for (int i=19;i<23;i+=2) {
-                if (!take2(i)) {
-                    result.error = ParseError::InvalidChar;
-                    return result;
-                }
+                int h = hexVal(data[i]), l = hexVal(data[i+1]);
+                if (h < 0 || l < 0) { result.error = ParseError::InvalidChar; return result; }
+                b[idx++] = static_cast<std::uint8_t>((h<<4) | l);
             }
             for (int i=24;i<36;i+=2) {
-                if (!take2(i)) {
-                    result.error = ParseError::InvalidChar;
-                    return result;
-                }
+                int h = hexVal(data[i]), l = hexVal(data[i+1]);
+                if (h < 0 || l < 0) { result.error = ParseError::InvalidChar; return result; }
+                b[idx++] = static_cast<std::uint8_t>((h<<4) | l);
             }
 
             result.value = FromBytes(b);
@@ -246,7 +201,6 @@ namespace shine::util
         // C++23: 使用 std::expected
         static std::expected<FGuid, ParseError> Parse(SString text)
         {
-            // 允许有或无大括号；统一去除大括号
             size_t startPos = 0;
             if (text.size() == 38 && text.front()=='{' && text.back()=='}') {
                 startPos = 1;
@@ -254,69 +208,78 @@ namespace shine::util
             if (text.size() != 36 + (startPos > 0 ? 2 : 0)) {
                 return std::unexpected(ParseError::InvalidLength);
             }
-            // 使用偏移量访问，避免 substr 的类型问题
             const char* data = text.data() + startPos;
 
-            const auto& hexVal = [](const char c) noexcept ->int {
+            if (data[8] != '-' || data[13] != '-' || data[18] != '-' || data[23] != '-')
+                return std::unexpected(ParseError::InvalidFormat);
+
+            std::array<u8,16> b{};
+            int idx = 0;
+
+            auto hexVal = [](const char c) noexcept ->int {
                 if (c>='0' && c<='9') return c - '0';
                 if (c>='a' && c<='f') return c - 'a' + 10;
                 if (c>='A' && c<='F') return c - 'A' + 10;
                 return -1;
             };
 
-            const auto &readByte = [&](const char hi,const  char lo) noexcept ->std::expected<std::uint8_t, ParseError>{
-                int h = hexVal(hi), l = hexVal(lo);
+            for (int i=0;i<8;i+=2) {
+                int h = hexVal(data[i]), l = hexVal(data[i+1]);
                 if (h < 0 || l < 0) return std::unexpected(ParseError::InvalidChar);
-                return static_cast<std::uint8_t>((h<<4) | l);
-            };
+                b[idx++] = static_cast<u8>((h<<4) | l);
+            }
+            for (int i=9;i<13;i+=2) {
+                int h = hexVal(data[i]), l = hexVal(data[i+1]);
+                if (h < 0 || l < 0) return std::unexpected(ParseError::InvalidChar);
+                b[idx++] = static_cast<u8>((h<<4) | l);
+            }
+            for (int i=14;i<18;i+=2) {
+                int h = hexVal(data[i]), l = hexVal(data[i+1]);
+                if (h < 0 || l < 0) return std::unexpected(ParseError::InvalidChar);
+                b[idx++] = static_cast<u8>((h<<4) | l);
+            }
+            for (int i=19;i<23;i+=2) {
+                int h = hexVal(data[i]), l = hexVal(data[i+1]);
+                if (h < 0 || l < 0) return std::unexpected(ParseError::InvalidChar);
+                b[idx++] = static_cast<u8>((h<<4) | l);
+            }
+            for (int i=24;i<36;i+=2) {
+                int h = hexVal(data[i]), l = hexVal(data[i+1]);
+                if (h < 0 || l < 0) return std::unexpected(ParseError::InvalidChar);
+                b[idx++] = static_cast<u8>((h<<4) | l);
+            }
 
-            std::array<std::uint8_t,16> b{};
-            // 验证分隔符位置
-            if (data[8] != '-' || data[13] != '-' || data[18] != '-' || data[23] != '-')
-                return std::unexpected(ParseError::InvalidFormat);
-
-            auto idx = 0;
-            auto take2 = [&](int offset)->bool{
-                auto r = readByte(data[offset], data[offset+1]);
-                if (!r.has_value()) return false;
-                b[idx++] = r.value();
-                return true;
-            };
-
-            // 8-4-4-4-12
-            for (int i=0;i<8;i+=2) if (!take2(i)) return std::unexpected(ParseError::InvalidChar);
-            for (int i=9;i<13;i+=2) if (!take2(i)) return std::unexpected(ParseError::InvalidChar);
-            for (int i=14;i<18;i+=2) if (!take2(i)) return std::unexpected(ParseError::InvalidChar);
-            for (int i=19;i<23;i+=2) if (!take2(i)) return std::unexpected(ParseError::InvalidChar);
-            for (int i=24;i<36;i+=2) if (!take2(i)) return std::unexpected(ParseError::InvalidChar);
-
-            return FromBytes(std::span<const std::uint8_t,16>(b));
+            return FromBytes(&b[0]);
         }
 #endif
 
         // 生成随机 GUID（符合v4/variant 标准）
         static FGuid NewGuid()
         {
-            std::array<std::uint8_t,16> b{};
-            std::random_device rd;
-            std::mt19937_64 gen{ static_cast<std::mt19937_64::result_type>( (static_cast<std::uint64_t>(rd())<<32) ^ rd()) };
-            auto dist = std::uniform_int_distribution<std::uint32_t>(0, 0xFFFFFFFFu);
-            for (int i=0;i<4;i++) {
-                auto x = dist(gen);
-                b[i*4+0] = static_cast<std::uint8_t>((x>>24)&0xFF);
-                b[i*4+1] = static_cast<std::uint8_t>((x>>16)&0xFF);
-                b[i*4+2] = static_cast<std::uint8_t>((x>>8 )&0xFF);
-                b[i*4+3] = static_cast<std::uint8_t>((x    )&0xFF);
-            }
-            // 设置版本为4（字节组6的高两位）
-            b[6] = static_cast<std::uint8_t>((b[6] & 0x0F) | 0x40);
-            // 设置变体（字节组8的两高位为10）
-            b[8] = static_cast<std::uint8_t>((b[8] & 0x3F) | 0x80);
-#ifdef SHINE_PLATFORM_WASM
-            return FromBytes(b);
-#else
-            return FromBytes(std::span<const std::uint8_t,16>(b));
-#endif
+            static std::atomic<u64> state{ 0 };
+
+            const u64 now = get_now_ms_platform<u64>() & 0x0000FFFFFFFFFFFFull;
+
+            u64 old = state.load(std::memory_order_relaxed);
+            u64 next;
+            do
+            {
+                const u64 last_ms = old >> 16;
+                const u64 counter = old & 0xFFFF;
+                next = (now > last_ms)
+                    ? (now << 16)
+                    : ((last_ms << 16) | ((counter + 1) & 0xFFFF));
+            } while (!state.compare_exchange_weak(old, next, std::memory_order_release, std::memory_order_relaxed));
+
+            const u64 ts = next >> 16;
+            const u16 seq = static_cast<u16>(next);
+
+            const u32 A = static_cast<u32>(ts >> 16);
+            const u32 B = (static_cast<u32>(ts & 0xFFFF) << 16) | (0x7000u | (seq >> 4));
+            const u32 C = (0x80000000u) | ((seq & 0x000F) << 16) | static_cast<u32>((next >> 32) & 0xFFFF);
+            const u32 D = static_cast<u32>(next ^ (next >> 32));
+
+            return FGuid{ A, B, C, D };
         }
     };
 }

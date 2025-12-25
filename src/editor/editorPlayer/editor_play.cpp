@@ -9,4 +9,19 @@ namespace shine::editor
 	{
 		_selectionManager = new selection::SelectionManager();
 	}
+
+	void SEditorPlayer::selct(selection::SelectionData& _Data)
+	{
+		_selectionManager->selct(_Data);
+	}
+
+	void SEditorPlayer::remove(selection::SelectionData& _Data)
+	{
+		_selectionManager->remove(_Data);
+	}
+
+	bool SEditorPlayer::isSelect(selection::SelectionData& _Data)
+	{
+		return _selectionManager->isSelect(_Data);
+	}
 }
