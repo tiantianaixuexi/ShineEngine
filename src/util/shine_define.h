@@ -75,23 +75,18 @@
 #endif
 
 // 类型定义
-using s8 = char;
+using s8 = signed char;
 using u8 = unsigned char;
 using s16 = short;
 using u16 = unsigned short;
 using s32 = int;
 using u32 = unsigned int;
+using s64 = long long ;
+using u64 = unsigned long long;
 using f32 = float;
 using f64 = double;
 
-#if defined(_WIN64) || defined(_EMSCRIPT_32_)
-    using u64 = unsigned long long;
-    using s64 = long long;
-#elif defined(__EMSCRIPTEN__)
-    using s64 = s32;
-    using u64 = u32;
-    using f64 = float;
-#endif
+
 
 
 // 路径分隔符
@@ -112,6 +107,39 @@ using f64 = double;
 	#include <shellapi.h>
 #endif
 
+
+
+
+static_assert(sizeof(s8) == 1);
+static_assert(sizeof(s16) == 2);
+static_assert(sizeof(s32) == 4);
+static_assert(sizeof(s64) == 8);
+
+static_assert(sizeof(u8) == 1);
+static_assert(sizeof(u16) == 2);
+static_assert(sizeof(u32) == 4);
+static_assert(sizeof(u64) == 8);
+
+static_assert(sizeof(f32) == 4);
+static_assert(sizeof(f64) == 8);
+
+#define S8_MIN    (-128)
+#define S8_max    (127)
+
+#define S16_MIN   (-32768)
+#define S16_MAX   (32767)
+
+#define S32_MIN   (-2147483647 - 1)
+#define S32_MAX   (2147483647)
+
+#define S64_MIN   (-9223372036854775807LL - 1)
+#define S64_MAX   (9223372036854775807LL)
+
+/* unsigned */
+#define U8_MAX    (255u)
+#define U16_MAX   (65535u)
+#define U32_MAX   (4294967295u)
+#define U64_MAX   (18446744073709551615ULL)
 
 
 
@@ -248,73 +276,3 @@ using f64 = double;
     #endif
 
 #endif
-
-// ============================================================================
-// WASM 平台限制说明
-// ============================================================================
-// 以下 C++20/23 特性在 WebAssembly 中无法使用或存在严重限制：
-//
-// 1. 异常处理 (Exception Handling)
-//    - WASM 通常需要编译时使用 -fno-exceptions 选项
-//    - 不支持 try-catch 异常处理机制
-//    - 使用 SHINE_HAS_EXCEPTIONS 宏检测
-//
-// 2. 多线程支持 (Thread Support)
-//    - std::thread, std::jthread 不支持
-//    - std::mutex, std::atomic 等线程同步原语可能受限
-//    - WASM 的多线程支持仍处于实验阶段
-//    - 使用 SHINE_HAS_STD_JTHREAD 宏检测
-//
-// 3. std::format (C++20)
-//    - WASM 可能不支持或支持不完整
-//    - 建议使用 fmt 库作为替代方案
-//    - 使用 SHINE_HAS_STD_FORMAT 宏检测
-//
-// 4. std::ranges (C++20)
-//    - WASM 可能支持不完整
-//    - 某些范围算法可能无法正常工作
-//    - 使用 SHINE_HAS_STD_RANGES 宏检测
-//
-// 5. std::coroutine (C++20)
-//    - WASM 的控制流限制，协程可能无法直接实现
-//    - 需要使用特殊的协程实现或避免使用
-//    - 使用 SHINE_HAS_STD_COROUTINE 宏检测
-//
-// 6. std::source_location (C++20)
-//    - WASM 可能不支持或支持不完整
-//    - 调试信息可能受限
-//    - 使用 SHINE_HAS_STD_SOURCE_LOCATION 宏检测
-//
-// 7. std::expected (C++23)
-//    - C++23 特性，WASM 可能不支持
-//    - 需要使用替代方案（如自定义实现）
-//    - 使用 SHINE_HAS_STD_EXPECTED 宏检测
-//
-// 8. std::span (C++20)
-//    - WASM 可能支持不完整
-//    - 基本功能可用，但某些高级特性可能受限
-//    - 使用 SHINE_HAS_STD_SPAN 宏检测
-//
-// 9. C++20 Modules
-//    - WASM 可能支持不完整
-//    - 建议使用传统头文件方式
-//    - 使用 SHINE_HAS_MODULES 宏检测
-//
-// 10. 动态库加载
-//     - WASM 不支持动态库的加载和使用
-//     - 所有代码必须静态链接
-//
-// 11. 网络功能
-//     - WASM 当前不支持直接的网络功能
-//     - 需要通过 JavaScript 接口或 Web API 实现
-//
-// 12. 文件系统操作
-//     - WASM 的文件系统访问受限
-//     - 需要使用虚拟文件系统或通过 JavaScript 接口
-//
-// 使用建议：
-// - 在代码中使用上述宏进行条件编译
-// - 为 WASM 平台提供替代实现
-// - 避免在 WASM 目标中使用不支持的特性
-// ============================================================================
-

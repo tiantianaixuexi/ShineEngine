@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include "shine_define.h"
 #include <span>
 
 namespace shine::util
@@ -18,10 +18,10 @@ namespace shine::util
 		 * @param data 数据指针
 		 * @param size 数据大小（字节）
 		 */
-		explicit BitReader(const uint8_t* data, size_t size) noexcept
+		explicit BitReader(const u8* data, u8 size) noexcept
 			: data_(data), size_(size), bitPos_(0), buffer_(0)
 		{
-			bitsize_ = (size < (SIZE_MAX / 8)) ? size * 8 : SIZE_MAX;
+			bitsize_ = (size < (S64_MAX / 8)) ? size * 8 : S64_MAX;
 		}
 
 		/**
@@ -40,23 +40,23 @@ namespace shine::util
 			size_t start = bitPos_ >> 3;
 			if (start + 4 < size_)
 			{
-				buffer_ = static_cast<uint32_t>(data_[start + 0]) |
-				         (static_cast<uint32_t>(data_[start + 1]) << 8) |
-				         (static_cast<uint32_t>(data_[start + 2]) << 16) |
-				         (static_cast<uint32_t>(data_[start + 3]) << 24);
+				buffer_ = static_cast<u32>(data_[start + 0]) |
+				         (static_cast<u32>(data_[start + 1]) << 8) |
+				         (static_cast<u32>(data_[start + 2]) << 16) |
+				         (static_cast<u32>(data_[start + 3]) << 24);
 				buffer_ >>= (bitPos_ & 7);
 				if (start + 4 < size_)
 				{
-					buffer_ |= (static_cast<uint32_t>(data_[start + 4]) << 24) << (8 - (bitPos_ & 7));
+					buffer_ |= (static_cast<u32>(data_[start + 4]) << 24) << (8 - (bitPos_ & 7));
 				}
 			}
 			else
 			{
 				buffer_ = 0;
 				if (start + 0 < size_) buffer_ |= data_[start + 0];
-				if (start + 1 < size_) buffer_ |= static_cast<uint32_t>(data_[start + 1]) << 8;
-				if (start + 2 < size_) buffer_ |= static_cast<uint32_t>(data_[start + 2]) << 16;
-				if (start + 3 < size_) buffer_ |= static_cast<uint32_t>(data_[start + 3]) << 24;
+				if (start + 1 < size_) buffer_ |= static_cast<u32>(data_[start + 1]) << 8;
+				if (start + 2 < size_) buffer_ |= static_cast<u32>(data_[start + 2]) << 16;
+				if (start + 3 < size_) buffer_ |= static_cast<u32>(data_[start + 3]) << 24;
 				buffer_ >>= (bitPos_ & 7);
 			}
 		}
@@ -136,11 +136,11 @@ namespace shine::util
 		}
 
 	private:
-		const uint8_t* data_;
+		const u8* data_;
 		size_t size_;
 		size_t bitsize_;
 		size_t bitPos_;
-		uint32_t buffer_;
+		u32 buffer_;
 	};
 }
 

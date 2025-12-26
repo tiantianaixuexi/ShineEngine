@@ -249,7 +249,7 @@ namespace shine::util
                 b[idx++] = static_cast<u8>((h<<4) | l);
             }
 
-            return FromBytes(&b[0]);
+            return FromBytes(b.data());
         }
 #endif
 

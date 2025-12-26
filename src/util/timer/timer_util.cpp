@@ -50,7 +50,13 @@ namespace shine::util{
 
 
 
+	template float get_now_ms_platform<float>();
+	template double get_now_ms_platform<double>();
+	template unsigned long long get_now_ms_platform<unsigned long long>();
 
+	template float now_ns<float>();
+	template double now_ns<double>();
+	template unsigned long long now_ns<unsigned long long>();
 }
 
 

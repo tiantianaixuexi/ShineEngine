@@ -140,8 +140,6 @@ int main(int argc, char** argv) {
 	editorPlayer.init();
 
 
-	editorPlayer.
-
 
 
 	auto& g_FPSManager = util::EngineFPSManager::get();

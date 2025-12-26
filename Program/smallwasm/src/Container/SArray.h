@@ -22,7 +22,7 @@ namespace shine::wasm
 			if (_size == 0) return;
 
 			length = counter;
-			pointer = shine::wasm::raw_malloc((shine::wasm::size_t)(length * _size));
+			pointer = wasm::raw_malloc(static_cast<shine::wasm::size_t>(length * _size));
 		}
 
 		// Non-copyable (avoids double-free); movable.
@@ -80,7 +80,7 @@ namespace shine::wasm
 		inline void clear_zero() noexcept
 		{
 			if (!pointer || length == 0) return;
-			shine::wasm::raw_memset(pointer, 0, (shine::wasm::size_t)length * (shine::wasm::size_t)sizeof(T));
+			wasm::raw_memset(pointer, 0, static_cast<shine::wasm::size_t>(length) * sizeof(T));
 		}
 	};
 

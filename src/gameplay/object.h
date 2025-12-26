@@ -40,6 +40,7 @@ namespace shine::gameplay
         void setRender(bool render) noexcept { m_isRender = render; }
         void setTickable(bool tickable) noexcept { m_isTickable = tickable; }
 
+   
         // 名字管理
         [[nodiscard]] const std::string& getName() const noexcept { return _name; }
         void setName(const std::string& name) { _name = name; }

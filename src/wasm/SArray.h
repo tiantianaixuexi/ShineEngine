@@ -2,37 +2,36 @@
 
 #include "shine_define.h"
 
-#ifdef SHINE_PLATFORM_WASM
 
 namespace shine::wasm
 {
 	template<typename T>
-	class SArray
+	class HashArray
 	{
-		u32				length  = 0;		  //×ÜµÄÊı¾İ³¤¶È
-		void*		    pointer = nullptr;    //Á¬ĞøµÄÄÚ´æÊı¾İ½á¹¹
+		u32				length  = 0;		  //æ€»çš„æ•°æ®é•¿åº¦
+		void*		    pointer = nullptr;    //è¿ç»­çš„å†…å­˜æ•°æ®ç»“æ„
 
 	public:
 
-		SArray() noexcept
+		HashArray() noexcept
 		{
 			length = 0;
 			pointer = nullptr;
 
 		}
 
-		explicit  SArray(int counter) noexcept
+		explicit  HashArray(int counter) noexcept
 		{
 			if (counter < 1) return;
-			const _size = sizeof(T);
+			const size_t _size = sizeof(T);
 
 			if (_size == 0) return;
 
 			length = counter;
-			pointer = malloc((size_t)(length * _size));
+			pointer = malloc((length * _size));
 		}
 
-		virtual ~SArray()
+		virtual ~HashArray()
 		{
 			if (pointer != nullptr)
 			{
@@ -41,7 +40,7 @@ namespace shine::wasm
 			}
 		}
 
-		inline T* Value(const u32 index) noexcept
+		inline T* value(const u32 index) noexcept
 		{
 			return &static_cast<T*>(pointer)[index];
 		}
@@ -54,10 +53,3 @@ namespace shine::wasm
 	};
 
 }
-
-
-
-
-
-
-#endif
