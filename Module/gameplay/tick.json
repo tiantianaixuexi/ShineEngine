@@ -1,0 +1,12 @@
+{
+    "name": "tick",
+    "type": "static",
+    "files": [
+        "src/gameplay/tick/tick_types.h",
+        "src/gameplay/tick/tick_function.h",
+        "src/gameplay/tick/tickManager.h",
+        "src/gameplay/tick/TickenableComponent.h"
+    ],
+    "deps": ["shine_define", "thread", "profiler"],
+    "comment": "Tick 系统核心模块，支持固定时间步长和多线程执行"
+}

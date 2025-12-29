@@ -18,8 +18,8 @@ namespace shine::gameplay::component
     class StaticMeshComponent : public UComponent
     {
     public:
-        StaticMeshComponent() = default;
-        ~StaticMeshComponent() override = default;
+        StaticMeshComponent();
+        ~StaticMeshComponent() override;
 
         void setMesh(std::shared_ptr<StaticMesh> mesh) { m_StaticMesh = std::move(mesh); }
         [[nodiscard]] std::shared_ptr<StaticMesh> getMesh() const { return m_StaticMesh; }

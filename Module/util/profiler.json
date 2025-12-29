@@ -1,0 +1,9 @@
+{
+    "name": "profiler",
+    "type": "static",
+    "files": [
+      "src/util/profiler/profiler.h"
+    ],
+    "deps": ["timer"],
+    "comment": "性能监控工具"
+}

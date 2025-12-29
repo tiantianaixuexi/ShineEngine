@@ -24,7 +24,6 @@ namespace shine::gameplay
 
         virtual void OnInit();
         virtual void onBeginPlay();
-        virtual void onTick(float deltaTime);
         // 不直接需要渲染逻辑，组件自行在 onRender 中提供
 
     public:

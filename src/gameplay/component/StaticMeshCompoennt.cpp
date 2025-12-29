@@ -2,6 +2,13 @@
 
 namespace shine::gameplay::component
 {
+	StaticMeshComponent::StaticMeshComponent()
+	{
+	}
+
+	StaticMeshComponent::~StaticMeshComponent()
+	{
+	}
 
     void StaticMeshComponent::onRender(shine::render::command::ICommandList& cmd)
     {

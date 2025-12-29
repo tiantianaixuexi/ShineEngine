@@ -1,9 +1,9 @@
-﻿#pragma once
+#pragma once
 
 
 #include <string>
 
-
+#include "gameplay/tick/tick_function.h"
 #include "util/guid.h"
 
 namespace shine::render::command
@@ -26,17 +26,14 @@ namespace shine::gameplay::component
         virtual ~UComponent() = default;
 
         virtual void onBeginPlay() {}
-        virtual void onTick(float /*deltaTime*/) {}
-        // 组件渲染，将渲染命令提交到 ICommandList
-        virtual void onRender(shine::render::command::ICommandList& cmd) {}
+        virtual void onRender(render::command::ICommandList& cmd) {}
 
-        void attachTo(shine::gameplay::SObject* owner) { m_Owner = owner; }
-        [[nodiscard]]  shine::gameplay::SObject* getOwner() const { return m_Owner; }
+        void attachTo(SObject* owner) { m_Owner = owner; }
+        [[nodiscard]]  SObject* getOwner() const { return m_Owner; }
 
     protected:
-        shine::gameplay::SObject* m_Owner { nullptr };
+        SObject* m_Owner { nullptr };
 
-        // 组件名称
         std::string  _ComponentName;
         util::FGuid  _guid;
     };

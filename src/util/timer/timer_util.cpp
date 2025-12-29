@@ -1,9 +1,13 @@
-﻿#include "timer_util.h"
+#include "timer_util.h"
 
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#endif
+
+#ifdef SHINE_PLATFORM_WASM
+    #include <emscripten.h>
 #endif
 
 
@@ -27,6 +31,8 @@ namespace shine::util{
         QueryPerformanceCounter(&now);
         return static_cast<T>(now.QuadPart * 1000 / freq.QuadPart);
 
+#elif defined(SHINE_PLATFORM_WASM)
+        return static_cast<T>(emscripten_get_now());
 #else
         struct timespec ts;
         clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -41,6 +47,8 @@ namespace shine::util{
         static LARGE_INTEGER freq = []() {LARGE_INTEGER f;QueryPerformanceFrequency(&f); return f; }();
         LARGE_INTEGER now; QueryPerformanceCounter(&now);
         return static_cast<T>(1000000000ull * now.QuadPart / freq.QuadPart);
+#elif defined(SHINE_PLATFORM_WASM)
+        return static_cast<T>(emscripten_get_now() * 1000000.0);
 #else
         struct timespec ts;
         clock_gettime(CLOCK_MONOTONIC, &ts);

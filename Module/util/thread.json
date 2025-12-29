@@ -1,0 +1,12 @@
+{
+    "name": "thread",
+    "type": "static",
+    "files": [
+        "src/util/thread/thread_pool.h",
+        "src/util/thread/thread_pool.cpp",
+        "src/util/thread/task_scheduler.h",
+        "src/util/thread/task_scheduler.cpp"
+    ],
+    "deps": ["shine_define"],
+    "comment": "跨平台多线程支持模块"
+}
