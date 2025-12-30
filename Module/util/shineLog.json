@@ -1,0 +1,9 @@
+{
+  "name": "shineLog",
+  "type": "shared",
+  "dirs": [
+    "src/util/shineLog/"
+  ],
+  
+  "comment": "日志库"
+}

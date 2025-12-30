@@ -1,8 +1,11 @@
 {
-    "name": "singleton",
-    "files": [
-        "src/util/singleton.h"
-    ],
-    "comment": "单例模式工具类"
+  "name": "singleton",
+  "type": "shared",
+  "files": [
+    "src/util/singleton.h",
+    "src/util/singleton.cpp"
+  ],
+  "defines": ["SINGLETON_API"],
+  "comment": "单例模式工具类"
 }
 

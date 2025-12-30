@@ -49,10 +49,15 @@
 #endif
 
 // API导出/导入宏
-#if defined(SHINE_ENGINE_EXPORTS)
-    #define SHINE_API __declspec(dllexport)
+#if defined(SHINE_BUILD_SHARED)
+#if defined(SHINE_EXPORTS)
+	#define SHINE_API __declspec(dllexport)
 #else
-    #define SHINE_API __declspec(dllimport)
+	#define SHINE_API __declspec(dllimport)
+#endif
+#else
+    // 构建静态库
+#define SHINE_API
 #endif
 
 // 功能检测

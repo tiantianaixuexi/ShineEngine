@@ -31,7 +31,7 @@ set CLEAN_FIRST=
 set CMD=
 set TARGET_ARG=
 set MODULE_CONFIG=Debug
-set NO_PAUSE=
+set NO_PAUSE=1
 set SHINE_BUILD_EDITOR=ON
 
 :parse_args

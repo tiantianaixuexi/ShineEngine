@@ -1,4 +1,4 @@
-﻿export module manager.mointorManager;
+export module manager.mointorManager;
 
 #include "fmt.h"
 #include "util/timer_util.h"
@@ -6,14 +6,14 @@
 
 namespace shine::manager
 {
-    //export struct EXPORT_MONITOR_MANAGER FMonitorInfo
+    //export struct MONITOR_MANAGER_API FMonitorInfo
     //{
     //    std::string name;
     //    
 
     //};
 
-    //export struct EXPORT_MONITOR_MANAGER FMonitorItem
+    //export struct MONITOR_MANAGER_API FMonitorItem
     //{
 
     //    float now;
@@ -34,7 +34,7 @@ namespace shine::manager
     //};
 
     //// 鐩戞帶 Manager
-    //class EXPORT_MONITOR_MANAGER monitorManager : public shine::util::Singleton<monitorManager>
+    //class MONITOR_MANAGER_API monitorManager : public shine::util::Singleton<monitorManager>
     //{
     //    public:
    
