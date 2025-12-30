@@ -7,7 +7,7 @@ namespace shine::util
     {
     public:
         static T& get() noexcept;
-        static void set_instance(T* ptr) noexcept;
+
 
     protected:
 

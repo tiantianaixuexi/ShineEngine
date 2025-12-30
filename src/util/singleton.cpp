@@ -12,9 +12,6 @@ namespace shine::util
 	template <typename T>
 	void Singleton<T>::set_instance(T* ptr) noexcept
 	{
-
-		{
-			s_instance = ptr;
-		}
+		s_instance = ptr;
 	}
 }
