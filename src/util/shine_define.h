@@ -72,12 +72,7 @@
     #endif
 #endif
 
-// 字符串类型头文件
-#include <string>
-#include <type_traits>
-#if SHINE_HAS_STRING_VIEW
-    #include <string_view>
-#endif
+
 
 // 类型定义
 using s8 = signed char;
@@ -103,16 +98,15 @@ using f64 = double;
     constexpr char OTHER_SEP = '\\';
 #endif
 
-// Windows特定头文件
-#ifdef SHINE_PLATFORM_WIN
-    #ifndef WIN32_LEAN_AND_MEAN
-    #define WIN32_LEAN_AND_MEAN
-    #endif
-    #include <Windows.h>
-	#include <shellapi.h>
-#endif
-
-
+//// Windows特定头文件
+//#ifdef SHINE_PLATFORM_WIN
+//    #ifndef WIN32_LEAN_AND_MEAN
+//    #define WIN32_LEAN_AND_MEAN
+//    #endif
+//    #include <Windows.h>
+//	#include <shellapi.h>
+//#endif
+//
 
 
 static_assert(sizeof(s8) == 1);
@@ -148,136 +142,30 @@ static_assert(sizeof(f64) == 8);
 
 
 
+#define SHINE_NAMESPACE(name) namespace shine name {
+#define SHINE_NAMESPACE_END   };
 
-#if SHINE_HAS_STRING_VIEW
-    using SString = std::string_view;           // 只读字符串视图，零开销
+
+#ifdef SHINE_BUILD_MODULE
+#ifndef SHINE_USE_MODULE
+#define SHINE_USE_MODULE 1
+#endif
 #else
-    using SString = std::string;                // WASM 回退到 string
+#ifndef SHINE_USE_MODULE
+#define SHINE_USE_MODULE 0
+#endif
 #endif
 
+//#ifdef SHINE_USE_MODULE
+//
+//#define SHINE_IMPORT_STD import std;
+//#define SHINE_MODULE_EXPORT(name) export module shine##name;
+//
+//#else
+//
+//#define SHINE_MODULE_EXPORT
+//#define SHINE_MODULE_END
+//#define SHINE_IMPORT_STD
+//
+//#endif
 
-
-#if defined(SHINE_PLATFORM_WASM) || defined(__EMSCRIPTEN__)
-    // C++20 std::format - WASM 可能不支持或支持不完整
-    #ifndef SHINE_HAS_STD_FORMAT
-    #define SHINE_HAS_STD_FORMAT 0
-    #endif
-
-    // C++20 std::ranges - WASM 可能支持不完整
-    #ifndef SHINE_HAS_STD_RANGES
-    #define SHINE_HAS_STD_RANGES 0
-    #endif
-
-    // C++20 std::jthread, std::stop_token - WASM 不支持多线程
-    #ifndef SHINE_HAS_STD_JTHREAD
-    #define SHINE_HAS_STD_JTHREAD 0
-    #endif
-
-    // C++20 std::coroutine - WASM 的控制流限制，可能无法直接实现
-    #ifndef SHINE_HAS_STD_COROUTINE
-    #define SHINE_HAS_STD_COROUTINE 0
-    #endif
-
-    // C++20 std::source_location - WASM 可能不支持或支持不完整
-    #ifndef SHINE_HAS_STD_SOURCE_LOCATION
-    #define SHINE_HAS_STD_SOURCE_LOCATION 0
-    #endif
-
-    // C++23 std::expected - C++23 特性，WASM 可能不支持
-    #ifndef SHINE_HAS_STD_EXPECTED
-    #define SHINE_HAS_STD_EXPECTED 0
-    #endif
-
-    // C++20 std::span - WASM 可能支持不完整
-    #ifndef SHINE_HAS_STD_SPAN
-    #define SHINE_HAS_STD_SPAN 0
-    #endif
-
-    // C++20 modules - WASM 可能支持不完整
-    #ifndef SHINE_HAS_MODULES
-    #define SHINE_HAS_MODULES 0
-    #endif
-
-    // C++ 异常处理 - WASM 通常需要 -fno-exceptions，不支持异常
-    #ifndef SHINE_HAS_EXCEPTIONS
-    #define SHINE_HAS_EXCEPTIONS 0
-    #endif
-
-    // C++20 concepts - 基本支持，但某些高级用法可能有限制
-    #ifndef SHINE_HAS_CONCEPTS
-    #define SHINE_HAS_CONCEPTS 1  // 基本支持
-    #endif
-
-    // C++20 consteval, constinit - 基本支持
-    #ifndef SHINE_HAS_CONSTEVAL
-    #define SHINE_HAS_CONSTEVAL 1
-    #endif
-
-#else
-    // 非 WASM 平台，默认支持这些特性（根据编译器版本）
-    #ifndef SHINE_HAS_STD_FORMAT
-    #define SHINE_HAS_STD_FORMAT 1
-    #endif
-
-    #ifndef SHINE_HAS_STD_RANGES
-    #define SHINE_HAS_STD_RANGES 1
-    #endif
-
-    #ifndef SHINE_HAS_STD_JTHREAD
-    #define SHINE_HAS_STD_JTHREAD 1
-    #endif
-
-    #ifndef SHINE_HAS_STD_COROUTINE
-    #define SHINE_HAS_STD_COROUTINE 1
-    #endif
-
-    #ifndef SHINE_HAS_STD_SOURCE_LOCATION
-    #define SHINE_HAS_STD_SOURCE_LOCATION 1
-    #endif
-
-    #ifndef SHINE_HAS_STD_EXPECTED
-    // C++23 特性，需要编译器支持
-    #if __cplusplus >= 202302L
-        #define SHINE_HAS_STD_EXPECTED 1
-    #else
-        #define SHINE_HAS_STD_EXPECTED 0
-    #endif
-    #endif
-
-    #ifndef SHINE_HAS_STD_SPAN
-    #define SHINE_HAS_STD_SPAN 1
-    #endif
-
-    #ifndef SHINE_HAS_MODULES
-    #if __cpp_modules >= 201907L
-        #define SHINE_HAS_MODULES 1
-    #else
-        #define SHINE_HAS_MODULES 0
-    #endif
-    #endif
-
-    #ifndef SHINE_HAS_EXCEPTIONS
-    #ifdef __cpp_exceptions
-        #define SHINE_HAS_EXCEPTIONS 1
-    #else
-        #define SHINE_HAS_EXCEPTIONS 0
-    #endif
-    #endif
-
-    #ifndef SHINE_HAS_CONCEPTS
-    #if __cpp_concepts >= 201907L
-        #define SHINE_HAS_CONCEPTS 1
-    #else
-        #define SHINE_HAS_CONCEPTS 0
-    #endif
-    #endif
-
-    #ifndef SHINE_HAS_CONSTEVAL
-    #if __cpp_consteval >= 201811L
-        #define SHINE_HAS_CONSTEVAL 1
-    #else
-        #define SHINE_HAS_CONSTEVAL 0
-    #endif
-    #endif
-
-#endif

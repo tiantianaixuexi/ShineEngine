@@ -25,6 +25,7 @@ namespace shine::util
 
     private:
         inline static T* s_instance = nullptr;
-    };
+        };
 }
 
+

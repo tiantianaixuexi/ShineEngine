@@ -20,6 +20,51 @@
       },
       "minItems": 0
     },
+    "files_module": {
+      "type": "array",
+      "description": "启用 C++20 模块时使用的文件列表（仅当 SHINE_BUILD_MODULE=ON 时生效）。通常包含 .ixx 模块接口文件",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*\\.(ixx|cppm)$"
+      },
+      "minItems": 0
+    },
+    "files_header": {
+      "type": "array",
+      "description": "不使用 C++20 模块时使用的文件列表（仅当 SHINE_BUILD_MODULE=OFF 时生效）。通常包含 .h 头文件",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*\\.(h|hpp)$"
+      },
+      "minItems": 0
+    },
+    "files_windows": {
+      "type": "array",
+      "description": "仅在 Windows 平台使用的文件列表",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl)$"
+      },
+      "minItems": 0
+    },
+    "files_wasm": {
+      "type": "array",
+      "description": "仅在 WebAssembly (Emscripten) 平台使用的文件列表",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl)$"
+      },
+      "minItems": 0
+    },
+    "files_android": {
+      "type": "array",
+      "description": "仅在 Android 平台使用的文件列表",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl)$"
+      },
+      "minItems": 0
+    },
     "dirs": {
       "type": "array",
       "description": "自动收集指定目录下所有相关文件的目录列表。递归搜索目录及其子目录",
@@ -150,6 +195,20 @@
       "dirs": ["src/math"],
       "type": "static",
       "deps": ["shine_define"]
+    },
+    {
+      "name": "base64",
+      "type": "static",
+      "files": [
+        "src/util/base64/base64.cpp"
+      ],
+      "files_module": [
+        "src/util/base64/base64.ixx"
+      ],
+      "files_header": [
+        "src/util/base64/base64.h"
+      ],
+      "comment": "使用条件文件：启用模块时使用 .ixx，否则使用 .h"
     },
     {
       "name": "texture",

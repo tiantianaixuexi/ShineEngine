@@ -13,6 +13,7 @@
 
 #include "../logfmt.h"
 
+
 using namespace shine::graphics;
 
 DemoGame* g_demo_game = nullptr;
@@ -53,6 +54,9 @@ struct KillOnClick final : public shine::game::Component {
 
         if (x < cx - w * 0.5f || x > cx + w * 0.5f) return;
         if (y < cy - h * 0.5f || y > cy + h * 0.5f) return;
+
+
+
         node->markPendingKill();
     }
 };
@@ -264,6 +268,8 @@ void DemoGame::onPointer(shine::engine::Engine& app, float x, float y, int isDow
     int h = app.getHeight();
     float px = (x + 1.0f) * 0.5f * (float)w;
     float py = (1.0f - y) * 0.5f * (float)h;
+
+
 
     // UI pointer
     shine::ui::UIManager::instance().onPointer(px, py, isDown);

@@ -1,11 +1,9 @@
 ﻿#pragma once
 
 #include<string>
-#include <vector>
-#include <mutex>
 
 
-#include "imgui.h"
+#include "imgui/imgui.h"
 #include "AssetsItem.h"
 
 namespace shine::editor::assets_brower 

@@ -33,11 +33,17 @@ set TARGET_ARG=
 set MODULE_CONFIG=Debug
 set NO_PAUSE=1
 set SHINE_BUILD_EDITOR=ON
+set SHINE_BUILD_MODULE=OFF
 
 :parse_args
 if "%~1"=="" goto args_done
 if /i "%~1"=="--no-editor" (
     set SHINE_BUILD_EDITOR=OFF
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--enable-module" (
+    set SHINE_BUILD_MODULE=ON
     shift
     goto parse_args
 )
@@ -74,6 +80,7 @@ goto parse_args
 
 :args_done
 set CMAKE_COMMON_FLAGS=%CMAKE_COMMON_FLAGS% -DSHINE_BUILD_EDITOR=%SHINE_BUILD_EDITOR%
+set CMAKE_COMMON_FLAGS=%CMAKE_COMMON_FLAGS% -DSHINE_BUILD_MODULE=%SHINE_BUILD_MODULE%
 call :log_info "Checking build tools..."
 cmake --version > nul 2>&1 || call :error_exit "CMake not found, please ensure CMake is installed and added to PATH"
 
@@ -240,6 +247,7 @@ echo Global flags:
 echo   --release        Use Release config (for module/wasm/test)
 echo   --no-pause       Do not pause at script end (CI-friendly)
 echo   --no-editor      Disable editor features (removes BUILD_EDITOR macro)
+echo   --enable-module  Enable C++20 modules (adds SHINE_BUILD_MODULE macro)
 echo.
 goto end_script
 

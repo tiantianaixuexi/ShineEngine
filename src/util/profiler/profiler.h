@@ -3,13 +3,12 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include <unordered_map>
 
 #include "shine_define.h"
 #include "util/timer/timer_util.h"
 
-namespace shine::util
-{
+SHINE_NAMESPACE(::util)
+
     struct PerformanceStats {
         float minTime = 0.0f;
         float maxTime = 0.0f;
@@ -149,4 +148,4 @@ namespace shine::util
         float _startTime;
     };
 
-}
+SHINE_NAMESPACE_END

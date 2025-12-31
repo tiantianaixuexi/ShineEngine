@@ -9,7 +9,7 @@
 
 
 #include "shine_define.h"
-#include "imgui.h" // for draw data type only
+#include "imgui/imgui.h" // for draw data type only
 
 namespace shine::render::opengl3
 {

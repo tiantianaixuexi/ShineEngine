@@ -2,8 +2,12 @@
     "name": "base64",
     "type": "static",
     "files": [
-        "src/util/base64/base64.h",
-        "src/util/base64/base64.cpp"
+        "src/util/base64/base64.cpp",
+        "src/util/base64/base64.ixx"
+    ],
+    "platform": [
+        "Windows",
+        "Wasm"
     ],
     "comment": "base64编码解码工具"
 }

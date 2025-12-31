@@ -3,7 +3,7 @@
 
 namespace shine::util
 {
-#if SHINE_HAS_STD_JTHREAD
+
     ThreadPool::ThreadPool(u32 numThreads) {
         if (numThreads == 0) {
             numThreads = std::thread::hardware_concurrency();
@@ -66,5 +66,4 @@ namespace shine::util
         static ThreadPool instance;
         return instance;
     }
-#endif
 }

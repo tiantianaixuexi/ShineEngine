@@ -89,7 +89,7 @@ set(SMALLWASM_CXX_FLAGS
   -Oz
   -ffreestanding -nostdlib
   -fno-exceptions -fno-rtti -fno-threadsafe-statics
-  -std=c++20
+  -std=c++23
 )
 if(SMALLWASM_DEBUG)
   list(APPEND SMALLWASM_CXX_FLAGS -DDEBUG=1)

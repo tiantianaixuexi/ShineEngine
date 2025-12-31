@@ -10,7 +10,7 @@
 // WebGL2 uses OpenGL ES 3.0 API
 #include <GL/glew.h>
 
-#include "imgui.h"
+#include "imgui/imgui.h"
 #include "render/backend/render_backend.h"
 
 namespace shine::render::webgl2

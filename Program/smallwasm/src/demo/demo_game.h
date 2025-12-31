@@ -2,12 +2,9 @@
 
 #include "../game/game.h"
 #include "../game/scene.h"
-#include "../ui/ui.h"
 #include "../ui/button.h"
 #include "../ui/image.h"
 #include "../engine/engine.h"
-#include "../graphics/renderer_2d.h"
-#include "../util/tex_loader.h"
 #include "../Container/SArray.h"
 
 // Demo Game Implementation

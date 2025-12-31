@@ -4,12 +4,15 @@ project(ShineEngine VERSION 1.0.0 LANGUAGES CXX)
 # --------------------------------
 # Special configure modes
 # --------------------------------
-# When ON, only create `subcmake` module targets (wasm dispatch) and skip the rest of the engine graph.
+# 单独编译出 wasm 相关的 subcmake 模块（如 smallwasm），跳过其他模块
 option(SHINE_WASM_DISPATCH_ONLY "Configure only wasm(subcmake) dispatch targets (quiet & fast)" OFF)
 # When ON, suppress most module-related message(STATUS ...) output.
 option(SHINE_QUIET_MODULE_MESSAGES "Suppress module status messages during configure" OFF)
 # Target module name for selective output (empty = show all modules)
 set(SHINE_TARGET_MODULE "" CACHE STRING "Target module name for selective output")
+
+# C++20 模块支持
+option(SHINE_BUILD_MODULE "Enable C++20 modules support" OFF)
 
 # 设置C++标准
 set(CMAKE_CXX_STANDARD 23)
@@ -61,7 +64,12 @@ if(MSVC)
         $<$<CONFIG:Release>:/LTCG>
     )
 
-    set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+    # 是否扫描 C++ 源文件以查找模块依赖关系
+    if(SHINE_BUILD_MODULE)
+        set(CMAKE_CXX_SCAN_FOR_MODULES ON)
+    else()
+        set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+    endif()
 endif()
 
 # 全局编译定义
@@ -69,8 +77,7 @@ add_compile_definitions(
     SHINE_OPENGL
     STB_IMAGE_IMPLEMENTATION
     $<$<CONFIG:Release>:NDEBUG>
-    $<$<BOOL:${EMSCRIPTEN}>:__EMSCRIPTEN__>
-    $<$<BOOL:${EMSCRIPTEN}>:SHINE_IMPORT_STD>
+    SHINE_USE_MODULE=$<BOOL:${SHINE_BUILD_MODULE}>
 )
 
 # 统一的包含目录
@@ -78,8 +85,6 @@ set(COMMON_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/util
     ${CMAKE_SOURCE_DIR}/src/third
-    ${CMAKE_SOURCE_DIR}/src/third/imgui
-    ${CMAKE_SOURCE_DIR}/src/third/imgui/backends
 )
 
 # 全局属性初始化
@@ -237,10 +242,33 @@ function(parse_and_cache_modules)
 
         # 解析数组字段
         parse_json_array(${json_content} "files" files_list)
+        parse_json_array(${json_content} "files_module" files_module_list)
+        parse_json_array(${json_content} "files_header" files_header_list)
         parse_json_array(${json_content} "deps" deps_list)
         parse_json_array(${json_content} "defines" defines_list)
         parse_json_array(${json_content} "dirs" dirs_list)
         parse_json_array(${json_content} "platform" platform_list)
+
+        # 处理条件文件选择：根据 SHINE_BUILD_MODULE 选择 files_module 或 files_header
+        if(files_module_list OR files_header_list)
+            if(SHINE_BUILD_MODULE AND files_module_list)
+                list(APPEND files_list ${files_module_list})
+            elseif(NOT SHINE_BUILD_MODULE AND files_header_list)
+                list(APPEND files_list ${files_header_list})
+            endif()
+        endif()
+
+        # 处理平台特定文件
+        if(WIN32)
+            parse_json_array(${json_content} "files_windows" platform_files_list)
+            list(APPEND files_list ${platform_files_list})
+        elseif(EMSCRIPTEN)
+            parse_json_array(${json_content} "files_wasm" platform_files_list)
+            list(APPEND files_list ${platform_files_list})
+        elseif(ANDROID)
+            parse_json_array(${json_content} "files_android" platform_files_list)
+            list(APPEND files_list ${platform_files_list})
+        endif()
 
         # 处理dirs字段，自动添加文件
         if(dirs_list)
@@ -437,6 +465,14 @@ function(set_module_properties target_name)
         ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/exe/"
         ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/exe/"
     )
+    
+    # 在非模块模式下，禁用目标级别的模块扫描
+    if(NOT SHINE_BUILD_MODULE AND MSVC)
+        set_target_properties(${target_name} PROPERTIES
+            CXX_MODULE OFF
+            CXX_SCAN_FOR_MODULES OFF
+        )
+    endif()
 endfunction()
 
 # ================================
@@ -536,7 +572,7 @@ foreach(module_name ${MODULE_LIST})
     # subcmake 模块允许 files 为空（因为它不参与本工程编译，只负责触发子工程构建）
     check_module_type("${types}" "subcmake" is_subcmake)
 
-    # WASM dispatch-only mode: only keep subcmake modules (e.g. smallwasm / other wasm projects).
+
     if(SHINE_WASM_DISPATCH_ONLY AND NOT is_subcmake)
         continue()
     endif()
@@ -553,8 +589,15 @@ foreach(module_name ${MODULE_LIST})
     set(header_files "")
     set(source_files "")
     foreach(file ${files})
-        if(file MATCHES "\\.(h|hpp|ixx)$")
+        if(file MATCHES "\\.(h|hpp)$")
             list(APPEND header_files ${file})
+        elseif(file MATCHES "\\.ixx$")
+            # 在非模块模式下，.ixx 文件作为普通头文件
+            if(NOT SHINE_BUILD_MODULE)
+                list(APPEND header_files ${file})
+            else()
+                list(APPEND source_files ${file})
+            endif()
         else()
             list(APPEND source_files ${file})
         endif()
@@ -705,6 +748,25 @@ foreach(module_name ${MODULE_LIST})
         endif()
     endif()
 
+    # 在非模块模式下，将 .ixx 文件设置为普通头文件，不作为模块接口单元
+    if(NOT SHINE_BUILD_MODULE AND header_files)
+        foreach(file ${header_files})
+            if(file MATCHES "\\.ixx$")
+                set_source_files_properties(${CMAKE_SOURCE_DIR}/${file} PROPERTIES
+                    CXX_MODULE OFF
+                    CXX_MODULE_TYPE "None"
+                    HEADER_FILE_ONLY TRUE
+                )
+                # 在非模块模式下，为 .ixx 文件添加禁用模块的编译选项
+                if(MSVC)
+                    set_source_files_properties(${CMAKE_SOURCE_DIR}/${file} PROPERTIES
+                        COMPILE_FLAGS "/Zc:twoPhase-"
+                    )
+                endif()
+            endif()
+        endforeach()
+    endif()
+
     # 配置目标属性
     if(is_interface)
         target_include_directories(${name} INTERFACE ${COMMON_INCLUDE_DIRS})
@@ -747,8 +809,6 @@ foreach(module_name ${MODULE_LIST})
             $<$<CONFIG:Debug>:glew32d>
             $<$<CONFIG:Release>:glew32>
             $<$<PLATFORM_ID:Windows>:opengl32;glu32;dxgi>
-            $<$<CONFIG:Debug>:qjsd>
-            $<$<CONFIG:Release>:qjs>
         )
         set_target_properties(${name} PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/exe"
@@ -993,22 +1053,6 @@ foreach(src ${ENGINE_SOURCES})
     endif()
 endforeach()
 set(ENGINE_SOURCES ${FILTERED_SOURCES})
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]gltfLoader\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]loader\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]lodepng\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]quat\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]rotator\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]vector\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]vector2\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]obj\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]png\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]base64[/\\\\]base64\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]byte_convert\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]file_util\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]string_util\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]url_util\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]timer[/\\\\].*\\.h$")
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*[/\\\\]singleton\\.h$")
 
 # 创建主引擎目标
 add_executable(MainEngine ${ENGINE_SOURCES})
@@ -1183,6 +1227,7 @@ message(STATUS "Platform: ${CMAKE_SYSTEM_NAME}")
 if(WIN32)
     message(STATUS "Architecture: ${CMAKE_GENERATOR_PLATFORM}")
 endif()
+message(STATUS "C++20 Modules: ${SHINE_BUILD_MODULE}")
 message(STATUS "Output Directory: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 message(STATUS "==========================")
 

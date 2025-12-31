@@ -38,7 +38,7 @@ namespace shine::util
         
         taskNode->dependencies.push_back(dependsOn.id);
         depNode->dependents.push_back(task.id);
-        taskNode->remainingDeps++;
+        ++taskNode->remainingDeps;
     }
 
     void TaskScheduler::Run(TaskHandle task) {

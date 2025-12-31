@@ -1,4 +1,5 @@
-﻿#ifndef SHINE_IMPORT_STD
+﻿
+#ifndef SHINE_IMPORT_STD
 #include <mutex>
 #include <queue>
 #endif
@@ -6,8 +7,11 @@
 export module shine.safe_queue;
 
 #ifdef SHINE_IMPORT_STD
-#include "std.h"
+import std;
 #endif
+
+
+
 
 namespace shine::data
 {

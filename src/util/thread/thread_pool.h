@@ -12,7 +12,7 @@
 
 namespace shine::util
 {
-#if SHINE_HAS_STD_JTHREAD
+
     class ThreadPool {
     public:
         explicit ThreadPool(u32 numThreads = 0);
@@ -22,9 +22,10 @@ namespace shine::util
         ThreadPool& operator=(const ThreadPool&) = delete;
 
         template<typename F, typename... Args>
-        auto Enqueue(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
+    	requires std::invocable<F, Args...>
+        auto Enqueue(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F,Args...>>;
 
-        u32 GetThreadCount() const { return _workers.size(); }
+        u32 GetThreadCount() const { return static_cast<u32>(_workers.size()); }
 
         void WaitAll();
 
@@ -42,63 +43,34 @@ namespace shine::util
     };
 
     template<typename F, typename... Args>
-    auto ThreadPool::Enqueue(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type> {
-        using ReturnType = typename std::result_of<F(Args...)>::type;
+        requires std::invocable<F, Args...>
+    auto ThreadPool::Enqueue(F&& f, Args&&... args)   -> std::future<std::invoke_result_t<F, Args...>>
+	{
+        using ReturnType =  std::invoke_result_t<F,Args...>;
 
         auto task = std::make_shared<std::packaged_task<ReturnType()>>(
-            std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+            [fn = std::forward<F>(f),
+            ... as = std::forward<Args>(args)]() mutable -> ReturnType
+            {
+                if constexpr (std::is_void_v<ReturnType>) {
+                    std::invoke(std::move(fn), std::move(as)...);
+                }
+                else {
+                    return std::invoke(std::move(fn), std::move(as)...);
+                }
+            }
         );
 
-        std::future<ReturnType> res = task->get_future();
+        auto future = task->get_future();
         {
-            std::unique_lock<std::mutex> lock(_queueMutex);
-            if (_stop) {
+            std::unique_lock lock(_queueMutex);
+            if (_stop)
                 throw std::runtime_error("enqueue on stopped ThreadPool");
-            }
 
-            _tasks.emplace([task]() { (*task)(); });
-            _activeTasks++;
+            _tasks.emplace([task] { (*task)(); });
+            ++_activeTasks;
         }
         _condition.notify_one();
-        return res;
+        return future;
     }
-#else
-    class ThreadPool {
-    public:
-        explicit ThreadPool(u32 numThreads = 0) {}
-        ~ThreadPool() = default;
-
-        ThreadPool(const ThreadPool&) = delete;
-        ThreadPool& operator=(const ThreadPool&) = delete;
-
-        template<typename F, typename... Args>
-        auto Enqueue(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type> {
-            using ReturnType = typename std::result_of<F(Args...)>::type;
-            std::promise<ReturnType> promise;
-            auto future = promise.get_future();
-            
-            try {
-                if constexpr (std::is_void_v<ReturnType>) {
-                    std::forward<F>(f)(std::forward<Args>(args)...);
-                    promise.set_value();
-                } else {
-                    promise.set_value(std::forward<F>(f)(std::forward<Args>(args)...));
-                }
-            } catch (...) {
-                promise.set_exception(std::current_exception());
-            }
-            
-            return future;
-        }
-
-        u32 GetThreadCount() const { return 1; }
-
-        void WaitAll() {}
-
-        static ThreadPool& Get() {
-            static ThreadPool instance;
-            return instance;
-        }
-    };
-#endif
 }

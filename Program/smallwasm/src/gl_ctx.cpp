@@ -1,6 +1,6 @@
 #include "engine/engine.h"
 #include "graphics/wasm_command_buffer.h"
-#include "util/wasm_compat.h"
+
 
 // ======================================================================================
 // ENTRY POINT (WASM EXPORTS)

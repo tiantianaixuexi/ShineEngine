@@ -2,7 +2,6 @@
 
 #include "third/stb/stb_image.h"
 
-export module shine.util.image_util;
 
 #include "imgui.h"
 
