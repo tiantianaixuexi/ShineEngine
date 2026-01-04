@@ -65,12 +65,25 @@ if /i "%~1"=="--release" (
     goto parse_args
 )
 
+if defined CMD (
+    if /i "%~1"=="release" (
+        set MODULE_CONFIG=Release
+        shift
+        goto parse_args
+    )
+    if /i "%~1"=="debug" (
+        set MODULE_CONFIG=Debug
+        shift
+        goto parse_args
+    )
+)
+
 if not defined CMD (
     set CMD=%~1
-    if "%~1"=="module" set TARGET_ARG=%~2
-    if "%~1"=="wasm" set TARGET_ARG=%~2
-    if "%~1"=="exe" set TARGET_ARG=%~2
-    if "%~1"=="test" set TARGET_ARG=%~2
+    if /i "%~1"=="module" set TARGET_ARG=%~2
+    if /i "%~1"=="wasm" set TARGET_ARG=%~2
+    if /i "%~1"=="exe" set TARGET_ARG=%~2
+    if /i "%~1"=="test" set TARGET_ARG=%~2
 ) else if "%TARGET_ARG%"=="" (
     set TARGET_ARG=%~1
 )

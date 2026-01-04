@@ -77,7 +77,9 @@ add_compile_definitions(
     SHINE_OPENGL
     STB_IMAGE_IMPLEMENTATION
     $<$<CONFIG:Release>:NDEBUG>
-    SHINE_USE_MODULE=$<BOOL:${SHINE_BUILD_MODULE}>
+    $<$<BOOL:${SHINE_BUILD_MODULE}>:SHINE_USE_MODULE>
+    $<$<BOOL:${SHINE_BUILD_MODULE}>:SHINE_MODULE_EXPORT=export>
+    $<$<NOT:$<BOOL:${SHINE_BUILD_MODULE}>>:SHINE_MODULE_EXPORT=>
 )
 
 # 统一的包含目录
@@ -556,6 +558,9 @@ init_dependency_cache()
 foreach(module_name ${MODULE_LIST})
     get_property(name GLOBAL PROPERTY "MODULE_${module_name}_NAME")
     get_property(files GLOBAL PROPERTY "MODULE_${module_name}_FILES")
+    if(files)
+        list(FILTER files EXCLUDE REGEX "CMakeLists.txt")
+    endif()
     get_property(defines GLOBAL PROPERTY "MODULE_${module_name}_DEFINES")
     get_property(third_libs_debug GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_DEBUG")
     get_property(third_libs_release GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_RELEASE")
@@ -636,7 +641,7 @@ foreach(module_name ${MODULE_LIST})
             COMMAND ${CMAKE_COMMAND} --build "${_subcmake_bld}" --target "${subcmake_target}"
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
             VERBATIM
-            SOURCES ${files}
+            SOURCES ${files} "${module_file}"
         )
         if(NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "  ${name} -> SUBCMAKE")
@@ -650,13 +655,17 @@ foreach(module_name ${MODULE_LIST})
         set_target_properties(${name} PROPERTIES FOLDER "${vs_folder_path}")
 
         # VS 过滤器：让 smallwasm 的文件在 VS 中按目录树展示（src/ui, web 等）
-        if(MSVC AND files)
-            set(_subcmake_abs_files "")
-            foreach(_f ${files})
-                list(APPEND _subcmake_abs_files "${CMAKE_SOURCE_DIR}/${_f}")
-            endforeach()
-            # Use the sub-project root so filters are relative (src/..., web/...) instead of full repo paths.
-            source_group(TREE "${CMAKE_SOURCE_DIR}/${subcmake_source}" FILES ${_subcmake_abs_files})
+        if(MSVC)
+            if(files)
+                set(_subcmake_abs_files "")
+                foreach(_f ${files})
+                    list(APPEND _subcmake_abs_files "${CMAKE_SOURCE_DIR}/${_f}")
+                endforeach()
+                # Use the sub-project root so filters are relative (src/..., web/...) instead of full repo paths.
+                source_group(TREE "${CMAKE_SOURCE_DIR}/${subcmake_source}" FILES ${_subcmake_abs_files})
+            endif()
+            # Add JSON config to a specific group
+            source_group("Config" FILES "${module_file}")
         endif()
 
         # NOTE: no ${name}_files target; VS browsing uses the SOURCES attached to ${name}.
@@ -694,12 +703,15 @@ foreach(module_name ${MODULE_LIST})
             message(STATUS "  ${name} -> INTERFACE (third party)")
         endif()
     elseif(NOT source_files AND header_files)
-        add_library(${name} INTERFACE)
-        set(is_interface TRUE)
+        # 将 header-only 模块也作为 STATIC 库处理，以便在 VS 中正确显示文件结构
+        # 且支持 PRIVATE 添加配置文件而不污染依赖者
+        add_library(${name} STATIC)
+        set_target_properties(${name} PROPERTIES LINKER_LANGUAGE CXX)
+        set(is_interface FALSE) # 视为普通库
         set(has_sources FALSE)
         should_show_module(${name})
         if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
-            message(STATUS "  ${name} -> INTERFACE (header only)")
+            message(STATUS "  ${name} -> STATIC (header only)")
         endif()
     elseif(is_static)
         add_library(${name} STATIC)
@@ -748,6 +760,8 @@ foreach(module_name ${MODULE_LIST})
         endif()
     endif()
 
+
+
     # 在非模块模式下，将 .ixx 文件设置为普通头文件，不作为模块接口单元
     if(NOT SHINE_BUILD_MODULE AND header_files)
         foreach(file ${header_files})
@@ -787,6 +801,31 @@ foreach(module_name ${MODULE_LIST})
         if(MSVC AND is_third)
             add_custom_target(${name}_files SOURCES ${header_files})
             set_target_properties(${name}_files PROPERTIES FOLDER "${vs_folder_path}")
+        endif()
+    endif()
+
+    # 将模块的 JSON 配置文件添加到目标中
+    if(module_file AND EXISTS "${module_file}")
+        if(is_interface)
+            # 接口库（现在主要是第三方库）：为了不污染依赖者，我们使用辅助目标来显示配置文件
+            if(TARGET ${name}_files)
+                # 已经有 _files 目标（第三方库），加到这里
+                target_sources(${name}_files PRIVATE "${module_file}")
+                set_source_files_properties("${module_file}" PROPERTIES VS_TOOL_OVERRIDE "Text")
+                if(MSVC)
+                    source_group("Config" FILES "${module_file}")
+                endif()
+            endif()
+        else()
+            # 普通目标（包括 Header-only 转换来的 STATIC），直接添加 PRIVATE
+            target_sources(${name} PRIVATE "${module_file}")
+            set_source_files_properties("${module_file}" PROPERTIES
+                HEADER_FILE_ONLY TRUE
+                VS_TOOL_OVERRIDE "Text"
+            )
+            if(MSVC)
+                source_group("Config" FILES "${module_file}")
+            endif()
         endif()
     endif()
 
@@ -1157,32 +1196,7 @@ if(WIN32 AND TARGET MainEngine)
     )
 endif()
 
-# ================================
-# 模块配置文件目标（VS中编辑JSON）
-# ================================
-get_property(MODULE_JSON_FILES GLOBAL PROPERTY "ALL_MODULE_FILES")
-add_custom_target(ModuleConfigs SOURCES ${MODULE_JSON_FILES})
-set_target_properties(ModuleConfigs PROPERTIES
-    FOLDER ""
-    EXCLUDE_FROM_ALL TRUE
-    EXCLUDE_FROM_DEFAULT_BUILD TRUE
-)
 
-foreach(json_file ${MODULE_JSON_FILES})
-    set_source_files_properties("${json_file}" PROPERTIES
-        VS_TOOL_OVERRIDE "Text"
-        HEADER_FILE_ONLY TRUE
-    )
-endforeach()
-
-if(MSVC)
-    foreach(json_file ${MODULE_JSON_FILES})
-        file(RELATIVE_PATH rel_path "${CMAKE_SOURCE_DIR}/Module" "${json_file}")
-        get_filename_component(file_dir "${rel_path}" DIRECTORY)
-        string(REPLACE "/" "\\" group_path "${file_dir}")
-        source_group("${group_path}" FILES "${json_file}")
-    endforeach()
-endif()
 
 # ================================
 # 脚本文件目标（VS中查看脚本）

@@ -1,11 +1,24 @@
-﻿#pragma once
+﻿#ifdef SHINE_USE_MODULE
 
+module;
+
+export module shine.math.matrix4;
+
+import <array>;
+import shine.math.mathDef;
+import shine.math.quat;
+import shine.math.vector;
+
+
+#else
+
+#pragma once
 #include <array>
-
 #include "mathDef.h"
 #include "quat.h"
 #include "vector.h"
 
+#endif
 
 
 
@@ -13,11 +26,7 @@
 
 namespace shine::math
 {
-    template<MathPoint T>
-    struct TVector;
 
-	template<FloatingPoint T>
-    class TQuat;
 
     // 4x4 matrix, column-major (OpenGL convention)
     template<FloatingPoint T>

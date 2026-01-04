@@ -106,7 +106,7 @@ namespace shine::math
     }
 
     // 检查值是否在范围内
-    template<Arithmetic T>
+    template<IsNumber T>
     [[nodiscard]] constexpr bool isInRange(T value, T min, T max) noexcept {
         return value >= min && value <= max;
     }

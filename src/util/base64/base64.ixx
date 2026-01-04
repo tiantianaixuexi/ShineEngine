@@ -1,10 +1,8 @@
-#if SHINE_USE_MODULE
+#ifdef SHINE_USE_MODULE
 
 export module shine.base64;
 import <string>;
 import <string_view>;
-import <vector>;
-
 
 #else
 
@@ -24,7 +22,7 @@ namespace shine::base64{
 #endif
 
 	std::string base64_encode(std::string_view data) noexcept;
-	std::vector<unsigned char> base64_decode(std::string_view encoded_string) noexcept;
+	std::string base64_decode(std::string_view encoded_string) noexcept;
 
 }
 

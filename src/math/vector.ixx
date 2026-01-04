@@ -9,6 +9,7 @@ export module shine.math.vector3;
 #pragma once
 
 #include "mathDef.h"
+#include "mathUtil.h"
 
 #endif
 
@@ -296,24 +297,19 @@ namespace shine::math
         // 球面线性插值（用于方向向量）
         [[nodiscard]] static TVector<T> Slerp(const TVector<T>& A, const TVector<T>& B, T Alpha) noexcept
         {
-            Alpha = Clamp(Alpha, T(0), T(1));
-
-            T dot = Clamp(A.Dot(B), T(-1), T(1));
-
-            // 角度很小时，直接 Nlerp
-            if (dot > T(0.9995))
-            {
-                TVector<T> v = A * (T(1) - Alpha) + B * Alpha;
-                return v.GetSafeNormal();
+            Alpha = Clamp(Alpha, static_cast<T>(0), static_cast<T>(1));
+            T dot = A.Dot(B);
+            dot = Clamp(dot, static_cast<T>(-1), static_cast<T>(1));
+            
+            T theta = std::acos(dot);
+            if (Abs(theta) < SMALL_NUMBER) {
+                return Lerp(A, B, Alpha);
             }
-
-            // 真·Slerp
-            T theta = acos(dot);
-            T sinTheta = sin(theta);
-
-            T w1 = sin((T(1) - Alpha) * theta) / sinTheta;
-            T w2 = sin(Alpha * theta) / sinTheta;
-
+            
+            T sinTheta = std::sin(theta);
+            T w1 = std::sin((static_cast<T>(1) - Alpha) * theta) / sinTheta;
+            T w2 = std::sin(Alpha * theta) / sinTheta;
+            
             return A * w1 + B * w2;
         }
 
@@ -339,19 +335,6 @@ namespace shine::math
             return *this - Project(Target);
         }
 
-        [[nodiscard]] TVector<T> GetSafeNormal(T Tolerance = SMALL_NUMBER) const noexcept
-        {
-            const T SquareSum = X * X + Y * Y + Z * Z;
-
-            if (SquareSum > Tolerance)
-            {
-				const T Scale = InvSqrt(SquareSum);
-                return TVector<T>(X * Scale, Y * Scale, Z * Scale);
-            }
-
-            return static_cast<T>(0);
-        }
-
         // 计算两个向量之间的角度（弧度）
         [[nodiscard]] static T Angle(const TVector<T>& A, const TVector<T>& B) noexcept
         {
@@ -364,7 +347,7 @@ namespace shine::math
             }
             
             dot = Clamp(dot / (lenA * lenB), static_cast<T>(-1), static_cast<T>(1));
-            return acos(dot);
+            return std::acos(dot);
         }
 
         // 计算两个向量之间的角度（度）

@@ -1,16 +1,27 @@
-﻿#include "byte_convert.h"
+﻿
+#ifdef SHINE_USE_MODULE
 
+module;
+
+#include "shine_define.h"
 #include "fmt/format.h"
 
-#include <span>
+module shine.byte_convert;
+
+#else
+
+#include "byte_convert.ixx"
+#include "fmt/format.h"
+
 #include <string>
-#include <bit>
+
+#endif
 
 
 namespace shine::util
 {
 
-    constexpr double convert_size(std::uint64_t size, SizeUnit from, SizeUnit to) noexcept
+	constexpr double convert_size(s64 size, SizeUnit from, SizeUnit to) noexcept
     {
         double bytes = static_cast<double>(size);
         switch (from)
@@ -22,6 +33,7 @@ namespace shine::util
             bytes *= 1024.0;
             [[fallthrough]];
         case SizeUnit::GB:
+
             bytes *= 1024.0;
             [[fallthrough]];
         case SizeUnit::MB:
@@ -56,7 +68,7 @@ namespace shine::util
     }
 
 
-    SizeUnitInfo get_appropriate_size(std::uint64_t size_in_bytes)
+    SizeUnitInfo get_appropriate_size(std::uint64_t size_in_bytes) noexcept
     {
         constexpr double threshold = 1024.0;
         double size = static_cast<double>(size_in_bytes);
@@ -95,7 +107,7 @@ namespace shine::util
         return { size, unit };
     }
 
-    std::string_view unit_to_string(SizeUnit unit)
+    std::string_view unit_to_string(SizeUnit unit) noexcept
     {
         switch (unit)
         {
@@ -112,87 +124,46 @@ namespace shine::util
         case SizeUnit::PB:
             return "PB";
         default:
-            return "B";
+			return "B";
         }
     }
 
-    std::string format_file_size(std::uint64_t size_in_bytes, int precision)
+    std::string format_file_size(u64 size_in_bytes, int precision) noexcept
     {
         auto [size, unit] = get_appropriate_size(size_in_bytes);
         return fmt::format("{} {} {}", size, precision, unit_to_string(unit));
     }
 
-    template <std::integral T>
-    constexpr T read_be(std::span<const std::byte> data, size_t offset) noexcept {
- 
-        if (offset > data.size() - sizeof(T)) {
+    constexpr std::string_view bytes_to_string(const unsigned char* data, size_t data_size, size_t offset, size_t length) {
+
+        if (!data || offset >= data_size)
             return {};
-        }
 
-        T value;
-
-        memcpy(&value, data.data() + offset, sizeof(T));
-
-
-        if constexpr (std::endian::native == std::endian::little) {
-            return value;
-        }
-        else
+        if (length == 0) [[unlikely]]
         {
-            return std::byteswap(value);
+            length = data_size - offset;
         }
+
+        // 防止越界
+        if (offset + length > data_size)
+        {
+            length = data_size - offset;
+        }
+
+        return std::string_view{
+            reinterpret_cast<const char*>(data + offset),
+            length
+        };
     }
 
-    constexpr std::string bytes_to_string(const std::span<const std::byte>& data, size_t offset, size_t length) {
-
-        if (length == 0) {
-            length = data.size() > offset ? data.size() - offset : 0;
-        }
-
-        if (offset >= data.size()) {
-            return {};
-        }
-
-        std::string result;
-        result.reserve(length);
-
-        for (size_t i = 0; i < length; ++i) {
-            result.push_back(static_cast<char>(data[offset + i]));
-        }
-
-        return result;
-    }
-
-
-    constexpr std::string_view bytes_to_string_view(const std::span<const std::byte>& data, size_t offset, size_t length) {
-   
-        if (length == 0) {
-            length = data.size() > offset ? data.size() - offset : 0;
-        }
-
-   
-        if (offset >= data.size()) {
-            return {};
-        }
-
-
-        return std::string_view{ reinterpret_cast<const char*>(data.data() + offset), length };
-    }
-
-
-    constexpr std::string bytes_to_c_string(const std::span<const std::byte>& data, size_t offset) {
-  
-        if (offset >= data.size()) {
-            return {};
-        }
-
-    
-        std::size_t length = 0;
-        while (offset + length < data.size() && data[offset + length] != std::byte{ 0 }) {
-            ++length;
-        }
-
-        return bytes_to_string(data, offset, length);
+    constexpr std::string_view bytes_to_string(const char* data, size_t data_size, size_t offset, size_t length)
+    {
+        return bytes_to_string(
+            reinterpret_cast<const unsigned char*>(data),
+            data_size,
+            offset,
+            length
+        );
     }
 }
 

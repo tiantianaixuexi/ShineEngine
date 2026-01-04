@@ -1,7 +1,19 @@
+#ifdef SHINE_USE_MODULE
+
+module;
+
+#include "shine_define.h"
+
+export module shine.byte_convert;
+
+#else
+
+
 #pragma once
 
 #include "shine_define.h"
-#include <span>
+
+#endif
 
 namespace shine::util
 {
@@ -10,7 +22,7 @@ namespace shine::util
 	 * 
 	 * 主要用于 Deflate/Zlib 等需要位级别操作的压缩格式解码
 	 */
-	class BitReader
+	SHINE_MODULE_EXPORT class BitReader
 	{
 	public:
 		/**
@@ -24,52 +36,16 @@ namespace shine::util
 			bitsize_ = (size < (S64_MAX / 8)) ? size * 8 : S64_MAX;
 		}
 
-		/**
-		 * @brief 从 span 构造
-		 */
-		explicit BitReader(std::span<const uint8_t> data) noexcept
-			: BitReader(data.data(), data.size())
-		{}
-
-		/**
-		 * @brief 确保有足够的位可用（最多32位）
-		 * @param nbits 需要的位数
-		 */
-		void ensureBits(size_t nbits) noexcept
-		{
-			size_t start = bitPos_ >> 3;
-			if (start + 4 < size_)
-			{
-				buffer_ = static_cast<u32>(data_[start + 0]) |
-				         (static_cast<u32>(data_[start + 1]) << 8) |
-				         (static_cast<u32>(data_[start + 2]) << 16) |
-				         (static_cast<u32>(data_[start + 3]) << 24);
-				buffer_ >>= (bitPos_ & 7);
-				if (start + 4 < size_)
-				{
-					buffer_ |= (static_cast<u32>(data_[start + 4]) << 24) << (8 - (bitPos_ & 7));
-				}
-			}
-			else
-			{
-				buffer_ = 0;
-				if (start + 0 < size_) buffer_ |= data_[start + 0];
-				if (start + 1 < size_) buffer_ |= static_cast<u32>(data_[start + 1]) << 8;
-				if (start + 2 < size_) buffer_ |= static_cast<u32>(data_[start + 2]) << 16;
-				if (start + 3 < size_) buffer_ |= static_cast<u32>(data_[start + 3]) << 24;
-				buffer_ >>= (bitPos_ & 7);
-			}
-		}
 
 		/**
 		 * @brief 读取 nbits 位（最多31位）
 		 * @param nbits 要读取的位数
 		 * @return 读取的值
 		 */
-		uint32_t readBits(size_t nbits) noexcept
+		u32 readBits(size_t nbits) noexcept
 		{
-			ensureBits(nbits);
-			uint32_t result = buffer_ & ((1u << nbits) - 1u);
+			ensureBits();
+			u32 result = buffer_ & ((1u << nbits) - 1u);
 			buffer_ >>= nbits;
 			bitPos_ += nbits;
 			return result;
@@ -80,9 +56,9 @@ namespace shine::util
 		 * @param nbits 要查看的位数
 		 * @return 查看的值
 		 */
-		uint32_t peekBits(size_t nbits) noexcept
+		u32 peekBits(size_t nbits) noexcept
 		{
-			ensureBits(nbits);
+			ensureBits();
 			return buffer_ & ((1u << nbits) - 1u);
 		}
 
@@ -134,6 +110,39 @@ namespace shine::util
 			size_t pos = getBytePos();
 			return (pos < size_) ? (size_ - pos) : 0;
 		}
+
+private:
+
+	/**
+	 * @brief 确保有足够的位可用（最多32位）
+	 */
+
+	void ensureBits() noexcept
+	{
+		size_t start = bitPos_ >> 3;
+		if (start + 4 < size_)
+		{
+			buffer_ = static_cast<u32>(data_[start + 0]) |
+				(static_cast<u32>(data_[start + 1]) << 8) |
+				(static_cast<u32>(data_[start + 2]) << 16) |
+				(static_cast<u32>(data_[start + 3]) << 24);
+			buffer_ >>= (bitPos_ & 7);
+			if (start + 4 < size_)
+			{
+				buffer_ |= (static_cast<u32>(data_[start + 4]) << 24) << (8 - (bitPos_ & 7));
+			}
+		}
+		else
+		{
+			buffer_ = 0;
+			if (start + 0 < size_) buffer_ |= data_[start + 0];
+			if (start + 1 < size_) buffer_ |= static_cast<u32>(data_[start + 1]) << 8;
+			if (start + 2 < size_) buffer_ |= static_cast<u32>(data_[start + 2]) << 16;
+			if (start + 3 < size_) buffer_ |= static_cast<u32>(data_[start + 3]) << 24;
+			buffer_ >>= (bitPos_ & 7);
+		}
+	}
+
 
 	private:
 		const u8* data_;

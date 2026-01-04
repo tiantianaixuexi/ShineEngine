@@ -142,6 +142,7 @@ static_assert(sizeof(f64) == 8);
 
 
 
+
 #define SHINE_NAMESPACE(name) namespace shine name {
 #define SHINE_NAMESPACE_END   };
 

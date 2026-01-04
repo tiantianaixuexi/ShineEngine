@@ -11,7 +11,7 @@
 
 namespace shine::math
 {
-    template<MathPoint T>
+    template<IsNumber T>
     class vector2
     {
 
@@ -104,32 +104,32 @@ namespace shine::math
         }
 
     
-        template <MathPoint U>
+        template <IsNumber U>
         [[nodiscard]] constexpr vector2<T> operator+(U value) const noexcept
         {
             return vector2<T>(X + static_cast<T>(value), Y + static_cast<T>(value));
         }
 
-        template <MathPoint U>
+        template <IsNumber U>
         [[nodiscard]] constexpr vector2<T> operator-(U value) const noexcept
         {
             return vector2<T>(X - static_cast<T>(value), Y - static_cast<T>(value));
         }
 
-        template <MathPoint U>
+        template <IsNumber U>
         [[nodiscard]] constexpr vector2<T> operator*(U value) const noexcept
         {
             return vector2<T>(X * static_cast<T>(value), Y * static_cast<T>(value));
         }
 
-        template <MathPoint U>
+        template <IsNumber U>
         [[nodiscard]] constexpr vector2<T> operator/(U value) const noexcept
         {
             const T rScale = static_cast<T>(1) / static_cast<T>(value);
             return vector2<T>(X * rScale, Y * rScale);
         }
 
-        template <MathPoint U>
+        template <IsNumber U>
         constexpr vector2<T>& operator+=(U value) noexcept
         {
             X += static_cast<T>(value);
@@ -137,7 +137,7 @@ namespace shine::math
             return *this;
         }
 
-        template <MathPoint U>
+        template <IsNumber U>
         constexpr vector2<T>& operator-=(U value) noexcept
         {
             X -= static_cast<T>(value);
@@ -145,7 +145,7 @@ namespace shine::math
             return *this;
         }
 
-        template <MathPoint U>
+        template <IsNumber U>
         constexpr vector2<T>& operator*=(U value) noexcept
         {
             X *= static_cast<T>(value);
@@ -153,7 +153,7 @@ namespace shine::math
             return *this;
         }
 
-        template <MathPoint U>
+        template <IsNumber U>
         constexpr vector2<T>& operator/=(U value) noexcept
         {
             const T rScale = static_cast<T>(1) / static_cast<T>(value);
