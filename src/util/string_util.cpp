@@ -1,4 +1,4 @@
-﻿#include "string_util.h"
+﻿#include "string_util.ixx"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -115,32 +115,53 @@ size_t StringUtil::UTF8ToUTF32(const unsigned char* src,const int srcLen,UTF32Ch
 }
 
 size_t StringUtil::UTF32ToUTF8(std::span<const unsigned int> src, std::string& dst) {
-    size_t bytesWritten = 0;
-    const size_t dstCapacity = dst.size();
 
+    size_t totalBytes = 0;
     for (unsigned int code : src) {
         if (code < 0x80) {
-            if (bytesWritten + 1 > dstCapacity) return 0;
+            totalBytes += 1;
+        }
+        else if (code < 0x800) {
+            totalBytes += 2;
+        }
+        else if (code < 0x10000) {
+            totalBytes += 3;
+        }
+        else if (code <= 0x10FFFF) {
+            totalBytes += 4;
+        }
+        else {
+            return 0;  // 无效码点
+        }
+    }
+
+    // 准备足够的空间（保留原有内容或清空）
+    dst.clear();
+    dst.resize(totalBytes);  // 正确设置字符串大小
+
+    size_t bytesWritten = 0;
+    for (unsigned int code : src) {
+  
+        if (code < 0x80) {
             dst[bytesWritten++] = static_cast<unsigned char>(code);
-        } else if (code < 0x800) {
-            if (bytesWritten + 2 > dstCapacity) return 0;
+        }
+        else if (code < 0x800) {
             dst[bytesWritten++] = static_cast<unsigned char>(0xC0 | (code >> 6));
             dst[bytesWritten++] = static_cast<unsigned char>(0x80 | (code & 0x3F));
-        } else if (code < 0x10000) {
-            if (bytesWritten + 3 > dstCapacity) return 0;
+        }
+        else if (code < 0x10000) {
             dst[bytesWritten++] = static_cast<unsigned char>(0xE0 | (code >> 12));
             dst[bytesWritten++] = static_cast<unsigned char>(0x80 | ((code >> 6) & 0x3F));
             dst[bytesWritten++] = static_cast<unsigned char>(0x80 | (code & 0x3F));
-        } else if (code <= 0x10FFFF) {
-            if (bytesWritten + 4 > dstCapacity) return 0;
+        }
+        else {
             dst[bytesWritten++] = static_cast<unsigned char>(0xF0 | (code >> 18));
             dst[bytesWritten++] = static_cast<unsigned char>(0x80 | ((code >> 12) & 0x3F));
             dst[bytesWritten++] = static_cast<unsigned char>(0x80 | ((code >> 6) & 0x3F));
             dst[bytesWritten++] = static_cast<unsigned char>(0x80 | (code & 0x3F));
-        } else {
-            return 0;
         }
     }
+
     return bytesWritten;
 }
 
@@ -323,28 +344,51 @@ std::string StringUtil::TrimEnd(std::string_view str, std::string_view suffix) {
     return std::string(str);
 }
 
-bool StringUtil::EndsWith(std::string_view str, std::string_view suffix) {
-    return str.ends_with(suffix);
-}
+bool StringUtil::EndsWith(std::string_view str, std::string_view suffix, bool IgnoreCase) {
 
-bool StringUtil::EndsWithIgnoreCase(std::string_view str, std::string_view suffix) {
     if (str.length() < suffix.length()) {
         return false;
     }
 
-    // 使用C++20的ranges::equal和视图操作
-    auto str_suffix = str.substr(str.length() - suffix.length());
-    for (size_t i = 0; i < suffix.length(); ++i) {
-        if (std::tolower(static_cast<unsigned char>(str_suffix[i])) !=
-            std::tolower(static_cast<unsigned char>(suffix[i]))) {
-            return false;
+    if (IgnoreCase)
+    {
+        return str.ends_with(suffix);
+
+    }else
+    {
+        auto str_suffix = str.substr(str.length() - suffix.length());
+        for (size_t i = 0; i < suffix.length(); ++i) {
+            if (std::tolower(static_cast<unsigned char>(str_suffix[i])) !=
+                std::tolower(static_cast<unsigned char>(suffix[i]))) {
+                return false;
+            }
         }
+        return true;
     }
-    return true;
+
+    __assume(false);
 }
 
-bool StringUtil::StartsWith(std::string_view str, std::string_view prefix) {
-    return str.starts_with(prefix);
+bool StringUtil::StartsWith(std::string_view str, std::string_view prefix, bool IgnoreCase) {
+
+    if (str.length() < prefix.length()) {
+        return false;
+    }
+
+    if (IgnoreCase) {
+        return str.starts_with(prefix);
+    }else
+    {
+        for (size_t i = 0; i < prefix.length(); ++i) {
+            if (std::tolower(static_cast<unsigned char>(str[i])) !=
+                std::tolower(static_cast<unsigned char>(prefix[i]))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    __assume(false);
 }
 
 std::vector<std::string> StringUtil::SplitPathComponents(std::string_view path) {
@@ -424,9 +468,6 @@ std::string StringUtil::ToStandardPath(std::string_view path) {
     return result;
 }
 
-std::string StringUtil::ToLuaPath(std::string_view path) {
-    return ToStandardPath(path);
-}
 
 std::string StringUtil::ToWindowsPath(std::string_view path) {
     std::string result = ReplaceAll(path, "/", " \\");
@@ -496,7 +537,7 @@ std::string StringUtil::BytesToHex(std::span<const unsigned char> bytes) {
     return result;
 }
 
-// ===================== 现代高性能字符串工具(C++23/26) =====================
+
 
 std::uint32_t StringUtil::HashFNV1a(std::string_view str) {
     constexpr std::uint32_t fnv_prime = 16777619u;
@@ -504,7 +545,7 @@ std::uint32_t StringUtil::HashFNV1a(std::string_view str) {
 
     std::uint32_t hash = fnv_offset_basis;
 
-    // 使用C++20的ranges视图
+
     for (auto c : str )
     {
         hash ^= static_cast<uint8_t>(c);
@@ -516,27 +557,14 @@ std::uint32_t StringUtil::HashFNV1a(std::string_view str) {
 
 std::vector<std::string> StringUtil::Split(std::string_view str, char delim) {
     std::vector<std::string> result;
-
-    if (str.empty()) {
-        return result;
-    }
-
-    size_t count = 1;
-    for (char c : str) {
-        if (c == delim) ++count;
-    }
-    result.reserve(count);
-
-    // 鍒嗗壊瀛楃涓?
     size_t start = 0;
-    for (size_t pos = str.find(delim); pos != std::string_view::npos; pos = str.find(delim, start)) {
-        result.emplace_back(str.substr(start, pos - start));
-        start = pos + 1;
-    }
+	const size_t length = str.length();
 
-    // 娣诲姞鏈€鍚庝竴涓儴鍒?
-    if (start <= str.size()) {
-        result.emplace_back(str.substr(start));
+    for (size_t i = 0; i <= length; ++i) {
+        if (i == length || str[i] == delim) {
+            result.emplace_back(str.substr(start, i - start));
+            start = i + 1;
+        }
     }
 
     return result;
@@ -561,7 +589,7 @@ std::string StringUtil::ToUpper(std::string_view str) {
 
 std::string ToStandardPath(std::string_view path) {
     std::string result(path);
-    // 缁熶竴灏嗗弽鏂滄潬鏇挎崲涓烘鏂滄潬
+  
     size_t pos = 0;
     while ((pos = result.find('\\', pos)) != std::string::npos) {
         result.replace(pos, 1, "/");

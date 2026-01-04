@@ -2,7 +2,7 @@
   "name": "string_util",
   "type": "static",
   "files": [
-    "src/util/string_util.h",
+    "src/util/string_util.ixx",
     "src/util/string_util.cpp"
   ],
   "defines": [ "NOMINMAX" ],

@@ -1,11 +1,24 @@
-﻿#pragma once
+﻿#ifdef SHINE_USE_MODULE
+
+module;
+
+export module shine.util.string_util;
+
+import <string>;
+import <span>;
+import <unordered_map>;
+import <vector>;
+
+#else
+
+#pragma once
 
 #include <string>
 #include <span>
 #include <unordered_map>
 #include <vector>
 
-
+#endif
 
 
 
@@ -20,7 +33,7 @@ namespace shine::util
         constexpr bool operator==(const UTF32Char&) const = default;
     };
 
-    class  StringUtil
+    SHINE_MODULE_EXPORT class  StringUtil
     {
     public:
         // ===================== 编码转换 =====================
@@ -166,19 +179,14 @@ namespace shine::util
 
         /**
          * @brief 检查字符串是否以特定后缀结尾
-         * @param str 输入字符串
-         * @param suffix 要检查的后缀
+         * @param str        输入字符串
+         * @param suffix     要检查的后缀
+		 * @param IngoreCase 是否忽略大小写
          * @return 如果str以suffix结尾，则为true
          */
-        static bool EndsWith(std::string_view str, std::string_view suffix);
+        static bool EndsWith(std::string_view str, std::string_view suffix,bool IgnoreCase = true);
 
-        /**
-         * @brief 检查字符串是否以特定后缀结尾（不区分大小写）
-         * @param str 输入字符串
-         * @param suffix 要检查的后缀
-         * @return 如果str以suffix结尾（忽略大小写），则为true
-         */
-        static bool EndsWithIgnoreCase(std::string_view str, std::string_view suffix);
+
 
         /**
          * @brief 检查字符串是否以特定前缀开头
@@ -186,7 +194,7 @@ namespace shine::util
          * @param prefix 要检查的前缀
          * @return 如果str以prefix开头，则为true
          */
-        static bool StartsWith(std::string_view str, std::string_view prefix);
+        static bool StartsWith(std::string_view str, std::string_view prefix, bool IgnoreCase = true);
 
         /**
          * @brief 将路径字符串分割为其组成部分
@@ -230,12 +238,7 @@ namespace shine::util
          */
         static std::string ToStandardPath(std::string_view path);
 
-        /**
-         * @brief 将路径分隔符转换为正斜杠('/', ToStandardPath的别名)
-         * @param path 路径字符串
-         * @return 使用正斜杠的路径字符串
-         */
-        static std::string ToLuaPath(std::string_view path); // Lua偏好使用'/'
+
 
         /**
          * @brief 将路径分隔符转换为Windows反斜杠('\')
@@ -268,8 +271,7 @@ namespace shine::util
 
 
 
-        // ===================== 现代C++工具（C++20/23/26）====================
-        // (HashFNV1a, Split, Join, ToLower, ToUpper, Format 已经被淘汰)
+
 
         /**
          * @brief FNV-1a字符串哈希
