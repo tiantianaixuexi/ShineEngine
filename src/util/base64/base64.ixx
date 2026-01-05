@@ -7,7 +7,6 @@ import <string_view>;
 #else
 
 #pragma once
-#include <vector>
 #include <string>
 #include <string_view>
 
