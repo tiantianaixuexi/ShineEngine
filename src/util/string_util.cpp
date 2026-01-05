@@ -1,4 +1,4 @@
-﻿#include "string_util.h"
+#include "string_util.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -142,6 +142,97 @@ size_t StringUtil::UTF32ToUTF8(std::span<const unsigned int> src, std::string& d
         }
     }
     return bytesWritten;
+}
+
+std::vector<char16_t> StringUtil::UTF8ToUTF16(std::string_view sv) {
+    size_t len = 0;
+    // 第一遍扫描：计算所需 char16_t 数量
+    for (size_t i = 0; i < sv.size(); ) {
+        unsigned char c = sv[i];
+        if (c < 0x80) { i++; len++; }
+        else if ((c & 0xE0) == 0xC0) { i += 2; len++; }
+        else if ((c & 0xF0) == 0xE0) { i += 3; len++; }
+        else if ((c & 0xF8) == 0xF0) { i += 4; len += 2; }
+        else { i++; len++; } // 无效字符占1位
+    }
+
+    std::vector<char16_t> res;
+    res.reserve(len + 1);
+
+    for (size_t i = 0; i < sv.size(); ) {
+        unsigned char c = sv[i];
+        if (c < 0x80) {
+            res.push_back(c);
+            i++;
+        } else if ((c & 0xE0) == 0xC0) {
+            if (i + 1 >= sv.size()) break;
+            char32_t cp = ((c & 0x1F) << 6) | (sv[i + 1] & 0x3F);
+            res.push_back((char16_t)cp);
+            i += 2;
+        } else if ((c & 0xF0) == 0xE0) {
+            if (i + 2 >= sv.size()) break;
+            char32_t cp = ((c & 0x0F) << 12) | ((sv[i + 1] & 0x3F) << 6) | (sv[i + 2] & 0x3F);
+            res.push_back((char16_t)cp);
+            i += 3;
+        } else if ((c & 0xF8) == 0xF0) {
+            if (i + 3 >= sv.size()) break;
+            char32_t cp = ((c & 0x07) << 18) | ((sv[i + 1] & 0x3F) << 12) | ((sv[i + 2] & 0x3F) << 6) | (sv[i + 3] & 0x3F);
+            cp -= 0x10000;
+            res.push_back((char16_t)(0xD800 + (cp >> 10)));
+            res.push_back((char16_t)(0xDC00 + (cp & 0x3FF)));
+            i += 4;
+        } else {
+            res.push_back(0xFFFD);
+            i++;
+        }
+    }
+    return res;
+}
+
+std::string StringUtil::UTF16ToUTF8(std::u16string_view src) {
+    std::string res;
+    res.reserve(src.size() * 3);
+    const char16_t* p = src.data();
+    const char16_t* end = src.data() + src.size();
+    
+    // 简单的本地辅助函数
+    auto is_high = [](char16_t c) { return c >= 0xD800 && c <= 0xDBFF; };
+    auto is_low = [](char16_t c) { return c >= 0xDC00 && c <= 0xDFFF; };
+
+    while (p < end) {
+        char32_t cp;
+        char16_t c = *p++;
+        if (is_high(c)) {
+            if (p < end && is_low(*p)) {
+                char32_t hi = c - 0xD800;
+                char32_t lo = *p++ - 0xDC00;
+                cp = 0x10000 + ((hi << 10) | lo);
+            } else {
+                cp = 0xFFFD;
+            }
+        } else if (is_low(c)) {
+            cp = 0xFFFD;
+        } else {
+            cp = c;
+        }
+
+        if (cp < 0x80) {
+            res.push_back((char)cp);
+        } else if (cp < 0x800) {
+            res.push_back((char)(0xC0 | (cp >> 6)));
+            res.push_back((char)(0x80 | (cp & 0x3F)));
+        } else if (cp < 0x10000) {
+            res.push_back((char)(0xE0 | (cp >> 12)));
+            res.push_back((char)(0x80 | ((cp >> 6) & 0x3F)));
+            res.push_back((char)(0x80 | (cp & 0x3F)));
+        } else {
+            res.push_back((char)(0xF0 | (cp >> 18)));
+            res.push_back((char)(0x80 | ((cp >> 12) & 0x3F)));
+            res.push_back((char)(0x80 | ((cp >> 6) & 0x3F)));
+            res.push_back((char)(0x80 | (cp & 0x3F)));
+        }
+    }
+    return res;
 }
 
 int StringUtil::UTF32CharToUTF8(char32_t src, std::span<unsigned char, 4> dst) {

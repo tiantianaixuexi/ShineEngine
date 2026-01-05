@@ -9,6 +9,8 @@
 #include "loader/image/image_loader.h"
 #include "loader/model/model_loader.h"
 #include <cstdint>
+#include "../../EngineCore/subsystem.h"
+#include "../../EngineCore/engine_context.h"
 
 // Windows.h 定义了 LoadImage 宏，已通过重命名函数避免冲突
 
@@ -48,14 +50,10 @@ namespace shine::manager
      * @brief 统一的资源管理器 - 类似UE5的AssetManager
      * 只负责资源加载和生命周期管理，数据由加载器本身持有
      */
-    class AssetManager
+    class AssetManager : public shine::Subsystem
     {
     public:
-        static AssetManager& Get() noexcept
-        {
-            static AssetManager instance;
-            return instance;
-        }
+        static constexpr size_t GetStaticID() { return shine::HashString("AssetManager"); }
 
         AssetManager();
         ~AssetManager();

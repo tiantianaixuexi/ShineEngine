@@ -8,7 +8,8 @@ namespace shine::windows
 
     BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData) {
 
-        std::vector<FDisplayInfo>* monitors = reinterpret_cast<std::vector<FDisplayInfo>*>(dwData);
+        WindowsDeviceInfo* device = reinterpret_cast<WindowsDeviceInfo*>(dwData);
+        if (!device) return FALSE;
 
         MONITORINFOEX monitorInfo;
         monitorInfo.cbSize = sizeof(monitorInfo);
@@ -41,12 +42,12 @@ namespace shine::windows
 
 			memcpy(Info.displName, monitorInfo.szDevice, sizeof(monitorInfo.szDevice));
 
-			Info.id = static_cast<int>(monitors->size());
-            monitors->push_back(Info);
+			Info.id = static_cast<int>(device->DisplayInfos.size());
+            device->DisplayInfos.push_back(Info);
 
             if (isPrimary)
             {
-                WindowsDeviceInfo::get().MainDisplayInfo = monitors->back();
+                device->MainDisplayInfo = device->DisplayInfos.back();
             }
         }
 		return TRUE;
@@ -63,7 +64,7 @@ namespace shine::windows
 
 	void WindowsDeviceInfo::InitDisplayInfo()
 	{
-        EnumDisplayMonitors(nullptr, nullptr, MonitorEnumProc, reinterpret_cast<LPARAM>(&DisplayInfos));
+        EnumDisplayMonitors(nullptr, nullptr, MonitorEnumProc, reinterpret_cast<LPARAM>(this));
         for (auto& c : DisplayInfos)
         {
 	        fmt::println("显示器 ID: {}, 设备名称: {}, 大小: {}x{}, 工作区大小: {}x{}, 是否是主屏幕: {}",

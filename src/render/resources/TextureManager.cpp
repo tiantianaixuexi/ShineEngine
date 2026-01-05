@@ -4,6 +4,10 @@
 #include "fmt/format.h"
 #include "util/timer/function_timer.h"
 
+// 暂时引入全局上下文，后续应通过依赖注入传递
+#include "../../EngineCore/engine_context.h"
+extern shine::EngineContext* g_EngineContext;
+
 namespace shine::render
 {
     TextureManager::~TextureManager()
@@ -34,8 +38,10 @@ namespace shine::render
             }
         }
 
+        if (!g_EngineContext) return TextureHandle{};
+
         // 获取加载器
-        auto* loader = manager::AssetManager::Get().GetImageLoader(assetHandle);
+        auto* loader = g_EngineContext->Get<manager::AssetManager>()->GetImageLoader(assetHandle);
         if (!loader || !loader->isDecoded())
         {
             fmt::println("TextureManager: 无法获取图片加载器或图片未解码");
@@ -105,41 +111,58 @@ namespace shine::render
         TextureHandle handle;
         handle.id = nextHandleId_++;
 
-        // 保存纹理数据
-        TextureData textureData;
-        textureData.textureId = textureId;
-        textureData.width = info.width;
-        textureData.height = info.height;
-
-        textures_[handle.id] = textureData;
-
-        fmt::println("TextureManager: 纹理创建成功 - {}x{} - ID: {}", info.width, info.height, textureId);
+        // 存储纹理数据
+        TextureData data;
+        data.textureId = textureId;
+        data.width = info.width;
+        data.height = info.height;
+        data.format = 0; // 暂时未存储格式
+        textures_[handle.id] = data;
 
         return handle;
     }
 
-    TextureHandle TextureManager::CreateTextureFromFile(const std::string& filePath)
+    void TextureManager::ReleaseTexture(const TextureHandle& handle)
     {
-        shine::util::FunctionTimer timer("TextureManager::CreateTextureFromFile", shine::util::TimerPrecision::Nanoseconds);
-
-        // 使用 AssetManager 加载图片
-        auto assetHandle = manager::AssetManager::Get().LoadTextureAsset(filePath);
-        if (!assetHandle.isValid())
+        if (!handle.isValid())
         {
-            fmt::println("TextureManager: 图片加载失败: {}", filePath);
-            return TextureHandle{};
+            return;
         }
 
-        // 从资源创建纹理
-        return CreateTextureFromAsset(assetHandle);
+        auto it = textures_.find(handle.id);
+        if (it != textures_.end())
+        {
+            if (renderBackend_)
+            {
+                renderBackend_->DestroyTexture2D(it->second.textureId);
+            }
+            textures_.erase(it);
+        }
+    }
+
+    void TextureManager::ReleaseAllTextures()
+    {
+        if (renderBackend_)
+        {
+            for (const auto& pair : textures_)
+            {
+                renderBackend_->DestroyTexture2D(pair.second.textureId);
+            }
+        }
+        textures_.clear();
     }
 
     TextureHandle TextureManager::CreateTextureFromMemory(const void* data, size_t size, const std::string& formatHint)
     {
-        shine::util::FunctionTimer timer("TextureManager::CreateTextureFromMemory", shine::util::TimerPrecision::Nanoseconds);
+        if (!data || size == 0)
+        {
+            return TextureHandle{};
+        }
+
+        if (!g_EngineContext) return TextureHandle{};
 
         // 使用 AssetManager 从内存加载图片
-        auto assetHandle = manager::AssetManager::Get().LoadImageFromMemory(data, size, formatHint);
+        auto assetHandle = g_EngineContext->Get<manager::AssetManager>()->LoadImageFromMemory(data, size, formatHint);
         if (!assetHandle.isValid())
         {
             fmt::println("TextureManager: 从内存加载图片失败");
@@ -195,56 +218,24 @@ namespace shine::render
         return false;
     }
 
-    void TextureManager::ReleaseTexture(const TextureHandle& handle)
-    {
-        if (!handle.isValid())
-        {
-            return;
-        }
-
-        auto it = textures_.find(handle.id);
-        if (it != textures_.end())
-        {
-            if (renderBackend_)
-            {
-                renderBackend_->ReleaseTexture(it->second.textureId);
-            }
-            textures_.erase(it);
-        }
-    }
-
-    void TextureManager::ReleaseAllTextures()
-    {
-        if (renderBackend_)
-        {
-            for (const auto& pair : textures_)
-            {
-                renderBackend_->ReleaseTexture(pair.second.textureId);
-            }
-        }
-        textures_.clear();
-    }
-
-    bool TextureManager::IsTextureValid(const TextureHandle& handle) const
-    {
-        if (!handle.isValid())
-        {
-            return false;
-        }
-
-        return textures_.find(handle.id) != textures_.end();
-    }
-
-    TextureHandle TextureManager::CreateTextureFromSTexture(image::STexture& texture)
+    TextureHandle TextureManager::CreateTextureFromImage(const image::STexture& texture)
     {
         if (!texture.isValid())
         {
-            fmt::println("TextureManager: STexture 资源无效");
             return TextureHandle{};
         }
 
-        // STexture 现在直接使用单例，不需要传递 this
-        auto handle = texture.CreateRenderResource();
+        // 创建纹理
+        TextureCreateInfo info;
+        info.width = static_cast<int>(texture.getWidth());
+        info.height = static_cast<int>(texture.getHeight());
+        info.data = texture.getData();
+        info.generateMipmaps = false; // 可以从 texture 获取设置
+        info.linearFilter = true;     // 可以从 texture 获取设置
+        info.clampToEdge = true;      // 可以从 texture 获取设置
+
+        TextureHandle handle = CreateTexture(info);
+        
         if (handle.isValid())
         {
             fmt::println("TextureManager: 从 STexture 创建纹理成功 - {}x{}", 
@@ -274,8 +265,10 @@ namespace shine::render
 
     TextureHandle TextureManager::GetTextureHandleByPath(const std::string& filePath) const
     {
+        if (!g_EngineContext) return TextureHandle{};
+
         // 先通过 AssetManager 获取资源句柄
-        auto assetHandle = manager::AssetManager::Get().GetAssetHandleByPath(filePath);
+        auto assetHandle = g_EngineContext->Get<manager::AssetManager>()->GetAssetHandleByPath(filePath);
         if (!assetHandle.isValid())
         {
             return TextureHandle{};
@@ -306,4 +299,3 @@ namespace shine::render
         return TextureHandle{};
     }
 }
-

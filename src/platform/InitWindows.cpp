@@ -11,23 +11,26 @@
 #include "fmt/base.h"
 #include "render/renderer_service.h"
 #include "render/renderManager.h"
+#include "../../EngineCore/engine_context.h"
+
 // Forward-declare WndProc handler from imgui Win32 backend (header intentionally leaves it commented out)
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+// Global pointer for message handler access
+static shine::EngineContext* g_EngineContext = nullptr;
 
 namespace shine::windows
 {
 
 	LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-
-
-	bool InitWindowsPlatform()
+	bool InitWindowsPlatform(shine::EngineContext& context)
 	{
+		g_EngineContext = &context;
 
-
-		WindowsDeviceInfo::get().InitDisplayInfo();
+		context.Get<WindowsDeviceInfo>()->InitDisplayInfo();
 		
-		auto& mainDisplay = WindowsDeviceInfo::get().MainDisplayInfo;
+		auto& mainDisplay = context.Get<WindowsDeviceInfo>()->MainDisplayInfo;
 
 		// Create application window
 		WNDCLASSEXW wc = { sizeof(wc),
@@ -43,21 +46,21 @@ namespace shine::windows
 					  L"ImGui Example",
 					  nullptr };
 		::RegisterClassExW(&wc);
-		WindowsInfo::get().info.hwnd = ::CreateWindowExW(WS_EX_ACCEPTFILES, wc.lpszClassName,
+		context.Get<WindowsInfo>()->info.hwnd = ::CreateWindowExW(WS_EX_ACCEPTFILES, wc.lpszClassName,
 			L"ShineEngine",
 			WS_OVERLAPPEDWINDOW, 0, 0, mainDisplay.workSize[0], mainDisplay.workSize[1],
 			nullptr, nullptr, wc.hInstance, nullptr);
 
 
-		auto& info = WindowsInfo::get().info;
+		auto& info = context.Get<WindowsInfo>()->info;
 		
-		auto renderBackend = render::RenderManager::get().CreateRenderBackend();
-		if (const int result = render::RenderManager::get().GetRenderBackend()->init(info.hwnd, wc); result != 0)
+		auto renderBackend = context.Get<render::RenderManager>()->CreateRenderBackend();
+		if (const int result = context.Get<render::RenderManager>()->GetRenderBackend()->init(info.hwnd, wc); result != 0)
 		{
 			return result;
 		}
 
-		render::RendererService::get().init(renderBackend);
+		context.Get<render::RendererService>()->init(renderBackend);
 
 		// 创建帧缓冲
 		renderBackend->g_Width = mainDisplay.workSize[0];
@@ -73,7 +76,7 @@ namespace shine::windows
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
 
-		render::RenderManager::get().GetRenderBackend()->InitImguiBackend(info.hwnd);
+		context.Get<render::RenderManager>()->GetRenderBackend()->InitImguiBackend(info.hwnd);
 
 
 		// Show the window
@@ -102,7 +105,9 @@ namespace shine::windows
 
 		case WM_SIZE:
 			if (wParam != SIZE_MINIMIZED) {
-				render::RenderManager::get().GetRenderBackend()->ReSizeFrameBuffer(LOWORD(lParam), HIWORD(lParam));
+				if (g_EngineContext) {
+					g_EngineContext->Get<render::RenderManager>()->GetRenderBackend()->ReSizeFrameBuffer(LOWORD(lParam), HIWORD(lParam));
+				}
 			}else
 			{
 				fmt::println("窗口最小化");

@@ -1,8 +1,9 @@
-﻿#pragma once
+#pragma once
 
 #include "widget/shineButton.h"
 #include "editor/browers/AssetsBrower.h"
 #include "editor/views/EditorView.h"
+#include "../../EngineCore/engine_context.h"
 
 // 前向声明
 namespace shine::editor::views
@@ -21,7 +22,7 @@ namespace shine::editor::main_editor
 
 	public:
 
-		MainEditor();
+		MainEditor(shine::EngineContext& context);
 		~MainEditor();
 
         void Init();
@@ -35,7 +36,7 @@ namespace shine::editor::main_editor
 		bool setAssetBorwerOpen();
 
 	 private:
-
+        shine::EngineContext& m_Context;
 
 		assets_brower::AssetsBrower* assetsBrower = nullptr;
         EditorView::EditView* editorView = nullptr;
@@ -51,4 +52,3 @@ namespace shine::editor::main_editor
 	};
 
 }
-

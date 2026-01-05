@@ -171,11 +171,6 @@ namespace shine::render
         std::unordered_map<uint64_t, TextureData> textures_;
         uint64_t nextHandleId_ = 1;
 
-    protected:
-        // 单例模式：保护构造函数和析构函数
-        TextureManager() = default;
-        ~TextureManager();
-
     private:
         // 禁止拷贝和移动
         TextureManager(const TextureManager&) = delete;

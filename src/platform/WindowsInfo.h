@@ -2,9 +2,9 @@
 
 #include <vector>
 
-
 #include "util/shine_define.h"
-#include "util/singleton.h"
+#include "../../EngineCore/subsystem.h"
+#include "../../EngineCore/engine_context.h"
 
 namespace shine::windows
 {
@@ -34,27 +34,24 @@ namespace shine::windows
 		}
 	};
 
-	class WindowsDeviceInfo : public util::Singleton<WindowsDeviceInfo>
+	class WindowsDeviceInfo : public shine::Subsystem
 	{
 	public:
+		static constexpr size_t GetStaticID() { return shine::HashString("WindowsDeviceInfo"); }
 
 		std::vector<FDisplayInfo> DisplayInfos;
 		FDisplayInfo MainDisplayInfo;
 
-
 		void Init();
-
 
 		void InitDisplayInfo();
 	};
 
-
-
-	class WindowsInfo : public util::Singleton<WindowsInfo>
+	class WindowsInfo : public shine::Subsystem
 	{
-
 	public:
+		static constexpr size_t GetStaticID() { return shine::HashString("WindowsInfo"); }
+
 		FWindowInfo info;
 	};
-
 }

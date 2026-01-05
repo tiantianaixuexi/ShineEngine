@@ -1,0 +1,7 @@
+{
+    "name": "memory",
+    "type": "static",
+    "dirs": ["src/memory"],
+    "deps": [ "shine_define" ]
+}
+

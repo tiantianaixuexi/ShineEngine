@@ -1,4 +1,4 @@
-﻿#include "renderer_service.h"
+#include "renderer_service.h"
 
 #include "render/backend/render_backend.h"
 #include "render/pipeline/render_pipeline_asset.h"
@@ -7,6 +7,10 @@
 #include "gameplay/object.h"
 #include "manager/CameraManager.h"
 #include "manager/light_manager.h"
+#include "render/resources/TextureManager.h"
+#include "../../EngineCore/engine_context.h"
+
+extern shine::EngineContext* g_EngineContext;
 
 namespace shine::render
 {

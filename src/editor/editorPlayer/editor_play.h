@@ -1,7 +1,7 @@
 #pragma once
-#include "singleton.h"
 
-
+#include "../../EngineCore/subsystem.h"
+#include "../../EngineCore/engine_context.h"
 
 namespace shine::editor::selection
 {
@@ -9,14 +9,12 @@ namespace shine::editor::selection
 	class SelectionManager;
 }
 
-
 namespace shine::editor
 {
-
-	class SEditorPlayer : public util::Singleton<SEditorPlayer>
+	class SEditorPlayer : public shine::Subsystem
 	{
 	public:
-
+		static constexpr size_t GetStaticID() { return shine::HashString("SEditorPlayer"); }
 
 		void init();
 
@@ -26,10 +24,6 @@ namespace shine::editor
 
 		bool isSelect(selection::SelectionData& _Data);
 
-
 		selection::SelectionManager* _selectionManager = nullptr;
-
 	};
-
-
 }

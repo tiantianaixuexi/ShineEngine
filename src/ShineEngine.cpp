@@ -1,6 +1,4 @@
-﻿#include "util/shine_define.h"
-
-
+#include "util/shine_define.h"
 
 #ifdef BUILD_EDITOR
 #include "editor/editorPlayer/editor_play.h"
@@ -90,6 +88,10 @@ int main(int argc,char** argv)
 
 #include "quickjs/quickjs.h"
 #include "render/renderManager.h"
+#include "manager/AssetManager.h"
+#include "gameplay/tick/tickManager.h"
+#include "manager/monitor/monitorManager.h"
+#include "EngineCore/engine_context.h"
 
 using namespace shine;
 
@@ -116,28 +118,45 @@ int main(int argc, char** argv) {
 	SetConsoleOutputCP(CP_UTF8);
 #endif
 
-	windows::InitWindowsPlatform();
+    // Initialize Engine Context
+    shine::EngineContext context;
+    g_EngineContext = &context;
 
-	auto& info = windows::WindowsInfo::get().info;
+    // Register Subsystems
+    context.Register(new shine::windows::WindowsDeviceInfo());
+    context.Register(new shine::windows::WindowsInfo());
+    context.Register(new shine::manager::CameraManager());
+    context.Register(new shine::render::RenderManager());
+    context.Register(new shine::render::TextureManager());
+    context.Register(new shine::render::RendererService());
+    context.Register(new shine::editor::SEditorPlayer());
+    context.Register(new shine::manager::AssetManager());
+    context.Register(new shine::gameplay::tick::TickManager());
+    // context.Register(new shine::manager::monitorManager()); // If monitorManager is used, register it too
+
+
+	windows::InitWindowsPlatform(context);
+
+	auto& info = context.Get<windows::WindowsInfo>()->info;
 
 	// camera
-	shine::manager::CameraManager::get().setMainCamera(&g_Camera);
+	context.Get<shine::manager::CameraManager>()->setMainCamera(&g_Camera);
 
 
 	std::array<float, 4> clear_color = { 0.45f, 0.55f, 0.60f, 1.00f };
 	
 
-	RenderBackend = render::RenderManager::get().GetRenderBackend();
+	RenderBackend = context.Get<render::RenderManager>()->GetRenderBackend();
 
 
 	shine::editor::main_editor::MainEditor* mainEditor = nullptr;
-	mainEditor = new shine::editor::main_editor::MainEditor();
+	mainEditor = new shine::editor::main_editor::MainEditor(context);
 	mainEditor->Init();
 
 
-	shine::editor::SEditorPlayer& editorPlayer = shine::editor::SEditorPlayer::get();
+	shine::editor::SEditorPlayer* editorPlayer = context.Get<shine::editor::SEditorPlayer>();
 
-	editorPlayer.init();
+	editorPlayer->init();
 
 
 
@@ -164,17 +183,17 @@ int main(int argc, char** argv) {
 			break;
 
         // 渲染服务，帧开始
-        render::RendererService::get().beginFrame();
+        context.Get<render::RendererService>()->beginFrame();
 
 
         // 编辑器UI渲染
         mainEditor->Render();
 		
 		// 应用摄像机
-        manager::CameraManager::get().getMainCamera()->Apply();
+        context.Get<manager::CameraManager>()->getMainCamera()->Apply();
 
         // 统一用渲染服务提供帧缓冲渲染/显示
-        render::RendererService::get().endFrame(clear_color);
+        context.Get<render::RendererService>()->endFrame(clear_color);
 
 		// FPS控制 - 帧结束
 		g_FPSManager.EndFrame();
@@ -182,7 +201,7 @@ int main(int argc, char** argv) {
 	}
 
 	// 清理ImGui
-	render::RenderManager::get().GetRenderBackend()->ClearUp(info.hwnd);
+	context.Get<render::RenderManager>()->GetRenderBackend()->ClearUp(info.hwnd);
 
 	// 清理编辑器
 	if (mainEditor)

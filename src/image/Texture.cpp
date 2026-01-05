@@ -1,8 +1,12 @@
-﻿#include "Texture.h"
+#include "Texture.h"
 #include "render/resources/TextureManager.h"
 #include "manager/AssetManager.h"
 #include "loader/image/image_loader.h"
 #include <cstring>
+
+// 暂时引入全局上下文，后续应通过依赖注入传递
+#include "../../EngineCore/engine_context.h"
+extern shine::EngineContext* g_EngineContext;
 
 namespace shine::image
 {
@@ -44,8 +48,10 @@ namespace shine::image
             return false;
         }
 
+        if (!g_EngineContext) return false;
+
         // 获取加载器
-        auto* loader = manager::AssetManager::Get().GetImageLoader(assetHandle);
+        auto* loader = g_EngineContext->Get<manager::AssetManager>()->GetImageLoader(assetHandle);
         if (!loader || !loader->isDecoded())
         {
             return false;
@@ -82,8 +88,11 @@ namespace shine::image
             ReleaseRenderResource();
         }
 
+        if (!g_EngineContext) return shine::render::TextureHandle{};
+
         // 通过 TextureManager 单例创建纹理
-        auto& textureManager = shine::render::TextureManager::get();
+        auto* textureManager = g_EngineContext->Get<shine::render::TextureManager>();
+        if (!textureManager) return shine::render::TextureHandle{};
         
         shine::render::TextureCreateInfo createInfo;
         createInfo.width = _width;
@@ -98,85 +107,22 @@ namespace shine::image
                                    _minFilter == TextureFilter::LINEAR_MIPMAP_LINEAR ||
                                    _minFilter == TextureFilter::LINEAR_MIPMAP_NEAREST);
         createInfo.clampToEdge = (_wrapS == TextureWrap::CLAMP_TO_EDGE || 
-                                  _wrapS == TextureWrap::CLAMP_TO_BORDER);
+                                  _wrapT == TextureWrap::CLAMP_TO_EDGE);
 
-        _renderHandle = textureManager.CreateTexture(createInfo);
-        
-        // 创建后立即获取并存储纹理ID
-        if (_renderHandle.isValid())
-        {
-            _textureId = textureManager.GetTextureId(_renderHandle);
-        }
-        else
-        {
-            _textureId = 0;
-        }
-        
+        _renderHandle = textureManager->CreateTexture(createInfo);
         return _renderHandle;
     }
 
     void STexture::ReleaseRenderResource()
     {
-        if (_renderHandle.isValid())
+        if (_renderHandle.isValid() && g_EngineContext)
         {
-            auto& textureManager = shine::render::TextureManager::get();
-            textureManager.ReleaseTexture(_renderHandle);
+            auto* textureManager = g_EngineContext->Get<shine::render::TextureManager>();
+            if (textureManager)
+            {
+                textureManager->ReleaseTexture(_renderHandle);
+            }
             _renderHandle = shine::render::TextureHandle{};
-            _textureId = 0;  // 清除纹理ID
         }
     }
-
-    void STexture::setData(std::vector<unsigned char>& imageData) noexcept
-    {
-        // 假设输入数据是RGBA格式，每个像素4字节
-        size_t pixelCount = imageData.size() / RGBA8::size();
-        _data.resize(pixelCount);
-
-        // 直接复制字节数据到RGBA8结构体数组
-        std::memcpy(_data.data(), imageData.data(), imageData.size());
-    }
-
-    void STexture::setData(std::vector<RGBA8>& rgbaData) noexcept
-    {
-        _data = std::move(rgbaData);
-    }
-
-
-    void STexture::updateData(const std::vector<RGBA8>& rgbaData) {
-        // 确保数据大小一致
-        if (rgbaData.size() != static_cast<size_t>(_width * _height)) {
-            return; // 数据大小不匹配，这是错误
-        }
-
-        // 更新CPU数据
-        _data = rgbaData;
-
-        // 更新GPU纹理（高效的子区域更新）
-        if (_renderHandle.isValid()) {
-            auto& textureManager = shine::render::TextureManager::get();
-            textureManager.UpdateTexture(_renderHandle, rgbaData.data(), _width, _height);
-        }
-        else {
-            // 如果没有GPU资源，创建它
-            CreateRenderResource();
-        }
-    }
-
-    // 设置纹理参数
-    void STexture::setFilter(TextureFilter minFilter, TextureFilter magFilter)
-    {
-        _minFilter = minFilter;
-        _magFilter = magFilter;
-    }
-
-    void STexture::setWrap(TextureWrap s, TextureWrap t, TextureWrap r)
-    {
-        _wrapS = s;
-        _wrapT = t;
-        _wrapR = r;
-    }
-
-
 }
-
-

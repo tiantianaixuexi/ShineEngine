@@ -2,7 +2,8 @@ export module manager.mointorManager;
 
 #include "fmt.h"
 #include "util/timer_util.h"
-#include "util/singleton.h"
+#include "../../EngineCore/subsystem.h"
+#include "../../EngineCore/engine_context.h"
 
 namespace shine::manager
 {
@@ -34,10 +35,10 @@ namespace shine::manager
     //};
 
     //// 鐩戞帶 Manager
-    //class MONITOR_MANAGER_API monitorManager : public shine::util::Singleton<monitorManager>
+    //class MONITOR_MANAGER_API monitorManager : public shine::Subsystem
     //{
     //    public:
-   
+    //        static constexpr size_t GetStaticID() { return shine::HashString("monitorManager"); }
 
     //        std::unordered_map<std::string, std::string> monitorMap;
     //        
@@ -47,5 +48,4 @@ namespace shine::manager
 
 
     //};
-
 }

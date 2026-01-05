@@ -26,11 +26,15 @@ namespace shine::gameplay
 
     protected:
         void RegisterTick(tick::TickFunction& fn) {
-            tick::TickManager::get().Register(&fn);
+            if (g_EngineContext) {
+                g_EngineContext->Get<tick::TickManager>()->Register(&fn);
+            }
         }
 
         void UnregisterTick(tick::TickFunction& fn) {
-            tick::TickManager::get().Unregister(&fn);
+            if (g_EngineContext) {
+                g_EngineContext->Get<tick::TickManager>()->Unregister(&fn);
+            }
         }
     };
 

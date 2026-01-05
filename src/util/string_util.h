@@ -52,6 +52,20 @@ namespace shine::util
         static size_t UTF32ToUTF8(std::span<const unsigned int> src, std::string& dst);
 
         /**
+         * @brief [跨平台] 将UTF-8字符串转换为UTF-16字符串 (char16_t)
+         * @param src UTF-8输入
+         * @return UTF-16字符串 (SString数据源)
+         */
+        static std::vector<char16_t> UTF8ToUTF16(std::string_view src);
+
+        /**
+         * @brief [跨平台] 将UTF-16字符串转换为UTF-8字符串
+         * @param src UTF-16输入
+         * @return UTF-8字符串
+         */
+        static std::string UTF16ToUTF8(std::u16string_view src);
+
+        /**
          * @brief 将单个UTF-32编码点转换为UTF-8字节
          * @param src UTF-32编码点
          * @param dst 输出缓冲区（至少4字节）

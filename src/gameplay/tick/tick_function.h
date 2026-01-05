@@ -40,11 +40,7 @@ namespace shine::gameplay
 
             bool _registered = false;
 
-            ~TickFunction() {
-                if (_registered) {
-                    TickManager::get().Unregister(this);
-                }
-            }
+            ~TickFunction();
 
             void SetRegistered(bool registered) {
                 _registered = registered;

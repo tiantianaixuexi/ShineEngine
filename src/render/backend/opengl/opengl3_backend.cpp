@@ -12,6 +12,9 @@
 #include "manager/CameraManager.h"
 #include "manager/light_manager.h"
 #include "render/command/opengl_command_list.h"
+#include "../../EngineCore/engine_context.h"
+
+extern shine::EngineContext* g_EngineContext;
 
 
 namespace shine::render::opengl3

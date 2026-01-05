@@ -85,7 +85,7 @@ using s64 = long long ;
 using u64 = unsigned long long;
 using f32 = float;
 using f64 = double;
-
+using TChar = char16_t;
 
 
 
