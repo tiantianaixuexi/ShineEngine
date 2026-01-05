@@ -1,10 +1,14 @@
-﻿#include "file_util.h"
+#undef SHINE_USE_MODULE
+#include "file_util.h"
 #include "shine_define.h"
 #include "fmt/format.h"
 
 #ifdef SHINE_PLATFORM_WIN
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
 #endif
 #include <windows.h>
 #include <fileapi.h>

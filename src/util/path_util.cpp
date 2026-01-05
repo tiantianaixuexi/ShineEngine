@@ -1,6 +1,7 @@
+#undef SHINE_USE_MODULE
 #include "path_util.h"
 #include "shine_define.h"
-#include "string_util.h"
+#include "string_util.ixx"
 
 #ifdef SHINE_PLATFORM_WIN
 #ifndef WIN32_LEAN_AND_MEAN

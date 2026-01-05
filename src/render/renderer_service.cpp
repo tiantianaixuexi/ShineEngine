@@ -10,7 +10,7 @@
 #include "render/resources/TextureManager.h"
 #include "../../EngineCore/engine_context.h"
 
-extern shine::EngineContext* g_EngineContext;
+// extern shine::EngineContext* g_EngineContext; // Removed global pointer declaration
 
 namespace shine::render
 {

@@ -1,3 +1,4 @@
+#undef SHINE_USE_MODULE
 #include "Texture.h"
 #include "render/resources/TextureManager.h"
 #include "manager/AssetManager.h"
@@ -5,8 +6,8 @@
 #include <cstring>
 
 // 暂时引入全局上下文，后续应通过依赖注入传递
-#include "../../EngineCore/engine_context.h"
-extern shine::EngineContext* g_EngineContext;
+#include "../EngineCore/engine_context.h"
+// extern shine::EngineContext* g_EngineContext; // Removed global pointer declaration
 
 namespace shine::image
 {
@@ -48,10 +49,10 @@ namespace shine::image
             return false;
         }
 
-        if (!g_EngineContext) return false;
+        if (!shine::EngineContext::IsInitialized()) return false;
 
         // 获取加载器
-        auto* loader = g_EngineContext->Get<manager::AssetManager>()->GetImageLoader(assetHandle);
+        auto* loader = shine::EngineContext::Get().GetSystem<manager::AssetManager>()->GetImageLoader(assetHandle);
         if (!loader || !loader->isDecoded())
         {
             return false;
@@ -88,10 +89,10 @@ namespace shine::image
             ReleaseRenderResource();
         }
 
-        if (!g_EngineContext) return shine::render::TextureHandle{};
+        if (!shine::EngineContext::IsInitialized()) return shine::render::TextureHandle{};
 
         // 通过 TextureManager 单例创建纹理
-        auto* textureManager = g_EngineContext->Get<shine::render::TextureManager>();
+        auto* textureManager = shine::EngineContext::Get().GetSystem<shine::render::TextureManager>();
         if (!textureManager) return shine::render::TextureHandle{};
         
         shine::render::TextureCreateInfo createInfo;
@@ -115,9 +116,9 @@ namespace shine::image
 
     void STexture::ReleaseRenderResource()
     {
-        if (_renderHandle.isValid() && g_EngineContext)
+        if (_renderHandle.isValid() && shine::EngineContext::IsInitialized())
         {
-            auto* textureManager = g_EngineContext->Get<shine::render::TextureManager>();
+            auto* textureManager = shine::EngineContext::Get().GetSystem<shine::render::TextureManager>();
             if (textureManager)
             {
                 textureManager->ReleaseTexture(_renderHandle);

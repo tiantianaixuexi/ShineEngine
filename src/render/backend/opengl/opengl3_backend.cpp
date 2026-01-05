@@ -14,7 +14,7 @@
 #include "render/command/opengl_command_list.h"
 #include "../../EngineCore/engine_context.h"
 
-extern shine::EngineContext* g_EngineContext;
+// extern shine::EngineContext* g_EngineContext; // Removed global pointer declaration
 
 
 namespace shine::render::opengl3

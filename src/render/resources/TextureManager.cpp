@@ -6,7 +6,7 @@
 
 // 暂时引入全局上下文，后续应通过依赖注入传递
 #include "../../EngineCore/engine_context.h"
-extern shine::EngineContext* g_EngineContext;
+// extern shine::EngineContext* g_EngineContext; // Removed global pointer declaration
 
 namespace shine::render
 {
@@ -38,10 +38,10 @@ namespace shine::render
             }
         }
 
-        if (!g_EngineContext) return TextureHandle{};
+        if (!shine::EngineContext::IsInitialized()) return TextureHandle{};
 
         // 获取加载器
-        auto* loader = g_EngineContext->Get<manager::AssetManager>()->GetImageLoader(assetHandle);
+        auto* loader = shine::EngineContext::Get().GetSystem<manager::AssetManager>()->GetImageLoader(assetHandle);
         if (!loader || !loader->isDecoded())
         {
             fmt::println("TextureManager: 无法获取图片加载器或图片未解码");
@@ -159,10 +159,10 @@ namespace shine::render
             return TextureHandle{};
         }
 
-        if (!g_EngineContext) return TextureHandle{};
+        if (!shine::EngineContext::IsInitialized()) return TextureHandle{};
 
         // 使用 AssetManager 从内存加载图片
-        auto assetHandle = g_EngineContext->Get<manager::AssetManager>()->LoadImageFromMemory(data, size, formatHint);
+        auto assetHandle = shine::EngineContext::Get().GetSystem<manager::AssetManager>()->LoadImageFromMemory(data, size, formatHint);
         if (!assetHandle.isValid())
         {
             fmt::println("TextureManager: 从内存加载图片失败");
@@ -265,10 +265,10 @@ namespace shine::render
 
     TextureHandle TextureManager::GetTextureHandleByPath(const std::string& filePath) const
     {
-        if (!g_EngineContext) return TextureHandle{};
+        if (!shine::EngineContext::IsInitialized()) return TextureHandle{};
 
         // 先通过 AssetManager 获取资源句柄
-        auto assetHandle = g_EngineContext->Get<manager::AssetManager>()->GetAssetHandleByPath(filePath);
+        auto assetHandle = shine::EngineContext::Get().GetSystem<manager::AssetManager>()->GetAssetHandleByPath(filePath);
         if (!assetHandle.isValid())
         {
             return TextureHandle{};

@@ -19,7 +19,7 @@ namespace shine::editor::EditorView
 void EditView::Init() {
 
     // 创建一个与窗口大小类似的视口（这里写死，后面可以在WM_SIZE中更新）
-	Viewport = m_Context.Get<render::RendererService>()->createViewport(1280, 720);
+	Viewport = m_Context.GetSystem<render::RendererService>()->createViewport(1280, 720);
 }
 
 void EditView::Render() {
@@ -54,20 +54,20 @@ void EditView::Render() {
 
     // 渲染到该视口的FBO，再显示其纹理
     if ( Viewport) {
-		auto* renderer = m_Context.Get<render::RendererService>();
+		auto* renderer = m_Context.GetSystem<render::RendererService>();
       // 当前面板大小改变时，动态调整渲染视口与相机宽高比，避免图像拉伸变形
       int w = static_cast<int>(rightSize.x); if (w < 1) w = 1;
       int h = static_cast<int>(rightSize.y); if (h < 1) h = 1;
       static int lastW = 0, lastH = 0;
       if (w != lastW || h != lastH) {
           renderer->resizeViewport(Viewport, w, h);
-        if (auto cam = m_Context.Get<shine::manager::CameraManager>()->getMainCamera()) {
+        if (auto cam = m_Context.GetSystem<shine::manager::CameraManager>()->getMainCamera()) {
           cam->SetPerspective(cam->fov, static_cast<float>(w) / static_cast<float>(h), cam->nearPlane, cam->farPlane);
         }
         lastW = w; lastH = h;
       }
 
-      if (auto camera = m_Context.Get<shine::manager::CameraManager>()->getMainCamera()) {
+      if (auto camera = m_Context.GetSystem<shine::manager::CameraManager>()->getMainCamera()) {
           renderer->renderView(Viewport, camera);
       }
       ImGui::Image(renderer->getViewportTexture(Viewport), rightSize);
@@ -83,7 +83,7 @@ void EditView::Render() {
       ImGuiIO &io = ImGui::GetIO();
 
       // 获取当前相机
-      auto camera = m_Context.Get<shine::manager::CameraManager>()->getMainCamera();
+      auto camera = m_Context.GetSystem<shine::manager::CameraManager>()->getMainCamera();
       if (camera) {
         // 鼠标右键拖拽旋转，使用MouseDelta精确计算，避免首次过敏
         if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {

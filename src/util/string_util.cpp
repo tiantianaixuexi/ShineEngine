@@ -1,4 +1,4 @@
-#include "string_util.h"
+#include "string_util.ixx"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -414,28 +414,43 @@ std::string StringUtil::TrimEnd(std::string_view str, std::string_view suffix) {
     return std::string(str);
 }
 
-bool StringUtil::EndsWith(std::string_view str, std::string_view suffix) {
-    return str.ends_with(suffix);
-}
-
-bool StringUtil::EndsWithIgnoreCase(std::string_view str, std::string_view suffix) {
+bool StringUtil::EndsWith(std::string_view str, std::string_view suffix, bool IgnoreCase) {
     if (str.length() < suffix.length()) {
         return false;
     }
-
-    // 使用C++20的ranges::equal和视图操作
-    auto str_suffix = str.substr(str.length() - suffix.length());
-    for (size_t i = 0; i < suffix.length(); ++i) {
-        if (std::tolower(static_cast<unsigned char>(str_suffix[i])) !=
-            std::tolower(static_cast<unsigned char>(suffix[i]))) {
-            return false;
-        }
+    if (IgnoreCase)
+    {
+        return str.ends_with(suffix);
     }
-    return true;
+    else
+    {
+        // 使用C++20的ranges::equal和视图操作
+        auto str_suffix = str.substr(str.length() - suffix.length());
+        for (size_t i = 0; i < suffix.length(); ++i) {
+            if (std::tolower(static_cast<unsigned char>(str_suffix[i])) !=
+                std::tolower(static_cast<unsigned char>(suffix[i]))) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    __assume(false);
 }
 
-bool StringUtil::StartsWith(std::string_view str, std::string_view prefix) {
-    return str.starts_with(prefix);
+
+bool StringUtil::StartsWith(std::string_view str, std::string_view prefix, bool IgnoreCase) {
+    if (str.length() < prefix.length()) {
+        return false;
+    }
+    if (IgnoreCase)
+    {
+        return str.starts_with(prefix);
+    }
+
+    return false;
+
 }
 
 std::vector<std::string> StringUtil::SplitPathComponents(std::string_view path) {

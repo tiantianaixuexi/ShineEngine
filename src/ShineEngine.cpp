@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
 
     // Initialize Engine Context
     shine::EngineContext context;
-    g_EngineContext = &context;
+    // g_EngineContext = &context; // Removed global pointer assignment
 
     // Register Subsystems
     context.Register(new shine::windows::WindowsDeviceInfo());
@@ -137,16 +137,16 @@ int main(int argc, char** argv) {
 
 	windows::InitWindowsPlatform(context);
 
-	auto& info = context.Get<windows::WindowsInfo>()->info;
+	auto& info = context.GetSystem<windows::WindowsInfo>()->info;
 
 	// camera
-	context.Get<shine::manager::CameraManager>()->setMainCamera(&g_Camera);
+	context.GetSystem<shine::manager::CameraManager>()->setMainCamera(&g_Camera);
 
 
 	std::array<float, 4> clear_color = { 0.45f, 0.55f, 0.60f, 1.00f };
 	
 
-	RenderBackend = context.Get<render::RenderManager>()->GetRenderBackend();
+	RenderBackend = context.GetSystem<render::RenderManager>()->GetRenderBackend();
 
 
 	shine::editor::main_editor::MainEditor* mainEditor = nullptr;
@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
 	mainEditor->Init();
 
 
-	shine::editor::SEditorPlayer* editorPlayer = context.Get<shine::editor::SEditorPlayer>();
+	shine::editor::SEditorPlayer* editorPlayer = context.GetSystem<shine::editor::SEditorPlayer>();
 
 	editorPlayer->init();
 
@@ -183,17 +183,17 @@ int main(int argc, char** argv) {
 			break;
 
         // 渲染服务，帧开始
-        context.Get<render::RendererService>()->beginFrame();
+        context.GetSystem<render::RendererService>()->beginFrame();
 
 
         // 编辑器UI渲染
         mainEditor->Render();
 		
 		// 应用摄像机
-        context.Get<manager::CameraManager>()->getMainCamera()->Apply();
+        context.GetSystem<manager::CameraManager>()->getMainCamera()->Apply();
 
         // 统一用渲染服务提供帧缓冲渲染/显示
-        context.Get<render::RendererService>()->endFrame(clear_color);
+        context.GetSystem<render::RendererService>()->endFrame(clear_color);
 
 		// FPS控制 - 帧结束
 		g_FPSManager.EndFrame();
@@ -201,7 +201,7 @@ int main(int argc, char** argv) {
 	}
 
 	// 清理ImGui
-	context.Get<render::RenderManager>()->GetRenderBackend()->ClearUp(info.hwnd);
+	context.GetSystem<render::RenderManager>()->GetRenderBackend()->ClearUp(info.hwnd);
 
 	// 清理编辑器
 	if (mainEditor)

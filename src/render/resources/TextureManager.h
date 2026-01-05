@@ -7,7 +7,9 @@
 #include "render/resources/texture_handle.h"
 #include "loader/image/image_loader.h"
 #include "manager/AssetManager.h"
-#include "util/singleton.h"
+// #include "util/singleton.h"
+#include "../../EngineCore/subsystem.h"
+#include "../../EngineCore/engine_context.h"
 
 // 前向声明
 namespace shine::image
@@ -41,11 +43,12 @@ namespace shine::render
      * 支持多种图形API：OpenGL、DirectX12、WebGL2
      * 单例模式，与 AssetManager 设计一致
      */
-    class TextureManager : public shine::util::Singleton<TextureManager>
+    class TextureManager : public shine::Subsystem
     {
-        // 友元声明：允许 Singleton 模板访问 protected 构造函数
-        friend class shine::util::Singleton<TextureManager>;
-        
+    public:
+        static constexpr size_t GetStaticID() { return shine::HashString("TextureManager"); }
+        static TextureManager& get() { return *shine::EngineContext::Get().GetSystem<TextureManager>(); }
+
     public:
         /**
          * @brief 初始化纹理管理器（必须在首次使用前调用）

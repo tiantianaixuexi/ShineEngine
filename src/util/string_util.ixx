@@ -201,7 +201,6 @@ namespace shine::util
         static bool EndsWith(std::string_view str, std::string_view suffix,bool IgnoreCase = true);
 
 
-
         /**
          * @brief 检查字符串是否以特定前缀开头
          * @param str 输入字符串
@@ -281,10 +280,6 @@ namespace shine::util
          * @return 十六进制字符串（大写）
          */
         static std::string BytesToHex(std::span<const unsigned char> bytes);
-
-
-
-
 
 
         /**

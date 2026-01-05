@@ -22,8 +22,14 @@ namespace shine
     class EngineContext
     {
     public:
+        EngineContext();
+        ~EngineContext();
+
+        static EngineContext& Get() { return *s_Instance; }
+        static bool IsInitialized() { return s_Instance != nullptr; }
+
         template<typename T>
-        T* Get() const
+        T* GetSystem() const
         {
             static_assert(requires { T::GetStaticID(); }, "Subsystem must define static constexpr size_t GetStaticID()");
             
@@ -53,5 +59,6 @@ namespace shine
 
     private:
         std::unordered_map<size_t, Subsystem*> m_systems;
+        static EngineContext* s_Instance;
     };
 }
