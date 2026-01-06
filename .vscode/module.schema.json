@@ -83,15 +83,6 @@
       },
       "minItems": 0
     },
-    "imports": {
-      "type": "array",
-      "description": "⚠️ 已废弃，请使用 deps 替代",
-      "deprecated": true,
-      "items": {
-        "type": "string"
-      },
-      "minItems": 0
-    },
     "defines": {
       "type": "array",
       "description": "编译时宏定义列表",
@@ -201,12 +192,6 @@
       "type": "static",
       "files": [
         "src/util/base64/base64.cpp"
-      ],
-      "files_module": [
-        "src/util/base64/base64.ixx"
-      ],
-      "files_header": [
-        "src/util/base64/base64.h"
       ],
       "comment": "使用条件文件：启用模块时使用 .ixx，否则使用 .h"
     },

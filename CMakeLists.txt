@@ -126,6 +126,29 @@ function(parse_json_type json_content result_var)
     set(${result_var} ${type_list} PARENT_SCOPE)
 endfunction()
 
+# 解析 buildMode 字段：支持字符串 "editor"|"runtime"|"both" 或数组 ["editor", "runtime"]
+function(parse_build_mode json_content result_var)
+    set(build_mode_list "")
+    
+    # 检查 buildMode 字段
+    string(JSON buildmode_type ERROR_VARIABLE buildmode_error TYPE ${json_content} "buildMode")
+    if(NOT buildmode_error)
+        if(buildmode_type STREQUAL "ARRAY")
+            parse_json_array(${json_content} "buildMode" build_mode_list)
+        elseif(buildmode_type STREQUAL "STRING")
+            string(JSON buildmode_value GET ${json_content} "buildMode")
+            set(build_mode_list ${buildmode_value})
+        endif()
+    endif()
+    
+    # 如果没有设置，默认为 "both"
+    if(NOT build_mode_list)
+        set(build_mode_list "both")
+    endif()
+    
+    set(${result_var} ${build_mode_list} PARENT_SCOPE)
+endfunction()
+
 function(parse_third_party_libs json_content result_debug result_release)
     set(debug_list "")
     set(release_list "")
@@ -297,6 +320,9 @@ function(parse_and_cache_modules)
         # 解析类型
         parse_json_type(${json_content} type_list)
 
+        # 解析 buildMode 配置（Editor/Runtime 区分）
+        parse_build_mode(${json_content} build_mode_list)
+
         # 解析 subcmake 配置（可选）
         set(subcmake_source "")
         set(subcmake_build "")
@@ -331,6 +357,7 @@ function(parse_and_cache_modules)
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_RELEASE" "${third_lib_release_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_PLATFORMS" "${platform_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_TYPES" "${type_list}")
+        set_property(GLOBAL PROPERTY "MODULE_${module_name}_BUILD_MODE" "${build_mode_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_SUBCMAKE_SOURCE" "${subcmake_source}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_SUBCMAKE_BUILD" "${subcmake_build}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_SUBCMAKE_GENERATOR" "${subcmake_generator}")
@@ -438,6 +465,59 @@ function(should_show_module module_name)
     set(SHOULD_SHOW FALSE PARENT_SCOPE)
 endfunction()
 
+# 检查模块是否应该在当前构建模式下构建
+# SHINE_BUILD_EDITOR=ON 表示 Editor 模式，OFF 表示 Runtime 模式
+function(should_build_module module_name result_var)
+    get_property(build_mode_list GLOBAL PROPERTY "MODULE_${module_name}_BUILD_MODE")
+    
+    # 如果没有设置 buildMode，默认为 "both"（总是构建）
+    if(NOT build_mode_list)
+        set(build_mode_list "both")
+    endif()
+    
+    # 判断当前构建模式
+    set(is_editor_mode FALSE)
+    if(SHINE_BUILD_EDITOR)
+        set(is_editor_mode TRUE)
+    endif()
+    
+    # 检查 buildMode 列表
+    set(should_build FALSE)
+    
+    # 如果 buildMode 是字符串（单个值）
+    if(build_mode_list MATCHES "^both$")
+        set(should_build TRUE)
+    elseif(build_mode_list MATCHES "^editor$")
+        if(is_editor_mode)
+            set(should_build TRUE)
+        endif()
+    elseif(build_mode_list MATCHES "^runtime$")
+        if(NOT is_editor_mode)
+            set(should_build TRUE)
+        endif()
+    else()
+        # buildMode 是数组，检查是否包含当前模式
+        if(is_editor_mode)
+            list(FIND build_mode_list "editor" found)
+            if(NOT found EQUAL -1)
+                set(should_build TRUE)
+            endif()
+        else()
+            list(FIND build_mode_list "runtime" found)
+            if(NOT found EQUAL -1)
+                set(should_build TRUE)
+            endif()
+        endif()
+        # 如果数组包含 "both"，总是构建
+        list(FIND build_mode_list "both" found)
+        if(NOT found EQUAL -1)
+            set(should_build TRUE)
+        endif()
+    endif()
+    
+    set(${result_var} ${should_build} PARENT_SCOPE)
+endfunction()
+
 # ================================
 # VS文件夹路径生成
 # ================================
@@ -516,6 +596,13 @@ function(set_target_defines target_name defines platforms types is_interface)
             target_compile_definitions(${target_name} ${scope} "BUILD_${type_upper}=1")
         endif()
     endforeach()
+
+    # 根据 SHINE_BUILD_EDITOR 自动添加 BUILD_EDITOR 宏
+    # Editor 模式：定义 BUILD_EDITOR
+    # Runtime 模式：不定义 BUILD_EDITOR（或可选择性定义 BUILD_RUNTIME）
+    if(SHINE_BUILD_EDITOR)
+        target_compile_definitions(${target_name} ${scope} BUILD_EDITOR)
+    endif()
 endfunction()
 
 # ================================
@@ -579,6 +666,21 @@ foreach(module_name ${MODULE_LIST})
 
 
     if(SHINE_WASM_DISPATCH_ONLY AND NOT is_subcmake)
+        continue()
+    endif()
+
+    # 检查 buildMode：根据 Editor/Runtime 模式过滤模块
+    should_build_module(${module_name} should_build)
+    if(NOT should_build)
+        should_show_module(${name})
+        if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
+            get_property(build_mode_list GLOBAL PROPERTY "MODULE_${module_name}_BUILD_MODE")
+            set(current_mode "Runtime")
+            if(SHINE_BUILD_EDITOR)
+                set(current_mode "Editor")
+            endif()
+            message(STATUS "Skip module (buildMode mismatch): ${name} (buildMode=${build_mode_list}, current=${current_mode})")
+        endif()
         continue()
     endif()
 

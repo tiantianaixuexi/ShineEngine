@@ -3,6 +3,7 @@
 #ifdef BUILD_EDITOR
 #include "editor/editorPlayer/editor_play.h"
 #endif
+#include "manager/InputManager.h"
 
 #ifdef SHINE_PLATFORM_WASN
 
@@ -121,7 +122,7 @@ int main(int argc, char** argv) {
     // Register Subsystems
     context.Register(new windows::WindowsDeviceInfo());
     context.Register(new windows::WindowsInfo());
-
+	context.Register(new input::InputManager());
 	context.Register(new util::FPSController());
 	context.Register(new manager::AssetManager());
     context.Register(new manager::CameraManager());
@@ -134,15 +135,14 @@ int main(int argc, char** argv) {
     context.Register(new render::RendererService());
 
     context.Register(new gameplay::tick::TickManager());
-    // context.Register(new shine::manager::monitorManager()); // If monitorManager is used, register it too
-
 
 	windows::InitWindowsPlatform(context);
+	
 
 	auto& info = context.GetSystem<windows::WindowsInfo>()->info;
 
 	// camera
-	context.GetSystem<shine::manager::CameraManager>()->setMainCamera(&g_Camera);
+	context.GetSystem<manager::CameraManager>()->setMainCamera(&g_Camera);
 
 
 	std::array<float, 4> clear_color = { 0.45f, 0.55f, 0.60f, 1.00f };
@@ -151,19 +151,19 @@ int main(int argc, char** argv) {
 	RenderBackend = context.GetSystem<render::RenderManager>()->GetRenderBackend();
 
 
-	shine::editor::main_editor::MainEditor* mainEditor = nullptr;
-	mainEditor = new shine::editor::main_editor::MainEditor(context);
+	editor::main_editor::MainEditor* mainEditor = nullptr;
+	mainEditor = new editor::main_editor::MainEditor(context);
 	mainEditor->Init();
 
 
-	shine::editor::SEditorPlayer* editorPlayer = context.GetSystem<shine::editor::SEditorPlayer>();
-
+	editor::SEditorPlayer* editorPlayer = context.GetSystem<editor::SEditorPlayer>();
 	editorPlayer->init();
 
 
-
-
+	auto RenderService = context.GetSystem<render::RendererService>();
+	auto Camera = context.GetSystem<manager::CameraManager>();
 	auto& g_FPSManager = util::FPSController::get();
+
 	bool done = false;
 	while (!done) {
 		
@@ -185,17 +185,17 @@ int main(int argc, char** argv) {
 			break;
 
         // 渲染服务，帧开始
-        context.GetSystem<render::RendererService>()->beginFrame();
+		RenderService->beginFrame();
 
 
         // 编辑器UI渲染
         mainEditor->Render();
 		
 		// 应用摄像机
-        context.GetSystem<manager::CameraManager>()->getMainCamera()->Apply();
+		Camera->getMainCamera()->Apply();
 
         // 统一用渲染服务提供帧缓冲渲染/显示
-        context.GetSystem<render::RendererService>()->endFrame(clear_color);
+		RenderService->endFrame(clear_color);
 
 		// FPS控制 - 帧结束
 		g_FPSManager.EndFrame();
@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
 	}
 
 	// 清理ImGui
-	context.GetSystem<render::RenderManager>()->GetRenderBackend()->ClearUp(info.hwnd);
+	RenderBackend->ClearUp(info.hwnd);
 
 	// 清理编辑器
 	if (mainEditor)

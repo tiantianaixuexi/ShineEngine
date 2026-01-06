@@ -34,11 +34,25 @@ set MODULE_CONFIG=Debug
 set NO_PAUSE=1
 set SHINE_BUILD_EDITOR=ON
 set SHINE_BUILD_MODULE=OFF
+set BUILD_MODE=editor
 
 :parse_args
 if "%~1"=="" goto args_done
 if /i "%~1"=="--no-editor" (
     set SHINE_BUILD_EDITOR=OFF
+    set BUILD_MODE=runtime
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--runtime" (
+    set SHINE_BUILD_EDITOR=OFF
+    set BUILD_MODE=runtime
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--editor" (
+    set SHINE_BUILD_EDITOR=ON
+    set BUILD_MODE=editor
     shift
     goto parse_args
 )
@@ -260,6 +274,8 @@ echo Global flags:
 echo   --release        Use Release config (for module/wasm/test)
 echo   --no-pause       Do not pause at script end (CI-friendly)
 echo   --no-editor      Disable editor features (removes BUILD_EDITOR macro)
+echo   --editor         Enable editor mode (default, same as without flag)
+echo   --runtime        Build in runtime mode (excludes editor-only modules)
 echo   --enable-module  Enable C++20 modules (adds SHINE_BUILD_MODULE macro)
 echo.
 goto end_script

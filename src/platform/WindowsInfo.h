@@ -36,8 +36,8 @@ namespace shine::windows
 	class WindowsDeviceInfo : public shine::Subsystem
 	{
 	public:
-		std::vector<FDisplayInfo> DisplayInfos;
-		FDisplayInfo MainDisplayInfo;
+		std::vector<FDisplayInfo> DisplayInfos{};
+		FDisplayInfo MainDisplayInfo {};
 
 		void Init();
 
@@ -47,6 +47,6 @@ namespace shine::windows
 	class WindowsInfo : public shine::Subsystem
 	{
 	public:
-		FWindowInfo info;
+		FWindowInfo info{};
 	};
 }

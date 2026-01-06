@@ -9,7 +9,7 @@
 #include "fmt/base.h"
 #include "render/renderer_service.h"
 #include "render/renderManager.h"
-#include "EngineCore/engine_context.h"
+
 
 // Forward-declare WndProc handler from imgui Win32 backend (header intentionally leaves it commented out)
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -22,7 +22,7 @@ namespace shine::windows
 
 	LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-	bool InitWindowsPlatform(shine::EngineContext& context)
+	bool InitWindowsPlatform(EngineContext& context)
 	{
 		// g_EngineContext = &context;
 
@@ -130,7 +130,7 @@ namespace shine::windows
 		
 		}
 
-		shine::input_manager::InputManager::get().processWin32Message(msg, wParam,
+		shine::input::InputManager::get().processWin32Message(msg, wParam,
 			lParam);
 
 		return ::DefWindowProcW(hWnd, msg, wParam, lParam);

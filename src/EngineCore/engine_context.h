@@ -40,8 +40,7 @@ namespace shine
             static_assert(std::is_base_of_v<Subsystem, T>, "T must inherit from Subsystem");
 
             const size_t id = shine::GetStaticID<T>();
-            auto it = m_systems.find(id);
-            if (it != m_systems.end())
+            if (const auto it = m_systems.find(id); it != m_systems.end())
             {
                 delete it->second;
                 it->second = system;
@@ -58,8 +57,7 @@ namespace shine
             static_assert(std::is_base_of_v<Subsystem, T>, "T must inherit from Subsystem");
 
             const size_t id = shine::GetStaticID<T>();
-            auto it = m_systems.find(id);
-            if (it != m_systems.end())
+            if (const auto it = m_systems.find(id); it != m_systems.end())
             {
                 it->second->Shutdown(*this);
                 delete it->second;

@@ -101,6 +101,30 @@
 }
 ```
 
+#### buildMode [string|string[], 可选]
+指定模块在哪些构建模式下构建，默认 `"both"`。
+- `"editor"`: 仅在 Editor 模式下构建（`SHINE_BUILD_EDITOR=ON`）
+- `"runtime"`: 仅在 Runtime 模式下构建（`SHINE_BUILD_EDITOR=OFF`）
+- `"both"`: 在两种模式下都构建（默认值）
+- 数组形式: `["editor", "runtime"]` 等同于 `"both"`
+
+```json
+{
+  "buildMode": "editor"
+}
+```
+
+```json
+{
+  "buildMode": ["editor", "runtime"]
+}
+```
+
+**使用场景**:
+- Editor 专用模块（如编辑器 UI、调试工具）: `"buildMode": "editor"`
+- Runtime 专用模块（如游戏运行时逻辑）: `"buildMode": "runtime"`
+- 通用模块（如工具库、数学库）: 不设置或 `"buildMode": "both"`
+
 ### 第三方库配置
 
 #### link [object, 可选]

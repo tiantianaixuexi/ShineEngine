@@ -3,5 +3,5 @@
 
 namespace shine::windows
 {
-	bool InitWindowsPlatform(shine::EngineContext& context);
+	bool InitWindowsPlatform(EngineContext& context);
 }

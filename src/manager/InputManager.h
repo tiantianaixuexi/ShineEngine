@@ -13,7 +13,7 @@
 #include "EngineCore/subsystem.h"
 
 
-namespace shine::input_manager
+namespace shine::input
 {
 
 

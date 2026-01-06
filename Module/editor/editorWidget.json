@@ -1,0 +1,9 @@
+{
+    "name":"editorWidget",
+    "type":"static",
+    "buildMode":"editor",
+    "dirs":[
+
+    ],
+    "platform":["Windows"]
+}

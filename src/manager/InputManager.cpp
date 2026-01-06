@@ -11,7 +11,7 @@
 
 
 
-namespace shine::input_manager
+namespace shine::input
 {
 
 #ifdef _WIN32
@@ -334,149 +334,149 @@ namespace shine::input_manager
         return false;
     }
 #endif
-} // namespace shine::input_manager
+} // namespace shine::input
 
 // Define all the static const key objects
-const shine::input_manager::FKey shine::input_manager::EKeys::MouseX("MouseX");
-const shine::input_manager::FKey shine::input_manager::EKeys::MouseY("MouseY");
-const shine::input_manager::FKey shine::input_manager::EKeys::Mouse2D("Mouse2D");
-const shine::input_manager::FKey shine::input_manager::EKeys::MouseScrollUp("MouseScrollUp");
-const shine::input_manager::FKey shine::input_manager::EKeys::MouseScrollDown("MouseScrollDown");
-const shine::input_manager::FKey shine::input_manager::EKeys::MouseWheelAxis("MouseWheelAxis");
+const shine::input::FKey shine::input::EKeys::MouseX("MouseX");
+const shine::input::FKey shine::input::EKeys::MouseY("MouseY");
+const shine::input::FKey shine::input::EKeys::Mouse2D("Mouse2D");
+const shine::input::FKey shine::input::EKeys::MouseScrollUp("MouseScrollUp");
+const shine::input::FKey shine::input::EKeys::MouseScrollDown("MouseScrollDown");
+const shine::input::FKey shine::input::EKeys::MouseWheelAxis("MouseWheelAxis");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::LeftMouseButton("LeftMouseButton");
-const shine::input_manager::FKey shine::input_manager::EKeys::RightMouseButton("RightMouseButton");
+const shine::input::FKey shine::input::EKeys::LeftMouseButton("LeftMouseButton");
+const shine::input::FKey shine::input::EKeys::RightMouseButton("RightMouseButton");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::BackSpace("BackSpace");
-const shine::input_manager::FKey shine::input_manager::EKeys::Tab("Tab");
-const shine::input_manager::FKey shine::input_manager::EKeys::Enter("Enter");
-const shine::input_manager::FKey shine::input_manager::EKeys::Pause("Pause");
+const shine::input::FKey shine::input::EKeys::BackSpace("BackSpace");
+const shine::input::FKey shine::input::EKeys::Tab("Tab");
+const shine::input::FKey shine::input::EKeys::Enter("Enter");
+const shine::input::FKey shine::input::EKeys::Pause("Pause");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::CapsLock("CapsLock");
-const shine::input_manager::FKey shine::input_manager::EKeys::Escape("Escape");
-const shine::input_manager::FKey shine::input_manager::EKeys::SpaceBar("SpaceBar");
-const shine::input_manager::FKey shine::input_manager::EKeys::PageUp("PageUp");
-const shine::input_manager::FKey shine::input_manager::EKeys::PageDown("PageDown");
-const shine::input_manager::FKey shine::input_manager::EKeys::End("End");
-const shine::input_manager::FKey shine::input_manager::EKeys::Home("Home");
+const shine::input::FKey shine::input::EKeys::CapsLock("CapsLock");
+const shine::input::FKey shine::input::EKeys::Escape("Escape");
+const shine::input::FKey shine::input::EKeys::SpaceBar("SpaceBar");
+const shine::input::FKey shine::input::EKeys::PageUp("PageUp");
+const shine::input::FKey shine::input::EKeys::PageDown("PageDown");
+const shine::input::FKey shine::input::EKeys::End("End");
+const shine::input::FKey shine::input::EKeys::Home("Home");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::Left("Left");
-const shine::input_manager::FKey shine::input_manager::EKeys::Up("Up");
-const shine::input_manager::FKey shine::input_manager::EKeys::Right("Right");
-const shine::input_manager::FKey shine::input_manager::EKeys::Down("Down");
+const shine::input::FKey shine::input::EKeys::Left("Left");
+const shine::input::FKey shine::input::EKeys::Up("Up");
+const shine::input::FKey shine::input::EKeys::Right("Right");
+const shine::input::FKey shine::input::EKeys::Down("Down");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::Insert("Insert");
-const shine::input_manager::FKey shine::input_manager::EKeys::Delete("Delete");
+const shine::input::FKey shine::input::EKeys::Insert("Insert");
+const shine::input::FKey shine::input::EKeys::Delete("Delete");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::Zero("Zero");
-const shine::input_manager::FKey shine::input_manager::EKeys::One("One");
-const shine::input_manager::FKey shine::input_manager::EKeys::Two("Two");
-const shine::input_manager::FKey shine::input_manager::EKeys::Three("Three");
-const shine::input_manager::FKey shine::input_manager::EKeys::Four("Four");
-const shine::input_manager::FKey shine::input_manager::EKeys::Five("Five");
-const shine::input_manager::FKey shine::input_manager::EKeys::Six("Six");
-const shine::input_manager::FKey shine::input_manager::EKeys::Seven("Seven");
-const shine::input_manager::FKey shine::input_manager::EKeys::Eight("Eight");
-const shine::input_manager::FKey shine::input_manager::EKeys::Nine("Nine");
+const shine::input::FKey shine::input::EKeys::Zero("Zero");
+const shine::input::FKey shine::input::EKeys::One("One");
+const shine::input::FKey shine::input::EKeys::Two("Two");
+const shine::input::FKey shine::input::EKeys::Three("Three");
+const shine::input::FKey shine::input::EKeys::Four("Four");
+const shine::input::FKey shine::input::EKeys::Five("Five");
+const shine::input::FKey shine::input::EKeys::Six("Six");
+const shine::input::FKey shine::input::EKeys::Seven("Seven");
+const shine::input::FKey shine::input::EKeys::Eight("Eight");
+const shine::input::FKey shine::input::EKeys::Nine("Nine");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::A("A");
-const shine::input_manager::FKey shine::input_manager::EKeys::B("B");
-const shine::input_manager::FKey shine::input_manager::EKeys::C("C");
-const shine::input_manager::FKey shine::input_manager::EKeys::D("D");
-const shine::input_manager::FKey shine::input_manager::EKeys::E("E");
-const shine::input_manager::FKey shine::input_manager::EKeys::F("F");
-const shine::input_manager::FKey shine::input_manager::EKeys::G("G");
-const shine::input_manager::FKey shine::input_manager::EKeys::H("H");
-const shine::input_manager::FKey shine::input_manager::EKeys::I("I");
-const shine::input_manager::FKey shine::input_manager::EKeys::J("J");
-const shine::input_manager::FKey shine::input_manager::EKeys::K("K");
-const shine::input_manager::FKey shine::input_manager::EKeys::L("L");
-const shine::input_manager::FKey shine::input_manager::EKeys::M("M");
-const shine::input_manager::FKey shine::input_manager::EKeys::N("N");
-const shine::input_manager::FKey shine::input_manager::EKeys::O("O");
-const shine::input_manager::FKey shine::input_manager::EKeys::P("P");
-const shine::input_manager::FKey shine::input_manager::EKeys::Q("Q");
-const shine::input_manager::FKey shine::input_manager::EKeys::R("R");
-const shine::input_manager::FKey shine::input_manager::EKeys::S("S");
-const shine::input_manager::FKey shine::input_manager::EKeys::T("T");
-const shine::input_manager::FKey shine::input_manager::EKeys::U("U");
-const shine::input_manager::FKey shine::input_manager::EKeys::V("V");
-const shine::input_manager::FKey shine::input_manager::EKeys::W("W");
-const shine::input_manager::FKey shine::input_manager::EKeys::X("X");
-const shine::input_manager::FKey shine::input_manager::EKeys::Y("Y");
-const shine::input_manager::FKey shine::input_manager::EKeys::Z("Z");
+const shine::input::FKey shine::input::EKeys::A("A");
+const shine::input::FKey shine::input::EKeys::B("B");
+const shine::input::FKey shine::input::EKeys::C("C");
+const shine::input::FKey shine::input::EKeys::D("D");
+const shine::input::FKey shine::input::EKeys::E("E");
+const shine::input::FKey shine::input::EKeys::F("F");
+const shine::input::FKey shine::input::EKeys::G("G");
+const shine::input::FKey shine::input::EKeys::H("H");
+const shine::input::FKey shine::input::EKeys::I("I");
+const shine::input::FKey shine::input::EKeys::J("J");
+const shine::input::FKey shine::input::EKeys::K("K");
+const shine::input::FKey shine::input::EKeys::L("L");
+const shine::input::FKey shine::input::EKeys::M("M");
+const shine::input::FKey shine::input::EKeys::N("N");
+const shine::input::FKey shine::input::EKeys::O("O");
+const shine::input::FKey shine::input::EKeys::P("P");
+const shine::input::FKey shine::input::EKeys::Q("Q");
+const shine::input::FKey shine::input::EKeys::R("R");
+const shine::input::FKey shine::input::EKeys::S("S");
+const shine::input::FKey shine::input::EKeys::T("T");
+const shine::input::FKey shine::input::EKeys::U("U");
+const shine::input::FKey shine::input::EKeys::V("V");
+const shine::input::FKey shine::input::EKeys::W("W");
+const shine::input::FKey shine::input::EKeys::X("X");
+const shine::input::FKey shine::input::EKeys::Y("Y");
+const shine::input::FKey shine::input::EKeys::Z("Z");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::NumPadZero("NumPadZero");
-const shine::input_manager::FKey shine::input_manager::EKeys::NumPadOne("NumPadOne");
-const shine::input_manager::FKey shine::input_manager::EKeys::NumPadTwo("NumPadTwo");
-const shine::input_manager::FKey shine::input_manager::EKeys::NumPadThree("NumPadThree");
-const shine::input_manager::FKey shine::input_manager::EKeys::NumPadFour("NumPadFour");
-const shine::input_manager::FKey shine::input_manager::EKeys::NumPadFive("NumPadFive");
-const shine::input_manager::FKey shine::input_manager::EKeys::NumPadSix("NumPadSix");
-const shine::input_manager::FKey shine::input_manager::EKeys::NumPadSeven("NumPadSeven");
-const shine::input_manager::FKey shine::input_manager::EKeys::NumPadEight("NumPadEight");
-const shine::input_manager::FKey shine::input_manager::EKeys::NumPadNine("NumPadNine");
+const shine::input::FKey shine::input::EKeys::NumPadZero("NumPadZero");
+const shine::input::FKey shine::input::EKeys::NumPadOne("NumPadOne");
+const shine::input::FKey shine::input::EKeys::NumPadTwo("NumPadTwo");
+const shine::input::FKey shine::input::EKeys::NumPadThree("NumPadThree");
+const shine::input::FKey shine::input::EKeys::NumPadFour("NumPadFour");
+const shine::input::FKey shine::input::EKeys::NumPadFive("NumPadFive");
+const shine::input::FKey shine::input::EKeys::NumPadSix("NumPadSix");
+const shine::input::FKey shine::input::EKeys::NumPadSeven("NumPadSeven");
+const shine::input::FKey shine::input::EKeys::NumPadEight("NumPadEight");
+const shine::input::FKey shine::input::EKeys::NumPadNine("NumPadNine");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::Multiply("Multiply");
-const shine::input_manager::FKey shine::input_manager::EKeys::Add("Add");
-const shine::input_manager::FKey shine::input_manager::EKeys::Subtract("Subtract");
-const shine::input_manager::FKey shine::input_manager::EKeys::Decimal("Decimal");
-const shine::input_manager::FKey shine::input_manager::EKeys::Divide("Divide");
+const shine::input::FKey shine::input::EKeys::Multiply("Multiply");
+const shine::input::FKey shine::input::EKeys::Add("Add");
+const shine::input::FKey shine::input::EKeys::Subtract("Subtract");
+const shine::input::FKey shine::input::EKeys::Decimal("Decimal");
+const shine::input::FKey shine::input::EKeys::Divide("Divide");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::F1("F1");
-const shine::input_manager::FKey shine::input_manager::EKeys::F2("F2");
-const shine::input_manager::FKey shine::input_manager::EKeys::F3("F3");
-const shine::input_manager::FKey shine::input_manager::EKeys::F4("F4");
-const shine::input_manager::FKey shine::input_manager::EKeys::F5("F5");
-const shine::input_manager::FKey shine::input_manager::EKeys::F6("F6");
-const shine::input_manager::FKey shine::input_manager::EKeys::F7("F7");
-const shine::input_manager::FKey shine::input_manager::EKeys::F8("F8");
-const shine::input_manager::FKey shine::input_manager::EKeys::F9("F9");
-const shine::input_manager::FKey shine::input_manager::EKeys::F10("F10");
-const shine::input_manager::FKey shine::input_manager::EKeys::F11("F11");
-const shine::input_manager::FKey shine::input_manager::EKeys::F12("F12");
+const shine::input::FKey shine::input::EKeys::F1("F1");
+const shine::input::FKey shine::input::EKeys::F2("F2");
+const shine::input::FKey shine::input::EKeys::F3("F3");
+const shine::input::FKey shine::input::EKeys::F4("F4");
+const shine::input::FKey shine::input::EKeys::F5("F5");
+const shine::input::FKey shine::input::EKeys::F6("F6");
+const shine::input::FKey shine::input::EKeys::F7("F7");
+const shine::input::FKey shine::input::EKeys::F8("F8");
+const shine::input::FKey shine::input::EKeys::F9("F9");
+const shine::input::FKey shine::input::EKeys::F10("F10");
+const shine::input::FKey shine::input::EKeys::F11("F11");
+const shine::input::FKey shine::input::EKeys::F12("F12");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::NumLock("NumLock");
+const shine::input::FKey shine::input::EKeys::NumLock("NumLock");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::ScrollLock("ScrollLock");
+const shine::input::FKey shine::input::EKeys::ScrollLock("ScrollLock");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::LeftShift("LeftShift");
-const shine::input_manager::FKey shine::input_manager::EKeys::RightShift("RightShift");
-const shine::input_manager::FKey shine::input_manager::EKeys::LeftControl("LeftControl");
-const shine::input_manager::FKey shine::input_manager::EKeys::RightControl("RightControl");
-const shine::input_manager::FKey shine::input_manager::EKeys::LeftAlt("LeftAlt");
-const shine::input_manager::FKey shine::input_manager::EKeys::RightAlt("RightAlt");
-const shine::input_manager::FKey shine::input_manager::EKeys::LeftCommand("LeftCommand");
-const shine::input_manager::FKey shine::input_manager::EKeys::RightCommand("RightCommand");
+const shine::input::FKey shine::input::EKeys::LeftShift("LeftShift");
+const shine::input::FKey shine::input::EKeys::RightShift("RightShift");
+const shine::input::FKey shine::input::EKeys::LeftControl("LeftControl");
+const shine::input::FKey shine::input::EKeys::RightControl("RightControl");
+const shine::input::FKey shine::input::EKeys::LeftAlt("LeftAlt");
+const shine::input::FKey shine::input::EKeys::RightAlt("RightAlt");
+const shine::input::FKey shine::input::EKeys::LeftCommand("LeftCommand");
+const shine::input::FKey shine::input::EKeys::RightCommand("RightCommand");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::Semicolon("Semicolon");
-const shine::input_manager::FKey shine::input_manager::EKeys::Equals("Equals");
-const shine::input_manager::FKey shine::input_manager::EKeys::Comma("Comma");
-const shine::input_manager::FKey shine::input_manager::EKeys::Underscore("Underscore");
-const shine::input_manager::FKey shine::input_manager::EKeys::Hyphen("Hyphen");
-const shine::input_manager::FKey shine::input_manager::EKeys::Period("Period");
-const shine::input_manager::FKey shine::input_manager::EKeys::Slash("Slash");
-const shine::input_manager::FKey shine::input_manager::EKeys::Tilde("Tilde");
-const shine::input_manager::FKey shine::input_manager::EKeys::LeftBracket("LeftBracket");
-const shine::input_manager::FKey shine::input_manager::EKeys::LeftParantheses("LeftParantheses");
-const shine::input_manager::FKey shine::input_manager::EKeys::Backslash("Backslash");
-const shine::input_manager::FKey shine::input_manager::EKeys::RightBracket("RightBracket");
-const shine::input_manager::FKey shine::input_manager::EKeys::RightParantheses("RightParantheses");
-const shine::input_manager::FKey shine::input_manager::EKeys::Apostrophe("Apostrophe");
-const shine::input_manager::FKey shine::input_manager::EKeys::Quote("Quote");
+const shine::input::FKey shine::input::EKeys::Semicolon("Semicolon");
+const shine::input::FKey shine::input::EKeys::Equals("Equals");
+const shine::input::FKey shine::input::EKeys::Comma("Comma");
+const shine::input::FKey shine::input::EKeys::Underscore("Underscore");
+const shine::input::FKey shine::input::EKeys::Hyphen("Hyphen");
+const shine::input::FKey shine::input::EKeys::Period("Period");
+const shine::input::FKey shine::input::EKeys::Slash("Slash");
+const shine::input::FKey shine::input::EKeys::Tilde("Tilde");
+const shine::input::FKey shine::input::EKeys::LeftBracket("LeftBracket");
+const shine::input::FKey shine::input::EKeys::LeftParantheses("LeftParantheses");
+const shine::input::FKey shine::input::EKeys::Backslash("Backslash");
+const shine::input::FKey shine::input::EKeys::RightBracket("RightBracket");
+const shine::input::FKey shine::input::EKeys::RightParantheses("RightParantheses");
+const shine::input::FKey shine::input::EKeys::Apostrophe("Apostrophe");
+const shine::input::FKey shine::input::EKeys::Quote("Quote");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::Asterix("Asterix");
-const shine::input_manager::FKey shine::input_manager::EKeys::Ampersand("Ampersand");
-const shine::input_manager::FKey shine::input_manager::EKeys::Caret("Caret");
-const shine::input_manager::FKey shine::input_manager::EKeys::Dollar("Dollar");
-const shine::input_manager::FKey shine::input_manager::EKeys::Exclamation("Exclamation");
-const shine::input_manager::FKey shine::input_manager::EKeys::Colon("Colon");
+const shine::input::FKey shine::input::EKeys::Asterix("Asterix");
+const shine::input::FKey shine::input::EKeys::Ampersand("Ampersand");
+const shine::input::FKey shine::input::EKeys::Caret("Caret");
+const shine::input::FKey shine::input::EKeys::Dollar("Dollar");
+const shine::input::FKey shine::input::EKeys::Exclamation("Exclamation");
+const shine::input::FKey shine::input::EKeys::Colon("Colon");
 
-const shine::input_manager::FKey shine::input_manager::EKeys::A_AccentGrave("A_AccentGrave");
-const shine::input_manager::FKey shine::input_manager::EKeys::E_AccentGrave("E_AccentGrave");
-const shine::input_manager::FKey shine::input_manager::EKeys::E_AccentAigu("E_AccentAigu");
-const shine::input_manager::FKey shine::input_manager::EKeys::C_Cedille("C_Cedille");
-const shine::input_manager::FKey shine::input_manager::EKeys::Section("Section");
+const shine::input::FKey shine::input::EKeys::A_AccentGrave("A_AccentGrave");
+const shine::input::FKey shine::input::EKeys::E_AccentGrave("E_AccentGrave");
+const shine::input::FKey shine::input::EKeys::E_AccentAigu("E_AccentAigu");
+const shine::input::FKey shine::input::EKeys::C_Cedille("C_Cedille");
+const shine::input::FKey shine::input::EKeys::Section("Section");
 
 
 
