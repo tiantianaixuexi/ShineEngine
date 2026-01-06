@@ -4,7 +4,7 @@
 
 
 #include "math/rotator.h"
-#include "math/matrix.h"
+#include "math/matrix.ixx"
 #include "math/quat.h"
 
 namespace shine::gameplay

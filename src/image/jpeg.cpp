@@ -12,10 +12,10 @@
 
 #include "shine_define.h"
 #include "util/timer/function_timer.h"
-#include "util/file_util.h"
+#include "util/file_util.ixx"
 
-#include "util/encoding/byte_convert.h"
-#include "util/encoding/bit_reader.h"
+#include "util/encoding/byte_convert.ixx"
+#include "util/encoding/bit_reader.ixx"
 
 
 
@@ -44,6 +44,28 @@
 namespace shine::image
 {
 	using namespace shine::util;
+
+	// Overloads for std::span
+	inline u8 read_u8(std::span<const std::byte> d, size_t o) {
+		return shine::util::read_u8(reinterpret_cast<const unsigned char*>(d.data()), d.size(), o);
+	}
+	inline u16 read_u16(std::span<const std::byte> d, size_t o) {
+		return shine::util::read_be16(reinterpret_cast<const unsigned char*>(d.data()), d.size(), o);
+	}
+
+	/**
+	 * @brief 读取大端序数据引用
+	 * @tparam T 数据类型
+	 * @param d 数据缓冲区
+	 * @param out 输出引用
+	 * @param offset 偏移量
+	 */
+	template<typename T>
+	void read_be_ref(std::span<const std::byte> d, T& out, size_t offset = 0) {
+		if constexpr (sizeof(T) == 1) out = static_cast<T>(read_u8(d, offset));
+		else if constexpr (sizeof(T) == 2) out = static_cast<T>(read_u16(d, offset));
+		// else if constexpr (sizeof(T) == 4) out = static_cast<T>(read_u32(d, offset)); // JPEG usually doesn't need u32, but if needed add it
+	}
 
 	// ============================================================================
 	// JPEG 格式常量定义
@@ -174,7 +196,7 @@ namespace shine::image
 		setState(loader::EAssetLoadState::READING_FILE);
 		
 		// 读取文件内容
-		auto result = read_full_file(filePath);
+		auto result = read_full_file(SString::from_utf8(std::string(filePath)));
 		if (!result.has_value())
 		{
 			setError(loader::EAssetLoaderError::FILE_NOT_FOUND, result.error());

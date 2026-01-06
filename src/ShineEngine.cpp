@@ -1,4 +1,4 @@
-#include "util/shine_define.h"
+
 
 #ifdef BUILD_EDITOR
 #include "editor/editorPlayer/editor_play.h"
@@ -55,7 +55,7 @@ int main(int argc,char** argv)
 
 
 
-#include "file_util.h"
+#include "file_util.ixx"
 
 
 
@@ -68,7 +68,7 @@ int main(int argc,char** argv)
 #include <filesystem>
 
 
-#include "imgui.h"
+#include "imgui/imgui.h"
 
 
 #include "editor/mainEditor.h"
@@ -81,17 +81,14 @@ int main(int argc,char** argv)
 #include "manager/CameraManager.h"
 #include "platform/InitWindows.h"
 #include "platform/WindowsInfo.h"
-#include "timer/function_timer.h"
-
-#include "util/fps_controller.h"
-
 
 #include "quickjs/quickjs.h"
 #include "render/renderManager.h"
+#include "fps_controller.h"
 #include "manager/AssetManager.h"
 #include "gameplay/tick/tickManager.h"
-#include "manager/monitor/monitorManager.h"
 #include "EngineCore/engine_context.h"
+
 
 using namespace shine;
 
@@ -118,20 +115,25 @@ int main(int argc, char** argv) {
 	SetConsoleOutputCP(CP_UTF8);
 #endif
 
-    // Initialize Engine Context
+
     shine::EngineContext context;
-    // g_EngineContext = &context; // Removed global pointer assignment
 
     // Register Subsystems
-    context.Register(new shine::windows::WindowsDeviceInfo());
-    context.Register(new shine::windows::WindowsInfo());
-    context.Register(new shine::manager::CameraManager());
-    context.Register(new shine::render::RenderManager());
-    context.Register(new shine::render::TextureManager());
-    context.Register(new shine::render::RendererService());
-    context.Register(new shine::editor::SEditorPlayer());
-    context.Register(new shine::manager::AssetManager());
-    context.Register(new shine::gameplay::tick::TickManager());
+    context.Register(new windows::WindowsDeviceInfo());
+    context.Register(new windows::WindowsInfo());
+
+	context.Register(new util::FPSController());
+	context.Register(new manager::AssetManager());
+    context.Register(new manager::CameraManager());
+
+
+	context.Register(new editor::SEditorPlayer());
+
+    context.Register(new render::RenderManager());
+    context.Register(new render::TextureManager());
+    context.Register(new render::RendererService());
+
+    context.Register(new gameplay::tick::TickManager());
     // context.Register(new shine::manager::monitorManager()); // If monitorManager is used, register it too
 
 
@@ -161,13 +163,13 @@ int main(int argc, char** argv) {
 
 
 
-	auto& g_FPSManager = util::EngineFPSManager::get();
+	auto& g_FPSManager = util::FPSController::get();
 	bool done = false;
 	while (!done) {
 		
 		// FPS控制 - 帧开始
 		g_FPSManager.BeginFrame();
-		const double dt_d = g_FPSManager.GetCurrentDeltaTime();
+		const double dt_d = g_FPSManager.GetDeltaTime();
 		const float dt = static_cast<float>(dt_d);
 
 		// Poll and handle messages (inputs, window resize, etc.)

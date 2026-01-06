@@ -3,7 +3,6 @@
 #include "widget/shineButton.h"
 #include "editor/browers/AssetsBrower.h"
 #include "editor/views/EditorView.h"
-#include "../../EngineCore/engine_context.h"
 
 // 前向声明
 namespace shine::editor::views

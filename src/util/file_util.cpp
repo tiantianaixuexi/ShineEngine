@@ -1,21 +1,28 @@
-#undef SHINE_USE_MODULE
-#include "file_util.h"
+#ifdef SHINE_USE_MODULE
+
+module;
+
+module shine.util.file_util;
+
+#else
+
+#include "file_util.ixx"
 #include "shine_define.h"
 #include "fmt/format.h"
 
 #ifdef SHINE_PLATFORM_WIN
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+
 #include <windows.h>
 #include <fileapi.h>
-#include <io.h>
-#elif SHINE_PLATFORM_WASM
-#include <emscripten.h>
-#include <cstdlib>
+
 #else
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -36,6 +43,8 @@
 #ifndef SHINE_PLATFORM_WASM
 #include <expected>
 #include <span>
+#endif
+
 #endif
 
 namespace shine::util
@@ -247,15 +256,15 @@ namespace shine::util
 	// 基础文件操作实现
 	// ============================================================================
 
-	bool file_exists(SString name)
+	bool file_exists(STextView name)
 	{
 #ifdef SHINE_PLATFORM_WIN
-		std::string pathStr(name);
+		std::string pathStr = name.to_utf8();
 		DWORD attributes = GetFileAttributesA(pathStr.c_str());
 		return attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY);
 #elif SHINE_PLATFORM_WASM
 		// WASM 需要通过 Emscripten FS API
-		std::string pathStr(name);
+		std::string pathStr = name.to_utf8();
 		FILE* file = fopen(pathStr.c_str(), "rb");
 		if (file)
 		{
@@ -264,20 +273,20 @@ namespace shine::util
 		}
 		return false;
 #else
-		std::string pathStr(name);
+		std::string pathStr = name.to_utf8();
 		struct stat buffer;
 		return (stat(pathStr.c_str(), &buffer) == 0 && S_ISREG(buffer.st_mode));
 #endif
 	}
 
-	bool directory_exists(SString name)
+	bool directory_exists(STextView name)
 	{
 #ifdef SHINE_PLATFORM_WIN
-		std::string pathStr(name);
+		std::string pathStr = name.to_utf8();
 		DWORD attributes = GetFileAttributesA(pathStr.c_str());
 		return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY);
 #elif SHINE_PLATFORM_WASM
-		std::string pathStr(name);
+		std::string pathStr = name.to_utf8();
 		// WASM 目录检查
 		FILE* file = fopen((pathStr + "/.").c_str(), "rb");
 		if (file)
@@ -287,19 +296,19 @@ namespace shine::util
 		}
 		return false;
 #else
-		std::string pathStr(name);
+		std::string pathStr = name.to_utf8();
 		struct stat buffer;
 		return (stat(pathStr.c_str(), &buffer) == 0 && S_ISDIR(buffer.st_mode));
 #endif
 	}
 
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<EFileFolderType, std::string> file_or_directory(SString name)
+	std::expected<EFileFolderType, std::string> file_or_directory(STextView name)
 #else
-	EFileFolderType file_or_directory(SString name, bool* success)
+	EFileFolderType file_or_directory(STextView name, bool* success)
 #endif
 	{
-		std::string pathStr(name);
+		std::string pathStr = name.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		DWORD attributes = GetFileAttributesA(pathStr.c_str());
 		if (attributes == INVALID_FILE_ATTRIBUTES)
@@ -385,12 +394,12 @@ namespace shine::util
 	}
 
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<std::string, std::string> get_file_suffix(SString filename)
+	std::expected<std::string, std::string> get_file_suffix(STextView filename)
 #else
-	std::string get_file_suffix(SString filename, bool* success)
+	std::string get_file_suffix(STextView filename, bool* success)
 #endif
 	{
-		std::string filenameStr(filename);
+		std::string filenameStr = filename.to_utf8();
 		const auto idx = filenameStr.rfind('.');
 		if (idx == std::string::npos || idx == 0 || idx == filenameStr.length() - 1)
 		{
@@ -409,9 +418,21 @@ namespace shine::util
 #endif
 	}
 
-	std::string get_file_extension(SString filename)
+#ifndef SHINE_PLATFORM_WASM
+	std::expected<std::string, std::string> get_file_suffix(std::string_view filename)
 	{
-		std::string filenameStr(filename);
+		return get_file_suffix(SString::from_utf8(filename));
+	}
+#else
+	std::string get_file_suffix(std::string_view filename, bool* success)
+	{
+		return get_file_suffix(SString::from_utf8(filename), success);
+	}
+#endif
+
+	std::string get_file_extension(STextView filename)
+	{
+		std::string filenameStr = filename.to_utf8();
 		const auto idx = filenameStr.rfind('.');
 		if (idx == std::string::npos || idx == 0 || idx == filenameStr.length() - 1)
 		{
@@ -421,9 +442,14 @@ namespace shine::util
 		return filenameStr.substr(idx + 1);
 	}
 
-	std::string get_file_name(SString filepath)
+	std::string get_file_extension(std::string_view filename)
 	{
-		std::string pathStr(filepath);
+		return get_file_extension(SString::from_utf8(filename));
+	}
+
+	std::string get_file_name(STextView filepath)
+	{
+		std::string pathStr = filepath.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		size_t pos = pathStr.find_last_of("\\/");
 #else
@@ -436,9 +462,14 @@ namespace shine::util
 		return pathStr;
 	}
 
-	std::string get_file_directory(SString filepath)
+	std::string get_file_name(std::string_view filepath)
 	{
-		std::string pathStr(filepath);
+		return get_file_name(SString::from_utf8(filepath));
+	}
+
+	std::string get_file_directory(STextView filepath)
+	{
+		std::string pathStr = filepath.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		size_t pos = pathStr.find_last_of("\\/");
 #else
@@ -451,7 +482,24 @@ namespace shine::util
 		return "";
 	}
 
-	std::string get_file_stem(SString filepath)
+#ifndef SHINE_PLATFORM_WASM
+	std::expected<std::string, std::string> read_file_text(std::string_view filePath)
+	{
+		return read_file_text(SString::from_utf8(filePath));
+	}
+#else
+	std::string read_file_text(std::string_view filePath, bool* success)
+	{
+		return read_file_text(SString::from_utf8(filePath), success);
+	}
+#endif
+
+	std::string get_file_directory(std::string_view filepath)
+	{
+		return get_file_directory(SString::from_utf8(filepath));
+	}
+
+	std::string get_file_stem(STextView filepath)
 	{
 		std::string name = get_file_name(filepath);
 		size_t pos = name.rfind('.');
@@ -460,6 +508,11 @@ namespace shine::util
 			return name.substr(0, pos);
 		}
 		return name;
+	}
+
+	std::string get_file_stem(std::string_view filepath)
+	{
+		return get_file_stem(SString::from_utf8(filepath));
 	}
 
 	// ============================================================================
@@ -476,12 +529,12 @@ namespace shine::util
 #endif
 
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<FileMapping, std::string> open_file_from_mapping(SString filename)
+	std::expected<FileMapping, std::string> open_file_from_mapping(STextView filename)
 #else
-	FileMapping open_file_from_mapping(SString filename, bool* success)
+	FileMapping open_file_from_mapping(STextView filename, bool* success)
 #endif
 	{
-		std::string filenameStr(filename);
+		std::string filenameStr = filename.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		HANDLE hFile = CreateFileA(
 			filenameStr.c_str(),
@@ -588,6 +641,18 @@ namespace shine::util
 #endif
 #endif
 	}
+
+#ifndef SHINE_PLATFORM_WASM
+	std::expected<FileMapping, std::string> open_file_from_mapping(std::string_view filename)
+	{
+		return open_file_from_mapping(SString::from_utf8(filename));
+	}
+#else
+	FileMapping open_file_from_mapping(std::string_view filename, bool* success)
+	{
+		return open_file_from_mapping(SString::from_utf8(filename), success);
+	}
+#endif
 
 #ifndef SHINE_PLATFORM_WASM
 	std::expected<MappedView, std::string> read_data_from_mapping(FileMapping& mapping, uint64_t size, uint64_t offset)
@@ -725,14 +790,16 @@ namespace shine::util
 	}
 
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<FileMapView, std::string> read_full_file(SString filePath)
+	std::expected<FileMapView, std::string> read_full_file(STextView filePath)
 #else
-	FileMapView read_full_file(SString filePath, bool* success)
+	FileMapView read_full_file(STextView filePath, bool* success)
 #endif
 	{
-		std::string filePathStr(filePath);
-		auto openResult = open_file_from_mapping(filePathStr);
+		std::string filePathStr = filePath.to_utf8();
+		// 使用 STextView 调用 open_file_from_mapping
+		// 注意 open_file_from_mapping 已经改为接受 STextView
 #ifndef SHINE_PLATFORM_WASM
+		auto openResult = open_file_from_mapping(filePath);
 		if (!openResult.has_value())
 		{
 			return std::unexpected(openResult.error());
@@ -756,7 +823,7 @@ namespace shine::util
 		return FileMapView{ std::move(file_mapping), std::move(file_data_view) };
 #else
 		bool tempSuccess = false;
-		auto file_mapping = open_file_from_mapping(filePathStr, &tempSuccess);
+		auto file_mapping = open_file_from_mapping(filePath, &tempSuccess);
 		if (!tempSuccess)
 		{
 			if (success) *success = false;
@@ -782,17 +849,29 @@ namespace shine::util
 #endif
 	}
 
+#ifndef SHINE_PLATFORM_WASM
+	std::expected<FileMapView, std::string> read_full_file(std::string_view filePath)
+	{
+		return read_full_file(SString::from_utf8(filePath));
+	}
+#else
+	FileMapView read_full_file(std::string_view filePath, bool* success)
+	{
+		return read_full_file(SString::from_utf8(filePath), success);
+	}
+#endif
+
 	// ============================================================================
 	// 文件读写操作实现
 	// ============================================================================
 
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<std::vector<std::byte>, std::string> read_file_bytes(SString filePath)
+	std::expected<std::vector<std::byte>, std::string> read_file_bytes(STextView filePath)
 #else
-	std::vector<std::byte> read_file_bytes(SString filePath, bool* success)
+	std::vector<std::byte> read_file_bytes(STextView filePath, bool* success)
 #endif
 	{
-		std::string filePathStr(filePath);
+		std::string filePathStr = filePath.to_utf8();
 		std::ifstream file(filePathStr, std::ios::binary | std::ios::ate);
 		if (!file.is_open())
 		{
@@ -827,12 +906,24 @@ namespace shine::util
 	}
 
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<std::string, std::string> read_file_text(SString filePath)
+	std::expected<std::vector<std::byte>, std::string> read_file_bytes(std::string_view filePath)
+	{
+		return read_file_bytes(SString::from_utf8(filePath));
+	}
 #else
-	std::string read_file_text(SString filePath, bool* success)
+	std::vector<std::byte> read_file_bytes(std::string_view filePath, bool* success)
+	{
+		return read_file_bytes(SString::from_utf8(filePath), success);
+	}
+#endif
+
+#ifndef SHINE_PLATFORM_WASM
+	std::expected<std::string, std::string> read_file_text(STextView filePath)
+#else
+	std::string read_file_text(STextView filePath, bool* success)
 #endif
 	{
-		std::string filePathStr(filePath);
+		std::string filePathStr = filePath.to_utf8();
 		std::ifstream file(filePathStr);
 		if (!file.is_open())
 		{
@@ -855,15 +946,15 @@ namespace shine::util
 	}
 
 #ifndef SHINE_PLATFORM_WASM
-	bool SaveData(SString path, std::span<const std::byte> data)
+	bool SaveData(STextView path, std::span<const std::byte> data)
 	{
 		return SaveData(path, data.data(), data.size());
 	}
 #endif
 
-	bool SaveData(SString path, const void* data, size_t size)
+	bool SaveData(STextView path, const void* data, size_t size)
 	{
-		std::string pathStr(path);
+		std::string pathStr = path.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		// 使用 Windows API 提升性能
 		HANDLE hFile = CreateFileA(
@@ -898,10 +989,10 @@ namespace shine::util
 #endif
 	}
 
-	bool SaveText(SString path, SString text)
+	bool SaveText(STextView path, STextView text)
 	{
-		std::string pathStr(path);
-		std::string textStr(text);
+		std::string pathStr = path.to_utf8();
+		std::string textStr = text.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		HANDLE hFile = CreateFileA(
 			pathStr.c_str(),
@@ -933,10 +1024,10 @@ namespace shine::util
 #endif
 	}
 
-	bool AppendText(SString path, SString text)
+	bool AppendText(STextView path, STextView text)
 	{
-		std::string pathStr(path);
-		std::string textStr(text);
+		std::string pathStr = path.to_utf8();
+		std::string textStr = text.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		HANDLE hFile = CreateFileA(
 			pathStr.c_str(),
@@ -972,9 +1063,9 @@ namespace shine::util
 	// 文件管理操作实现
 	// ============================================================================
 
-	bool DeleteFile(SString path)
+	bool DeleteFile(STextView path)
 	{
-		std::string pathStr(path);
+		std::string pathStr = path.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		return ::DeleteFileA(pathStr.c_str()) != 0;
 #else
@@ -982,37 +1073,37 @@ namespace shine::util
 #endif
 	}
 
-	bool CopyFile(SString sourcePath, SString destPath, bool overwrite)
+	bool CopyFile(STextView sourcePath, STextView destPath, bool overwrite)
 	{
-		std::string sourceStr(sourcePath);
-		std::string destStr(destPath);
+		std::string sourceStr = sourcePath.to_utf8();
+		std::string destStr = destPath.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		return ::CopyFileA(sourceStr.c_str(), destStr.c_str(), !overwrite) != 0;
 #else
 		// 读取源文件并写入目标文件
-		auto data = read_file_bytes(sourceStr);
+		auto data = read_file_bytes(sourcePath); // 递归调用 read_file_bytes (已接受 STextView)
 #ifndef SHINE_PLATFORM_WASM
 		if (!data.has_value())
 		{
 			return false;
 		}
-		return SaveData(destStr, data->data(), data->size());
+		return SaveData(destPath, data->data(), data->size());
 #else
 		bool success = false;
-		auto bytes = read_file_bytes(sourceStr, &success);
+		auto bytes = read_file_bytes(sourcePath, &success);
 		if (!success)
 		{
 			return false;
 		}
-		return SaveData(destStr, bytes.data(), bytes.size());
+		return SaveData(destPath, bytes.data(), bytes.size());
 #endif
 #endif
 	}
 
-	bool MoveFile(SString sourcePath, SString destPath)
+	bool MoveFile(STextView sourcePath, STextView destPath)
 	{
-		std::string sourceStr(sourcePath);
-		std::string destStr(destPath);
+		std::string sourceStr = sourcePath.to_utf8();
+		std::string destStr = destPath.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		return ::MoveFileA(sourceStr.c_str(), destStr.c_str()) != 0;
 #else
@@ -1020,9 +1111,9 @@ namespace shine::util
 #endif
 	}
 
-	uint64_t GetFileSize(SString path)
+	uint64_t GetFileSize(STextView path)
 	{
-		std::string pathStr(path);
+		std::string pathStr = path.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		HANDLE hFile = CreateFileA(
 			pathStr.c_str(),
@@ -1068,9 +1159,9 @@ namespace shine::util
 #endif
 	}
 
-	uint64_t GetFileLastModified(SString path)
+	uint64_t GetFileLastModified(STextView path)
 	{
-		std::string pathStr(path);
+		std::string pathStr = path.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		HANDLE hFile = CreateFileA(
 			pathStr.c_str(),
@@ -1120,9 +1211,9 @@ namespace shine::util
 	// 目录操作实现
 	// ============================================================================
 
-	bool CreateDir(SString path)
+	bool CreateDir(STextView path)
 	{
-		std::string pathStr(path);
+		std::string pathStr = path.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		return CreateDirectoryA(pathStr.c_str(), nullptr) != 0 || GetLastError() == ERROR_ALREADY_EXISTS;
 #else
@@ -1131,7 +1222,7 @@ namespace shine::util
 #endif
 	}
 
-	bool CreateDirRecursive(SString path)
+	bool CreateDirRecursive(STextView path)
 	{
 		std::string pathStr = NormalizePath(path);
 		std::string currentPath;
@@ -1155,9 +1246,13 @@ namespace shine::util
 		{
 			if (pathStr[i] == '\\' || pathStr[i] == '/')
 			{
-				if (!currentPath.empty() && !CreateDir(currentPath))
+				// 这里 currentPath 是 std::string，CreateDir 需要 STextView
+				// 但 CreateDir 内部又转回 std::string
+				// 我们可以直接调用 Win32 API 避免往返转换
+				if (!currentPath.empty())
 				{
-					if (GetLastError() != ERROR_ALREADY_EXISTS)
+					// 使用底层 API 或 SString::from_utf8
+					if (CreateDirectoryA(currentPath.c_str(), nullptr) == 0 && GetLastError() != ERROR_ALREADY_EXISTS)
 					{
 						return false;
 					}
@@ -1168,7 +1263,7 @@ namespace shine::util
 
 		if (!currentPath.empty())
 		{
-			return CreateDir(currentPath) || GetLastError() == ERROR_ALREADY_EXISTS;
+			return CreateDirectoryA(currentPath.c_str(), nullptr) != 0 || GetLastError() == ERROR_ALREADY_EXISTS;
 		}
 		return true;
 #else
@@ -1204,9 +1299,9 @@ namespace shine::util
 #endif
 	}
 
-	bool DeleteDir(SString path)
+	bool DeleteDir(STextView path)
 	{
-		std::string pathStr(path);
+		std::string pathStr = path.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		return RemoveDirectoryA(pathStr.c_str()) != 0;
 #else
@@ -1214,9 +1309,8 @@ namespace shine::util
 #endif
 	}
 
-	bool DeleteDirRecursive(SString path)
+	static bool DeleteDirRecursiveImpl(const std::string& pathStr)
 	{
-		std::string pathStr(path);
 #ifdef SHINE_PLATFORM_WIN
 		WIN32_FIND_DATAA findData;
 		std::string searchPath = pathStr + "\\*";
@@ -1238,7 +1332,7 @@ namespace shine::util
 
 			if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 			{
-				if (!DeleteDirRecursive(fullPath))
+				if (!DeleteDirRecursiveImpl(fullPath))
 				{
 					FindClose(hFind);
 					return false;
@@ -1277,7 +1371,7 @@ namespace shine::util
 			{
 				if (S_ISDIR(statBuf.st_mode))
 				{
-					if (!DeleteDirRecursive(fullPath))
+					if (!DeleteDirRecursiveImpl(fullPath))
 					{
 						closedir(dir);
 						return false;
@@ -1299,14 +1393,15 @@ namespace shine::util
 #endif
 	}
 
+	bool DeleteDirRecursive(STextView path)
+	{
+		return DeleteDirRecursiveImpl(path.to_utf8());
+	}
+
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<std::vector<FileInfo>, std::string> ListDirectory(SString dirPath, bool includeSubdirs)
-#else
-	std::vector<FileInfo> ListDirectory(SString dirPath, bool includeSubdirs, bool* success)
-#endif
+	static std::expected<std::vector<FileInfo>, std::string> ListDirectoryImpl(const std::string& dirPathStr, bool includeSubdirs)
 	{
 		std::vector<FileInfo> result;
-		std::string dirPathStr(dirPath);
 
 #ifdef SHINE_PLATFORM_WIN
 		WIN32_FIND_DATAA findData;
@@ -1315,12 +1410,7 @@ namespace shine::util
 
 		if (hFind == INVALID_HANDLE_VALUE)
 		{
-#ifndef SHINE_PLATFORM_WASM
 			return std::unexpected("无法打开目录");
-#else
-			if (success) *success = false;
-			return result;
-#endif
 		}
 
 		do
@@ -1346,20 +1436,11 @@ namespace shine::util
 
 			if (includeSubdirs && info.type == EFileFolderType::DIRECTORY)
 			{
-				auto subdir = ListDirectory(info.path, true);
-#ifndef SHINE_PLATFORM_WASM
+				auto subdir = ListDirectoryImpl(info.path, true);
 				if (subdir.has_value())
 				{
 					result.insert(result.end(), subdir->begin(), subdir->end());
 				}
-#else
-				bool subSuccess = false;
-				auto subdirList = ListDirectory(info.path, true, &subSuccess);
-				if (subSuccess)
-				{
-					result.insert(result.end(), subdirList.begin(), subdirList.end());
-				}
-#endif
 			}
 		} while (FindNextFileA(hFind, &findData));
 
@@ -1368,12 +1449,7 @@ namespace shine::util
 		DIR* dir = opendir(dirPathStr.c_str());
 		if (!dir)
 		{
-#ifndef SHINE_PLATFORM_WASM
 			return std::unexpected("无法打开目录");
-#else
-			if (success) *success = false;
-			return result;
-#endif
 		}
 
 		struct dirent* entry;
@@ -1402,33 +1478,103 @@ namespace shine::util
 
 			if (includeSubdirs && info.type == EFileFolderType::DIRECTORY)
 			{
-				auto subdir = ListDirectory(info.path, true);
-#ifndef SHINE_PLATFORM_WASM
+				auto subdir = ListDirectoryImpl(info.path, true);
 				if (subdir.has_value())
 				{
 					result.insert(result.end(), subdir->begin(), subdir->end());
 				}
-#else
-				bool subSuccess = false;
-				auto subdirList = ListDirectory(info.path, true, &subSuccess);
-				if (subSuccess)
-				{
-					result.insert(result.end(), subdirList.begin(), subdirList.end());
-				}
-#endif
 			}
 		}
 
 		closedir(dir);
 #endif
 
-#ifndef SHINE_PLATFORM_WASM
 		return result;
+	}
+
+	std::expected<std::vector<FileInfo>, std::string> ListDirectory(STextView dirPath, bool includeSubdirs)
+	{
+		return ListDirectoryImpl(dirPath.to_utf8(), includeSubdirs);
+	}
 #else
+	static std::vector<FileInfo> ListDirectoryImpl(const std::string& dirPathStr, bool includeSubdirs, bool* success)
+	{
+		std::vector<FileInfo> result;
+
+#ifdef SHINE_PLATFORM_WIN
+		// This block won't be compiled in WASM, but just in case
+#else
+		// WASM implementation relies on Emscripten FS which simulates POSIX
+		// Or if pure WASM, it might be different. Assuming same structure as above but with success pointer
+		// But wait, the original code had different branches.
+		// Original code for WASM handled success pointer in return.
+		
+		// Wait, the original code had mixed #ifdefs inside the function.
+		// I should verify if WASM platform uses `opendir` or what.
+		// The original code:
+		/*
+		#else
+			DIR* dir = opendir(dirPathStr.c_str());
+			if (!dir) { ... if(success) *success=false; return result; }
+			...
+		#endif
+		*/
+		// Yes, WASM (Emscripten) supports dirent.h.
+		
+		DIR* dir = opendir(dirPathStr.c_str());
+		if (!dir)
+		{
+			if (success) *success = false;
+			return result;
+		}
+
+		struct dirent* entry;
+		while ((entry = readdir(dir)) != nullptr)
+		{
+			if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+			{
+				continue;
+			}
+
+			std::string fullPath = dirPathStr + "/" + entry->d_name;
+			struct stat statBuf;
+			if (stat(fullPath.c_str(), &statBuf) != 0)
+			{
+				continue;
+			}
+
+			FileInfo info;
+			info.name = entry->d_name;
+			info.path = fullPath;
+			info.type = S_ISDIR(statBuf.st_mode) ? EFileFolderType::DIRECTORY : EFileFolderType::FILE;
+			info.size = (info.type == EFileFolderType::FILE) ? static_cast<uint64_t>(statBuf.st_size) : 0;
+			info.lastModified = static_cast<uint64_t>(statBuf.st_mtime);
+
+			result.push_back(info);
+
+			if (includeSubdirs && info.type == EFileFolderType::DIRECTORY)
+			{
+				bool subSuccess = false;
+				auto subdirList = ListDirectoryImpl(info.path, true, &subSuccess);
+				if (subSuccess)
+				{
+					result.insert(result.end(), subdirList.begin(), subdirList.end());
+				}
+			}
+		}
+
+		closedir(dir);
+#endif
+
 		if (success) *success = true;
 		return result;
-#endif
 	}
+
+	std::vector<FileInfo> ListDirectory(STextView dirPath, bool includeSubdirs, bool* success)
+	{
+		return ListDirectoryImpl(dirPath.to_utf8(), includeSubdirs, success);
+	}
+#endif
 
 	std::string GetCurrentDirectory()
 	{
@@ -1452,9 +1598,9 @@ namespace shine::util
 #endif
 	}
 
-	bool SetCurrentDirectory(SString path)
+	bool SetCurrentDirectory(STextView path)
 	{
-		std::string pathStr(path);
+		std::string pathStr = path.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		return ::SetCurrentDirectoryA(pathStr.c_str()) != 0;
 #else
@@ -1466,9 +1612,9 @@ namespace shine::util
 	// 路径操作实现
 	// ============================================================================
 
-	std::string NormalizePath(SString path)
+	std::string NormalizePath(const std::string& path)
 	{
-		std::string pathStr(path);
+		std::string pathStr = path;
 #ifdef SHINE_PLATFORM_WIN
 		// 统一使用反斜杠
 		std::replace(pathStr.begin(), pathStr.end(), '/', '\\');
@@ -1518,41 +1664,48 @@ namespace shine::util
 #endif
 	}
 
-	std::string JoinPath(SString base, SString part)
+	std::string NormalizePath(STextView path)
 	{
-		std::string baseStr(base);
-		std::string partStr(part);
+		return NormalizePath(path.to_utf8());
+	}
 
-		if (baseStr.empty())
+	std::string JoinPath(const std::string& base, const std::string& part)
+	{
+		if (base.empty())
 		{
-			return partStr;
+			return part;
 		}
 
-		if (partStr.empty())
+		if (part.empty())
 		{
-			return baseStr;
+			return base;
 		}
 
 #ifdef SHINE_PLATFORM_WIN
-		char lastChar = baseStr.back();
+		char lastChar = base.back();
 		if (lastChar != '\\' && lastChar != '/')
 		{
-			return baseStr + "\\" + partStr;
+			return base + "\\" + part;
 		}
-		return baseStr + partStr;
+		return base + part;
 #else
-		char lastChar = baseStr.back();
+		char lastChar = base.back();
 		if (lastChar != '/')
 		{
-			return baseStr + "/" + partStr;
+			return base + "/" + part;
 		}
-		return baseStr + partStr;
+		return base + part;
 #endif
 	}
 
-	bool IsAbsolutePath(SString path)
+	std::string JoinPath(STextView base, STextView part)
 	{
-		std::string pathStr(path);
+		return JoinPath(base.to_utf8(), part.to_utf8());
+	}
+
+	bool IsAbsolutePath(STextView path)
+	{
+		std::string pathStr = path.to_utf8();
 #ifdef SHINE_PLATFORM_WIN
 		// Windows: C:\ 或 \\server\share 格式
 		return (pathStr.length() >= 3 && pathStr[1] == ':' && (pathStr[2] == '\\' || pathStr[2] == '/')) ||
@@ -1563,15 +1716,15 @@ namespace shine::util
 #endif
 	}
 
-	std::string GetAbsolutePath(SString path)
+	std::string GetAbsolutePath(STextView path)
 	{
-		std::string pathStr(path);
-		if (IsAbsolutePath(pathStr))
+		if (IsAbsolutePath(path))
 		{
-			return NormalizePath(pathStr);
+			return NormalizePath(path);
 		}
 
 		std::string currentDir = GetCurrentDirectory();
-		return NormalizePath(JoinPath(currentDir, pathStr));
+		std::string joined = JoinPath(currentDir, path.to_utf8());
+		return NormalizePath(joined);
 	}
 }

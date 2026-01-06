@@ -14,7 +14,6 @@ namespace shine::editor
 	class SEditorPlayer : public shine::Subsystem
 	{
 	public:
-		static constexpr size_t GetStaticID() { return shine::HashString("SEditorPlayer"); }
 
 		void init();
 

@@ -1,5 +1,4 @@
 #include "WindowsInfo.h"
-#include "util/shine_define.h"
 #include <fmt/format.h>
 
 

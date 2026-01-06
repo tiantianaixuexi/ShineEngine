@@ -4,13 +4,9 @@
 #include "loader/model/model_loader.h"
 #include <vector>
 #include <string>
-#include <memory>
 #include <unordered_map>
-#include <cstring>
 #include <sstream>
 
-#include "math/vector.h"
-#include "math/vector2.h"
 
 namespace shine::loader
 {

@@ -1,6 +1,6 @@
 #include "SceneHierarchyView.h"
-#include "imgui.h"
 #include "fmt/format.h"
+#include "imgui/imgui.h"
 
 namespace shine::editor::views
 {

@@ -3,6 +3,7 @@
 #include <cmath>
 #include <array>
 
+#include "shine_define.h"
 #include "rotator.h"
 #include "mathDef.h"
 

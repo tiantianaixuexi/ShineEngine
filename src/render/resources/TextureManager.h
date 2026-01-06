@@ -1,11 +1,9 @@
 #pragma once
 
 #include <string>
-#include <memory>
 #include <unordered_map>
 #include <cstdint>
 #include "render/resources/texture_handle.h"
-#include "loader/image/image_loader.h"
 #include "manager/AssetManager.h"
 // #include "util/singleton.h"
 #include "../../EngineCore/subsystem.h"
@@ -46,7 +44,6 @@ namespace shine::render
     class TextureManager : public shine::Subsystem
     {
     public:
-        static constexpr size_t GetStaticID() { return shine::HashString("TextureManager"); }
         static TextureManager& get() { return *shine::EngineContext::Get().GetSystem<TextureManager>(); }
 
     public:
@@ -55,7 +52,7 @@ namespace shine::render
          * @param renderBackend 渲染后端指针
          */
         void Initialize(render::backend::IRenderBackend* renderBackend);
-
+        virtual void Shutdown(EngineContext& ctx) override;
 
         /**
          * @brief 从AssetHandle创建纹理（从已加载的图片数据创建）
@@ -86,6 +83,9 @@ namespace shine::render
          * @return 纹理句柄，失败返回无效句柄
          */
         TextureHandle CreateTextureFromMemory(const void* data, size_t size, const std::string& formatHint = "");
+
+
+        TextureHandle CreateTextureFromImage(image::STexture& texture);
 
         /**
          * @brief 更新纹理数据
@@ -175,11 +175,6 @@ namespace shine::render
         uint64_t nextHandleId_ = 1;
 
     private:
-        // 禁止拷贝和移动
-        TextureManager(const TextureManager&) = delete;
-        TextureManager& operator=(const TextureManager&) = delete;
-        TextureManager(TextureManager&&) = delete;
-        TextureManager& operator=(TextureManager&&) = delete;
     };
 }
 

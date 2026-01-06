@@ -1,25 +1,20 @@
 #include "objLoader.h"
 #include <unordered_set>
 
-#include <map>
 #include <vector>
 #include <string>
-#include <cstring>
-#include <cstdint>
 #include <algorithm>
-#include <sstream>
 #include <charconv>
-#include <cctype>
 #include <functional>
 
 #include "fmt/format.h"
 
-#include "math/vector.h"
+#include "math/vector.ixx"
 #include "math/vector2.h"
 #include "math/rotator.h"
 
 #include "util/timer/function_timer.h"
-#include "util/file_util.h"
+#include "util/file_util.ixx"
 
 namespace shine::loader
 {

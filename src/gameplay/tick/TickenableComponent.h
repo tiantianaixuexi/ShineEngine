@@ -1,9 +1,6 @@
 #pragma once
 
-#include <functional>
-
 #include "gameplay/tick/tick_function.h"
-#include "gameplay/tick/tick_types.h"
 #include "gameplay/tick/tickManager.h"
 
 namespace shine::gameplay
@@ -26,14 +23,14 @@ namespace shine::gameplay
 
     protected:
         void RegisterTick(tick::TickFunction& fn) {
-            if (shine::EngineContext::IsInitialized()) {
-                shine::EngineContext::Get().GetSystem<tick::TickManager>()->Register(&fn);
+            if (EngineContext::IsInitialized()) {
+                EngineContext::Get().GetSystem<tick::TickManager>()->Register(&fn);
             }
         }
 
         void UnregisterTick(tick::TickFunction& fn) {
-            if (shine::EngineContext::IsInitialized()) {
-                shine::EngineContext::Get().GetSystem<tick::TickManager>()->Unregister(&fn);
+            if (EngineContext::IsInitialized()) {
+                EngineContext::Get().GetSystem<tick::TickManager>()->Unregister(&fn);
             }
         }
     };

@@ -7,7 +7,7 @@
 #include "loader/model/objLoader.h"
 #include "fmt/format.h"
 #include "util/timer/function_timer.h"
-#include "util/file_util.h"
+#include "util/file_util.ixx"
 #include <algorithm>
 #include <cstring>
 
@@ -215,7 +215,7 @@ namespace shine::manager
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
         // 先检查文件是否存在，避免不必要的操作和可能的阻塞
-        if (!util::file_exists(filePath))
+        if (!util::file_exists(SString::from_utf8(filePath)))
         {
             fmt::print("AssetManager: 模型文件不存在: {}\n", filePath);
             return AssetHandle{};

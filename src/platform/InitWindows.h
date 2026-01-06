@@ -1,5 +1,5 @@
 #pragma once
-#include "../../EngineCore/engine_context.h"
+#include "EngineCore/engine_context.h"
 
 namespace shine::windows
 {

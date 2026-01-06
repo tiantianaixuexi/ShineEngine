@@ -7,7 +7,9 @@
 
 #include "shine_define.h"
 #include "shine_text_view.h"
-#include "../util/string_util.h"
+#include "../util/string_util.ixx"
+
+#include "../memory/memory.ixx"
 
 namespace shine
 {
@@ -18,20 +20,47 @@ namespace shine
         // P0: Survival Level - Basic Constraints
         // =========================================================
         
-		constexpr SString() noexcept :_cap(0), _size(0), _p(nullptr){}
+		constexpr SString() noexcept : _sso{}, _cap(kSsoCapacity), _size(0), _p(_sso) {}
 
         explicit SString(size_t cap):
-        _cap(cap), _size(0){
-            _p = cap > 0 ?new TChar[cap] : nullptr;
+        _sso{}, _cap(kSsoCapacity), _size(0), _p(_sso) {
+            if (cap > kSsoCapacity) {
+                _p = allocate_chars(cap);
+                if (!_p) {
+                    set_sso_empty();
+                    return;
+                }
+                _cap = cap;
+            }
+            _p[0] = 0;
 		}
 
         SString(size_t cap, size_t size) :
-            _cap(cap), _size(size){
-            _p = cap > 0 ? new TChar[cap] : nullptr;
+            _sso{}, _cap(kSsoCapacity), _size(0), _p(_sso) {
+            _size = std::min(size, cap);
+            if (cap > kSsoCapacity) {
+                _p = allocate_chars(cap);
+                if (!_p) {
+                    set_sso_empty();
+                    return;
+                }
+                _cap = cap;
+            }
+            if (_cap > _size) _p[_size] = 0;
         }
 
         SString(TChar* p, size_t cap, size_t size) :
-            _cap(cap), _size(size), _p(p) {
+            _sso{}, _cap(cap), _size(std::min(size, cap)), _p(p) {
+            if (_p == nullptr || _cap == 0) {
+                set_sso_empty();
+            } else if (_cap <= kSsoCapacity && _size + 1 <= kSsoCapacity) {
+                set_sso_empty();
+                std::copy(p, p + _size, _p);
+                _p[_size] = 0;
+                free_chars(p);
+            } else {
+                if (_cap > _size) _p[_size] = 0;
+            }
         }
 
 
@@ -47,11 +76,20 @@ namespace shine
 		void operator=(const SString&) = delete;
 
         SString(SString&& s) noexcept :
-            _cap(s._cap), _size(s._size), _p(s._p)
+            _sso{}, _cap(kSsoCapacity), _size(0), _p(_sso)
         {
-            s._cap  = 0;
-            s._size = 0;
-            s._p    = nullptr;
+            if (s.is_sso()) {
+                _size = s._size;
+                if (_size > 0) {
+                    std::copy(s._p, s._p + _size, _p);
+                }
+                _p[_size] = 0;
+            } else {
+                _p = s._p;
+                _cap = s._cap;
+                _size = s._size;
+            }
+            s.set_sso_empty();
 		}
 
         SString& operator=(SString&& s) noexcept
@@ -59,13 +97,18 @@ namespace shine
             if (this != &s)
             {
                 reset();
-                _p = s._p;
-                _cap = s._cap;
-                _size = s._size;
-
-                s._p = nullptr;
-                s._cap = 0;
-                s._size = 0;
+                if (s.is_sso()) {
+                    _size = s._size;
+                    if (_size > 0) {
+                        std::copy(s._p, s._p + _size, _p);
+                    }
+                    _p[_size] = 0;
+                } else {
+                    _p = s._p;
+                    _cap = s._cap;
+                    _size = s._size;
+                }
+                s.set_sso_empty();
             }
             return *this;
 		}
@@ -85,18 +128,18 @@ namespace shine
 		const TChar* c_str() const noexcept { return _p; }
 
 		bool empty() const noexcept { return _size == 0; }
-        void clear() noexcept { _size = 0; }
+        void clear() noexcept {
+            _size = 0;
+            if (_cap > 0) _p[0] = 0;
+        }
 
 
         void reset()
         {
-	        if (_p!=nullptr)
-	        {
-				delete[] _p;
-                _p    =  nullptr;
-                _cap  =  0;
-                _size = 0;
-	        }
+            if (!is_sso()) {
+                free_chars(_p);
+            }
+            set_sso_empty();
         }
 
         // =========================================================
@@ -187,21 +230,23 @@ namespace shine
         void reserve(size_t new_cap) {
             if (new_cap <= _cap) return;
             
-            TChar* new_p = new TChar[new_cap];
+            TChar* new_p = allocate_chars(new_cap);
+            if (!new_p) return;
             if (_size > 0) {
                 std::copy(_p, _p + _size, new_p);
             }
-            if (_p) delete[] _p;
+            if (new_cap > _size) new_p[_size] = 0;
+            if (!is_sso()) free_chars(_p);
             _p = new_p;
             _cap = new_cap;
         }
 
         void resize(size_t new_size) {
-            if (new_size > _cap) {
-                reserve(std::max(new_size, _cap * 2)); // Growth strategy
+            if (new_size + 1 > _cap) {
+                reserve(std::max(new_size + 1, _cap * 2));
             }
             _size = new_size;
-            if (_cap > _size) _p[_size] = 0; // Null terminate if possible
+            if (_cap > _size) _p[_size] = 0;
         }
 
         void push_back(TChar c) {
@@ -214,7 +259,7 @@ namespace shine
 
         void append(STextView sv) {
             if (sv.empty()) return;
-            if (_size + sv.size() >= _cap) {
+            if (_size + sv.size() + 1 > _cap) {
                 reserve(std::max(_size + sv.size() + 1, _cap * 2));
             }
             std::copy(sv.begin(), sv.end(), _p + _size);
@@ -279,10 +324,38 @@ namespace shine
         }
 
     private:
+        static constexpr size_t kSsoCapacity = 24;
+
+        bool is_sso() const noexcept { return _p == _sso; }
+
+        void set_sso_empty() noexcept {
+            _p = _sso;
+            _cap = kSsoCapacity;
+            _size = 0;
+            _sso[0] = 0;
+        }
+
+        static TChar* allocate_chars(size_t cap) noexcept {
+            void* p = shine::co::Memory::Alloc(cap * sizeof(TChar), alignof(TChar));
+            return static_cast<TChar*>(p);
+        }
+
+        static void free_chars(TChar* p) noexcept {
+            shine::co::Memory::Free(p);
+        }
+
         // Helper to clone from view
-        SString(const SString& other, int) : _cap(other._size), _size(other._size) {
-             _p = _cap > 0 ? new TChar[_cap] : nullptr;
-             if (_size > 0) std::copy(other._p, other._p + _size, _p);
+        SString(const SString& other, int) : _sso{}, _cap(kSsoCapacity), _size(other._size), _p(_sso) {
+            if (_size + 1 > kSsoCapacity) {
+                _cap = _size + 1;
+                _p = allocate_chars(_cap);
+                if (!_p) {
+                    set_sso_empty();
+                    return;
+                }
+            }
+            if (_size > 0) std::copy(other._p, other._p + _size, _p);
+            if (_cap > _size) _p[_size] = 0;
         }
 
         static SString from_view(STextView v) {
@@ -294,8 +367,9 @@ namespace shine
             return s;
         }
 
-        size_t _cap   = 0;
+        TChar _sso[kSsoCapacity]{};
+        size_t _cap   = kSsoCapacity;
         size_t _size  = 0;
-        TChar*  _p     = nullptr;
+        TChar*  _p     = _sso;
     };
 }

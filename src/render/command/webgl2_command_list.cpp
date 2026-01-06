@@ -11,7 +11,7 @@
 #include <GL/glew.h>
 
 #include "shine_define.h"
-#include "imgui.h" // for draw data type only
+#include "imgui/imgui.h" // for draw data type only
 
 namespace shine::render::webgl2
 {

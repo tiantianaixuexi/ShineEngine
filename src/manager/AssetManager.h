@@ -9,8 +9,7 @@
 #include "loader/image/image_loader.h"
 #include "loader/model/model_loader.h"
 #include <cstdint>
-#include "../../EngineCore/subsystem.h"
-#include "../../EngineCore/engine_context.h"
+#include "EngineCore/subsystem.h"
 
 // Windows.h 定义了 LoadImage 宏，已通过重命名函数避免冲突
 
@@ -53,7 +52,6 @@ namespace shine::manager
     class AssetManager : public shine::Subsystem
     {
     public:
-        static constexpr size_t GetStaticID() { return shine::HashString("AssetManager"); }
 
         AssetManager();
         ~AssetManager();

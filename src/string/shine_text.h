@@ -1,4 +1,4 @@
-#pragma once
+000#pragma once
 
 #include "shine_string.h"
 #include "shine_text_view.h"

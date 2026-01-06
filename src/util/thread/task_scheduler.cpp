@@ -108,7 +108,7 @@ namespace shine::util
             auto& currentNode = _tasks[id];
             for (u32 depId : currentNode->dependents) {
                 if (depId < _tasks.size() && _tasks[depId]) {
-                    _tasks[depId]->remainingDeps--;
+                    --_tasks[depId]->remainingDeps;
                     if (_tasks[depId]->remainingDeps == 0 && !_tasks[depId]->completed) {
                         u32 nextId = depId;
                         _threadPool.Enqueue([this, nextId]() {

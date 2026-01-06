@@ -26,15 +26,6 @@ namespace shine::gameplay
         // onBeginPlay实现
     }
 
-    void SObject::onTick(float deltaTime)
-    {
-        if (!m_isTickable) return;
-
-        //for (auto& comp : m_Components)
-        //{
-        //    comp->onTick(deltaTime);
-        //}
-    }
 
 };
 

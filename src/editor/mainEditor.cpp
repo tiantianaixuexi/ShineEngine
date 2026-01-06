@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "fmt/format.h"
-#include "imgui.h"
+#include "imgui/imgui.h"
 
 #include "editor/views/SceneHierarchyView.h"
 #include "editor/views/PropertiesView.h"

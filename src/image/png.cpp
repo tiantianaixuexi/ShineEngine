@@ -18,12 +18,13 @@
 
 #include "shine_define.h"
 #include "util/timer/function_timer.h"
-#include "util/file_util.h"
+#include "util/file_util.ixx"
 
-#include "util/encoding/byte_convert.h"
-#include "util/encoding/bit_reader.h"
+#include "util/encoding/byte_convert.ixx"
+#include "util/encoding/bit_reader.ixx"
 #include "util/encoding/huffman_tree.h"
 #include "util/encoding/huffman_decoder.h"
+#include "string/shine_string.h"
 
 
 /**
@@ -47,6 +48,31 @@
 namespace shine::image
 {
 	using namespace util;
+
+	// Overloads for std::span
+	inline u8 read_u8(std::span<const std::byte> d, size_t o) {
+		return shine::util::read_u8(reinterpret_cast<const unsigned char*>(d.data()), d.size(), o);
+	}
+	inline u16 read_u16(std::span<const std::byte> d, size_t o) {
+		return shine::util::read_be16(reinterpret_cast<const unsigned char*>(d.data()), d.size(), o);
+	}
+	inline u32 read_u32(std::span<const std::byte> d, size_t o) {
+		return shine::util::read_be32(reinterpret_cast<const unsigned char*>(d.data()), d.size(), o);
+	}
+
+	/**
+	 * @brief 读取大端序数据引用
+	 * @tparam T 数据类型
+	 * @param d 数据缓冲区
+	 * @param out 输出引用
+	 * @param offset 偏移量
+	 */
+	template<typename T>
+	void read_be_ref(std::span<const std::byte> d, T& out, size_t offset = 0) {
+		if constexpr (sizeof(T) == 1) out = static_cast<T>(read_u8(d, offset));
+		else if constexpr (sizeof(T) == 2) out = static_cast<T>(read_u16(d, offset));
+		else if constexpr (sizeof(T) == 4) out = static_cast<T>(read_u32(d, offset));
+	}
 
 	// ============================================================================
 	// PNG 格式常量定义
@@ -324,7 +350,7 @@ namespace shine::image
 		setState(shine::loader::EAssetLoadState::READING_FILE);
 		
 		// 读取文件内容
-		auto result = util::read_full_file(filePath);
+		auto result = util::read_full_file(SString::from_utf8(filePath));
 		if (!result.has_value())
 		{
 			setError(shine::loader::EAssetLoaderError::FILE_NOT_FOUND, result.error());
@@ -1211,7 +1237,7 @@ namespace shine::image
 		__m128i swapped = _mm_shuffle_epi8(bytes, shuf);
 		_mm_storeu_si128(reinterpret_cast<__m128i*>(values), swapped);
 
-		mdcv = PngMdcv{
+		mdcv.emplace(PngMdcv{
 			values[0],
 			values[1],
 			values[2],
@@ -1222,10 +1248,10 @@ namespace shine::image
 			values[7],
 			read_u32(data,16),
 			read_u32(data,20)
-		};
+		});
 #else
 		// 标准实现（非 AVX2 或 WASM 平台）
-		mdcv = PngMdcv{
+		mdcv.emplace(PngMdcv{
 			read_u16(data,0),
 			read_u16(data,2),
 			read_u16(data,4),
@@ -1236,7 +1262,7 @@ namespace shine::image
 			read_u16(data,14),
 			read_u32(data,16),
 			read_u32(data,20)
-		};
+		});
 #endif
 #else
 		// WASM 平台使用标准实现
@@ -1261,10 +1287,10 @@ namespace shine::image
 	{
 		if (length != 8) return false;
 
-		clli = PngClli{
+		clli.emplace(PngClli{
 			read_u32(data,0),
 			read_u32(data,4)
-		};
+		});
 
 		return true;
 	}
@@ -1640,7 +1666,7 @@ namespace shine::image
 			{
 				return std::unexpected("数据不足：无法读取动态Huffman树头部");
 			}
-			reader.ensureBits(17);
+
 			
 			// 读取 HLIT, HDIST, HCLEN
 			uint32_t HLIT = reader.readBits(5) + 257;
@@ -1656,7 +1682,6 @@ namespace shine::image
 			std::vector<uint32_t> bitlen_cl(NUM_CODE_LENGTH_CODES, 0);
 			for (uint32_t i = 0; i < HCLEN; ++i)
 			{
-				reader.ensureBits(3);
 				uint32_t order = CLCL_ORDER[i];
 				if (order >= NUM_CODE_LENGTH_CODES)
 				{
@@ -1685,7 +1710,6 @@ namespace shine::image
 				{
 					return std::unexpected("数据不足：无法读取代码长度码");
 				}
-				reader.ensureBits(25);
 				uint32_t code = util::huffmanDecodeSymbol(reader, tree_cl);
 				
 				if (code == INVALIDSYMBOL)
@@ -1705,7 +1729,6 @@ namespace shine::image
 				else if (code == 16)
 				{
 					// 重复前一个码长度 3-6 次
-					reader.ensureBits(2);
 					repeat = reader.readBits(2) + 3;
 					if (i == 0)
 					{
@@ -1716,14 +1739,12 @@ namespace shine::image
 				else if (code == 17)
 				{
 					// 重复 0 码长度 3-10 次
-					reader.ensureBits(3);
 					repeat = reader.readBits(3) + 3;
 					value = 0;
 				}
 				else if (code == 18)
 				{
 					// 重复 0 码长度 11-138 次
-					reader.ensureBits(7);
 					repeat = reader.readBits(7) + 11;
 					value = 0;
 				}
@@ -1798,7 +1819,6 @@ namespace shine::image
 				
 				if (numextrabits_l > 0)
 				{
-					reader.ensureBits(25);
 					length += reader.readBits(numextrabits_l);
 				}
 				
@@ -1875,16 +1895,16 @@ namespace shine::image
 		
 		// 使用 byte_convert 工具读取 zlib 头
 		std::span<const std::byte> compressedSpan(reinterpret_cast<const std::byte*>(compressed.data()), compressed.size());
-		uint16_t header = util::read_u16(compressedSpan, 0);
-		
-		if ((header % 31) != 0)
-		{
-			return std::unexpected("无效的 Zlib 头");
-		}
-		
-		uint8_t cm = util::read_u8(compressedSpan, 0) & 0x0F;
-		uint8_t cinfo = (util::read_u8(compressedSpan, 0) >> 4) & 0x0F;
-		uint8_t fdict = (util::read_u8(compressedSpan, 1) >> 5) & 0x01;
+		uint16_t header = read_u16(compressedSpan, 0);
+	
+	if ((header % 31) != 0)
+	{
+		return std::unexpected("无效的 Zlib 头");
+	}
+	
+	uint8_t cm = read_u8(compressedSpan, 0) & 0x0F;
+	uint8_t cinfo = (read_u8(compressedSpan, 0) >> 4) & 0x0F;
+	uint8_t fdict = (read_u8(compressedSpan, 1) >> 5) & 0x01;
 		
 		if (cm != 8 || cinfo > 7)
 		{
@@ -1947,8 +1967,8 @@ namespace shine::image
 				
 				// 使用 byte_convert 工具读取长度
 				std::span<const std::byte> deflateSpan(reinterpret_cast<const std::byte*>(deflateData.data()), deflateData.size());
-				uint16_t len = util::read_u16(deflateSpan, bytePos);
-				uint16_t nlen = util::read_u16(deflateSpan, bytePos + 2);
+				uint16_t len = read_u16(deflateSpan, bytePos);
+			uint16_t nlen = read_u16(deflateSpan, bytePos + 2);
 				
 				if ((len + nlen) != 0xFFFF)
 				{
@@ -1988,7 +2008,7 @@ namespace shine::image
 		if (deflateData.size() >= 4)
 		{
 			// 读取期望的Adler-32校验和（大端序，read_u32会转换为本机字节序）
-			uint32_t expectedAdler = util::read_u32(compressedSpan, compressed.size() - 4);
+			uint32_t expectedAdler = read_u32(compressedSpan, compressed.size() - 4);
 			
 			// 计算Adler-32校验和
 			// Adler-32算法：s1和s2初始值分别为1和0
@@ -2836,7 +2856,7 @@ namespace shine::image
 					size_t outIdx = 0;
 					for (size_t i = 0; i < rawData.size(); i += 2)
 					{
-						uint16_t gray16 = util::read_u16(rawDataSpan, i);
+						uint16_t gray16 = read_u16(rawDataSpan, i);
 						// read_u16已处理字节序转换，取高8位进行降采样
 						uint8_t gray = static_cast<uint8_t>(gray16 >> 8);
 						output[outIdx++] = gray;
@@ -2854,9 +2874,9 @@ namespace shine::image
 					size_t outIdx = 0;
 					for (size_t i = 0; i < rawData.size(); i += 6)
 					{
-						uint16_t r16 = util::read_u16(rawDataSpan, i);
-						uint16_t g16 = util::read_u16(rawDataSpan, i + 2);
-						uint16_t b16 = util::read_u16(rawDataSpan, i + 4);
+						uint16_t r16 = read_u16(rawDataSpan, i);
+						uint16_t g16 = read_u16(rawDataSpan, i + 2);
+						uint16_t b16 = read_u16(rawDataSpan, i + 4);
 						output[outIdx++] = static_cast<uint8_t>(r16 >> 8);
 						output[outIdx++] = static_cast<uint8_t>(g16 >> 8);
 						output[outIdx++] = static_cast<uint8_t>(b16 >> 8);
@@ -2872,8 +2892,8 @@ namespace shine::image
 					size_t outIdx = 0;
 					for (size_t i = 0; i < rawData.size(); i += 4)
 					{
-						uint16_t gray16 = util::read_u16(rawDataSpan, i);
-						uint16_t alpha16 = util::read_u16(rawDataSpan, i + 2);
+						uint16_t gray16 = read_u16(rawDataSpan, i);
+					uint16_t alpha16 = read_u16(rawDataSpan, i + 2);
 						uint8_t gray = static_cast<uint8_t>(gray16 >> 8);
 						uint8_t alpha = static_cast<uint8_t>(alpha16 >> 8);
 						output[outIdx++] = gray;
@@ -2891,10 +2911,10 @@ namespace shine::image
 					size_t outIdx = 0;
 					for (size_t i = 0; i < rawData.size(); i += 8)
 					{
-						uint16_t r16 = util::read_u16(rawDataSpan, i);
-						uint16_t g16 = util::read_u16(rawDataSpan, i + 2);
-						uint16_t b16 = util::read_u16(rawDataSpan, i + 4);
-						uint16_t a16 = util::read_u16(rawDataSpan, i + 6);
+						uint16_t r16 = read_u16(rawDataSpan, i);
+					uint16_t g16 = read_u16(rawDataSpan, i + 2);
+					uint16_t b16 = read_u16(rawDataSpan, i + 4);
+					uint16_t a16 = read_u16(rawDataSpan, i + 6);
 						output[outIdx++] = static_cast<uint8_t>(r16 >> 8);
 						output[outIdx++] = static_cast<uint8_t>(g16 >> 8);
 						output[outIdx++] = static_cast<uint8_t>(b16 >> 8);

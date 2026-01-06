@@ -8,8 +8,7 @@ class Game;
 
 namespace shine::engine {
 
-// Engine: Singleton managing the core application state.
-// Replaces the old DemoApp and global g_* variables.
+
 class Engine {
 public:
     static Engine& instance();

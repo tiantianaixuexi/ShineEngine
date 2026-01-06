@@ -10,16 +10,31 @@
 #include <array>
 
 
-#include "util/file_util.h"
-#include "util/encoding/byte_convert.h"
-#include "util/encoding/bit_reader.h"
+#include "util/file_util.ixx"
+#include "util/encoding/byte_convert.ixx"
+#include "util/encoding/bit_reader.ixx"
 #include "util/encoding/huffman_tree.h"
 #include "util/encoding/huffman_decoder.h"
 #include "fmt/format.h"
+#include "string/shine_string.h"
 
 namespace shine::image
 {
 	using namespace util;
+
+	// Overloads for std::span
+	inline u8 read_u8(std::span<const std::byte> d, size_t o) {
+		return shine::util::read_u8(reinterpret_cast<const unsigned char*>(d.data()), d.size(), o);
+	}
+	inline u16 read_le16(std::span<const std::byte> d, size_t o) {
+		return shine::util::read_le16(reinterpret_cast<const unsigned char*>(d.data()), d.size(), o);
+	}
+	inline u32 read_le24(std::span<const std::byte> d, size_t o) {
+		return shine::util::read_le24(reinterpret_cast<const unsigned char*>(d.data()), d.size(), o);
+	}
+	inline u32 read_le32(std::span<const std::byte> d, size_t o) {
+		return shine::util::read_le32(reinterpret_cast<const unsigned char*>(d.data()), d.size(), o);
+	}
 
 	// ============================================================================
 	// WebP 格式常量定义
@@ -169,7 +184,7 @@ namespace shine::image
 	{
 		// 使用 file_util 读取文件
 #ifndef SHINE_PLATFORM_WASM
-		auto fileResult = util::read_file_bytes(filePath.data());
+		auto fileResult = util::read_file_bytes(SString::from_utf8(std::string(filePath)));
 		if (!fileResult.has_value())
 		{
 			return std::unexpected(fileResult.error());
@@ -239,7 +254,7 @@ namespace shine::image
 		std::memcpy(chunkType.data(), data.data() + offset, 4);
 		
 		// 然后读取块大小（小端序，不包括块头）
-		uint32_t chunkSize = util::read_le32(data, offset + 4);
+		uint32_t chunkSize = read_le32(data, offset + 4);
 		
 		return chunkSize;
 	}
@@ -261,7 +276,7 @@ namespace shine::image
 		}
 
 		// 读取文件大小（小端序）
-		uint32_t fileSize = util::read_le32(data, 4);
+		uint32_t fileSize = read_le32(data, 4);
 		offset += 8;
 
 		// 检查 WEBP 签名
@@ -294,13 +309,13 @@ namespace shine::image
 			size_t vp8xOffset = offset + 8;
 			
 			// 读取标志位
-			uint8_t flags = util::read_u8(data, vp8xOffset);
+			uint8_t flags = read_u8(data, vp8xOffset);
 			_hasAnimation = (flags & 0x02) != 0;
 			_hasAlpha = (flags & 0x10) != 0;
 			
 			// 读取画布尺寸（24 位，小端序）
-			_width = util::read_le24(data, vp8xOffset + 4) + 1;
-			_height = util::read_le24(data, vp8xOffset + 7) + 1;
+			_width = read_le24(data, vp8xOffset + 4) + 1;
+			_height = read_le24(data, vp8xOffset + 7) + 1;
 			
 			// 提取动画信息
 			if (_hasAnimation)
@@ -326,9 +341,9 @@ namespace shine::image
 			
 			// 跳过帧头（3字节）
 			// 读取尺寸（14位宽度 + 14位高度，小端序）
-			uint16_t dimension = util::read_le16(data, vp8Offset + 3);
+			uint16_t dimension = read_le16(data, vp8Offset + 3);
 			_width = (dimension & 0x3FFF) + 1;
-			_height = ((dimension >> 14) | (util::read_le16(data, vp8Offset + 5) << 2)) + 1;
+			_height = ((dimension >> 14) | (read_le16(data, vp8Offset + 5) << 2)) + 1;
 		}
 		else if (std::memcmp(chunkType.data(), "VP8L", 4) == 0)
 		{
@@ -344,14 +359,14 @@ namespace shine::image
 			size_t vp8lOffset = offset + 8;
 			
 			// VP8L 格式：签名（1字节） + 尺寸（14位宽度 + 14位高度，小端序）
-			uint8_t signature = util::read_u8(data, vp8lOffset);
+			uint8_t signature = read_u8(data, vp8lOffset);
 			if ((signature & 0xC0) != 0x2E)
 			{
 				return false; // 无效的 VP8L 签名
 			}
 			
 			// 读取尺寸（14位宽度 + 14位高度）
-			uint32_t dimension = util::read_le24(data, vp8lOffset + 1);
+			uint32_t dimension = read_le24(data, vp8lOffset + 1);
 			_width = (dimension & 0x3FFF) + 1;
 			_height = ((dimension >> 14) & 0x3FFF) + 1;
 			
@@ -409,9 +424,9 @@ namespace shine::image
 			else if (std::memcmp(chunkType.data(), "ANIM", 4) == 0 && chunkSize >= 6)
 			{
 				// 动画信息（在 VP8X 块之后）
-				animationInfo.canvasWidth = util::read_le24(data, chunkDataOffset) + 1;
-				animationInfo.canvasHeight = util::read_le24(data, chunkDataOffset + 3) + 1;
-				animationInfo.loopCount = util::read_le16(data, chunkDataOffset + 6);
+				animationInfo.canvasWidth = read_le24(data, chunkDataOffset) + 1;
+				animationInfo.canvasHeight = read_le24(data, chunkDataOffset + 3) + 1;
+				animationInfo.loopCount = read_le16(data, chunkDataOffset + 6);
 			}
 			else if (std::memcmp(chunkType.data(), "ANMF", 4) == 0)
 			{
@@ -1216,8 +1231,8 @@ namespace shine::image
 		// 读取尺寸（已在 extractFeatures 中读取，这里验证）
 		// VP8 尺寸格式：2字节宽度 + 2字节高度（14位有效）
 		std::span<const std::byte> dataSpan(reinterpret_cast<const std::byte*>(data), size);
-		uint16_t widthBytes = util::read_le16(dataSpan, 3);
-		uint16_t heightBytes = util::read_le16(dataSpan, 5);
+		uint16_t widthBytes = read_le16(dataSpan, 3);
+		uint16_t heightBytes = read_le16(dataSpan, 5);
 		
 		uint32_t vp8Width = (widthBytes & 0x3FFF);
 		uint32_t vp8Height = (heightBytes & 0x3FFF);
@@ -1258,7 +1273,6 @@ namespace shine::image
 		(void)partitionSize; // 暂时不使用
 
 		// 读取量化参数（一次性确保足够的位）
-		reader.ensureBits(40); // 7+4+7+4+6+6 = 34 bits，确保40位足够
 		uint32_t yAcQ = reader.readBits(7);
 		uint32_t yDcQ = reader.readBits(4);
 		uint32_t y2AcQ = reader.readBits(7);
@@ -1340,7 +1354,6 @@ namespace shine::image
 			// 实际 VP8 使用布尔解码器，这里使用简化的 Huffman 编码
 			// 优化：批量读取概率值以减少 ensureBits 调用
 			// 使用 (std::min) 避免 Windows 宏冲突
-			reader.ensureBits((std::min)(static_cast<size_t>(numSymbols * 8), static_cast<size_t>(32)));
 			for (uint32_t i = 0; i < numSymbols; ++i)
 			{
 				uint32_t probability = reader.readBits(8);

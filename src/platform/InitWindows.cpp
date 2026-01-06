@@ -1,8 +1,6 @@
 #include "InitWindows.h"
 
 
-#include "util/shine_define.h"
-
 #include "WindowsInfo.h"
 
 #include "manager/InputManager.h"
@@ -11,7 +9,7 @@
 #include "fmt/base.h"
 #include "render/renderer_service.h"
 #include "render/renderManager.h"
-#include "../../EngineCore/engine_context.h"
+#include "EngineCore/engine_context.h"
 
 // Forward-declare WndProc handler from imgui Win32 backend (header intentionally leaves it commented out)
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

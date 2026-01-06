@@ -1,17 +1,9 @@
 #include "EditorView.h"
 
 
-#include <string>
-#include <functional>
-
-
-
-#include "imgui.h"
-#include "fmt/format.h"
 #include "gameplay/camera.h"
+#include "imgui/imgui.h"
 #include "manager/CameraManager.h"
-#include "render/shader_manager.h"
-#include "render/material.h"
 
 namespace shine::editor::EditorView
 {

@@ -13,6 +13,7 @@ import <source_location>;
 #else
 
 #pragma once
+#include <mimalloc/mimalloc.h>
 #include <cstddef>
 #include <cstdint>
 #include <atomic>
@@ -23,8 +24,7 @@ import <source_location>;
 
 #endif
 
-// mimalloc
-#include <mimalloc.h>
+
 
 namespace shine::co {
 

@@ -6,8 +6,7 @@
 #include <memory>
 
 #include "shine_define.h"
-#include "../../EngineCore/subsystem.h"
-#include "../../EngineCore/engine_context.h"
+#include "EngineCore/subsystem.h"
 #include "render/backend/render_backend.h"
 #include "render/pipeline/rendering_data.h"
 #include "render/pipeline/scriptable_render_context.h"
@@ -37,12 +36,10 @@ namespace shine::render
         ViewportRecord& operator=(ViewportRecord&&) = default;
     };
 
-    // 渲染服务，管理一个后端实例，管理多个视图（第一步先支持单视图，后续扩展）
+	// 渲染服务，管理一个后端实例，管理多个视图（第一步先支持单视图，后续扩展）
 	class RendererService : public shine::Subsystem
     {
     public:
-        static constexpr size_t GetStaticID() { return shine::HashString("RendererService"); }
-
         RendererService() = default;
 
         // 注入应用后端（必须先调用）

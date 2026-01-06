@@ -1,9 +1,0 @@
-﻿{
-    "name": "shine_define",
-    "files": [
-        "src/util/shine_define.h"
-    ],
-    "deps": [],
-    "comment": "平台定义和基础类型配置"
-}
-

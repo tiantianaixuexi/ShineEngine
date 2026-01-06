@@ -16,7 +16,7 @@ import shine.math.vector;
 #include <array>
 #include "mathDef.h"
 #include "quat.h"
-#include "vector.h"
+#include "vector.ixx"
 
 #endif
 
@@ -26,6 +26,12 @@ import shine.math.vector;
 
 namespace shine::math
 {
+
+    template<FloatingPoint T>
+    class TQuat;
+
+    template<IsNumber T>
+    class TVector;
 
 
     // 4x4 matrix, column-major (OpenGL convention)

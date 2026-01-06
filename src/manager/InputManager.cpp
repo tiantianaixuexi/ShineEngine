@@ -1,6 +1,14 @@
 #include "InputManager.h"
 
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #include <windowsx.h>
+#endif
+
+
+
 
 
 namespace shine::input_manager
@@ -160,11 +168,11 @@ namespace shine::input_manager
                 evt.virtualKey = vk;
                 evt.modifiers = GetModifierFlags();
 
-                // 瑙﹀彂 AnyKeyDown
+                // 触发 AnyKeyDown
                 auto any = anyKeyDownCallbacks; // 闃叉鍥炶皟淇敼瀵艰嚧杩唬澶辨晥
                 for (const auto& r : any) r.callback(evt);
 
-                // 瑙﹀彂鍏蜂綋閿?
+                // 触发具体的键?
                 if (auto it = keyDownCallbacks.find(vk); it != keyDownCallbacks.end())
                 {
                     auto cbs = it->second;
@@ -198,7 +206,7 @@ namespace shine::input_manager
             break;
         }
 
-        // 榧犳爣鎸変笅
+        // 鼠标按下
         case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
         case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
         case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK:
@@ -254,7 +262,7 @@ namespace shine::input_manager
             break;
         }
 
-        // 婊氳疆锛堝瀭鐩达級
+        // 滚轮（垂直）
         case WM_MOUSEWHEEL:
         {
             InputEvent evt{};
@@ -267,7 +275,7 @@ namespace shine::input_manager
             for (const auto& r : cbs) r.callback(evt);
             break;
         }
-        // 婊氳疆锛堟按骞筹級
+        // 滚轮（水平）
         case WM_MOUSEHWHEEL:
         {
             InputEvent evt{};
@@ -281,7 +289,7 @@ namespace shine::input_manager
             break;
         }
 
-        // 榧犳爣绉诲姩
+        // 鼠标移动
         case WM_MOUSEMOVE:
         case WM_NCMOUSEMOVE:
         {
@@ -318,7 +326,7 @@ namespace shine::input_manager
             break;
         }
 
-        return true; // 娑堟伅宸插鐞?
+        return true; // 消息已处理鐞?
     }
 #else
     bool InputManager::processWin32Message(unsigned int, unsigned __int64, __int64)
@@ -469,5 +477,6 @@ const shine::input_manager::FKey shine::input_manager::EKeys::E_AccentGrave("E_A
 const shine::input_manager::FKey shine::input_manager::EKeys::E_AccentAigu("E_AccentAigu");
 const shine::input_manager::FKey shine::input_manager::EKeys::C_Cedille("C_Cedille");
 const shine::input_manager::FKey shine::input_manager::EKeys::Section("Section");
+
 
 

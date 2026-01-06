@@ -2,7 +2,6 @@
 #include "render/backend/render_backend.h"
 #include "image/Texture.h"
 #include "fmt/format.h"
-#include "util/timer/function_timer.h"
 
 // 暂时引入全局上下文，后续应通过依赖注入传递
 #include "../../EngineCore/engine_context.h"
@@ -10,14 +9,16 @@
 
 namespace shine::render
 {
-    TextureManager::~TextureManager()
-    {
-        ReleaseAllTextures();
-    }
+
 
     void TextureManager::Initialize(render::backend::IRenderBackend* renderBackend)
     {
         renderBackend_ = renderBackend;
+    }
+
+    void TextureManager::Shutdown(EngineContext& ctx)
+    {
+        ReleaseAllTextures();
     }
 
     TextureHandle TextureManager::CreateTextureFromAsset(const manager::AssetHandle& assetHandle)
@@ -116,7 +117,6 @@ namespace shine::render
         data.textureId = textureId;
         data.width = info.width;
         data.height = info.height;
-        data.format = 0; // 暂时未存储格式
         textures_[handle.id] = data;
 
         return handle;
@@ -134,7 +134,7 @@ namespace shine::render
         {
             if (renderBackend_)
             {
-                renderBackend_->DestroyTexture2D(it->second.textureId);
+                renderBackend_->ReleaseTexture(it->second.textureId);
             }
             textures_.erase(it);
         }
@@ -146,7 +146,7 @@ namespace shine::render
         {
             for (const auto& pair : textures_)
             {
-                renderBackend_->DestroyTexture2D(pair.second.textureId);
+                renderBackend_->ReleaseTexture(pair.second.textureId);
             }
         }
         textures_.clear();
@@ -218,7 +218,7 @@ namespace shine::render
         return false;
     }
 
-    TextureHandle TextureManager::CreateTextureFromImage(const image::STexture& texture)
+    TextureHandle TextureManager::CreateTextureFromImage(image::STexture& texture)
     {
         if (!texture.isValid())
         {
@@ -229,7 +229,7 @@ namespace shine::render
         TextureCreateInfo info;
         info.width = static_cast<int>(texture.getWidth());
         info.height = static_cast<int>(texture.getHeight());
-        info.data = texture.getData();
+        info.data = texture.getData().data();
         info.generateMipmaps = false; // 可以从 texture 获取设置
         info.linearFilter = true;     // 可以从 texture 获取设置
         info.clampToEdge = true;      // 可以从 texture 获取设置

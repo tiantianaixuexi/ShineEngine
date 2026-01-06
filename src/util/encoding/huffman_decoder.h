@@ -1,7 +1,7 @@
 #pragma once
 
 #include "huffman_tree.h"
-#include "bit_reader.h"
+#include "bit_reader.ixx"
 
 namespace shine::util
 {

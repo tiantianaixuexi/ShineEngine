@@ -1,6 +1,6 @@
 {
   "name": "shineLog",
-  "type": "shared",
+  "type": "static",
   "dirs": [
     "src/util/shineLog/"
   ],

@@ -3,7 +3,7 @@
 #include "loader/core/loader.h"
 #include <vector>
 #include <string>
-#include "math/vector.h"
+#include "math/vector.ixx"
 #include "math/vector2.h"
 #include "math/rotator.h"
 

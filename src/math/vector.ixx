@@ -1,4 +1,4 @@
-﻿#ifdef  SHINE_USE_MODULE
+#ifdef SHINE_USE_MODULE
 
 
 export module shine.math.vector3;
@@ -8,8 +8,8 @@ export module shine.math.vector3;
 
 #pragma once
 
+#include "shine_define.h"
 #include "mathDef.h"
-#include "mathUtil.h"
 
 #endif
 
@@ -405,9 +405,9 @@ namespace shine::math
 
 
 
-    using FVector = TVector<int>;
-    using FVector3f = TVector<float>;
-    using FVector3d = TVector<double>;
+    SHINE_MODULE_EXPORT using FVector = TVector<int>;
+    SHINE_MODULE_EXPORT using FVector3f = TVector<float>;
+    SHINE_MODULE_EXPORT using FVector3d = TVector<double>;
 
 }
 

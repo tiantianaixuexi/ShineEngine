@@ -1,14 +1,20 @@
 #pragma once
 
-#include <string>
+#include "EngineCore/subsystem.h"
+#include "EngineCore/engine_context.h"
 
-#include "util/shine_define.h"
-#include "fmt/format.h"
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
+
 
 namespace shine::util {
 
     // FPS控制器类
-    class FPSController {
+    class FPSController : public Subsystem
+	{
+
     private:
         double m_targetFPS;
         double m_targetFrameTime; // 目标帧时间（毫秒）
@@ -24,6 +30,15 @@ namespace shine::util {
         LARGE_INTEGER m_lastTime;
 
     public:
+
+        static FPSController& get() { return *EngineContext::Get().GetSystem<FPSController>(); }
+
+    	void Shutdown(EngineContext& ctx) override
+        {
+	        
+        }
+
+
         FPSController(double targetFPS = 60.0)
             : m_targetFPS(targetFPS)
             , m_targetFrameTime(1000.0 / targetFPS)
@@ -40,32 +55,32 @@ namespace shine::util {
         }
 
         // 设置目标FPS
-        void SetTargetFPS(double fps) {
+        void SetTargetFPS(double fps) noexcept {
             m_targetFPS = fps;
             m_targetFrameTime = 1000.0 / fps;
         }
 
         // 获取目标FPS
-        double GetTargetFPS() const {
+        double GetTargetFPS() const noexcept {
             return m_targetFPS;
         }
 
         // 获取实际FPS
-        double GetActualFPS() const {
+        double GetActualFPS() const noexcept {
             return m_actualFPS;
         }
 
         // 获取帧时间（毫秒）
-        double GetDeltaTime() const {
+        double GetDeltaTime() const  noexcept{
             return m_deltaTime;
         }
 
         // 启用/禁用FPS控制
-        void SetEnabled(bool enabled) {
+        void SetEnabled(bool enabled)noexcept {
             m_enabled = enabled;
         }
 
-        bool IsEnabled() const {
+        bool IsEnabled() const noexcept {
             return m_enabled;
         }
 

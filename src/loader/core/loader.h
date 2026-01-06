@@ -3,8 +3,6 @@
 #include <string>
 #include <unordered_set>
 #include <unordered_map>
-#include <memory>
-#include <typeinfo>
 
 
 namespace shine::loader
@@ -71,15 +69,15 @@ namespace shine::loader
         }
 
         // 状态查询
-        const EAssetLoadState& getState() const { return _currentState; }
-        const EAssetLoaderError& getLastError() const { return _lastError; }
+        const EAssetLoadState& getState() const  noexcept { return _currentState; }
+        const EAssetLoaderError& getLastError() const noexcept  { return _lastError; }
 
         
 
     protected:
         // 工具方法
-        void setState(EAssetLoadState state) { _currentState = state; }
-        void setError(EAssetLoaderError error, const std::string& message = "") {
+        void setState(EAssetLoadState state)noexcept  { _currentState = state; }
+        void setError(EAssetLoaderError error, const std::string& message = "") noexcept {
             _lastError = error;
         }
         void addSupportedExtension(const char* ext) {
@@ -87,9 +85,7 @@ namespace shine::loader
         }
 
         // 验证资源数据
-        virtual bool validateAssetData(const void* data, size_t size) const {
-            return data != nullptr && size > 0;
-        }
+        virtual bool validateAssetData(const void* data, size_t size) const;
 
 
     protected:

@@ -5,14 +5,14 @@
 
 #include <fmt/format.h>
 
-#include <imgui.h>
-#include <backends/imgui_impl_win32.h>
-#include <backends/imgui_impl_opengl3.h>
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_win32.h>
+#include <imgui/backends/imgui_impl_opengl3.h>
 
 #include "manager/CameraManager.h"
 #include "manager/light_manager.h"
 #include "render/command/opengl_command_list.h"
-#include "../../EngineCore/engine_context.h"
+#include "EngineCore/engine_context.h"
 
 // extern shine::EngineContext* g_EngineContext; // Removed global pointer declaration
 

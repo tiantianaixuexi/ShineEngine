@@ -17,7 +17,6 @@ export module shine.manager.file_watch_manager;
 
 
 #include "shine_define/h"
-#include "util/singleton/h"
 #include "util/string_util.h"
 
 namespace shine::manager
@@ -165,13 +164,7 @@ namespace shine::manager
         }
     };
 
-    class FileWatchManager : public shine::util::Singleton<FileWatchManager>
-    {
-
-    public:
-
-
-    };
+  
 
 }
 

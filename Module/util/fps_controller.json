@@ -1,9 +1,10 @@
 {
-    "name": "fps_controller",
-    "files": [
-        "src/util/fps_controller.h"
-    ],
-    "deps": ["fmt"],
-    "comment": "FPS控制器工具类"
+  "name": "fps_controller",
+  "type": "interface",
+  "files": [
+    "src/util/fps_controller.h"
+  ],
+  "deps": ["fmt"],
+  "comment": "FPS控制器工具类"
 }
 

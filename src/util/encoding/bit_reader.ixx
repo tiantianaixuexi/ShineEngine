@@ -111,37 +111,36 @@ namespace shine::util
 			return (pos < size_) ? (size_ - pos) : 0;
 		}
 
-private:
 
-	/**
-	 * @brief 确保有足够的位可用（最多32位）
-	 */
 
-	void ensureBits() noexcept
-	{
-		size_t start = bitPos_ >> 3;
-		if (start + 4 < size_)
+		/**
+		 * @brief 确保有足够的位可用（最多32位）
+		 */
+		void ensureBits() noexcept
 		{
-			buffer_ = static_cast<u32>(data_[start + 0]) |
-				(static_cast<u32>(data_[start + 1]) << 8) |
-				(static_cast<u32>(data_[start + 2]) << 16) |
-				(static_cast<u32>(data_[start + 3]) << 24);
-			buffer_ >>= (bitPos_ & 7);
+			size_t start = bitPos_ >> 3;
 			if (start + 4 < size_)
 			{
-				buffer_ |= (static_cast<u32>(data_[start + 4]) << 24) << (8 - (bitPos_ & 7));
+				buffer_ = static_cast<u32>(data_[start + 0]) |
+					(static_cast<u32>(data_[start + 1]) << 8) |
+					(static_cast<u32>(data_[start + 2]) << 16) |
+					(static_cast<u32>(data_[start + 3]) << 24);
+				buffer_ >>= (bitPos_ & 7);
+				if (start + 4 < size_)
+				{
+					buffer_ |= (static_cast<u32>(data_[start + 4]) << 24) << (8 - (bitPos_ & 7));
+				}
+			}
+			else
+			{
+				buffer_ = 0;
+				if (start + 0 < size_) buffer_ |= data_[start + 0];
+				if (start + 1 < size_) buffer_ |= static_cast<u32>(data_[start + 1]) << 8;
+				if (start + 2 < size_) buffer_ |= static_cast<u32>(data_[start + 2]) << 16;
+				if (start + 3 < size_) buffer_ |= static_cast<u32>(data_[start + 3]) << 24;
+				buffer_ >>= (bitPos_ & 7);
 			}
 		}
-		else
-		{
-			buffer_ = 0;
-			if (start + 0 < size_) buffer_ |= data_[start + 0];
-			if (start + 1 < size_) buffer_ |= static_cast<u32>(data_[start + 1]) << 8;
-			if (start + 2 < size_) buffer_ |= static_cast<u32>(data_[start + 2]) << 16;
-			if (start + 3 < size_) buffer_ |= static_cast<u32>(data_[start + 3]) << 24;
-			buffer_ >>= (bitPos_ & 7);
-		}
-	}
 
 
 	private:

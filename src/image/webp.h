@@ -5,11 +5,8 @@
 #include <string>
 #include <expected>
 #include <span>
-#include <optional>
-#include <array>
-#include <memory>
 
-#include "loader/loader.h"
+#include "loader/core/loader.h"
 #include "loader/image/image_loader.h"
 
 namespace shine::image

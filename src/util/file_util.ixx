@@ -1,14 +1,26 @@
-﻿#pragma once
+#ifdef SHINE_USE_MODULE
+
+export module shine.util.file_util;
+
+import <string_view>;
+
+#else
+
+#pragma once
 
 #include "shine_define.h"
+#include "string/shine_string.h"
 #include "fmt/format.h"
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 #ifndef SHINE_PLATFORM_WASM
 #include <expected>
 #include <span>
+#endif
+
 #endif
 
 namespace shine::util
@@ -184,14 +196,14 @@ namespace shine::util
 	 * @param name 文件路径（UTF-8）
 	 * @return 文件存在返回 true，否则返回 false
 	 */
-	bool file_exists(SString name);
+	bool file_exists(STextView name);
 
 	/**
 	 * @brief 检查目录是否存在
 	 * @param name 目录路径（UTF-8）
 	 * @return 目录存在返回 true，否则返回 false
 	 */
-	bool directory_exists(SString name);
+	bool directory_exists(STextView name);
 
 	/**
 	 * @brief 检查文件或目录类型
@@ -199,9 +211,9 @@ namespace shine::util
 	 * @return 成功返回类型，失败返回错误
 	 */
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<EFileFolderType, std::string> file_or_directory(SString name);
+	std::expected<EFileFolderType, std::string> file_or_directory(STextView name);
 #else
-	EFileFolderType file_or_directory(SString name, bool* success = nullptr);
+	EFileFolderType file_or_directory(STextView name, bool* success = nullptr);
 #endif
 
 	/**
@@ -210,9 +222,11 @@ namespace shine::util
 	 * @return 成功返回扩展名（包含点），失败返回错误
 	 */
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<std::string, std::string> get_file_suffix(SString filename);
+	std::expected<std::string, std::string> get_file_suffix(STextView filename);
+	std::expected<std::string, std::string> get_file_suffix(std::string_view filename);
 #else
-	std::string get_file_suffix(SString filename, bool* success = nullptr);
+	std::string get_file_suffix(STextView filename, bool* success = nullptr);
+	std::string get_file_suffix(std::string_view filename, bool* success = nullptr);
 #endif
 
 	/**
@@ -220,28 +234,32 @@ namespace shine::util
 	 * @param filename 文件名
 	 * @return 成功返回扩展名（不包含点），失败返回空字符串
 	 */
-	std::string get_file_extension(SString filename);
+	std::string get_file_extension(STextView filename);
+	std::string get_file_extension(std::string_view filename);
 
 	/**
 	 * @brief 获取文件名（不含路径）
 	 * @param filepath 完整文件路径
 	 * @return 文件名
 	 */
-	std::string get_file_name(SString filepath);
+	std::string get_file_name(STextView filepath);
+	std::string get_file_name(std::string_view filepath);
 
 	/**
 	 * @brief 获取文件目录路径（不含文件名）
 	 * @param filepath 完整文件路径
 	 * @return 目录路径
 	 */
-	std::string get_file_directory(SString filepath);
+	std::string get_file_directory(STextView filepath);
+	std::string get_file_directory(std::string_view filepath);
 
 	/**
 	 * @brief 获取文件基础名（不含扩展名）
 	 * @param filepath 完整文件路径
 	 * @return 基础名
 	 */
-	std::string get_file_stem(SString filepath);
+	std::string get_file_stem(STextView filepath);
+	std::string get_file_stem(std::string_view filepath);
 
 	// ============================================================================
 	// 文件映射操作（高性能大文件读取）
@@ -253,9 +271,11 @@ namespace shine::util
 	 * @return 成功返回文件映射，失败返回错误信息
 	 */
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<FileMapping, std::string> open_file_from_mapping(SString filename);
+	std::expected<FileMapping, std::string> open_file_from_mapping(STextView filename);
+	std::expected<FileMapping, std::string> open_file_from_mapping(std::string_view filename);
 #else
-	FileMapping open_file_from_mapping(SString filename, bool* success = nullptr);
+	FileMapping open_file_from_mapping(STextView filename, bool* success = nullptr);
+	FileMapping open_file_from_mapping(std::string_view filename, bool* success = nullptr);
 #endif
 
 	/**
@@ -288,9 +308,11 @@ namespace shine::util
 	 * @return 成功返回文件映射视图，失败返回错误信息
 	 */
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<FileMapView, std::string> read_full_file(SString filePath);
+	std::expected<FileMapView, std::string> read_full_file(STextView filePath);
+	std::expected<FileMapView, std::string> read_full_file(std::string_view filePath);
 #else
-	FileMapView read_full_file(SString filePath, bool* success = nullptr);
+	FileMapView read_full_file(STextView filePath, bool* success = nullptr);
+	FileMapView read_full_file(std::string_view filePath, bool* success = nullptr);
 #endif
 
 	// ============================================================================
@@ -303,9 +325,11 @@ namespace shine::util
 	 * @return 成功返回文件内容，失败返回错误信息
 	 */
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<std::vector<std::byte>, std::string> read_file_bytes(SString filePath);
+	std::expected<std::vector<std::byte>, std::string> read_file_bytes(STextView filePath);
+	std::expected<std::vector<std::byte>, std::string> read_file_bytes(std::string_view filePath);
 #else
-	std::vector<std::byte> read_file_bytes(SString filePath, bool* success = nullptr);
+	std::vector<std::byte> read_file_bytes(STextView filePath, bool* success = nullptr);
+	std::vector<std::byte> read_file_bytes(std::string_view filePath, bool* success = nullptr);
 #endif
 
 	/**
@@ -314,9 +338,11 @@ namespace shine::util
 	 * @return 成功返回文件内容，失败返回错误信息
 	 */
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<std::string, std::string> read_file_text(SString filePath);
+	std::expected<std::string, std::string> read_file_text(STextView filePath);
+	std::expected<std::string, std::string> read_file_text(std::string_view filePath);
 #else
-	std::string read_file_text(SString filePath, bool* success = nullptr);
+	std::string read_file_text(STextView filePath, bool* success = nullptr);
+	std::string read_file_text(std::string_view filePath, bool* success = nullptr);
 #endif
 
 	/**
@@ -326,9 +352,9 @@ namespace shine::util
 	 * @return 成功返回 true，失败返回 false
 	 */
 #ifndef SHINE_PLATFORM_WASM
-	bool SaveData(SString path, std::span<const std::byte> data);
+	bool SaveData(STextView path, std::span<const std::byte> data);
 #endif
-	bool SaveData(SString path, const void* data, size_t size);
+	bool SaveData(STextView path, const void* data, size_t size);
 
 	/**
 	 * @brief 写入文本数据到文件
@@ -336,7 +362,7 @@ namespace shine::util
 	 * @param text 文本内容
 	 * @return 成功返回 true，失败返回 false
 	 */
-	bool SaveText(SString path, SString text);
+	bool SaveText(STextView path, STextView text);
 
 	/**
 	 * @brief 追加文本到文件
@@ -344,7 +370,7 @@ namespace shine::util
 	 * @param text 要追加的文本
 	 * @return 成功返回 true，失败返回 false
 	 */
-	bool AppendText(SString path, SString text);
+	bool AppendText(STextView path, STextView text);
 
 	// ============================================================================
 	// 文件管理操作
@@ -355,7 +381,7 @@ namespace shine::util
 	 * @param path 文件路径（UTF-8）
 	 * @return 成功返回 true，失败返回 false
 	 */
-	bool DeleteFile(SString path);
+	bool DeleteFile(STextView path);
 
 	/**
 	 * @brief 复制文件
@@ -364,7 +390,7 @@ namespace shine::util
 	 * @param overwrite 是否覆盖已存在的文件，默认 true
 	 * @return 成功返回 true，失败返回 false
 	 */
-	bool CopyFile(SString sourcePath, SString destPath, bool overwrite = true);
+	bool CopyFile(STextView sourcePath, STextView destPath, bool overwrite = true);
 
 	/**
 	 * @brief 移动/重命名文件
@@ -372,21 +398,21 @@ namespace shine::util
 	 * @param destPath 目标文件路径（UTF-8）
 	 * @return 成功返回 true，失败返回 false
 	 */
-	bool MoveFile(SString sourcePath, SString destPath);
+	bool MoveFile(STextView sourcePath, STextView destPath);
 
 	/**
 	 * @brief 获取文件大小（字节）
 	 * @param path 文件路径（UTF-8）
 	 * @return 文件大小，失败返回 0
 	 */
-	uint64_t GetFileSize(SString path);
+	uint64_t GetFileSize(STextView path);
 
 	/**
 	 * @brief 获取文件最后修改时间（Unix 时间戳）
 	 * @param path 文件路径（UTF-8）
 	 * @return 成功返回时间戳，失败返回 0
 	 */
-	uint64_t GetFileLastModified(SString path);
+	uint64_t GetFileLastModified(STextView path);
 
 	// ============================================================================
 	// 目录操作
@@ -397,28 +423,28 @@ namespace shine::util
 	 * @param path 目录路径（UTF-8）
 	 * @return 成功返回 true，失败返回 false
 	 */
-	bool CreateDir(SString path);
+	bool CreateDir(STextView path);
 
 	/**
 	 * @brief 递归创建目录（创建所有必要的父目录）
 	 * @param path 目录路径（UTF-8）
 	 * @return 成功返回 true，失败返回 false
 	 */
-	bool CreateDirRecursive(SString path);
+	bool CreateDirRecursive(STextView path);
 
 	/**
 	 * @brief 删除目录（空目录）
 	 * @param path 目录路径（UTF-8）
 	 * @return 成功返回 true，失败返回 false
 	 */
-	bool DeleteDir(SString path);
+	bool DeleteDir(STextView path);
 
 	/**
 	 * @brief 递归删除目录及其所有内容
 	 * @param path 目录路径（UTF-8）
 	 * @return 成功返回 true，失败返回 false
 	 */
-	bool DeleteDirRecursive(SString path);
+	bool DeleteDirRecursive(STextView path);
 
 	/**
 	 * @brief 列出目录中的所有文件和子目录
@@ -427,9 +453,9 @@ namespace shine::util
 	 * @return 成功返回文件信息列表，失败返回错误信息
 	 */
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<std::vector<FileInfo>, std::string> ListDirectory(SString dirPath, bool includeSubdirs = false);
+	std::expected<std::vector<FileInfo>, std::string> ListDirectory(STextView dirPath, bool includeSubdirs = false);
 #else
-	std::vector<FileInfo> ListDirectory(SString dirPath, bool includeSubdirs, bool* success = nullptr);
+	std::vector<FileInfo> ListDirectory(STextView dirPath, bool includeSubdirs, bool* success = nullptr);
 #endif
 
 	/**
@@ -443,7 +469,7 @@ namespace shine::util
 	 * @param path 目录路径（UTF-8）
 	 * @return 成功返回 true，失败返回 false
 	 */
-	bool SetCurrentDirectory(SString path);
+	bool SetCurrentDirectory(STextView path);
 
 	// ============================================================================
 	// 路径操作
@@ -454,7 +480,8 @@ namespace shine::util
 	 * @param path 路径
 	 * @return 规范化后的路径
 	 */
-	std::string NormalizePath(SString path);
+	std::string NormalizePath(STextView path);
+	std::string NormalizePath(const std::string& path);
 
 	/**
 	 * @brief 连接路径
@@ -462,16 +489,22 @@ namespace shine::util
 	 * @param part 要添加的路径部分
 	 * @return 连接后的路径
 	 */
-	std::string JoinPath(SString base, SString part);
+	std::string JoinPath(STextView base, STextView part);
+	std::string JoinPath(const std::string& base, const std::string& part);
 
 	/**
 	 * @brief 连接多个路径部分（基础版本：单个参数）
 	 * @param first 路径部分
 	 * @return 路径字符串
 	 */
-	inline std::string JoinPath(SString first)
+	inline std::string JoinPath(STextView first)
 	{
-		return std::string(first);
+		return first.to_utf8();
+	}
+
+	inline std::string JoinPath(const std::string& first)
+	{
+		return first;
 	}
 
 	/**
@@ -480,11 +513,10 @@ namespace shine::util
 	 * @return 连接后的路径
 	 */
 	template<typename... Args>
-	std::string JoinPath(SString first, Args... rest)
+	std::string JoinPath(STextView first, Args... rest)
 	{
-		std::string result = std::string(first);
-		// 使用迭代方式避免递归，确保调用非模板版本的 JoinPath
-		std::string parts[] = { std::string(rest)... };
+		std::string result = first.to_utf8();
+		std::string parts[] = { STextView(rest).to_utf8()... };
 		for (const auto& part : parts)
 		{
 			result = JoinPath(result, part);
@@ -497,12 +529,12 @@ namespace shine::util
 	 * @param path 路径
 	 * @return 是绝对路径返回 true，否则返回 false
 	 */
-	bool IsAbsolutePath(SString path);
+	bool IsAbsolutePath(STextView path);
 
 	/**
 	 * @brief 将相对路径转换为绝对路径
 	 * @param path 相对路径
 	 * @return 绝对路径
 	 */
-	std::string GetAbsolutePath(SString path);
+	std::string GetAbsolutePath(STextView path);
 }

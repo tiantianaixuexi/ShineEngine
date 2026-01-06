@@ -67,7 +67,7 @@ namespace shine::util
         /**
          * @brief [跨平台] 将UTF-8字符串转换为UTF-16字符串 (char16_t)
          * @param src UTF-8输入
-         * @return UTF-16字符串 (SString数据源)
+         * @return UTF-16字符串
          */
         static std::vector<char16_t> UTF8ToUTF16(std::string_view src);
 
@@ -467,11 +467,6 @@ namespace shine::util
                 return std::tolower(c1) == std::tolower(c2);
             }
         };
-
-
-
-
     };
 
-} // namespace shine::Util
-
+}

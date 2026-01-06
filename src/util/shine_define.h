@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 // 平台检测（确保定义已设置）
 #if defined(_WIN32) && !defined(_WIN64)
@@ -150,10 +150,6 @@ static_assert(sizeof(f64) == 8);
 #ifdef SHINE_BUILD_MODULE
 #ifndef SHINE_USE_MODULE
 #define SHINE_USE_MODULE 1
-#endif
-#else
-#ifndef SHINE_USE_MODULE
-#define SHINE_USE_MODULE 0
 #endif
 #endif
 

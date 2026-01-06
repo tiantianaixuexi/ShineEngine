@@ -169,7 +169,7 @@ namespace shine::gameplay
         }
 
         // 渲染，绑定着色器（用后端编译缓存），提交渲染
-        void render(shine::render::command::ICommandList& cmd)
+        void render(render::command::ICommandList& cmd)
         {
 #ifdef SHINE_OPENGL
             if (!m_VAO || m_VertexCount <= 0) return;

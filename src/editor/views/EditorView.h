@@ -1,7 +1,6 @@
 #pragma once
 
 #include "render/renderer_service.h"
-#include "../../EngineCore/engine_context.h"
 
 namespace shine::editor::EditorView
 {

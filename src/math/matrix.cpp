@@ -1,7 +1,16 @@
-﻿#include "matrix.h"
+﻿#ifdef SHINE_USE_MODULE
 
+module;
+
+
+module shine.math.matrix4;
+
+#else
+
+#include "matrix.ixx"
 #include "math/mathDef.h"
 
+#endif
 namespace shine::math
 {
     template<FloatingPoint T>

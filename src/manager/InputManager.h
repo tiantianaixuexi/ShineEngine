@@ -8,10 +8,9 @@
 #include <unordered_map>
 
 
-
-#include "util/singleton.h"
 #include "shine_define.h"
-
+#include "EngineCore/engine_context.h"
+#include "EngineCore/subsystem.h"
 
 
 namespace shine::input_manager
@@ -230,10 +229,11 @@ namespace shine::input_manager
 
 
 
-	class InputManager : public shine::util::Singleton<InputManager>
+	class InputManager : public Subsystem
     {
 
     public:
+		static InputManager& get() { return *EngineContext::Get().GetSystem<InputManager>(); }
 
         bool processKeyEvent()
         {

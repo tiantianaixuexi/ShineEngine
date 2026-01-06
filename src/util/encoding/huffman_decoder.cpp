@@ -11,7 +11,7 @@ namespace shine::util
 	uint32_t huffmanDecodeSymbol(BitReader& reader, const HuffmanTree& tree)
 	{
 		// 优化：确保有足够的位用于第一层查找（最多15位）
-		reader.ensureBits(FIRSTBITS);
+		reader.ensureBits();
 		uint32_t code = reader.peekBits(FIRSTBITS);
 		if (code >= tree.table_len.size())
 		{
@@ -30,7 +30,7 @@ namespace shine::util
 		{
 			reader.advanceBits(FIRSTBITS);
 			// 优化：确保有足够的位用于第二层查找（最多15位）
-			reader.ensureBits(l - FIRSTBITS);
+			reader.ensureBits();
 			uint32_t code2 = reader.peekBits(l - FIRSTBITS);
 			uint32_t index2 = value + code2;
 

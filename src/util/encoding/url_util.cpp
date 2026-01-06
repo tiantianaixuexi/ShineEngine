@@ -8,7 +8,7 @@
 #include <expected>
 
 
-#include "util/string_util.h"
+#include "util/string_util.ixx"
 
 namespace shine::util {
 

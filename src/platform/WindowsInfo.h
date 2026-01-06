@@ -2,9 +2,8 @@
 
 #include <vector>
 
-#include "util/shine_define.h"
-#include "../../EngineCore/subsystem.h"
-#include "../../EngineCore/engine_context.h"
+#include "editor/views/EditorView.h"
+#include "EngineCore/subsystem.h"
 
 namespace shine::windows
 {
@@ -37,8 +36,6 @@ namespace shine::windows
 	class WindowsDeviceInfo : public shine::Subsystem
 	{
 	public:
-		static constexpr size_t GetStaticID() { return shine::HashString("WindowsDeviceInfo"); }
-
 		std::vector<FDisplayInfo> DisplayInfos;
 		FDisplayInfo MainDisplayInfo;
 
@@ -50,8 +47,6 @@ namespace shine::windows
 	class WindowsInfo : public shine::Subsystem
 	{
 	public:
-		static constexpr size_t GetStaticID() { return shine::HashString("WindowsInfo"); }
-
 		FWindowInfo info;
 	};
 }

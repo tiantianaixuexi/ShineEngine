@@ -1,6 +1,6 @@
 #include "command_buffer.h"
 #include "render/command/command_list.h"
-#include <imgui.h>  // 用于 ImGui::GetDrawData()
+#include "imgui/imgui.h"  // 用于 ImGui::GetDrawData()
 
 namespace shine::render
 {

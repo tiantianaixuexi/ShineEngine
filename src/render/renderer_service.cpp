@@ -8,7 +8,6 @@
 #include "manager/CameraManager.h"
 #include "manager/light_manager.h"
 #include "render/resources/TextureManager.h"
-#include "../../EngineCore/engine_context.h"
 
 // extern shine::EngineContext* g_EngineContext; // Removed global pointer declaration
 
@@ -110,8 +109,7 @@ namespace shine::render
         else
         {
             // 如果没有传入相机，从 CameraManager 获取主相机
-            auto* mainCam = shine::manager::CameraManager::get().getMainCamera();
-            if (mainCam)
+            if (auto* mainCam = manager::CameraManager::get().getMainCamera())
             {
                 data.mainCamera = mainCam;
                 data.cameras.push_back(mainCam);

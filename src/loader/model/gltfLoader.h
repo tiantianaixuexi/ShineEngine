@@ -9,7 +9,7 @@
 #include <cstring>
 #include <type_traits>
 
-#include "math/vector.h"
+#include "math/vector.ixx"
 #include "math/vector2.h"
 
 namespace shine::loader

@@ -58,8 +58,6 @@ function resizeCanvasToWindow(canvas) {
   const dpr = window.devicePixelRatio || 1;
   const w = Math.max(1, Math.floor(window.innerWidth * dpr));
   const h = Math.max(1, Math.floor(window.innerHeight * dpr));
-  // console.log(`resizeCanvasToWindow: inner ${window.innerWidth}x${window.innerHeight} dpr ${dpr} -> ${w}x${h}`);
-  // console.log(`resizeCanvasToWindow: inner ${window.innerWidth}x${window.innerHeight} dpr ${dpr} -> ${w}x${h}`);
   if (canvas.width !== w || canvas.height !== h) {
     canvas.width = w;
     canvas.height = h;

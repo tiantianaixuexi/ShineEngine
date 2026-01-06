@@ -2,7 +2,6 @@
 
 #include "gameplay/object.h"
 #include <vector>
-#include <memory>
 
 namespace shine::editor::views
 {

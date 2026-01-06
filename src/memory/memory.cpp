@@ -1,6 +1,5 @@
 #ifdef SHINE_USE_MODULE
 module shine.memory;
-import <mimalloc.h>;
 import <algorithm>;
 import <cstdio>;
 import <cstring>;
@@ -176,6 +175,7 @@ namespace shine::co {
         // Let's store the size. It's safer and simpler.
         // Current Header has size (uint32_t).
         header->size = (uint32_t)size;
+        header->offset = (uint16_t)offset;
         // header->pad is not needed to be set.
 
         UpdateAllocStats((MemoryTag)header->tag, size);
@@ -246,31 +246,7 @@ namespace shine::co {
         // So we support alignment up to ~64KB. This is plenty for a game engine (usually 16, 256, 4096).
         // 4096 fits in uint16.
         
-        uint16_t offset = (uint16_t)((char*)p - (char*)header + sizeof(AllocationHeader)); 
-        // Wait, offset = userPtr - raw.
-        // We need to calculate raw = userPtr - offset.
-        // But we need to STORE offset.
-        // header->offset = offset.
-        
-        // But wait, in Alloc, I calculated offset.
-        // I need to store it.
-        // So I will update AllocationHeader in memory.ixx first or assume I can change it.
-        
-        // BUT wait!
-        // In the original code:
-        // void* raw = mi_malloc_aligned(totalSize, realAlign);
-        // auto* header = reinterpret_cast<AllocationHeader*>(raw);
-        // void* userPtr = header + 1;
-        // mi_free(header);
-        
-        // The original code assumed userPtr = raw + sizeof(Header).
-        // This meant userPtr was NOT aligned to 'align' if align > alignof(Header).
-        // It was a BUG in the original code.
-        // The user wants me to optimize/fix.
-        
-        // So I WILL fix it. I will use the padding field to store the offset.
-    
-        uint16_t storedOffset = header->_pad;
+        uint16_t storedOffset = header->offset;
         void* raw = static_cast<char*>(p) - storedOffset;
         mi_free(raw);
     }

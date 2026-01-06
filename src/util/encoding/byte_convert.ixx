@@ -179,6 +179,12 @@ namespace shine::util
 		return read<u32>(d, sz, o, std::endian::little);
 	}
 
+	SHINE_MODULE_EXPORT inline u32 read_le24(const unsigned char* d, size_t sz, size_t o = 0) noexcept
+	{
+		if (!detail::can_read(sz, o, 3)) return 0;
+		return static_cast<u32>(d[o]) | (static_cast<u32>(d[o + 1]) << 8) | (static_cast<u32>(d[o + 2]) << 16);
+	}
+
 	SHINE_MODULE_EXPORT inline u64 read_be64(const unsigned char* d, size_t sz, size_t o = 0) noexcept
 	{
 		return read<u64>(d, sz, o, std::endian::big);

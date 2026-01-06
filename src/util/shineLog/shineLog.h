@@ -10,8 +10,6 @@ namespace shine::log
     class ShineLog : public shine::Subsystem
     {
     public:
-        static constexpr size_t GetStaticID() { return shine::HashString("ShineLog"); }
-
         void Log(const char* msg);
     };
 }

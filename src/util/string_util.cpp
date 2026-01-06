@@ -1,3 +1,21 @@
+#ifdef SHINE_USE_MODULE
+
+
+module;
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
+#include "fmt/format.h"
+#include "fast_float/fast_float.h"
+
+module shine.util.string_util;
+
+
+#else
+
 #include "string_util.ixx"
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -17,7 +35,7 @@
 #include <span>
 #include <algorithm>
 
-
+#endif
 
 namespace shine::util
 {
@@ -530,9 +548,6 @@ std::string StringUtil::ToStandardPath(std::string_view path) {
     return result;
 }
 
-std::string StringUtil::ToLuaPath(std::string_view path) {
-    return ToStandardPath(path);
-}
 
 std::string StringUtil::ToWindowsPath(std::string_view path) {
     std::string result = ReplaceAll(path, "/", " \\");

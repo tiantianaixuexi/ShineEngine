@@ -13,14 +13,14 @@
 
 #include "fmt/format.h"
 
-#include "math/vector.h"
+#include "math/vector.ixx"
 #include "math/vector2.h"
 #include "math/rotator.h"
 #include "math/quat.h"
 
 #include "util/timer/function_timer.h"
-#include "util/file_util.h"
-#include "util/base64/base64.h"
+#include "util/file_util.ixx"
+#include "util/base64/base64.ixx"
 
 
 namespace shine::loader
@@ -860,7 +860,7 @@ namespace shine::loader
         }
 
         // 读取外部缓冲区文件
-        auto fileResult = util::read_full_file(fullPath.c_str());
+        auto fileResult = util::read_full_file(fullPath);
         if (!fileResult.has_value()) {
             return false;
         }

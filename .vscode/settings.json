@@ -31,11 +31,7 @@
   "clangd.checkUpdates": true,
   // clangd 自动重启
   "clangd.restartAfterCrash": true,
-  
-  // 禁用 VSCode 内置的 C/C++ 扩展（避免冲突）
-  "C_Cpp.intelliSenseEngine": "disabled",
-  "C_Cpp.autocomplete": "disabled",
-  "C_Cpp.errorSquiggles": "disabled",
+
   
   // 文件关联
   "files.associations": {
