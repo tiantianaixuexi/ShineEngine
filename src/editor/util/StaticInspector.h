@@ -6,15 +6,27 @@
 
 namespace shine::editor::util {
 
+
     // 编译期静态检查器构建器
     // 这个类在编译期被 REFLECT_STRUCT 实例化，直接生成绘制代码
     template<typename T>
     struct StaticInspectorBuilder {
+
+
         using ObjectType = T;
         T* instance;
         const char* currentCategory = nullptr; // Track current category
 
         StaticInspectorBuilder(T* inst) : instance(inst) {}
+
+        template<typename T>
+        static void Draw(T* instance) {
+            if (!instance) return;
+            ImGui::PushID(instance);
+            StaticInspectorBuilder<T> builder(instance);
+            T::RegisterReflection(builder);
+            ImGui::PopID();
+        }
 
         // Mock DSL consumers that just chain
         template<typename DSLType>
@@ -173,7 +185,7 @@ namespace shine::editor::util {
                             } else {
                                 // Recursive struct
                                 if (ImGui::TreeNode((void*)(intptr_t)i, "Element %zu", i)) {
-                                    StaticInspector::Draw(&value[i]);
+                                    StaticInspectorBuilder::Draw(&value[i]);
                                     ImGui::TreePop();
                                 }
                             }
@@ -197,7 +209,7 @@ namespace shine::editor::util {
                     // So here it's likely a struct.
                     
                     if (ImGui::TreeNode(desc.name.data())) {
-                         StaticInspector::Draw(&value);
+                        StaticInspectorBuilder::Draw(&value);
                          ImGui::TreePop();
                     }
                 }
@@ -214,14 +226,5 @@ namespace shine::editor::util {
         void RegisterMethodFromDSL(const DSLType& dsl) {}
     };
 
-    struct StaticInspector {
-        template<typename T>
-        static void Draw(T* instance) {
-            if (!instance) return;
-            ImGui::PushID(instance);
-            StaticInspectorBuilder<T> builder(instance);
-            T::RegisterReflection(builder);
-            ImGui::PopID();
-        }
-    };
+
 }

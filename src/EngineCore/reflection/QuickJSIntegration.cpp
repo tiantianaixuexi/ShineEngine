@@ -30,19 +30,19 @@ namespace Shine::Reflection::QuickJS {
 
     ScriptValue QuickJSBridge::ToScript(void* context, const void* src, TypeId typeId) {
         if (typeId == GetTypeId<bool>()) {
-            return ScriptValue(*static_cast<const bool*>(src));
+            return *static_cast<const bool*>(src);
         }
         if (typeId == GetTypeId<int>()) {
-            return ScriptValue((int64_t)*static_cast<const int*>(src));
+            return {static_cast<int64_t>(*static_cast<const int*>(src))};
         }
         if (typeId == GetTypeId<int64_t>()) {
-            return ScriptValue(*static_cast<const int64_t*>(src));
+            return *static_cast<const int64_t*>(src);
         }
         if (typeId == GetTypeId<float>()) {
-            return ScriptValue((double)*static_cast<const float*>(src));
+            return *static_cast<const float*>(src);
         }
         if (typeId == GetTypeId<double>()) {
-            return ScriptValue(*static_cast<const double*>(src));
+            return *static_cast<const double*>(src);
         }
         
         // Complex Types (Pointer or Value)
@@ -57,24 +57,22 @@ namespace Shine::Reflection::QuickJS {
         if (isPointer) {
             // src is void** (address of the pointer)
             void* ptr = *(void**)src;
-            return ScriptValue(ptr, typeId);
+            return {ptr, typeId};
         } else {
             // src is void* (address of the object)
             // We MUST copy it because the source (stack/temp) will be destroyed.
             size_t size = info ? info->size : 0;
-            if (size == 0) return ScriptValue(); // Error
+            if (size == 0) return {}; // Error
 
             void* copy = malloc(size);
-            if (info && info->copy) {
-                 info->copy(copy, src, size); // Use registered copy if available
-            } else {
+            if (info){
                  memcpy(copy, src, size); // Fallback to memcpy
             }
             // Return with original TypeId.
             // ScriptValue now holds a pointer to HEAP memory.
             // We need to flag that this memory is owned by the script value (or will be owned by JS object).
             // Since ScriptValue doesn't have ownership flag, we rely on immediate wrapping.
-            return ScriptValue(copy, typeId);
+            return {copy, typeId};
         }
     }
 
@@ -82,11 +80,11 @@ namespace Shine::Reflection::QuickJS {
         if (typeId == GetTypeId<bool>()) {
             *static_cast<bool*>(dst) = val.As<bool>();
         } else if (typeId == GetTypeId<int>()) {
-            *static_cast<int*>(dst) = (int)val.As<int64_t>();
+            *static_cast<int*>(dst) = static_cast<int>(val.As<int64_t>());
         } else if (typeId == GetTypeId<int64_t>()) {
             *static_cast<int64_t*>(dst) = val.As<int64_t>();
         } else if (typeId == GetTypeId<float>()) {
-            *static_cast<float*>(dst) = (float)val.As<double>();
+            *static_cast<float*>(dst) = static_cast<float>(val.As<double>());
         } else if (typeId == GetTypeId<double>()) {
             *static_cast<double*>(dst) = val.As<double>();
         } else {

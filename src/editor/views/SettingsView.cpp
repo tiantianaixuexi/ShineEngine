@@ -23,7 +23,7 @@ namespace shine::editor::views {
         // util::InspectorBuilder::DrawInspector(settings_);
 
         // Option 2: Static Compile-time Reflection (Super Fast, Optimized Assembly)
-        util::StaticInspector::Draw(settings_);
+        util::StaticInspectorBuilder<settings::EngineSettings>::Draw(settings_);
 
         ImGui::End();
     }
