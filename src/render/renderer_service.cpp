@@ -3,11 +3,11 @@
 #include "render/backend/render_backend.h"
 #include "render/pipeline/render_pipeline_asset.h"
 #include "render/pipeline/command_buffer.h"
-#include "render/command/command_list.h"
 #include "gameplay/object.h"
 #include "manager/CameraManager.h"
 #include "manager/light_manager.h"
 #include "render/resources/TextureManager.h"
+#include "render/resources/shader_manager.h"
 
 // extern shine::EngineContext* g_EngineContext; // Removed global pointer declaration
 
@@ -17,6 +17,7 @@ namespace shine::render
     {
         m_Backend = backend;
         TextureManager::get().Initialize(backend);
+        ShaderManager::get().Initialize(backend);
 
         // 创建默认渲染管线资源
         if (!m_RenderPipelineAsset)
@@ -143,7 +144,7 @@ namespace shine::render
     void RendererService::setupRenderContext() noexcept
     {
         // 设置执行回调，将 CommandBuffer 的命令执行到后端
-        // 使用 RenderSceneWith 的回调机制来执行命令
+        // 使用 ExecuteCommandBuffer 直接执行命令缓冲区
         m_RenderContext.SetExecuteCallback([this](CommandBuffer* cmdBuffer) {
             if (!cmdBuffer || !m_Backend) return;
 
@@ -154,14 +155,8 @@ namespace shine::render
                 viewportHandle = m_Viewports.begin()->first;
             }
 
-            // 通过 RenderSceneWith 执行命令
-            // 这会绑定正确的FBO并执行命令
-            m_Backend->RenderSceneWith(static_cast<s32>(viewportHandle), [cmdBuffer](shine::render::command::ICommandList& cmdList) {
-                // 执行命令缓冲区中的所有命令
-                cmdBuffer->Execute(cmdList);
-            });
+            // 直接执行命令缓冲区，无需通过 ICommandList 回调
+            m_Backend->ExecuteCommandBuffer(static_cast<s32>(viewportHandle), cmdBuffer);
         });
     }
 }
-
-

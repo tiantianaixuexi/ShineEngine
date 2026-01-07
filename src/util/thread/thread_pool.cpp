@@ -1,4 +1,5 @@
 #include "thread_pool.h"
+#include "job_executor.h"
 #include <thread>
 
 namespace shine::util
@@ -12,8 +13,9 @@ namespace shine::util
 
         for (u32 i = 0; i < numThreads; ++i) {
             _workers.emplace_back([this] {
+                job::JobExecutor executor;
                 for (;;) {
-                    std::function<void()> task;
+                    job::Job task;
 
                     {
                         std::unique_lock<std::mutex> lock(this->_queueMutex);
@@ -29,7 +31,8 @@ namespace shine::util
                         this->_tasks.pop();
                     }
 
-                    task();
+                    // Static polymorphism dispatch using std::visit
+                    std::visit(executor, task);
                     
                     {
                         std::unique_lock<std::mutex> lock(this->_queueMutex);
@@ -53,6 +56,19 @@ namespace shine::util
         for (std::thread& worker : _workers) {
             worker.join();
         }
+    }
+
+    void ThreadPool::Submit(job::Job job)
+    {
+        {
+            std::unique_lock<std::mutex> lock(_queueMutex);
+            if (_stop)
+                throw std::runtime_error("submit on stopped ThreadPool");
+
+            _tasks.push(std::move(job));
+            ++_activeTasks;
+        }
+        _condition.notify_one();
     }
 
     void ThreadPool::WaitAll() {

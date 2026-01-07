@@ -1,4 +1,5 @@
 #include "task_scheduler.h"
+#include "job_executor.h"
 #include <algorithm>
 
 namespace shine::util
@@ -8,11 +9,11 @@ namespace shine::util
     {
     }
 
-    TaskHandle TaskScheduler::CreateTask(std::function<void()> task) {
+    TaskHandle TaskScheduler::CreateTask(job::Job job) {
         std::lock_guard<std::mutex> lock(_mutex);
         
         auto node = std::make_unique<TaskNode>();
-        node->task = std::move(task);
+        node->job = std::move(job);
         node->remainingDeps = 0;
         
         u32 id = _nextId++;
@@ -50,9 +51,8 @@ namespace shine::util
         
         auto& node = _tasks[task.id];
         if (node->remainingDeps == 0 && !node->completed) {
-            _threadPool.Enqueue([this, id = task.id]() {
-                ExecuteTask(id);
-            });
+            // Change: Submit JobExecuteTaskNode
+            _threadPool.Submit(job::JobExecuteTaskNode{task.id});
         }
     }
 
@@ -61,9 +61,8 @@ namespace shine::util
         
         for (u32 id = 0; id < _tasks.size(); ++id) {
             if (_tasks[id] && _tasks[id]->remainingDeps == 0 && !_tasks[id]->completed) {
-                _threadPool.Enqueue([this, id]() {
-                    ExecuteTask(id);
-                });
+                // Change: Submit JobExecuteTaskNode
+                _threadPool.Submit(job::JobExecuteTaskNode{id});
             }
         }
     }
@@ -87,33 +86,44 @@ namespace shine::util
     }
 
     void TaskScheduler::ExecuteTask(u32 id) {
-        std::unique_ptr<TaskNode> node;
+        // This function is running on a worker thread (invoked by JobExecutor)
+        // or potentially on main thread if we had a sync run mode (not here).
+
+        job::Job* currentJobPtr = nullptr;
         
+        // Scope to retrieve job data
         {
             std::lock_guard<std::mutex> lock(_mutex);
             if (id >= _tasks.size() || !_tasks[id]) return;
-            node = std::move(_tasks[id]);
+            // We shouldn't move the node out, just access the job.
+            // But to avoid holding lock during execution, we should copy the job if possible
+            // or execute while holding lock? No, executing while holding lock is bad.
+            // But std::variant is value type. We can copy it if it's copyable.
+            // Assuming jobs are lightweight.
+            currentJobPtr = &(_tasks[id]->job);
         }
         
-        if (node->task) {
-            node->task();
+        // Execute the job
+        // Note: We use a fresh executor here to visit the *inner* job.
+        if (currentJobPtr) {
+            job::JobExecutor executor;
+            std::visit(executor, *currentJobPtr);
         }
         
-        node->completed = true;
-        
+        // Update completion status and trigger dependents
         {
             std::lock_guard<std::mutex> lock(_mutex);
-            _tasks[id] = std::move(node);
+            if (!_tasks[id]) return;
+            
+            _tasks[id]->completed = true;
             
             auto& currentNode = _tasks[id];
             for (u32 depId : currentNode->dependents) {
                 if (depId < _tasks.size() && _tasks[depId]) {
                     --_tasks[depId]->remainingDeps;
                     if (_tasks[depId]->remainingDeps == 0 && !_tasks[depId]->completed) {
-                        u32 nextId = depId;
-                        _threadPool.Enqueue([this, nextId]() {
-                            ExecuteTask(nextId);
-                        });
+                        // Submit next job
+                        _threadPool.Submit(job::JobExecuteTaskNode{depId});
                     }
                 }
             }

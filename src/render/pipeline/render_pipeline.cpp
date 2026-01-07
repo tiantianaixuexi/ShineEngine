@@ -94,9 +94,8 @@ namespace shine::render
                     continue;
                 }
 
-                // 使用适配器将 CommandBuffer 转换为 ICommandList
-                auto adapter = cmdBuffer.GetAdapter();
-                compPtr->onRender(adapter);
+                // 使用 CommandBuffer 直接进行记录
+                compPtr->onRender(cmdBuffer);
             }
         }
 

@@ -164,6 +164,10 @@ if "%T_NAME%"=="" set T_NAME=MainEngine
 set SUFFIX=
 if /i "%T_CONFIG%"=="Debug" set SUFFIX=d
 
+:: Clean existing executables before running new build to ensure we run the latest version
+if exist "exe\%T_NAME%%SUFFIX%.exe" del /q "exe\%T_NAME%%SUFFIX%.exe" >nul 2>&1
+if exist "exe\%T_NAME%.exe" del /q "exe\%T_NAME%.exe" >nul 2>&1
+
 set FOUND_EXE=
 for %%p in (
     "%BUILD_DIR%\exe\%T_NAME%%SUFFIX%.exe"

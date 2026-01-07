@@ -162,16 +162,15 @@ namespace shine::gameplay::tick
                     continue;
                 }
 
-                std::vector<std::future<void>> futures;
                 for (auto* fn : readyGroup) {
-                    futures.push_back(pool.Enqueue([fn, dt]() {
-                        fn->fn(fn->userdata, dt);
-                    }));
+                    pool.Submit(util::job::JobExecuteTick{
+                        fn->fn,
+                        fn->userdata,
+                        dt
+                    });
                 }
-
-                for (auto& future : futures) {
-                    future.wait();
-                }
+                
+                pool.WaitAll();
 
                 for (auto idx : readyIndices) {
                     indegree[idx] = -1;

@@ -10,6 +10,7 @@ namespace shine::editor::views
     class SceneHierarchyView;
     class PropertiesView;
     class ImageViewerView;
+    class SettingsView;
 	class SMainEditorToolbar;
 }
 
@@ -45,6 +46,7 @@ namespace shine::editor::main_editor
 		views::SceneHierarchyView* sceneHierarchyView = nullptr;
 		views::PropertiesView* propertiesView = nullptr;
 		views::ImageViewerView* imageViewerView = nullptr;
+        views::SettingsView* settingsView = nullptr;
 
 		button::shineButton* myButton = nullptr;
 

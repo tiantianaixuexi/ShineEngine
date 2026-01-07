@@ -12,11 +12,16 @@
 #include <array>
 #include <vector>
 #include <functional>
+#include <string>
 
 
 
 #include "shine_define.h"
-#include "render/command/command_list.h"
+
+namespace shine::render
+{
+    class CommandBuffer;
+}
 
 namespace shine::render::backend
 {
@@ -59,7 +64,8 @@ namespace shine::render::backend
         virtual void RenderSceneToViewport(s32 handle) = 0;
 
         //  使用回调提交渲染命令（由外部负责记录绘制，而非后端硬编码）
-        virtual void RenderSceneWith(s32 handle,const std::function<void(shine::render::command::ICommandList&)> &record) = 0;
+        //  REFACTORED: Now takes a CommandBuffer pointer directly
+        virtual void ExecuteCommandBuffer(s32 viewportHandle, const shine::render::CommandBuffer* cmdBuffer) = 0;
 
 		// 多视口/FBO 管理（可选实现）
 		virtual s32 CreateViewport(int width, int height) { (void)width; (void)height; return 1; }
@@ -106,6 +112,25 @@ namespace shine::render::backend
 		 */
 		virtual void ReleaseTexture(uint32_t textureId) = 0;
 
+        // ========================================================================
+        // Shader Creation Interface
+        // ========================================================================
+
+        /**
+         * @brief Create a shader program from vertex and fragment shader sources
+         * @param vsSource Vertex shader source code
+         * @param fsSource Fragment shader source code
+         * @param outLog Output string for error logs
+         * @return Program ID (API specific handle), 0 on failure
+         */
+        virtual uint32_t CreateShaderProgram(const char* vsSource, const char* fsSource, std::string& outLog) = 0;
+
+        /**
+         * @brief Release a shader program
+         * @param programId Program ID
+         */
+        virtual void ReleaseShaderProgram(uint32_t programId) = 0;
+
 		int g_Width = 800;
 		int g_Height = 600;
 		GLuint  my_image_texture = 0;
@@ -117,4 +142,3 @@ namespace shine::render::backend
 
 
 }
-

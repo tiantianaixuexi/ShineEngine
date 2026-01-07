@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 
 #include <memory>
@@ -7,8 +7,8 @@
 
 #include <GL/glew.h>
 
-#include "shader_manager.h"
-#include "render/command/command_list.h"
+#include "render/resources/shader_manager.h"
+#include "render/pipeline/command_buffer.h"
 
 
 namespace shine::render
@@ -201,20 +201,20 @@ namespace shine::render
             return s_pbr;
         }
 
-        // 最小接口：绑定Program并设置材质参数（不包含相关模型变换）
-        void bind(command::ICommandList& cmdList)
+        // 绑定材质（应用到 CommandBuffer）
+        void bind(CommandBuffer& cmdBuffer)
         {
 #ifdef SHINE_OPENGL
             ensureCompiled();
             if (m_Program == 0) return;
-            cmdList.useProgram(static_cast<std::uint64_t>(m_Program));
+            cmdBuffer.UseProgram(static_cast<std::uint64_t>(m_Program));
             // Uniform 设置通过命令列表记录，延迟到执行时
-            if (m_LocationBaseColor >= 0) cmdList.setUniform3f(m_LocationBaseColor, m_BaseColor[0], m_BaseColor[1], m_BaseColor[2]);
-            if (m_LocationAmbient   >= 0) cmdList.setUniform3f(m_LocationAmbient,   m_Ambient[0],   m_Ambient[1],   m_Ambient[2]);
-            if (m_LocationShininess >= 0) cmdList.setUniform1f(m_LocationShininess, m_Shininess);
-            if (m_LocationMetallic  >= 0) cmdList.setUniform1f(m_LocationMetallic,  m_Metallic);
-            if (m_LocationRoughness >= 0) cmdList.setUniform1f(m_LocationRoughness, m_Roughness);
-            if (m_LocationAo        >= 0) cmdList.setUniform1f(m_LocationAo,        m_Ao);
+            if (m_LocationBaseColor >= 0) cmdBuffer.SetUniform3f(m_LocationBaseColor, m_BaseColor[0], m_BaseColor[1], m_BaseColor[2]);
+            if (m_LocationAmbient   >= 0) cmdBuffer.SetUniform3f(m_LocationAmbient,   m_Ambient[0],   m_Ambient[1],   m_Ambient[2]);
+            if (m_LocationShininess >= 0) cmdBuffer.SetUniform1f(m_LocationShininess, m_Shininess);
+            if (m_LocationMetallic  >= 0) cmdBuffer.SetUniform1f(m_LocationMetallic,  m_Metallic);
+            if (m_LocationRoughness >= 0) cmdBuffer.SetUniform1f(m_LocationRoughness, m_Roughness);
+            if (m_LocationAo        >= 0) cmdBuffer.SetUniform1f(m_LocationAo,        m_Ao);
 #endif
         }
 

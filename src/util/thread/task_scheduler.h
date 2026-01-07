@@ -1,12 +1,12 @@
 #pragma once
 
 #include <vector>
-#include <functional>
 #include <memory>
 #include <atomic>
 #include <mutex>
 #include "util/shine_define.h"
 #include "thread_pool.h"
+#include "jobs.h"
 
 namespace shine::util
 {
@@ -20,20 +20,23 @@ namespace shine::util
         TaskScheduler();
         ~TaskScheduler() = default;
 
-        TaskHandle CreateTask(std::function<void()> task);
+        // Change: Takes Job variant instead of std::function
+        TaskHandle CreateTask(job::Job job);
+        
         void AddDependency(TaskHandle task, TaskHandle dependsOn);
         void Run(TaskHandle task);
         void RunAll();
         void Wait(TaskHandle task);
         void WaitAll();
 
+        // Change: Made public so JobExecutor can call it
+        void ExecuteTask(u32 id);
+
         static TaskScheduler& Get();
 
     private:
-        void ExecuteTask(u32 id);
-
         struct TaskNode {
-            std::function<void()> task;
+            job::Job job; // Change: Variant instead of std::function
             std::vector<u32> dependencies;
             std::vector<u32> dependents;
             std::atomic<u32> remainingDeps{0};

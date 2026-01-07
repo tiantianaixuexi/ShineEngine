@@ -9,6 +9,7 @@
 #include "editor/views/SceneHierarchyView.h"
 #include "editor/views/PropertiesView.h"
 #include "editor/views/ImageViewerView.h"
+#include "editor/views/SettingsView.h"
 #include "views/MainEditor/MainEditorToolbar.h"
 
 namespace shine::editor::main_editor {
@@ -25,6 +26,7 @@ namespace shine::editor::main_editor {
 		delete sceneHierarchyView;
 		delete propertiesView;
 		delete imageViewerView;
+        delete settingsView;
 	}
 
 	void MainEditor::Init() {
@@ -69,6 +71,9 @@ namespace shine::editor::main_editor {
 
 		// 初始化图片查看器（不再需要 Init，直接使用即可）
 		imageViewerView = new views::ImageViewerView();
+
+        // 初始化引擎设置视图
+        settingsView = new views::SettingsView();
 	}
 
 
@@ -124,6 +129,12 @@ namespace shine::editor::main_editor {
 		{
 			imageViewerView->Render();
 		}
+
+        // 渲染引擎设置
+        if (settingsView)
+        {
+            settingsView->Render();
+        }
 
 		// 渲染ImGui界面
 		ImGui::Render();

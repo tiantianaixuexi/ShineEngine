@@ -65,6 +65,8 @@ namespace shine::render
         // 设置渲染管线资源
         void setRenderPipelineAsset(std::shared_ptr<RenderPipelineAsset> asset) noexcept;
 
+        backend::IRenderBackend* GetBackend() const noexcept { return m_Backend; }
+
     private:
         // 收集渲染数据
         RenderingData collectRenderingData(ViewportHandle handle, shine::gameplay::Camera* camera) noexcept;

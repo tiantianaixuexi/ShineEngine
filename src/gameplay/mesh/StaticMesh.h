@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <memory>
 
@@ -9,7 +9,7 @@
 
 #include "shine_define.h"
 #include "render/material.h"
-#include "render/command/command_list.h"
+#include "render/pipeline/command_buffer.h"
 
 
 namespace shine::gameplay
@@ -169,15 +169,15 @@ namespace shine::gameplay
         }
 
         // 渲染，绑定着色器（用后端编译缓存），提交渲染
-        void render(render::command::ICommandList& cmd)
+        void render(render::CommandBuffer& cmd)
         {
 #ifdef SHINE_OPENGL
             if (!m_VAO || m_VertexCount <= 0) return;
             if (!m_Material) m_Material = shine::render::Material::GetDefaultPhong();
             if (m_Material) m_Material->bind(cmd);
 
-            cmd.bindVertexArray(static_cast<u64>(m_VAO));
-            cmd.drawTriangles(0, m_VertexCount);
+            cmd.BindVertexArray(static_cast<u64>(m_VAO));
+            cmd.DrawTriangles(0, m_VertexCount);
 #endif
         }
 

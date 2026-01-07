@@ -8,7 +8,8 @@
 
 #include "manager/CameraManager.h"
 #include "manager/light_manager.h"
-#include "render/command/webgl2_command_list.h"
+#include "render/pipeline/command_buffer.h"
+#include "render/backend/gl/gl_executor.h"
 #include "EngineCore/engine_context.h"
 
 extern shine::EngineContext* g_EngineContext;
@@ -43,8 +44,6 @@ int WebGL2RenderBackend::init(HWND hwnd, WNDCLASSEXW& wc)
     fmt::println("GLEW version: {}", reinterpret_cast<const char*>(glewGetString(GLEW_VERSION)));
 
     // Check for OpenGL ES 3.0 or WebGL2 support
-    // WebGL2 is based on OpenGL ES 3.0, so we check for ES 3.0 features
-    // Note: On Windows, this backend assumes OpenGL ES 3.0 context is available via ANGLE or similar
     if (!GLEW_ARB_framebuffer_object && !GLEW_EXT_framebuffer_object)
     {
         fmt::println("Graphics card does not support framebuffer objects, cannot create render targets");
@@ -56,9 +55,6 @@ int WebGL2RenderBackend::init(HWND hwnd, WNDCLASSEXW& wc)
     }
 
     fmt::println("WebGL2 backend initialized (using OpenGL ES 3.0 API)");
-
-    // Create command list
-    m_CommandList = std::make_unique<WebGL2CommandList>();
 
     // Create global camera UBO, binding = 0
     if (!m_CameraUbo) {
@@ -84,13 +80,18 @@ void WebGL2RenderBackend::InitImguiBackend(HWND hwnd)
 {
     ImGui_ImplWin32_InitForOpenGL(hwnd);
     // Use OpenGL3 backend for ImGui (compatible with WebGL2/OpenGL ES 3.0)
+    // Need to include imgui_impl_opengl3.h if not already via PCH or other means
+    // Assuming it's available since opengl3_backend uses it
+    extern bool ImGui_ImplOpenGL3_Init(const char* glsl_version);
     ImGui_ImplOpenGL3_Init("#version 300 es");
 }
 
 void WebGL2RenderBackend::ImguiNewFrame()
 {
+    extern void ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
 }
 
 bool WebGL2RenderBackend::CreateDevice(HWND hwnd)
@@ -170,14 +171,11 @@ bool WebGL2RenderBackend::CreateFrameBuffer()
 
 void WebGL2RenderBackend::RenderScene(float deltaTime)
 {
-    // Default rendering flow, clear screen and set viewport, but don't handle specific object rendering
-    m_CommandList->begin();
-    m_CommandList->setViewport(0, 0, g_Width, g_Height);
-    m_CommandList->clearColor(0.2f, 0.3f, 0.4f, 1.0f);
-    m_CommandList->clear(true, true);
-    m_CommandList->enableDepthTest(true);
-
-    m_CommandList->end();
+    // Direct GL calls
+    glViewport(0, 0, g_Width, g_Height);
+    glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
 }
 
 void WebGL2RenderBackend::CompileShaders()
@@ -188,66 +186,73 @@ void WebGL2RenderBackend::CompileShaders()
 void WebGL2RenderBackend::RenderSceneToFrameBuffer()
 {
     // Bind framebuffer and call common rendering flow
-    m_CommandList->bindFramebuffer(g_FramebufferObject);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_FramebufferObject);
     RenderScene(0.016f);
-    m_CommandList->bindFramebuffer(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void WebGL2RenderBackend::RenderSceneToViewport(s32 handle)
 {
     auto it = m_Viewports.find(handle);
     if (it == m_Viewports.end()) { RenderSceneToFrameBuffer(); return; }
-    m_CommandList->bindFramebuffer(it->second.fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, it->second.fbo);
     RenderScene(0.016f);
-    m_CommandList->bindFramebuffer(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void WebGL2RenderBackend::RenderSceneWith(s32 handle,
-                                 const std::function<void(shine::render::command::ICommandList&)> &record)
+void WebGL2RenderBackend::ExecuteCommandBuffer(s32 handle, const shine::render::CommandBuffer* cmdBuffer)
 {
+    if (!cmdBuffer) return;
+
     auto bindFbo = [&](s32 h){
         auto it = m_Viewports.find(h);
         if (it == m_Viewports.end())
-            m_CommandList->bindFramebuffer(static_cast<std::uint64_t>(g_FramebufferObject));
+            glBindFramebuffer(GL_FRAMEBUFFER, g_FramebufferObject);
         else
-            m_CommandList->bindFramebuffer(static_cast<std::uint64_t>(it->second.fbo));
+            glBindFramebuffer(GL_FRAMEBUFFER, it->second.fbo);
     };
 
     bindFbo(handle);
-    // Uniformly clear screen and set camera UBO
-    m_CommandList->begin();
-    // Choose appropriate viewport size based on target FBO to avoid viewport confusion
+    
+    // Choose appropriate viewport size based on target FBO
     int vpW = g_Width, vpH = g_Height;
     {
         auto it2 = m_Viewports.find(handle);
         if (it2 != m_Viewports.end()) { vpW = it2->second.width; vpH = it2->second.height; }
     }
-    m_CommandList->setViewport(0, 0, vpW, vpH);
-    m_CommandList->clearColor(0.2f, 0.3f, 0.4f, 1.0f);
-    m_CommandList->clear(true, true);
-    m_CommandList->enableDepthTest(true);
+    
+    glViewport(0, 0, vpW, vpH);
+    glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
 
     // Update related UBOs once per frame
     UpdateCameraUBO();
     UpdateLightUBO();
 
-    // External code records correct rendering commands
-    if (record) { record(*m_CommandList); }
+    // Execute commands using the GL visitor (shared)
+    shine::render::backend::gl::GLExecutor executor;
+    for (const auto& cmd : cmdBuffer->GetCommands())
+    {
+        std::visit(executor, cmd);
+    }
 
-    m_CommandList->end();
-    m_CommandList->bindFramebuffer(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void WebGL2RenderBackend::RenderToFramebuffer(std::array<float, 4> clear_color)
 {
     // Render to framebuffer
     RenderSceneToFrameBuffer();
-    m_CommandList->setViewport(0, 0, g_Width, g_Height);
-    m_CommandList->clearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
-    m_CommandList->clear(true, false);
-    m_CommandList->imguiRender(ImGui::GetDrawData());
+    glViewport(0, 0, g_Width, g_Height);
+    glClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    extern void ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    
     // Present
-    m_CommandList->swapBuffers(static_cast<void*>(g_hdc));
+    ::SwapBuffers(g_hdc);
 }
 
 unsigned int WebGL2RenderBackend::GetFramebufferTexture()
@@ -318,7 +323,7 @@ void WebGL2RenderBackend::BindViewport(s32 handle)
     glBindFramebuffer(GL_FRAMEBUFFER, it->second.fbo);
 }
 
-unsigned int WebGL2RenderBackend::GetViewportTexture(s32 handle)
+unsigned long long WebGL2RenderBackend::GetViewportTexture(u32 handle)
 {
     auto it = m_Viewports.find(handle);
     if (it == m_Viewports.end()) return GetFramebufferTexture();
@@ -337,6 +342,7 @@ void WebGL2RenderBackend::ReSizeFrameBuffer(int width, int height)
 void WebGL2RenderBackend::ClearUp(HWND hwnd)
 {
     // Cleanup ImGui
+    extern void ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
@@ -490,6 +496,51 @@ void WebGL2RenderBackend::ReleaseTexture(uint32_t textureId)
     }
 }
 
-#endif
+uint32_t WebGL2RenderBackend::CreateShaderProgram(const char* vsSource, const char* fsSource, std::string& outLog)
+{
+    // WebGL2 shares identical shader creation logic with OpenGL 3.3 for this basic use case
+    // We could extract this to gl_executor or gl_common, but for now duplicating the few lines is safe
+    GLint ok = 0; outLog.clear();
+    GLuint v = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(v, 1, &vsSource, nullptr);
+    glCompileShader(v);
+    glGetShaderiv(v, GL_COMPILE_STATUS, &ok);
+    if (!ok) {
+        char log[2048]{}; glGetShaderInfoLog(v, 2048, nullptr, log); outLog += "VS:"; outLog += log; glDeleteShader(v); return 0;
+    }
+
+    GLuint f = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(f, 1, &fsSource, nullptr);
+    glCompileShader(f);
+    glGetShaderiv(f, GL_COMPILE_STATUS, &ok);
+    if (!ok) {
+        char log[2048]{}; glGetShaderInfoLog(f, 2048, nullptr, log); outLog += "FS:"; outLog += log; glDeleteShader(v); glDeleteShader(f); return 0;
+    }
+
+    GLuint prog = glCreateProgram();
+    glAttachShader(prog, v);
+    glAttachShader(prog, f);
+    glLinkProgram(prog);
+    glGetProgramiv(prog, GL_LINK_STATUS, &ok);
+    if (!ok) {
+        char log[2048]{}; glGetProgramInfoLog(prog, 2048, nullptr, log); outLog += "LK:"; outLog += log; glDeleteShader(v); glDeleteShader(f); glDeleteProgram(prog); return 0;
+    }
+    glDeleteShader(v);
+    glDeleteShader(f);
+
+    // Bind CameraUBO if present
+    GLuint blockIndex = glGetUniformBlockIndex(prog, "CameraUBO");
+    if (blockIndex != GL_INVALID_INDEX) {
+        glUniformBlockBinding(prog, blockIndex, 0);
+    }
+    
+    return static_cast<uint32_t>(prog);
 }
 
+void WebGL2RenderBackend::ReleaseShaderProgram(uint32_t programId)
+{
+    if (programId) glDeleteProgram(static_cast<GLuint>(programId));
+}
+
+#endif
+}

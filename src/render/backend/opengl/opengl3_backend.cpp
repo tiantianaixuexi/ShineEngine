@@ -11,10 +11,9 @@
 
 #include "manager/CameraManager.h"
 #include "manager/light_manager.h"
-#include "render/command/opengl_command_list.h"
+#include "render/backend/gl/gl_executor.h"
+#include "render/pipeline/command_buffer.h"
 #include "EngineCore/engine_context.h"
-
-// extern shine::EngineContext* g_EngineContext; // Removed global pointer declaration
 
 
 namespace shine::render::opengl3
@@ -56,9 +55,6 @@ namespace shine::render::opengl3
 			::UnregisterClassW(wc.lpszClassName, wc.hInstance);
 			return 1;
 		}
-
-		// 创建命令列表
-		m_CommandList = std::make_unique<OpenGLCommandList>();
 
 		// 创建全局相机UBO，binding = 0
 		if (!m_CameraUbo) {
@@ -170,13 +166,14 @@ namespace shine::render::opengl3
     void OpenGLRenderBackend::RenderScene(float deltaTime)
 	{
         // 默认渲染流程，清屏并设置视口，但不负责具体物体渲染
-        m_CommandList->begin();
-        m_CommandList->setViewport(0, 0, g_Width, g_Height);
-        m_CommandList->clearColor(0.2f, 0.3f, 0.4f, 1.0f);
-        m_CommandList->clear(true, true);
-        m_CommandList->enableDepthTest(true);
-
-        m_CommandList->end();
+        // Direct GL calls instead of m_CommandList
+        glViewport(0, 0, g_Width, g_Height);
+        glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
+        
+        GLbitfield mask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
+        glClear(mask);
+        
+        glEnable(GL_DEPTH_TEST);
 	}
 
 	void OpenGLRenderBackend::CompileShaders()
@@ -187,67 +184,79 @@ namespace shine::render::opengl3
 	void OpenGLRenderBackend::RenderSceneToFrameBuffer()
 	{
 		// 绑定帧缓冲并调用通用渲染流程
-		m_CommandList->bindFramebuffer(g_FramebufferObject);
+        glBindFramebuffer(GL_FRAMEBUFFER, g_FramebufferObject);
 		RenderScene(0.016f);
-		m_CommandList->bindFramebuffer(0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
     void OpenGLRenderBackend::RenderSceneToViewport(s32 handle)
     {
         auto it = m_Viewports.find(handle);
         if (it == m_Viewports.end()) { RenderSceneToFrameBuffer(); return; }
-        m_CommandList->bindFramebuffer(it->second.fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, it->second.fbo);
         RenderScene(0.016f);
-        m_CommandList->bindFramebuffer(0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void OpenGLRenderBackend::RenderSceneWith(s32 handle,
-                                     const std::function<void(shine::render::command::ICommandList&)> &record)
+    void OpenGLRenderBackend::ExecuteCommandBuffer(s32 handle, const shine::render::CommandBuffer* cmdBuffer)
     {
+        if (!cmdBuffer) return;
+
         auto bindFbo = [&](s32 h){
             auto it = m_Viewports.find(h);
             if (it == m_Viewports.end())
-                m_CommandList->bindFramebuffer(static_cast<std::uint64_t>(g_FramebufferObject));
+                glBindFramebuffer(GL_FRAMEBUFFER, g_FramebufferObject);
             else
-                m_CommandList->bindFramebuffer(static_cast<std::uint64_t>(it->second.fbo));
+                glBindFramebuffer(GL_FRAMEBUFFER, it->second.fbo);
         };
 
         bindFbo(handle);
-        // 统一先清屏相机UBO设置
-        m_CommandList->begin();
+        
         // 根据目标FBO选择合适的视窗大小，避免视口混乱
         int vpW = g_Width, vpH = g_Height;
         {
             auto it2 = m_Viewports.find(handle);
             if (it2 != m_Viewports.end()) { vpW = it2->second.width; vpH = it2->second.height; }
         }
-        m_CommandList->setViewport(0, 0, vpW, vpH);
-        m_CommandList->clearColor(0.2f, 0.3f, 0.4f, 1.0f);
-        m_CommandList->clear(true, true);
-        m_CommandList->enableDepthTest(true);
+        
+        // Setup default state before executing commands
+        glViewport(0, 0, vpW, vpH);
+        glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
 
         // 每帧更新一次相关UBO
         UpdateCameraUBO();
         UpdateLightUBO();
-        UpdateLightUBO();
+        // UpdateLightUBO(); // Duplicate call in original code, removing
 
-        // 外部绘制正确的渲染命令
-        if (record) { record(*m_CommandList); }
+        // Execute commands using the visitor
+        shine::render::backend::gl::GLExecutor executor;
+        for (const auto& cmd : cmdBuffer->GetCommands())
+        {
+            std::visit(executor, cmd);
+        }
 
-        m_CommandList->end();
-        m_CommandList->bindFramebuffer(0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
 	void OpenGLRenderBackend::RenderToFramebuffer(std::array<float, 4> clear_color)
 	{
 		// 渲染到帧缓冲
 		RenderSceneToFrameBuffer();
-		m_CommandList->setViewport(0, 0, g_Width, g_Height);
-		m_CommandList->clearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
-		m_CommandList->clear(true, false);
-		m_CommandList->imguiRender(ImGui::GetDrawData());
+        
+        glViewport(0, 0, g_Width, g_Height);
+        glClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
+        
+        // Clear color only (true, false)
+        glClear(GL_COLOR_BUFFER_BIT);
+        
+        // ImGui Render
+        extern void ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        
 		// Present
-		m_CommandList->swapBuffers(static_cast<void*>(g_hdc));
+		::SwapBuffers(g_hdc);
 	}
 
 	unsigned int OpenGLRenderBackend::GetFramebufferTexture()
@@ -462,7 +471,49 @@ unsigned long long OpenGLRenderBackend::GetViewportTexture(u32 handle)
 		}
 	}
 
+    uint32_t OpenGLRenderBackend::CreateShaderProgram(const char* vsSource, const char* fsSource, std::string& outLog)
+    {
+        GLint ok = 0; outLog.clear();
+        GLuint v = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(v, 1, &vsSource, nullptr);
+        glCompileShader(v);
+        glGetShaderiv(v, GL_COMPILE_STATUS, &ok);
+        if (!ok) {
+            char log[2048]{}; glGetShaderInfoLog(v, 2048, nullptr, log); outLog += "VS:"; outLog += log; glDeleteShader(v); return 0;
+        }
+
+        GLuint f = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(f, 1, &fsSource, nullptr);
+        glCompileShader(f);
+        glGetShaderiv(f, GL_COMPILE_STATUS, &ok);
+        if (!ok) {
+            char log[2048]{}; glGetShaderInfoLog(f, 2048, nullptr, log); outLog += "FS:"; outLog += log; glDeleteShader(v); glDeleteShader(f); return 0;
+        }
+
+        GLuint prog = glCreateProgram();
+        glAttachShader(prog, v);
+        glAttachShader(prog, f);
+        glLinkProgram(prog);
+        glGetProgramiv(prog, GL_LINK_STATUS, &ok);
+        if (!ok) {
+            char log[2048]{}; glGetProgramInfoLog(prog, 2048, nullptr, log); outLog += "LK:"; outLog += log; glDeleteShader(v); glDeleteShader(f); glDeleteProgram(prog); return 0;
+        }
+        glDeleteShader(v);
+        glDeleteShader(f);
+
+        // Bind CameraUBO if present
+        GLuint blockIndex = glGetUniformBlockIndex(prog, "CameraUBO");
+        if (blockIndex != GL_INVALID_INDEX) {
+            glUniformBlockBinding(prog, blockIndex, 0);
+        }
+        
+        return static_cast<uint32_t>(prog);
+    }
+
+    void OpenGLRenderBackend::ReleaseShaderProgram(uint32_t programId)
+    {
+        if (programId) glDeleteProgram(static_cast<GLuint>(programId));
+    }
+
 #endif
 }
-
-

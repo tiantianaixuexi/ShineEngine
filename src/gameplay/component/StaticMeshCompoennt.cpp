@@ -1,4 +1,4 @@
-﻿#include "StaticMeshComponent.h"
+#include "StaticMeshComponent.h"
 
 namespace shine::gameplay::component
 {
@@ -10,7 +10,7 @@ namespace shine::gameplay::component
 	{
 	}
 
-    void StaticMeshComponent::onRender(shine::render::command::ICommandList& cmd)
+    void StaticMeshComponent::onRender(shine::render::CommandBuffer& cmd)
     {
         if (!m_StaticMesh) return;
         // 用网格自己设置 Program/Uniforms，并提交渲染命令

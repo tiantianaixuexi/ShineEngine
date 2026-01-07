@@ -8,7 +8,8 @@
 #include "imgui/imgui.h"
 #include "fmt/base.h"
 #include "render/renderer_service.h"
-#include "render/renderManager.h"
+// #include "render/renderManager.h"
+#include "render/backend/render_backend_factory.h"
 
 
 // Forward-declare WndProc handler from imgui Win32 backend (header intentionally leaves it commented out)
@@ -52,8 +53,16 @@ namespace shine::windows
 
 		auto& info = context.GetSystem<WindowsInfo>()->info;
 		
-		auto renderBackend = context.GetSystem<render::RenderManager>()->CreateRenderBackend();
-		if (const int result = context.GetSystem<render::RenderManager>()->GetRenderBackend()->init(info.hwnd, wc); result != 0)
+		// auto renderBackend = context.GetSystem<render::RenderManager>()->CreateRenderBackend();
+        // Use factory to create backend. 
+        // TODO: Read configuration to decide which backend to use. Defaulting to OpenGL for now.
+        auto renderBackend = shine::render::backend::RenderBackendFactory::create(shine::render::backend::RenderBackendType::OpenGL);
+        
+        if (!renderBackend) {
+            return -1; // Failed to create backend
+        }
+
+		if (const int result = renderBackend->init(info.hwnd, wc); result != 0)
 		{
 			return result;
 		}
@@ -74,7 +83,8 @@ namespace shine::windows
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
 
-		context.GetSystem<render::RenderManager>()->GetRenderBackend()->InitImguiBackend(info.hwnd);
+		// context.GetSystem<render::RenderManager>()->GetRenderBackend()->InitImguiBackend(info.hwnd);
+        renderBackend->InitImguiBackend(info.hwnd);
 
 
 		// Show the window
@@ -104,7 +114,8 @@ namespace shine::windows
 		case WM_SIZE:
 			if (wParam != SIZE_MINIMIZED) {
 				if (shine::EngineContext::IsInitialized()) {
-					shine::EngineContext::Get().GetSystem<render::RenderManager>()->GetRenderBackend()->ReSizeFrameBuffer(LOWORD(lParam), HIWORD(lParam));
+					// shine::EngineContext::Get().GetSystem<render::RenderManager>()->GetRenderBackend()->ReSizeFrameBuffer(LOWORD(lParam), HIWORD(lParam));
+                    shine::EngineContext::Get().GetSystem<render::RendererService>()->GetBackend()->ReSizeFrameBuffer(LOWORD(lParam), HIWORD(lParam));
 				}
 			}else
 			{

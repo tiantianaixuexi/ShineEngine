@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 
 #include <memory>
@@ -26,7 +26,7 @@ namespace shine::gameplay::component
 
 
 
-        void onRender(shine::render::command::ICommandList& cmd) override;
+        void onRender(shine::render::CommandBuffer& cmd) override;
 
     private:
 

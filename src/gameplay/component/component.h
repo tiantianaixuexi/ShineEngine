@@ -6,9 +6,9 @@
 #include "gameplay/tick/tick_function.h"
 #include "util/guid.h"
 
-namespace shine::render::command
+namespace shine::render
 {
-	class ICommandList;
+	class CommandBuffer;
 }
 
 namespace shine::gameplay
@@ -26,7 +26,7 @@ namespace shine::gameplay::component
         virtual ~UComponent() = default;
 
         virtual void onBeginPlay() {}
-        virtual void onRender(render::command::ICommandList& cmd) {}
+        virtual void onRender(render::CommandBuffer& cmd) {}
 
         void attachTo(SObject* owner) { m_Owner = owner; }
         [[nodiscard]]  SObject* getOwner() const { return m_Owner; }
@@ -38,4 +38,3 @@ namespace shine::gameplay::component
         util::FGuid  _guid;
     };
 }
-

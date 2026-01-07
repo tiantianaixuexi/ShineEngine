@@ -12,27 +12,14 @@
 
 #include "imgui/imgui.h"
 #include "render/backend/render_backend.h"
+#include "render/backend/gl/gl_common.h"
 
 namespace shine::render::webgl2
 {
 
 #ifdef SHINE_WEBGL2
 
-struct ViewportInfo {
-    GLuint fbo{0};
-    GLuint color{0};
-    GLuint depth{0};
-    int width{0};
-    int height{0};
-
-    ViewportInfo() : fbo(0), color(0), depth(0), width(0), height(0) {}
-    ViewportInfo(GLuint f, GLuint c, GLuint d, int w, int h)
-        : fbo(f), color(c), depth(d), width(w), height(h) {}
-    ViewportInfo(const ViewportInfo&) = default;
-    ViewportInfo(ViewportInfo&&) = default;
-    ViewportInfo& operator=(const ViewportInfo&) = default;
-    ViewportInfo& operator=(ViewportInfo&&) = default;
-};
+    using ViewportInfo = shine::render::backend::gl::ViewportInfo;
 
 class WebGL2RenderBackend : public backend::IRenderBackend
 {
@@ -51,8 +38,7 @@ public:
     // Global light UBO, std140, binding=1
     GLuint m_LightUbo = 0;
 
-    // Command List (WebGL2 immediate-mode implementation)
-    std::unique_ptr<command::ICommandList> m_CommandList;
+    // Command List removed (stateless visitor used instead)
 
     // Multi-viewport FBO registry
     std::unordered_map<s32, ViewportInfo> m_Viewports;
@@ -92,7 +78,7 @@ public:
     virtual void DestroyViewport(s32 handle) override;
     virtual void ResizeViewport(s32 handle, int width, int height) override;
     virtual void BindViewport(s32 handle) override;
-    virtual unsigned int GetViewportTexture(s32 handle) override;
+    virtual unsigned long long GetViewportTexture(u32 handle) override;
 
     virtual void ReSizeFrameBuffer(int width, int height);
 
@@ -109,8 +95,7 @@ public:
     virtual void setHeight(int height);
 
     // Callback-based rendering interface implementation
-    virtual void RenderSceneWith(s32 handle,
-                                 const std::function<void(shine::render::command::ICommandList&)> &record) override;
+    virtual void ExecuteCommandBuffer(s32 viewportHandle, const shine::render::CommandBuffer* cmdBuffer) override;
 
     // Update camera UBO per frame
     void UpdateCameraUBO();
@@ -127,9 +112,12 @@ public:
     virtual void UpdateTexture2D(uint32_t textureId, int width, int height, const void* data) override;
 
     virtual void ReleaseTexture(uint32_t textureId) override;
+
+    // Shader creation interface implementation
+    virtual uint32_t CreateShaderProgram(const char* vsSource, const char* fsSource, std::string& outLog) override;
+    virtual void ReleaseShaderProgram(uint32_t programId) override;
 };
 
 #endif
 
 }
-

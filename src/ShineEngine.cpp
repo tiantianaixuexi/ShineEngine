@@ -84,7 +84,7 @@ int main(int argc,char** argv)
 #include "platform/WindowsInfo.h"
 
 #include "quickjs/quickjs.h"
-#include "render/renderManager.h"
+// #include "render/renderManager.h"
 #include "fps_controller.h"
 #include "manager/AssetManager.h"
 #include "gameplay/tick/tickManager.h"
@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
 
 	context.Register(new editor::SEditorPlayer());
 
-    context.Register(new render::RenderManager());
+    // context.Register(new render::RenderManager());
     context.Register(new render::TextureManager());
     context.Register(new render::RendererService());
 
@@ -148,7 +148,8 @@ int main(int argc, char** argv) {
 	std::array<float, 4> clear_color = { 0.45f, 0.55f, 0.60f, 1.00f };
 	
 
-	RenderBackend = context.GetSystem<render::RenderManager>()->GetRenderBackend();
+	// RenderBackend = context.GetSystem<render::RenderManager>()->GetRenderBackend();
+    RenderBackend = context.GetSystem<render::RendererService>()->GetBackend();
 
 
 	editor::main_editor::MainEditor* mainEditor = nullptr;
