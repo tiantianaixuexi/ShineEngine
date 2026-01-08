@@ -70,6 +70,11 @@ namespace shine::editor::views
 					AssetBorderShow = _mainEditor->setAssetBorwerOpen();
 				}
 				
+                static bool MemoryProfilerShow = true;
+                if (ImGui::MenuItem("内存监控 (Memory Profiler)", nullptr, &MemoryProfilerShow))
+                {
+                    MemoryProfilerShow = _mainEditor->setMemoryProfilerOpen(MemoryProfilerShow);
+                }
 
 				ImGui::EndMenu();
 			}

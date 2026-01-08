@@ -11,6 +11,7 @@ namespace shine::editor::views
     class PropertiesView;
     class ImageViewerView;
     class SettingsView;
+    class MemoryProfiler;
 	class SMainEditorToolbar;
 }
 
@@ -34,6 +35,8 @@ namespace shine::editor::main_editor
 
 
 		bool setAssetBorwerOpen();
+        bool setMemoryProfilerOpen(bool open);
+        bool getMemoryProfilerOpen() const;
 
 	 private:
         shine::EngineContext& m_Context;
@@ -47,6 +50,7 @@ namespace shine::editor::main_editor
 		views::PropertiesView* propertiesView = nullptr;
 		views::ImageViewerView* imageViewerView = nullptr;
         views::SettingsView* settingsView = nullptr;
+        views::MemoryProfiler* memoryProfiler = nullptr;
 
 		button::shineButton* myButton = nullptr;
 

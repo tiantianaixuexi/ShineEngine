@@ -22,10 +22,18 @@ namespace shine::editor::util {
         template<typename T>
         static void Draw(T* instance) {
             if (!instance) return;
-            ImGui::PushID(instance);
-            StaticInspectorBuilder<T> builder(instance);
-            T::RegisterReflection(builder);
-            ImGui::PopID();
+            
+            if (ImGui::BeginTable("Inspector", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_RowBg)) {
+                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 150.0f);
+                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+                
+                ImGui::PushID(instance);
+                StaticInspectorBuilder<T> builder(instance);
+                T::RegisterReflection(builder);
+                ImGui::PopID();
+                
+                ImGui::EndTable();
+            }
         }
 
         // Mock DSL consumers that just chain
@@ -52,12 +60,26 @@ namespace shine::editor::util {
                 return Chain(dsl.Meta(key, std::forward<V>(val))); 
             }
             template<typename V> auto Range(V min, V max) { return Chain(dsl.Range(min, max)); }
+            
+            // Add FunctionSelect support
+            auto FunctionSelect(bool onlyScriptCallable = true) { 
+                return Chain(dsl.FunctionSelect(onlyScriptCallable)); 
+            }
+
+            template<size_t N> auto DisplayName(const char (&name)[N]) { return Meta("DisplayName", name); }
+            auto DisplayName(std::string_view name) { return Meta("DisplayName", name); }
 
             // Helper to chain with new DSL type
             template<typename NewDSL>
             auto Chain(NewDSL newDSL) {
                 moved = true;
                 return FieldProxy<NewDSL>(builder, newDSL);
+            }
+            
+            // Add OnChange support (template version for compile-time capture)
+            template<auto CallbackPtr>
+            auto OnChange() {
+                return Chain(dsl.template OnChange<CallbackPtr>());
             }
 
             // Destructor: This is where the magic happens!
@@ -99,7 +121,8 @@ namespace shine::editor::util {
 
                     if (changed) {
                         builder.currentCategory = category;
-                        ImGui::Separator();
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
                         ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "[%s]", category);
                     }
                 }
@@ -107,6 +130,147 @@ namespace shine::editor::util {
                 // 3. Draw UI based on Type and Schema
                 // Since we know MemberType at compile time, we don't need std::visit or typeId checks!
                 
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::AlignTextToFramePadding();
+
+                // Special case for Vectors and Structs (TreeNodes)
+                if constexpr (Shine::Reflection::IsVector<MemberType>::value) {
+                     ImGui::TableNextRow();
+                     ImGui::TableSetColumnIndex(0);
+                     bool open = ImGui::TreeNodeEx(desc.name.data(), ImGuiTreeNodeFlags_SpanFullWidth);
+                     ImGui::TableSetColumnIndex(1);
+                     ImGui::Text("Size: %zu", value.size());
+                     
+                     if (open) {
+                         // Vector logic
+                         ImGui::SameLine();
+                         if (ImGui::Button("+")) value.resize(value.size() + 1);
+                         ImGui::SameLine();
+                         if (ImGui::Button("-") && value.size() > 0) value.resize(value.size() - 1);
+                         
+                         // Elements
+                         for (size_t i = 0; i < value.size(); ++i) {
+                             ImGui::PushID((int)i);
+                             
+                             ImGui::TableNextRow();
+                             ImGui::TableSetColumnIndex(0);
+                             ImGui::TreeNodeEx((void*)(intptr_t)i, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen, "Element %zu", i);
+                             
+                             ImGui::TableSetColumnIndex(1);
+                             ImGui::PushItemWidth(-1);
+                             
+                             using ElementType = typename MemberType::value_type;
+                             if constexpr (std::is_same_v<ElementType, float>) PropertyDrawer::DrawFloat("##v", value[i]);
+                             else if constexpr (std::is_same_v<ElementType, int>) PropertyDrawer::DrawInt("##v", value[i]);
+                             else if constexpr (std::is_same_v<ElementType, bool>) PropertyDrawer::DrawBool("##v", value[i]);
+                             else if constexpr (std::is_same_v<ElementType, std::string>) PropertyDrawer::DrawString("##v", value[i]);
+                             else {
+                                  // Recursive struct in vector
+                                  StaticInspectorBuilder::Draw(&value[i]);
+                             }
+                             
+                             ImGui::PopItemWidth();
+                             ImGui::PopID();
+                         }
+                         ImGui::TreePop();
+                     }
+                     return;
+                }
+                else if constexpr (!std::is_same_v<MemberType, float> && !std::is_same_v<MemberType, int> && !std::is_same_v<MemberType, bool> && !std::is_same_v<MemberType, std::string>) {
+                     if constexpr (std::is_enum_v<MemberType>) {
+                         ImGui::Text("%s", desc.name.data());
+                         ImGui::TableSetColumnIndex(1);
+                         ImGui::PushItemWidth(-1);
+
+                         using namespace Shine::Reflection;
+                         // We need to look up TypeInfo via TypeId, not compile-time template if possible
+                         // But StaticInspectorBuilder knows MemberType at compile time.
+                         const TypeInfo* typeInfo = TypeRegistry::Get().Find<MemberType>();
+                         
+                         // Fallback: If not found, try to register it on the fly?
+                         // We can force a temporary TypeBuilder if we know the type name, but we only have TypeId.
+                         // HOWEVER, if the type has a static Refection function, we can try to call it? No, we don't have that interface.
+                         
+                         // Hack: For GameDifficulty specifically (or any enum), ensure it's registered.
+                         // But we are in a template.
+                         
+                         if (typeInfo && typeInfo->isEnum) {
+                             int64_t currentVal = (int64_t)value;
+                             const char* currentName = "Unknown";
+                             for(const auto& e : typeInfo->enumEntries) {
+                                 if (e.value == currentVal) { currentName = e.name.data(); break; }
+                             }
+
+                             std::string label = "##" + std::string(desc.name);
+                             if (ImGui::BeginCombo(label.c_str(), currentName)) {
+                                 for(const auto& e : typeInfo->enumEntries) {
+                                     bool isSelected = (currentVal == e.value);
+                                     if (ImGui::Selectable(e.name.data(), isSelected)) {
+                                         value = (MemberType)e.value;
+                                         if (desc.onChange) desc.onChange(builder.instance, &currentVal); // currentVal is int64, we need MemberType
+                                         // Wait, desc.onChange expects MemberType* or void*.
+                                         // currentVal is int64_t. We need to cast it back to MemberType?
+                                         // Actually our Reflection OnChange wrapper handles casting if we pass pointer.
+                                         // But we have 'currentVal' which is OLD value (before we set 'value').
+                                         // Correct.
+                                     }
+                                     if (isSelected) ImGui::SetItemDefaultFocus();
+                                 }
+                                 ImGui::EndCombo();
+                             }
+                         } else {
+                             // Try to register enum on the fly if missing!
+                             // We can't do this easily without specific knowledge of the Enum type's reflection function.
+                             // But wait, if we are in StaticInspectorBuilder<T>, and MemberType is GameDifficulty.
+                             // Can we try to call GameDifficulty_Reflect?
+                             // No, the name is mangled.
+                             
+                             // Fallback: Just draw as Int
+                             int val = (int)value;
+                             int oldVal = val;
+                             std::string label = "##" + std::string(desc.name);
+                             if (ImGui::InputInt(label.c_str(), &val)) {
+                                 value = (MemberType)val;
+                                 if (desc.onChange) desc.onChange(builder.instance, &oldVal);
+                             }
+                             ImGui::SameLine();
+                             ImGui::TextDisabled("(Enum Info Missing)");
+                         }
+                         ImGui::PopItemWidth();
+                     }
+                     else {
+                         // Struct (Recursive)
+                         ImGui::TableNextRow();
+                         ImGui::TableSetColumnIndex(0);
+                         bool open = ImGui::TreeNodeEx(desc.name.data(), ImGuiTreeNodeFlags_SpanFullWidth);
+                         ImGui::TableSetColumnIndex(1);
+                         
+                         if (open) {
+                             StaticInspectorBuilder::Draw(&value);
+                             ImGui::TreePop();
+                         }
+                     }
+                     return;
+                }
+
+                // Normal Field
+                const char* displayName = desc.name.data();
+                for(const auto& m : desc.metadata) {
+                    if (m.key == Hash("DisplayName")) {
+                        if (std::holds_alternative<std::string_view>(m.value)) {
+                            displayName = std::get<std::string_view>(m.value).data();
+                        }
+                    }
+                }
+                ImGui::Text("%s", displayName);
+                
+                ImGui::TableSetColumnIndex(1);
+                ImGui::PushItemWidth(-1);
+
+                std::string label = "##" + std::string(desc.name);
+                const char* labelC = label.c_str();
+
                 // Helper to extract Range from metadata
                 float min = 0.0f, max = 0.0f;
                 for(const auto& m : desc.metadata) {
@@ -121,97 +285,97 @@ namespace shine::editor::util {
                 }
 
                 // Compile-time if/else
+                bool changed = false;
+                MemberType oldValue = value;
+
                 if constexpr (std::is_same_v<MemberType, float>) {
                     if (min != 0.0f || max != 0.0f) {
-                        ImGui::SliderFloat(desc.name.data(), &value, min, max);
+                        if (ImGui::SliderFloat(labelC, &value, min, max)) changed = true;
                     } else {
-                        ImGui::DragFloat(desc.name.data(), &value);
+                        if (ImGui::DragFloat(labelC, &value)) changed = true;
                     }
                 }
                 else if constexpr (std::is_same_v<MemberType, int>) {
                     if (min != 0.0f || max != 0.0f) {
-                        ImGui::SliderInt(desc.name.data(), &value, (int)min, (int)max);
+                        if (ImGui::SliderInt(labelC, &value, (int)min, (int)max)) changed = true;
                     } else {
-                        ImGui::DragInt(desc.name.data(), &value);
+                        if (ImGui::DragInt(labelC, &value)) changed = true;
                     }
                 }
                 else if constexpr (std::is_same_v<MemberType, bool>) {
-                    ImGui::Checkbox(desc.name.data(), &value);
+                    if (ImGui::Checkbox(labelC, &value)) changed = true;
                 }
                 else if constexpr (std::is_same_v<MemberType, std::string>) {
-                    // PropertyDrawer::DrawString logic inline
-                    char buffer[256];
-                    strncpy_s(buffer, sizeof(buffer), value.c_str(), sizeof(buffer) - 1);
-                    if (ImGui::InputText(desc.name.data(), buffer, sizeof(buffer))) {
-                        value = buffer;
+                    // Check for FunctionSelector schema
+                    bool isFunctionSelector = false;
+                    bool onlyScriptCallable = true;
+                    if (std::holds_alternative<Shine::Reflection::UI::FunctionSelector>(desc.uiSchema)) {
+                        isFunctionSelector = true;
+                        onlyScriptCallable = std::get<Shine::Reflection::UI::FunctionSelector>(desc.uiSchema).onlyScriptCallable;
                     }
-                }
-                else if constexpr (Shine::Reflection::IsVector<MemberType>::value) {
-                    // Vector Drawing
-                    if (ImGui::TreeNode(desc.name.data())) {
-                        using VecType = MemberType;
-                        using ElementType = typename VecType::value_type;
-                        
-                        // Size & Resize UI
-                        size_t size = value.size();
-                        ImGui::Text("Size: %zu", size);
-                        if (ImGui::Button("+")) {
-                            value.resize(size + 1);
-                        }
-                        ImGui::SameLine();
-                        if (ImGui::Button("-") && size > 0) {
-                            value.resize(size - 1);
-                        }
 
-                        // Iterate Elements
-                        for (size_t i = 0; i < value.size(); ++i) {
-                            ImGui::PushID((int)i);
-                            // Recursive Draw for Element
-                            // We need a helper function because we can't easily generate DSL for dynamic elements
-                            // But we can call StaticInspector::Draw if ElementType is reflectable, 
-                            // OR use basic ImGui calls if it's a basic type.
-                            
-                            // Simple workaround: Use PropertyDrawer's static helpers for basic types,
-                            // or recursively call StaticInspector::Draw for structs.
-                            
-                            if constexpr (std::is_same_v<ElementType, float>) {
-                                PropertyDrawer::DrawFloat("##v", value[i]);
-                            } else if constexpr (std::is_same_v<ElementType, int>) {
-                                PropertyDrawer::DrawInt("##v", value[i]);
-                            } else if constexpr (std::is_same_v<ElementType, bool>) {
-                                PropertyDrawer::DrawBool("##v", value[i]);
-                            } else if constexpr (std::is_same_v<ElementType, std::string>) {
-                                PropertyDrawer::DrawString("##v", value[i]);
-                            } else {
-                                // Recursive struct
-                                if (ImGui::TreeNode((void*)(intptr_t)i, "Element %zu", i)) {
-                                    StaticInspectorBuilder::Draw(&value[i]);
-                                    ImGui::TreePop();
-                                }
-                            }
-                            
-                            ImGui::PopID();
+                    if (isFunctionSelector) {
+                        // We need access to TypeInfo to list methods.
+                        // StaticInspector doesn't have runtime TypeInfo easily available unless we register it.
+                        // But we can look it up via TypeRegistry::Get().Find<ObjectType>()
+                        // or better, use the owner type T from StaticInspectorBuilder<T>
+                        
+                        // Current object type is ObjectType (T)
+                        using namespace Shine::Reflection;
+                        const TypeInfo* typeInfo = TypeRegistry::Get().Find<ObjectType>();
+
+                        // Fallback: Build TypeInfo on the fly if missing (fixes "TypeInfo Not Found")
+                        TypeInfo localTypeInfo;
+                        if (!typeInfo) {
+                            TypeBuilder<ObjectType> tempBuilder("Temp");
+                            ObjectType::RegisterReflection(tempBuilder);
+                            localTypeInfo = std::move(tempBuilder.info);
+                            typeInfo = &localTypeInfo;
                         }
-                        ImGui::TreePop();
+                        
+                        if (typeInfo) {
+                            if (ImGui::BeginCombo(labelC, value.c_str())) {
+                                for (const auto& method : typeInfo->methods) {
+                                    bool show = !onlyScriptCallable;
+                                    if (onlyScriptCallable) {
+                                        if (HasFlag(method.flags, FunctionFlags::ScriptCallable)) show = true;
+                                        // Check metadata "BlueprintFunction"
+                                        TypeId bpKey = Hash("BlueprintFunction");
+                                        auto it = std::lower_bound(method.metadata.begin(), method.metadata.end(), bpKey, 
+                                            [](const auto& pair, TypeId k) { return pair.first < k; });
+                                        if (it != method.metadata.end() && it->first == bpKey) show = true;
+                                    }
+
+                                    if (show) {
+                                        bool isSelected = (value == method.name);
+                                        if (ImGui::Selectable(method.name.data(), isSelected)) {
+                                            value = method.name;
+                                            changed = true;
+                                        }
+                                        if (isSelected) ImGui::SetItemDefaultFocus();
+                                    }
+                                }
+                                ImGui::EndCombo();
+                            }
+                        } else {
+                            ImGui::TextDisabled("%s (TypeInfo Not Found)", desc.name.data());
+                        }
+                    } else {
+                        // Standard InputText
+                        char buffer[256];
+                        strncpy_s(buffer, sizeof(buffer), value.c_str(), sizeof(buffer) - 1);
+                        if (ImGui::InputText(labelC, buffer, sizeof(buffer))) {
+                            value = buffer;
+                            changed = true;
+                        }
                     }
                 }
-                else {
-                    // Fallback or Recursive Struct
-                    // Try to detect if MemberType has RegisterReflection
-                    // We can use SFINAE or Concept (C++20)
-                    // For now, let's just try to call Draw and let the compiler optimize it out if empty?
-                    // No, StaticInspector::Draw requires T::RegisterReflection to exist.
-                    // We need a concept "IsReflectable".
-                    
-                    // Simple check: does it have RegisterReflection static method?
-                    // We assume yes if it's a struct we want to draw.
-                    // But if it's int/float we already handled it.
-                    // So here it's likely a struct.
-                    
-                    if (ImGui::TreeNode(desc.name.data())) {
-                        StaticInspectorBuilder::Draw(&value);
-                         ImGui::TreePop();
-                    }
+                
+                ImGui::PopItemWidth();
+                
+                if (changed && desc.onChange) {
+                    // Pass oldValue to callback
+                    desc.onChange(builder.instance, &oldValue);
                 }
             }
         };
@@ -221,9 +385,49 @@ namespace shine::editor::util {
             return FieldProxy<DSLType>{*this, dsl};
         }
 
-        // Methods are ignored in inspector for now
+        // Methods are ignored in inspector for now, but we must support chaining to avoid compilation errors
         template<typename DSLType>
-        void RegisterMethodFromDSL(const DSLType& dsl) {}
+        struct MethodProxy {
+            StaticInspectorBuilder& builder;
+            DSLType dsl; // Store DSL to access name/metadata
+            bool moved = false;
+            
+            MethodProxy(StaticInspectorBuilder& b, DSLType d) : builder(b), dsl(d) {}
+            MethodProxy(MethodProxy&& other) : builder(other.builder), dsl(other.dsl) { other.moved = true; }
+
+            // Chaining methods - Must move *this to avoid copy (which is deleted)
+            // And to ensure "moved" flag propagates if we were creating new objects
+            // But here we return the same object (moved)
+            auto ScriptCallable() { return std::move(*this); }
+            auto EditorCallable() { return std::move(*this); }
+            template<typename V> auto Meta(std::string_view key, V&& val) { return std::move(*this); }
+            template<size_t N, typename V> constexpr auto Meta(const char (&key)[N], V&& val) { return std::move(*this); }
+
+            ~MethodProxy() {
+                if (!moved) {
+                    DrawMethod();
+                }
+            }
+
+        private:
+            void DrawMethod() {
+                // Draw a button for the method
+                // Use DSLType::MethodPtr to call it
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%s", dsl.desc.name.data());
+                
+                ImGui::TableSetColumnIndex(1);
+                if (ImGui::Button(dsl.desc.name.data())) {
+                    (builder.instance->*DSLType::MethodPtr)();
+                }
+            }
+        };
+
+        template<typename DSLType>
+        MethodProxy<DSLType> RegisterMethodFromDSL(const DSLType& dsl) {
+            return MethodProxy<DSLType>{*this, dsl};
+        }
     };
 
 

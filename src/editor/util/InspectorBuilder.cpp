@@ -32,7 +32,7 @@ namespace shine::editor::util {
             }
 
             // Draw individual field
-            PropertyDrawer::DrawField(instance, field);
+            PropertyDrawer::DrawField(instance, field, typeInfo);
         }
     }
 

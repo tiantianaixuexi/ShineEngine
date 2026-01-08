@@ -8,6 +8,13 @@ namespace shine::editor::views {
 
     SettingsView::SettingsView() {
         settings_ = new settings::EngineSettings();
+
+        // Ensure static reflection data is registered
+        // The Header-only registration should work now because we reference it in EngineSettings ctor.
+        // So we only need to flush pending types here.
+        
+        // CRITICAL: Must Flush Pending Types to Registry for Lookup to work!
+        Shine::Reflection::TypeRegistry::RegisterAllTypes();
     }
 
     SettingsView::~SettingsView() {

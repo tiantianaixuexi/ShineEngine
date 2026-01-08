@@ -35,7 +35,9 @@ namespace shine::co {
         "Render",
         "Resource",
         "Physics",
-        "AI"
+        "AI",
+        "Reflection",
+        "Script"
     };
 
     // ============================================================
@@ -359,3 +361,60 @@ namespace shine::co {
     }
 
 } // namespace shine::co
+
+// ============================================================
+// Global New/Delete Overrides
+// ============================================================
+
+// We override global new/delete to route all allocations through our Memory system.
+// This ensures standard containers (std::vector, std::string) and other 'new' calls
+// are tracked by the MemoryProfiler (defaulting to 'Unknown' tag or current thread tag).
+
+void* operator new(size_t size) {
+    return shine::co::Memory::Alloc(size);
+}
+
+void* operator new[](size_t size) {
+    return shine::co::Memory::Alloc(size);
+}
+
+void operator delete(void* p) noexcept {
+    shine::co::Memory::Free(p);
+}
+
+void operator delete[](void* p) noexcept {
+    shine::co::Memory::Free(p);
+}
+
+void operator delete(void* p, size_t size) noexcept {
+    shine::co::Memory::Free(p);
+}
+
+void operator delete[](void* p, size_t size) noexcept {
+    shine::co::Memory::Free(p);
+}
+
+// C++17 Aligned New/Delete
+void* operator new(size_t size, std::align_val_t al) {
+    return shine::co::Memory::Alloc(size, static_cast<size_t>(al));
+}
+
+void* operator new[](size_t size, std::align_val_t al) {
+    return shine::co::Memory::Alloc(size, static_cast<size_t>(al));
+}
+
+void operator delete(void* p, std::align_val_t al) noexcept {
+    shine::co::Memory::Free(p);
+}
+
+void operator delete[](void* p, std::align_val_t al) noexcept {
+    shine::co::Memory::Free(p);
+}
+
+void operator delete(void* p, size_t size, std::align_val_t al) noexcept {
+    shine::co::Memory::Free(p);
+}
+
+void operator delete[](void* p, size_t size, std::align_val_t al) noexcept {
+    shine::co::Memory::Free(p);
+}

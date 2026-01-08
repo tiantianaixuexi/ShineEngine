@@ -144,7 +144,21 @@ call :log_info "Configuring CMake project..."
 cmake -B "%BUILD_DIR%" -S . -G "%GENERATOR_NAME%" %ARCH_ARGS% %CMAKE_COMMON_FLAGS% %CMAKE_TARGET_MODULE% -DREBUILD_DEPS=ON || call :error_exit "CMake configuration failed"
 
 call :log_info "Starting build..."
-cmake --build "%BUILD_DIR%" --config "%BUILD_CONFIG%" %TARGET_PARAM% --parallel %CLEAN_FIRST% || call :error_exit "Build failed"
+
+:: Pre-build cleanup as requested
+if "%TARGET_NAME%"=="MainEngine" (
+    if exist "exe\MainEngine.exe" (
+        call :log_info "Deleting existing exe\MainEngine.exe..."
+        del /q "exe\MainEngine.exe"
+    )
+    if exist "exe\MainEngined.exe" (
+        call :log_info "Deleting existing exe\MainEngined.exe..."
+        del /q "exe\MainEngined.exe"
+    )
+)
+
+cmake --build "%BUILD_DIR%" --config "%BUILD_CONFIG%" %TARGET_PARAM% --parallel %CLEAN_FIRST%
+if errorlevel 1 call :error_exit "Build failed" & exit /b 1
 
 call :log_success "Build successful!"
 
@@ -163,10 +177,6 @@ if "%T_NAME%"=="" set T_NAME=MainEngine
 
 set SUFFIX=
 if /i "%T_CONFIG%"=="Debug" set SUFFIX=d
-
-:: Clean existing executables before running new build to ensure we run the latest version
-if exist "exe\%T_NAME%%SUFFIX%.exe" del /q "exe\%T_NAME%%SUFFIX%.exe" >nul 2>&1
-if exist "exe\%T_NAME%.exe" del /q "exe\%T_NAME%.exe" >nul 2>&1
 
 set FOUND_EXE=
 for %%p in (

@@ -50,6 +50,8 @@ namespace shine::co {
         Resource,
         Physics,
         AI,
+        Reflection,
+        Script,
         Count
     };
 

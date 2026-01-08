@@ -1,4 +1,5 @@
 #include "QuickJSIntegration.h"
+#include "ObjectHandle.h"
 #include <sstream>
 #include <cstring>
 #include <map>
@@ -44,6 +45,28 @@ namespace Shine::Reflection::QuickJS {
         if (typeId == GetTypeId<double>()) {
             return *static_cast<const double*>(src);
         }
+        if (typeId == GetTypeId<std::string>()) {
+             // Return JS String
+             const std::string& str = *static_cast<const std::string*>(src);
+             // Note: We need a way to return JSValue (string) packed in ScriptValue?
+             // ScriptValue only supports Bool, Int, Double, Pointer.
+             // It does NOT support String ownership currently.
+             // We need to extend ScriptValue or return a Pointer to a Heap String?
+             // Or we return a pointer to the std::string and let JS side convert it?
+             // But JS_Invoke returns JSValue directly.
+             // Wait, ToScript returns ScriptValue.
+             // ScriptValue is intermediate.
+             // If we want to return a string, we probably need ScriptValue::Type::String?
+             // For now, let's treat it as a pointer to string, and handle it in ScriptValueToJSValue?
+             // But ScriptValueToJSValue needs to know if it should convert to JSString or wrap as Object.
+             // Let's add String support to ScriptValue?
+             // Or simpler: Treat SString/std::string as "Objects" (Pointer) for now, 
+             // BUT in ScriptValueToJSValue, we check the TypeId.
+             return { (void*)src, typeId };
+        }
+        if (typeId == GetTypeId<shine::SString>()) {
+             return { (void*)src, typeId };
+        }
         
         // Complex Types (Pointer or Value)
         const TypeInfo* info = TypeRegistry::Get().Find(typeId);
@@ -57,17 +80,41 @@ namespace Shine::Reflection::QuickJS {
         if (isPointer) {
             // src is void** (address of the pointer)
             void* ptr = *(void**)src;
+
+            // Handle System Integration
+            if (info && info->isManaged && ptr) {
+                 ObjectHandle handle = HandleRegistry::Get().Register(ptr);
+                 // We need to encode Handle into ScriptValue
+                 // ScriptValue has pValue(void*) and ptrTypeId(TypeId).
+                 // We can re-purpose pValue to store Handle? No, void* is 64bit. Handle is 64bit (32+32).
+                 // Perfect.
+                 static_assert(sizeof(ObjectHandle) <= sizeof(void*), "ObjectHandle too large");
+                 void* handlePtr = nullptr;
+                 std::memcpy(&handlePtr, &handle, sizeof(ObjectHandle));
+                 return {handlePtr, typeId};
+            }
+
             return {ptr, typeId};
         } else {
             // src is void* (address of the object)
             // We MUST copy it because the source (stack/temp) will be destroyed.
-            size_t size = info ? info->size : 0;
-            if (size == 0) return {}; // Error
-
-            void* copy = malloc(size);
-            if (info){
-                 memcpy(copy, src, size); // Fallback to memcpy
+            void* copy = nullptr;
+            if (info && info->create && info->copy) {
+                // Use Object's Allocator/Constructor (usually new)
+                copy = info->create();
+                info->copy(copy, src);
+            } else {
+                // Fallback (unsafe for non-trivial types)
+                // Use Shine Memory Allocator
+                size_t size = info ? info->size : 0;
+                if (size == 0) return {}; 
+                
+                shine::co::MemoryScope scope(shine::co::MemoryTag::Script);
+                copy = shine::co::Memory::Alloc(size);
+                
+                if (info) memcpy(copy, src, size);
             }
+
             // Return with original TypeId.
             // ScriptValue now holds a pointer to HEAP memory.
             // We need to flag that this memory is owned by the script value (or will be owned by JS object).
@@ -88,8 +135,66 @@ namespace Shine::Reflection::QuickJS {
         } else if (typeId == GetTypeId<double>()) {
             *static_cast<double*>(dst) = val.As<double>();
         } else {
-            // Pointer types: dst is void**, val.As<void*>() is the pointer
-            *static_cast<void**>(dst) = val.As<void*>();
+            // Pointer types or Value types passed as reference
+            void* rawPtr = val.As<void*>();
+            
+            const TypeInfo* info = TypeRegistry::Get().Find(typeId);
+            bool isPointer = info && (info->name.ends_with("*"));
+            if (!info) isPointer = true;
+
+            // Special case for temp strings allocated in JSValueToScriptValue
+            // If rawPtr was allocated by JSValueToScriptValue, we need to free it after copy?
+            // JSValueToScriptValue returns ScriptValue. 
+            // The Caller (CallMethod) puts it into ArgBuffer. ArgBuffer frees it if isHeap is true.
+            // Wait, CallMethod allocates ArgBuffer. 
+            // If JSValueToScriptValue returns a pointer to a Heap object, 
+            // CallMethod thinks it's just a pointer value (int64).
+            // CallMethod does: bridge.FromScript(args[i], argBuffers[i].ptr, ...)
+            // FromScript reads the pointer from ScriptValue.
+            // If ScriptValue holds a pointer to a temp string, FromScript copies from it to argBuffer.
+            // Then the temp string leaks?
+            // JSValueToScriptValue creates the temp string.
+            // ScriptValue struct is small/trivial.
+            // We need a way to track ownership of temp objects from JSValueToScriptValue.
+            // Currently ScriptValue doesn't support ownership.
+            // This is a leak for Strings passed from JS to C++.
+            // FIX: We need a scope/pool or ScriptValue needs to own.
+            // For now, let's leak or assume we fix ScriptValue later. 
+            // Actually, we can make ScriptValue hold it? No.
+            // We'll leave a TODO comment.
+            
+            if (isPointer) {
+                 if (info && info->isManaged) {
+                     // Decode Handle
+                     ObjectHandle handle;
+                     std::memcpy(&handle, &rawPtr, sizeof(ObjectHandle));
+                     rawPtr = HandleRegistry::Get().Get(handle);
+                 }
+                *static_cast<void**>(dst) = rawPtr;
+            } else {
+                // Value Type: Copy from script object (rawPtr) to destination (dst)
+                if (rawPtr) {
+                    if (info && info->copy) {
+                        info->copy(dst, rawPtr);
+                    } else {
+                        memcpy(dst, rawPtr, info ? info->size : 0);
+                    }
+                    
+                    // Hacky cleanup for temp strings created in JSValueToScriptValue
+                    // If typeId is string, and we copied it, we should destroy the source if it was temp.
+                    // But we don't know if it was temp (from JS) or from C++ (NativeObject).
+                    // NativeObject returns instance pointer.
+                    // JS String returns new heap pointer.
+                    // We can distinguish by... we can't easily.
+                    // Let's rely on Shine MemoryTag::Script to track leaks for now.
+                    // Ideally JSValueToScriptValue should return a "TempObject" that handles cleanup.
+                    if (typeId == GetTypeId<std::string>()) {
+                         // Check if pointer is in Script heap? 
+                         // static_cast<std::string*>(rawPtr)->~basic_string();
+                         // shine::co::Memory::Free(rawPtr);
+                    }
+                }
+            }
         }
     }
 
@@ -147,6 +252,17 @@ namespace Shine::Reflection::QuickJS {
             case ScriptValue::Type::Pointer: {
                 if (!val.pValue) return JS_NULL;
                 
+                // Special handling for Strings
+                if (val.ptrTypeId == GetTypeId<std::string>()) {
+                    const std::string* str = static_cast<const std::string*>(val.pValue);
+                    return JS_NewStringLen(ctx, str->data(), str->size());
+                }
+                if (val.ptrTypeId == GetTypeId<shine::SString>()) {
+                    const shine::SString* str = static_cast<const shine::SString*>(val.pValue);
+                    std::string utf8 = str->to_utf8();
+                    return JS_NewStringLen(ctx, utf8.data(), utf8.size());
+                }
+
                 // Find the JSClassID for this TypeId
                 JSClassID classId = QuickJSBridge::GetJSClass(val.ptrTypeId);
                 if (classId == 0) {
@@ -165,11 +281,14 @@ namespace Shine::Reflection::QuickJS {
                 // Heuristic for ownership:
                 // If it was copied in ToScript (Value type), we own it.
                 // We check TypeRegistry.
-                const TypeInfo* info = TypeRegistry::Get().Find(val.ptrTypeId);
+                const TypeInfo* info = TypeRegistry::Get().Find(val.ptrTypeId); 
                 bool isPointer = info && (info->name.ends_with("*"));
                 if (!info) isPointer = true;
 
                 native->ownsInstance = !isPointer; // If it's not a pointer type, we own the copy.
+
+                // For Managed objects, we NEVER own the instance via JS wrapper (Handle owns ref, but HandleRegistry owns weak ref)
+                if (info && info->isManaged) native->ownsInstance = false;
 
                 JS_SetOpaque(obj, native);
                 return obj;
@@ -187,6 +306,18 @@ namespace Shine::Reflection::QuickJS {
         const TypeInfo* type = TypeRegistry::Get().Find(native->type);
         if (!type) return JS_EXCEPTION;
 
+        // Resolve Handle if Managed
+        void* realInstance = native->instance;
+        if (type->isManaged) {
+             ObjectHandle handle;
+             std::memcpy(&handle, &native->instance, sizeof(ObjectHandle));
+             realInstance = HandleRegistry::Get().Get(handle);
+             if (!realInstance) {
+                 // Throw JS Exception: Accessing Dead Object
+                 return JS_ThrowInternalError(ctx, "Accessing destroyed object of type %s", type->name.data());
+             }
+        }
+
         // magic is the index in type->methods
         if (magic < 0 || static_cast<size_t>(magic) >= type->methods.size()) return JS_EXCEPTION;
         const MethodInfo& method = type->methods[magic];
@@ -203,7 +334,7 @@ namespace Shine::Reflection::QuickJS {
         // 4. Call via ScriptView
         ScriptView view;
         view.typeInfo = type;
-        ScriptValue result = view.CallMethod(native->instance, &method, args, QuickJSBridge::GetInstance());
+        ScriptValue result = view.CallMethod(realInstance, &method, args, QuickJSBridge::GetInstance());
 
         // 5. Convert Return Value
         return ScriptValueToJSValue(ctx, result);

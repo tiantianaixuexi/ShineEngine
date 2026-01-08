@@ -10,6 +10,7 @@
 #include "editor/views/PropertiesView.h"
 #include "editor/views/ImageViewerView.h"
 #include "editor/views/SettingsView.h"
+#include "editor/views/Profiler/MemoryProfiler.h"
 #include "views/MainEditor/MainEditorToolbar.h"
 
 namespace shine::editor::main_editor {
@@ -27,10 +28,11 @@ namespace shine::editor::main_editor {
 		delete propertiesView;
 		delete imageViewerView;
         delete settingsView;
+        delete memoryProfiler;
 	}
 
 	void MainEditor::Init() {
-
+        fmt::println("[MainEditor] Init Start");
 
 		myButton = new widget::button::shineButton("应用编辑");
 
@@ -51,6 +53,9 @@ namespace shine::editor::main_editor {
 
 		myButton->SetOnUnHovered([]() { fmt::println("应用编辑按钮停止"); });
 
+        // 提前初始化内存监控，以便尽早可用
+        memoryProfiler = new views::MemoryProfiler();
+        fmt::println("[MainEditor] MemoryProfiler initialized: {}", (void*)memoryProfiler);
 
 		mainEditorToolbar = new views::SMainEditorToolbar(this);
 
@@ -136,6 +141,12 @@ namespace shine::editor::main_editor {
             settingsView->Render();
         }
 
+        // 渲染内存监控
+        if (memoryProfiler)
+        {
+            memoryProfiler->Render();
+        }
+
 		// 渲染ImGui界面
 		ImGui::Render();
 	}
@@ -144,4 +155,19 @@ namespace shine::editor::main_editor {
 	{
 		return assetsBrower->SetShow();
 	}
+
+    bool MainEditor::setMemoryProfilerOpen(bool open)
+    {
+        if (memoryProfiler)
+        {
+            memoryProfiler->IsOpen() = open;
+            return true;
+        }
+        return false;
+    }
+
+    bool MainEditor::getMemoryProfilerOpen() const
+    {
+        return memoryProfiler ? memoryProfiler->IsOpen() : false;
+    }
 } // namespace shine::editor::main_editor
