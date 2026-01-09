@@ -14,6 +14,12 @@ import <source_location>;
 #include "memory.ixx"
 #endif
 
+// Include mimalloc source directly for static linking
+#if !defined(SHINE_USE_MODULE)
+#define MI_MALLOC_IMPLEMENTATION
+#include "../third/mimalloc/mimalloc.h"
+#endif
+
 namespace shine::co {
 
     // ============================================================

@@ -4,13 +4,24 @@
     "test/SimplePerfTest"
   ],
   "deps": [
-    "yyjson",
-    "fmt",
-    "shine_json"
+    "string_util",
+    "memory"
   ],
   "defines": [
     "TEST_BUILD"
   ],
+  "link": {
+    "debug": {
+      "lib": [
+        "mimallocd.lib"
+      ]
+    },
+    "release": {
+      "lib": [
+        "mimalloc.lib"
+      ]
+    }
+  },
   "type": [
     "exe"
   ],
