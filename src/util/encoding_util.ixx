@@ -22,9 +22,20 @@ import <string_view>;
 
 namespace shine::util
 {
-    class EncodingUtil
+    struct UTF32Char
+    {
+        unsigned int mCharCode;
+        unsigned int mByteCount;
+
+        constexpr auto operator<=>(const UTF32Char&) const = default;
+        constexpr bool operator==(const UTF32Char&) const = default;
+    };
+
+  
+	class EncodingUtil
     {
     public:
+
         using UTF32CharType = UTF32Char;
 
         [[nodiscard]] static size_t UTF8ToUTF32Char(const unsigned char* src, unsigned int& dst);

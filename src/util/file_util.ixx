@@ -499,7 +499,7 @@ namespace shine::util
 	 */
 	inline std::string JoinPath(STextView first)
 	{
-		return first.to_utf8();
+		return first.to_string();
 	}
 
 	inline std::string JoinPath(const std::string& first)
@@ -515,9 +515,8 @@ namespace shine::util
 	template<typename... Args>
 	std::string JoinPath(STextView first, Args... rest)
 	{
-		std::string result = first.to_utf8();
-		std::string parts[] = { STextView(rest).to_utf8()... };
-		for (const auto& part : parts)
+		std::string result = first.to_string();
+		for (std::string parts[] = { STextView(rest).to_string()... }; const auto& part : parts)
 		{
 			result = JoinPath(result, part);
 		}

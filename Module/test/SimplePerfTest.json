@@ -5,7 +5,8 @@
   ],
   "deps": [
     "string_util",
-    "memory"
+    "memory",
+    "fmt"
   ],
   "defines": [
     "TEST_BUILD"

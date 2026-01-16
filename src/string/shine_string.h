@@ -538,52 +538,52 @@ namespace shine
         char* _p = _sso;
     };
 
-    [[nodiscard]] SString operator+(const SString& lhs, const SString& rhs) {
+    [[nodiscard]] inline SString operator+(const SString& lhs, const SString& rhs) {
         SString result(lhs.size() + rhs.size());
         result.append(lhs.view());
         result.append(rhs.view());
         return result;
     }
 
-    [[nodiscard]] SString operator+(const SString& lhs, std::string_view rhs) {
+    [[nodiscard]] inline SString operator+(const SString& lhs, std::string_view rhs) {
         SString result(lhs.size() + rhs.size());
         result.append(lhs.view());
         result.append(rhs);
         return result;
     }
 
-    [[nodiscard]] SString operator+(std::string_view lhs, const SString& rhs) {
+    [[nodiscard]] inline SString operator+(std::string_view lhs, const SString& rhs) {
         SString result(lhs.size() + rhs.size());
         result.append(lhs);
         result.append(rhs.view());
         return result;
     }
 
-    [[nodiscard]] SString operator+(const SString& lhs, const char* rhs) {
+    [[nodiscard]] inline SString operator+(const SString& lhs, const char* rhs) {
         return lhs + SString(rhs);
     }
 
-    [[nodiscard]] SString operator+(const char* lhs, const SString& rhs) {
+    [[nodiscard]] inline SString operator+(const char* lhs, const SString& rhs) {
         return SString(lhs) + rhs;
     }
 
-    [[nodiscard]] bool operator==(const SString& lhs, const SString& rhs) noexcept {
+    [[nodiscard]] inline bool operator==(const SString& lhs, const SString& rhs) noexcept {
         return lhs.sv() == rhs.sv();
     }
 
-    [[nodiscard]] bool operator==(const SString& lhs, std::string_view rhs) noexcept {
+    [[nodiscard]] inline bool operator==(const SString& lhs, std::string_view rhs) noexcept {
         return lhs.sv() == rhs;
     }
 
-    [[nodiscard]] bool operator==(std::string_view lhs, const SString& rhs) noexcept {
+    [[nodiscard]] inline bool operator==(std::string_view lhs, const SString& rhs) noexcept {
         return lhs == rhs.sv();
     }
 
-    [[nodiscard]] bool operator!=(const SString& lhs, const SString& rhs) noexcept {
+    [[nodiscard]] inline bool operator!=(const SString& lhs, const SString& rhs) noexcept {
         return !(lhs == rhs);
     }
 
-    [[nodiscard]] std::strong_ordering operator<=>(const SString& lhs, const SString& rhs) noexcept {
+    [[nodiscard]] inline std::strong_ordering operator<=>(const SString& lhs, const SString& rhs) noexcept {
         return lhs.sv() <=> rhs.sv();
     }
 }

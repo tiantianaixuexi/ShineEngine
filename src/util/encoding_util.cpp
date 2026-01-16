@@ -1,5 +1,7 @@
 #include "encoding_util.ixx"
 
+#include "editor/views/EditorView.h"
+
 namespace shine::util
 {
     size_t EncodingUtil::UTF8ToUTF32Char(const unsigned char* src, unsigned int& dst)
@@ -305,8 +307,10 @@ namespace shine::util
         while (p < end)
         {
             char32_t cp = 0;
-            size_t byteCount = UTF8ToUTF32Char(p, cp);
-            if (byteCount == 0) break;
+            // Use span-based overload for bounds safety and type matching
+            int len = UTF8ToUTF32Char(std::span<const unsigned char>(p, end), cp);
+            if (len <= 0) break;
+            size_t byteCount = static_cast<size_t>(len);
 
             result.push_back(static_cast<wchar_t>(cp));
             p += byteCount;

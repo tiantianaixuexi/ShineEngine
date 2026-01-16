@@ -1,43 +1,44 @@
-#include <iostream>
 #include <string>
 #include <chrono>
 #include <numeric>
 #include <format>
 
 #include "../../src/string/shine_string.h"
+#include "fmt/base.h"
+#include "fmt/format.h"
 
 void test_correctness() {
-    std::cout << "=== 正确性测试 ===\n";
+    fmt::println("=== 正确性测试 ===\n");
     
     {
         shine::SString s = shine::SString::from_utf8("aaa bbb aaa ccc aaa");
         s.replace_inplace(shine::STextView::from_cstring("aaa"), shine::STextView::from_cstring("XXX"));
         std::string expected = "XXX bbb XXX ccc XXX";
-        std::cout << "多次替换: " << (s.to_utf8() == expected ? "PASS" : "FAIL") << "\n";
+        fmt::println("多次替换: {}",(s.to_utf8() == expected ? "PASS" : "FAIL"));
     }
     
     {
         shine::SString s = shine::SString::from_utf8("Hello World");
         s.replace_inplace(shine::STextView::from_cstring("World"), shine::STextView::from_cstring("C++"));
         std::string expected = "Hello C++";
-        std::cout << "单次替换: " << (s.to_utf8() == expected ? "PASS" : "FAIL") << "\n";
+        fmt::println("单次替换: {}", (s.to_utf8() == expected ? "PASS" : "FAIL"));
     }
     
     {
         shine::SString s = shine::SString::from_utf8("ABC");
         auto result = s.replace(shine::STextView::from_cstring("B"), shine::STextView::from_cstring("XX"));
         std::string expected = "AXXC";
-        std::cout << "replace 返回: " << (result.to_utf8() == expected ? "PASS" : "FAIL") << "\n";
+        fmt::println("replace 返回: {}",(result.to_utf8() == expected ? "PASS" : "FAIL"));
     }
     
     {
         shine::SString s = shine::SString::from_utf8("Hello World");
         bool result = s.replace_first(shine::STextView::from_cstring("World"), shine::STextView::from_cstring("C++"));
         std::string expected = "Hello C++";
-        std::cout << "replace_first: " << (s.to_utf8() == expected && result ? "PASS" : "FAIL") << "\n";
+        fmt::println("replace_first: {}", (s.to_utf8() == expected && result ? "PASS" : "FAIL"));
     }
     
-    std::cout << "\n";
+    fmt::println("");
 }
 
 struct BenchmarkResult {
@@ -48,7 +49,7 @@ struct BenchmarkResult {
 };
 
 void benchmark() {
-    std::cout << "=== 性能测试 (10000次迭代) ===\n\n";
+    fmt::println( "=== 性能测试 (10000次迭代) ===");
     
     const int ITER = 10000;
     
@@ -61,7 +62,7 @@ void benchmark() {
             auto end = std::chrono::high_resolution_clock::now();
             times.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
         }
-        double avg = std::accumulate(times.begin(), times.end(), 0LL) / (double)times.size();
+        double avg = std::accumulate(times.begin(), times.end(), 0LL) / static_cast<double>(times.size());
         return avg;
     };
     
@@ -70,7 +71,7 @@ void benchmark() {
     int s_wins = 0, std_wins = 0;
     
     // 测试1: 小字符串替换
-    std::cout << "【1】小字符串替换 (Hello World -> Hello C++)\n";
+    fmt::println( "【1】小字符串替换 (Hello World -> Hello C++)");
     double s1 = measure([&]() {
         shine::SString s = shine::SString::from_utf8("Hello World");
         s.replace_first(shine::STextView::from_literal("World"), shine::STextView::from_literal("C++"));
@@ -87,12 +88,12 @@ void benchmark() {
     results[0].speedup = results[0].std_time / results[0].s_time;
     if (results[0].s_wins) ++s_wins; else ++std_wins;
     
-    std::cout << std::format("  SString    : {:>10.0f} ns  std::string: {:>10.0f} ns    胜者: {}\n", 
+    fmt::println( "  SString : {:>10.0f} ns  std::string: {:>10.0f} ns    胜者: {}\n", 
         results[0].s_time, results[0].std_time, results[0].s_wins ? "SString" : "std::string");
-    std::cout << "\n";
+    fmt::println( "");
     
     // 测试2: Copy 构造 (SSO)
-    std::cout << "【2】Copy 构造 (SSO, 20字节)\n";
+    fmt::println( "【2】Copy 构造 (SSO, 20字节)");
     shine::SString src1 = shine::SString::from_utf8("Hello World 123!");
     results[1].s_time = measure([&]() {
         shine::SString copy = src1;
@@ -106,12 +107,12 @@ void benchmark() {
     results[1].s_wins = results[1].s_time < results[1].std_time;
     if (results[1].s_wins) ++s_wins; else ++std_wins;
     
-    std::cout << std::format("  SString    : {:>10.0f} ns  std::string: {:>10.0f} ns\n", 
+    fmt::println( "  SString    : {:>10.0f} ns  std::string: {:>10.0f} ns\n", 
         results[1].s_time, results[1].std_time);
-    std::cout << "\n";
+    fmt::println( "");
     
     // 测试3: Copy 构造 (Heap, 100字节)
-    std::cout << "【3】Copy 构造 (Heap, 100字节)\n";
+    fmt::println( "【3】Copy 构造 (Heap, 100字节)");
     std::string long_str(100, 'x');
     shine::SString src2 = shine::SString::from_utf8(long_str);
     results[2].s_time = measure([&]() {
@@ -126,12 +127,12 @@ void benchmark() {
     results[2].speedup = results[2].std_time / results[2].s_time;
     if (results[2].s_wins) ++s_wins; else ++std_wins;
     
-    std::cout << std::format("  SString    : {:>10.0f} ns  std::string: {:>10.0f} ns    胜者: {}\n", 
+    fmt::println( "  SString    : {:>10.0f} ns  std::string: {:>10.0f} ns    胜者: {}\n", 
         results[2].s_time, results[2].std_time, results[2].s_wins ? "SString" : "std::string");
-    std::cout << "\n";
+    fmt::println( "");
     
     // 测试4: Move 构造
-    std::cout << "【4】Move 构造 (30字节)\n";
+    fmt::println( "【4】Move 构造 (30字节)");
     results[3].s_time = measure([&]() {
         shine::SString s = shine::SString::from_utf8("Move me! Move me! Move!");
     }, s_times);
@@ -143,12 +144,12 @@ void benchmark() {
     results[3].s_wins = results[3].s_time < results[3].std_time;
     if (results[3].s_wins) ++s_wins; else ++std_wins;
     
-    std::cout << std::format("  SString    : {:>10.0f} ns  std::string: {:>10.0f} ns\n", 
+    fmt::println( "  SString    : {:>10.0f} ns  std::string: {:>10.0f} ns\n", 
         results[3].s_time, results[3].std_time);
-    std::cout << "\n";
+    fmt::println( "");
     
     // 测试5: find 搜索
-    std::cout << "【5】find 搜索 (The quick brown fox...)\n";
+    fmt::println( "【5】find 搜索 (The quick brown fox...)");
     shine::SString search_s = shine::SString::from_utf8("The quick brown fox jumps over the lazy dog");
     results[4].s_time = measure([&]() {
         volatile auto p = search_s.find(shine::STextView::from_cstring("fox"));
@@ -163,12 +164,12 @@ void benchmark() {
     results[4].speedup = results[4].std_time / results[4].s_time;
     if (results[4].s_wins) ++s_wins; else ++std_wins;
     
-    std::cout << std::format("  SString    : {:>10.0f} ns  std::string: {:>10.0f} ns    胜者: {}\n", 
+    fmt::println( "  SString    : {:>10.0f} ns  std::string: {:>10.0f} ns    胜者: {}\n", 
         results[4].s_time, results[4].std_time, results[4].s_wins ? "SString" : "std::string");
-    std::cout << "\n";
+    fmt::println( "");
     
     // 测试6: 多次替换
-    std::cout << "【6】多次替换 (aaa bbb aaa ccc aaa -> XXX)\n";
+    fmt::println( "【6】多次替换 (aaa bbb aaa ccc aaa -> XXX)");
     shine::SString multi_s = shine::SString::from_utf8("aaa bbb aaa ccc aaa");
     results[5].s_time = measure([&]() {
         shine::SString temp = multi_s;
@@ -189,12 +190,12 @@ void benchmark() {
     results[5].speedup = results[5].std_time / results[5].s_time;
     if (results[5].s_wins) ++s_wins; else ++std_wins;
     
-    std::cout << std::format("  SString    : {:>10.0f} ns  std::string: {:>10.0f} ns    胜者: {}\n", 
+    fmt::println( "  SString    : {:>10.0f} ns  std::string: {:>10.0f} ns    胜者: {}\n", 
         results[5].s_time, results[5].std_time, results[5].s_wins ? "SString" : "std::string");
-    std::cout << "\n";
+    fmt::println( "");
     
     // 测试7: append 操作
-    std::cout << "【7】append 操作\n";
+    fmt::println( "【7】append 操作");
     shine::SString app_s = shine::SString::from_utf8("Hello");
     results[6].s_time = measure([&]() {
         shine::SString temp = app_s;
@@ -210,12 +211,12 @@ void benchmark() {
     results[6].s_wins = results[6].s_time < results[6].std_time;
     if (results[6].s_wins) ++s_wins; else ++std_wins;
     
-    std::cout << std::format("  SString    : {:>10.0f} ns  std::string: {:>10.0f} ns\n", 
+    fmt::println( "  SString    : {:>10.0f} ns  std::string: {:>10.0f} ns\n", 
         results[6].s_time, results[6].std_time);
-    std::cout << "\n";
+    fmt::println( "");
     
     // 测试8: 长字符串替换 (核心优势!)
-    std::cout << "【8】长字符串替换 (10KB, 1000次迭代) *** 核心优势 ***\n";
+    fmt::println( "【8】长字符串替换 (10KB, 1000次迭代) *** 核心优势 ***");
     {
         std::string long_str2;
         for (int i = 0; i < 10000; ++i) {
@@ -254,48 +255,49 @@ void benchmark() {
         results[7].speedup = results[7].std_time / results[7].s_time;
         ++s_wins;
         
-        std::cout << std::format("  SString    : {:>10.0f} ns ({:.2f} μs)\n", results[7].s_time, results[7].s_time / 1000.0);
-        std::cout << std::format("  std::string: {:>10.0f} ns ({:.2f} μs)\n", results[7].std_time, results[7].std_time / 1000.0);
-        std::cout << std::format("\n  SString 快 {:.1f}x !!!\n", results[7].speedup);
+        fmt::println( "  SString    : {:>10.0f} ns ({:.2f} μs)\n", results[7].s_time, results[7].s_time / 1000.0);
+        fmt::println( "  std::string: {:>10.0f} ns ({:.2f} μs)\n", results[7].std_time, results[7].std_time / 1000.0);
+        fmt::println( "\n  SString 快 {:.1f}x !!!\n", results[7].speedup);
     }
     
-    std::cout << "\n";
+    fmt::println( "");
     
     // 动态生成总结
-    std::cout << "╔════════════════════════════════════════════════════╗\n";
-    std::cout << "║                    总结                              ║\n";
-    std::cout << "╠════════════════════════════════════════════════════╣\n";
-    std::cout << std::format("║  SString 胜场: {} | std::string 胜场: {}                  ║\n", s_wins, std_wins);
-    std::cout << "╠════════════════════════════════════════════════════╣\n";
+    fmt::println( "╔════════════════════════════════════════════════════╗");
+    fmt::println( "║                    总结                              ║");
+    fmt::println( "╠════════════════════════════════════════════════════╣");
+    fmt::println( "║  SString 胜场: {} | std::string 胜场: {}                  ║\n", s_wins, std_wins);
+    fmt::println( "╠════════════════════════════════════════════════════╣");
     
     // 找出优势场景和劣势场景
     std::string best_scenario, worst_scenario;
     double best_speedup = 0, worst_speedup = 1000.0;
     
-    for (int i = 0; i < 8; ++i) {
-        if (results[i].speedup > best_speedup && results[i].s_wins) {
-            best_speedup = results[i].speedup;
-            best_speedup = results[i].speedup;
+    for (auto& result : results)
+    {
+        if (result.speedup > best_speedup && result.s_wins) {
+            best_speedup = result.speedup;
+            best_speedup = result.speedup;
         }
-        if (results[i].speedup < worst_speedup && !results[i].s_wins) {
-            worst_speedup = results[i].std_time / results[i].s_time;
+        if (result.speedup < worst_speedup && !result.s_wins) {
+            worst_speedup = result.std_time / result.s_time;
         }
     }
     
     if (best_speedup > 1) {
-        std::cout << std::format("║  最大优势:     {:.1f}x 快                              ║\n", best_speedup);
+        fmt::println( "║  最大优势:  {:.1f}x 快                              ║\n", best_speedup);
     }
     if (worst_speedup > 1 && worst_speedup < 1000) {
-        std::cout << std::format("║  最大劣势:     {:.1f}x 慢                              ║\n", worst_speedup);
+        fmt::println( "║  最大劣势:  {:.1f}x 慢                              ║\n", worst_speedup);
     }
-    std::cout << "╚════════════════════════════════════════════════════╝\n";
+    fmt::println( "╚════════════════════════════════════════════════════╝");
 }
 
 int main() {
-    std::cout << "╔════════════════════════════════════════════════════╗\n";
-    std::cout << "║       ShineEngine SString vs std::string           ║\n";
-    std::cout << "║              完整性能测试对比                       ║\n";
-    std::cout << "╚════════════════════════════════════════════════════╝\n\n";
+    fmt::println( "╔════════════════════════════════════════════════════╗");
+    fmt::println( "║       ShineEngine SString vs std::string           ║");
+    fmt::println( "║              完整性能测试对比                       ║");
+    fmt::println( "╚════════════════════════════════════════════════════╝");
     
     test_correctness();
     benchmark();

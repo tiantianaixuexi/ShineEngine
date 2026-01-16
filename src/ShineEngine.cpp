@@ -1,50 +1,19 @@
 
 #ifdef BUILD_EDITOR
+
 #include "editor/editorPlayer/editor_play.h"
 #endif
+
 #include "manager/InputManager.h"
 
 #ifdef SHINE_PLATFORM_WASN
 
-#include <emscripten.h>
-#include <emscripten/html5.h>
 #include <GLES/gl2.h>
 
-static void update()
-{
-    auto t = emscripten_get_now();
-    glClear(GL_COLOR_BUFFER_BIT);
-}
+
 
 int main(int argc,char** argv)
 {
-
-	EmscriptenWebGLContextAttributes  attrs;
-	attrs.alpha = false;
-    attrs.depth = true;
-    attrs.stencil = true;
-    attrs.antialias = true;
-    attrs.premultipliedAlpha = false;
-    attrs.preserveDrawingBuffer = false;
-    attrs.preferLowPowerToHighPerformance = false;
-    attrs.failIfMajorPerformanceCaveat = false;
-    attrs.majorVersion = 1;
-    attrs.minorVersion = 0;
-    attrs.enableExtensionsByDefault = false;
-
-	int ctx = emscripten_webgl_create_context(0, &attrs);
-    if(!ctx)
-    {
-        printf("Webgl ctx could not be created!\n");
-        return -1;
-    }    
-
-    emscripten_webgl_make_context_current(ctx);
-    glClearColor(0,0,1,1);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-
-	emscripten_set_main_loop(WasmMainLoop, 0, 1);
 
     return 1;
 }
@@ -88,6 +57,13 @@ int main(int argc,char** argv)
 #include "manager/AssetManager.h"
 #include "gameplay/tick/tickManager.h"
 #include "EngineCore/engine_context.h"
+
+// Include Memory
+#ifdef SHINE_USE_MODULE
+import shine.memory;
+#else
+#include "memory/memory.ixx"
+#endif
 
 
 using namespace shine;
@@ -164,13 +140,6 @@ int main(int argc, char** argv) {
 	auto Camera = context.GetSystem<manager::CameraManager>();
 	auto& g_FPSManager = util::FPSController::get();
 
-    // Include Memory
-#ifdef SHINE_USE_MODULE
-import shine.memory;
-#else
-#include "memory/memory.ixx"
-#endif
-
 	bool done = false;
 	while (!done) {
         // shine::co::MemoryScope frameScope(shine::co::MemoryTag::Core);
@@ -246,5 +215,4 @@ import shine.memory;
 
 	return 0;
 }
-
 #endif

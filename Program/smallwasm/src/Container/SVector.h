@@ -5,11 +5,7 @@
 
 namespace shine::wasm
 {
-	// A tiny growable vector for -nostdlib builds (no STL).
-	// Notes:
-	// - Uses raw_malloc/raw_free (same as SArray).
-	// - Intentionally restricted to trivially copyable + trivially destructible types,
-	//   so we can grow via raw_memcpy without running element ctors/dtors.
+
 	template<typename T>
 	class SVector
 	{

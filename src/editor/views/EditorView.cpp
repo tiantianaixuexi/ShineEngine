@@ -23,25 +23,7 @@ void EditView::Render() {
     ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
     static float h = 30.0f;
 
-    // 创建水平分割面板
-    ImGui::Columns(2, "编辑器分割", true);
 
-    // 左侧视口
-    ImGui::Text("原始视图");
-    // ImVec2 leftSize = ImVec2(ImGui::GetContentRegionAvail().x,
-    // viewportPanelSize.y - h);
-    // ImGui::Image((ImTextureID)(static_cast<s64>(RenderBackend->g_FramebufferTexture)),
-    // leftSize);
-
-    bool left_viewport_hovered = ImGui::IsItemHovered();
-    if (left_viewport_hovered) {
-      ImGui::SetTooltip("原始OpenGL渲染内容");
-    }
-
-    ImGui::NextColumn();
-
-    // 右侧视口
-    ImGui::Text("编辑视图");
     ImVec2 rightSize = ImVec2(ImGui::GetContentRegionAvail().x, viewportPanelSize.y - h);
 
     // 渲染到该视口的FBO，再显示其纹理

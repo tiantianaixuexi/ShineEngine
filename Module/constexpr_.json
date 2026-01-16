@@ -1,0 +1,7 @@
+{
+    "name": "constexpr_",
+    "type": "interface",
+    "dirs": ["src/constexpr"],
+    "deps": [ ]
+}
+

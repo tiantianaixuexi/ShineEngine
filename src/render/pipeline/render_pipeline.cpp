@@ -100,7 +100,7 @@ namespace shine::render
         }
 
         // 提交命令缓冲区
-        if (cmdBuffer.GetCommandCount() > 0)
+        // if (cmdBuffer.GetCommandCount() > 0)
         {
             context.Submit(&cmdBuffer);
         }

@@ -55,7 +55,7 @@ namespace shine
         STextView& operator=(const STextView&) = default;
 
         static constexpr STextView from_cstring(const char* s) noexcept {
-            return STextView(s, std::char_traits<char>::length(s));
+            return { s, std::char_traits<char>::length(s) } ;
         }
 
         template <size_t N>
@@ -114,7 +114,7 @@ namespace shine
             return 0;
         }
 
-        [[nodiscard]] static std::pair<char32_t, int> utf8_to_utf32_char(std::string_view sv) noexcept {
+        static std::pair<char32_t, int> utf8_to_utf32_char(std::string_view sv) noexcept {
             if (sv.empty()) return {0, 0};
             unsigned char c = sv[0];
             if (c < 0x80) return {static_cast<char32_t>(c), 1};
@@ -133,7 +133,7 @@ namespace shine
             return {0xFFFD, 1};
         }
 
-        [[nodiscard]] static int utf32_to_utf8(char32_t cp, char* out) noexcept {
+        static int utf32_to_utf8(char32_t cp, char* out) noexcept {
             if (cp < 0x80) {
                 out[0] = static_cast<char>(cp);
                 return 1;
@@ -156,7 +156,7 @@ namespace shine
             return 4;
         }
 
-        [[nodiscard]] static char32_t decode_code_point(const char*& it, const char* end) {
+       static char32_t decode_code_point(const char*& it, const char* end) {
              if (it >= end) return 0;
              unsigned char c = *it++;
              if (c < 0x80) return c;

@@ -24,20 +24,11 @@ import <functional>;
 
 namespace shine::util
 {
-    struct UTF32Char
-    {
-        unsigned int mCharCode;
-        unsigned int mByteCount;
 
-        constexpr auto operator<=>(const UTF32Char&) const = default;
-        constexpr bool operator==(const UTF32Char&) const = default;
-    };
 
     class StringUtil
     {
     public:
-        using UTF32CharType = UTF32Char;
-
         // ===================== 字符串处理与查找 =====================
 
         /**

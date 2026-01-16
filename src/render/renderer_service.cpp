@@ -148,11 +148,11 @@ namespace shine::render
         m_RenderContext.SetExecuteCallback([this](CommandBuffer* cmdBuffer) {
             if (!cmdBuffer || !m_Backend) return;
 
-            // 获取当前视口句柄（使用第一个视口，或默认0）
-            ViewportHandle viewportHandle = 0;
-            if (!m_Viewports.empty())
+            // 获取当前视口句柄
+            ViewportHandle viewportHandle = m_CurrentViewportHandle;
+            if (viewportHandle == 0 && !m_Viewports.empty())
             {
-                viewportHandle = m_Viewports.begin()->first;
+                 viewportHandle = m_Viewports.begin()->first;
             }
 
             // 直接执行命令缓冲区，无需通过 ICommandList 回调

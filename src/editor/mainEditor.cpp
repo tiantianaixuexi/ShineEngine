@@ -38,17 +38,14 @@ namespace shine::editor::main_editor {
 
 		myButton->SetOnPressed([]() {
 			fmt::println("应用编辑按钮被按下");
-			// 在这里添加按钮按下后的编辑
 			});
 
 		myButton->SetOnReleased([]() {
 			fmt::println("应用编辑按钮被释放");
-			// 在这里添加按钮释放后的编辑
 			});
 
 		myButton->SetOnHovered([]() {
 			fmt::println("应用编辑按钮被悬停");
-			// 在这里添加按钮悬停后的编辑
 			});
 
 		myButton->SetOnUnHovered([]() { fmt::println("应用编辑按钮停止"); });

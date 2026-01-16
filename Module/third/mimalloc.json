@@ -1,20 +1,21 @@
 {
-    "name": "mimalloc",
-    "dirs": [
-        "src/third/mimalloc"
-    ],
-    "type": "third",
-    "link": {
-        "release": {
-            "lib": [
-                "mimalloc.lib"
-            ]
-        },
-        "debug": {
-            "lib": [
-                "mimallocd.lib"
-            ]
-        }
+  "name": "mimalloc",
+  "dirs": [
+    "src/third/mimalloc"
+  ],
+  "defines": [ "MI_SHARED_LIB" ],
+  "type": "third",
+  "link": {
+    "release": {
+      "lib": [
+        "mimalloc.lib"
+      ]
     },
-    "comment": "第三方库，内存池, https://github.com/microsoft/mimalloc"
+    "debug": {
+      "lib": [
+        "mimallocd.lib"
+      ]
+    }
+  },
+  "comment": "第三方库，内存池, https://github.com/microsoft/mimalloc"
 }

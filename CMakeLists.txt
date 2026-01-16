@@ -10,7 +10,7 @@ option(SHINE_WASM_DISPATCH_ONLY "Configure only wasm(subcmake) dispatch targets 
 option(SHINE_QUIET_MODULE_MESSAGES "Suppress module status messages during configure" OFF)
 # Target module name for selective output (empty = show all modules)
 set(SHINE_TARGET_MODULE "" CACHE STRING "Target module name for selective output")
-
+ 
 # C++20 模块支持
 option(SHINE_BUILD_MODULE "Enable C++20 modules support" OFF)
 
@@ -18,6 +18,8 @@ option(SHINE_BUILD_MODULE "Enable C++20 modules support" OFF)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # 构建类型配置
 if(CMAKE_CONFIGURATION_TYPES)
@@ -287,9 +289,7 @@ function(parse_and_cache_modules)
         if(WIN32)
             parse_json_array(${json_content} "files_windows" platform_files_list)
             list(APPEND files_list ${platform_files_list})
-        elseif(EMSCRIPTEN)
-            parse_json_array(${json_content} "files_wasm" platform_files_list)
-            list(APPEND files_list ${platform_files_list})
+
         elseif(ANDROID)
             parse_json_array(${json_content} "files_android" platform_files_list)
             list(APPEND files_list ${platform_files_list})
@@ -572,9 +572,11 @@ endfunction()
 # ================================
 # 统一设置编译定义
 # ================================
-function(set_target_defines target_name defines platforms types is_interface)
+function(set_target_defines target_name defines platforms types is_interface is_third)
     if(is_interface)
         set(scope INTERFACE)
+    elseif(is_third)
+        set(scope PUBLIC)
     else()
         set(scope PRIVATE)
     endif()
@@ -608,9 +610,11 @@ endfunction()
 # ================================
 # 统一链接第三方库
 # ================================
-function(link_third_party_libs target_name third_libs_debug third_libs_release is_interface)
+function(link_third_party_libs target_name third_libs_debug third_libs_release is_interface is_third)
     if(is_interface)
         set(scope INTERFACE)
+    elseif(is_third)
+        set(scope PUBLIC)
     else()
         set(scope PRIVATE)
     endif()
@@ -798,12 +802,31 @@ foreach(module_name ${MODULE_LIST})
             message(STATUS "  ${name} -> EXECUTABLE (Excluded from ALL)")
         endif()
     elseif(is_third)
-        add_library(${name} INTERFACE)
-        set(is_interface TRUE)
+        # 方案：使用 STATIC 库 + Dummy 源文件
+        # 这样既能在 VS 中显示文件（无需 _View 后缀），又能生成 .lib 文件避免 LNK1104 错误
+        
+        # 创建一个空的 dummy 源文件，强制生成 .lib
+        set(_dummy_file "${CMAKE_BINARY_DIR}/module_dummy/${name}_dummy.cpp")
+        if(NOT EXISTS "${_dummy_file}")
+            file(WRITE "${_dummy_file}" "// Dummy file to force static lib generation for ${name}\n")
+        endif()
+
+        set(_all_third_files ${header_files} ${source_files})
+        add_library(${name} STATIC ${_all_third_files} "${_dummy_file}")
+        set_target_properties(${name} PROPERTIES LINKER_LANGUAGE CXX)
+        
+        # 标记真实文件为只读头文件，防止被编译（避免符号冲突）
+        if(_all_third_files)
+            foreach(f ${_all_third_files})
+                set_source_files_properties(${f} PROPERTIES HEADER_FILE_ONLY TRUE)
+            endforeach()
+        endif()
+
+        set(is_interface FALSE)
         set(has_sources FALSE)
         should_show_module(${name})
         if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
-            message(STATUS "  ${name} -> INTERFACE (third party)")
+            message(STATUS "  ${name} -> STATIC (third party)")
         endif()
     elseif(is_interface_type)
         add_library(${name} INTERFACE)
@@ -852,10 +875,7 @@ foreach(module_name ${MODULE_LIST})
 
     # 添加源文件和头文件
     if(is_third)
-        should_show_module(${name})
-        if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
-            message(STATUS "  添加第三方库文件: 无源文件")
-        endif()
+        # 第三方库文件已通过 Custom Target 添加显示，此处无需处理
     elseif(is_interface)
         target_sources(${name} INTERFACE ${header_files})
         should_show_module(${name})
@@ -909,45 +929,56 @@ foreach(module_name ${MODULE_LIST})
     else()
         get_vs_folder_path(${module_file} vs_folder_path)
         set_target_properties(${name} PROPERTIES FOLDER "${vs_folder_path}")
-        if(MSVC AND is_third)
-            add_custom_target(${name}_files SOURCES ${header_files})
-            set_target_properties(${name}_files PROPERTIES FOLDER "${vs_folder_path}")
-        endif()
     endif()
 
     # 将模块的 JSON 配置文件添加到目标中
     if(module_file AND EXISTS "${module_file}")
         if(is_interface)
-            # 接口库（现在主要是第三方库）：为了不污染依赖者，我们使用辅助目标来显示配置文件
-            if(TARGET ${name}_files)
-                # 已经有 _files 目标（第三方库），加到这里
-                target_sources(${name}_files PRIVATE "${module_file}")
-                set_source_files_properties("${module_file}" PROPERTIES VS_TOOL_OVERRIDE "Text")
-                if(MSVC)
-                    source_group("Config" FILES "${module_file}")
-                endif()
-            endif()
+            target_sources(${name} INTERFACE "${module_file}")
         else()
-            # 普通目标（包括 Header-only 转换来的 STATIC），直接添加 PRIVATE
             target_sources(${name} PRIVATE "${module_file}")
-            set_source_files_properties("${module_file}" PROPERTIES
-                HEADER_FILE_ONLY TRUE
-                VS_TOOL_OVERRIDE "Text"
-            )
-            if(MSVC)
-                source_group("Config" FILES "${module_file}")
-            endif()
+        endif()
+
+        set_source_files_properties("${module_file}" PROPERTIES
+            HEADER_FILE_ONLY TRUE
+            VS_TOOL_OVERRIDE "Text"
+        )
+        if(MSVC)
+            source_group("Config" FILES "${module_file}")
         endif()
     endif()
 
-    # VS过滤器设置
-    if(MSVC AND NOT is_third AND (source_files OR header_files))
-        foreach(header_file ${header_files})
-            source_group("include" FILES "${CMAKE_SOURCE_DIR}/${header_file}")
-        endforeach()
-        foreach(src_file ${source_files})
-            source_group("src" FILES "${CMAKE_SOURCE_DIR}/${src_file}")
-        endforeach()
+    # VS过滤器设置 - 只有当模块不是 MainEngine 时（MainEngine 下面会单独处理），
+    # 或者对于想要完全自定义目录结构的模块，可以移除这段逻辑。
+    # 这里我们修改逻辑：如果设置了 VS_NO_SOURCE_GROUP 属性，则不生成 source_group
+    get_target_property(_no_src_group ${name} VS_NO_SOURCE_GROUP)
+    if(MSVC AND (source_files OR header_files) AND NOT _no_src_group)
+        # 如果是 MainEngine，我们希望使用实际的目录结构，而不是强制归类到 src/include
+        if(NOT name STREQUAL "MainEngine")
+            # 对于其他模块，如果希望保留原始目录结构，可以注释掉下面这部分
+            # 或者只对确实需要分离 include/src 的模块启用
+            
+            # 暂时注释掉强制分组，让 VS 按照实际文件目录显示
+            # foreach(header_file ${header_files})
+            #    source_group("include" FILES "${CMAKE_SOURCE_DIR}/${header_file}")
+            # endforeach()
+            # foreach(src_file ${source_files})
+            #    source_group("src" FILES "${CMAKE_SOURCE_DIR}/${src_file}")
+            # endforeach()
+            
+            # 使用 TREE 方式自动按目录结构分组
+            set(_all_files ${header_files} ${source_files})
+            set(_abs_files "")
+            foreach(_f ${_all_files})
+                get_filename_component(_abs "${CMAKE_SOURCE_DIR}/${_f}" ABSOLUTE)
+                list(APPEND _abs_files "${_abs}")
+            endforeach()
+            
+            # 找到这些文件的公共根目录，通常是 src/module_name 或 src/third/module_name
+            # 这里简单起见，我们以 CMAKE_SOURCE_DIR 为根，这样文件会显示在 src/... 下
+            # 如果想让它们直接显示在项目根目录下，可以调整 PREFIX
+            source_group(TREE "${CMAKE_SOURCE_DIR}" FILES ${_abs_files})
+        endif()
         set_target_properties(${name} PROPERTIES VS_SCC_LOCALPATH "")
     endif()
 
@@ -970,10 +1001,10 @@ foreach(module_name ${MODULE_LIST})
     endif()
 
     # 设置编译定义
-    set_target_defines(${name} "${defines}" "${platforms}" "${types}" ${is_interface})
+    set_target_defines(${name} "${defines}" "${platforms}" "${types}" ${is_interface} ${is_third})
 
     # 链接第三方库
-    link_third_party_libs(${name} "${third_libs_debug}" "${third_libs_release}" ${is_interface})
+    link_third_party_libs(${name} "${third_libs_debug}" "${third_libs_release}" ${is_interface} ${is_third})
 
     # 设置导出宏
     if(NOT name STREQUAL "fmt" AND source_files)

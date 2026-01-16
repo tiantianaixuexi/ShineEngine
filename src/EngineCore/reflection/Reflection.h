@@ -8,14 +8,12 @@
 #include <tuple>
 #include <array>
 #include <variant>
-#include <source_location>
 #include <memory>
 #include <new>
 #include <cstdint>
 #include <string>
 #include <cstring>
 #include <cstddef>
-#include <concepts>
 #include <cstdlib>
 #include <utility>
 #include <map>
@@ -280,13 +278,11 @@ namespace Shine::Reflection {
         bool isManaged = false; // If true, use ObjectHandle in scripts
 
         const FieldInfo* FindField(std::string_view fieldName) const {
-            auto it = std::find_if(fields.begin(), fields.end(), [fieldName](const FieldInfo& f) { return f.name == fieldName; });
-            if (it != fields.end()) return &(*it);
+	        if (const auto it = std::ranges::find_if(fields, [fieldName](const FieldInfo& f) { return f.name == fieldName; }); it != fields.end()) return &(*it);
             return baseType ? baseType->FindField(fieldName) : nullptr;
         }
         const MethodInfo* FindMethod(std::string_view methodName) const {
-             auto it = std::find_if(methods.begin(), methods.end(), [methodName](const MethodInfo& m) { return m.name == methodName; });
-            if (it != methods.end()) return &(*it);
+	        if (const auto it = std::ranges::find_if(methods, [methodName](const MethodInfo& m) { return m.name == methodName; }); it != methods.end()) return &(*it);
             return baseType ? baseType->FindMethod(methodName) : nullptr;
         }
     };
@@ -300,11 +296,23 @@ namespace Shine::Reflection {
     public:
         static TypeRegistry& Get() { static TypeRegistry instance; return instance; }
         void Register(TypeInfo info) {
-            auto it = std::lower_bound(types.begin(), types.end(), info.id, [](const TypeInfo& t, TypeId id) { return t.id < id; });
+            auto it = std::ranges::lower_bound(
+                types,
+                info.id,
+                {},
+                &TypeInfo::id
+            );
             if (it == types.end() || it->id != info.id) types.insert(it, std::move(info));
         }
         const TypeInfo* Find(TypeId id) const {
-            auto it = std::lower_bound(types.begin(), types.end(), id, [](const TypeInfo& t, TypeId id) { return t.id < id; });
+
+            auto it = std::ranges::lower_bound(
+                types,
+                id,
+                {},
+                &TypeInfo::id
+            );
+
             if (it != types.end() && it->id == id) return &(*it);
             return nullptr;
         }
@@ -370,7 +378,7 @@ namespace Shine::Reflection {
              const MetadataValue* condMeta = field.GetMeta(Hash("EditCondition"));
              if (condMeta && std::holds_alternative<std::string_view>(*condMeta)) {
                  std::string_view condField = std::get<std::string_view>(*condMeta);
-                 // Find the condition field
+                
                  const FieldInfo* condInfo = typeInfo->FindField(condField);
                  if (condInfo && condInfo->typeId == GetTypeId<bool>()) {
                      bool bVal = false;
@@ -844,7 +852,7 @@ namespace Shine::Reflection {
         void Enums(std::initializer_list<std::pair<EnumType, std::string_view>> items) {
             info.isEnum = true;
             for (const auto& [val, name] : items) {
-                info.enumEntries.push_back({ (int64_t)val, name });
+                info.enumEntries.push_back({ static_cast<int64_t>(val), name });
             }
         }
         
@@ -852,7 +860,7 @@ namespace Shine::Reflection {
         void Enums(std::initializer_list<std::pair<T, std::string_view>> items) {
              info.isEnum = true;
              for (const auto& [val, name] : items) {
-                 info.enumEntries.push_back({ (int64_t)val, name });
+                 info.enumEntries.push_back({ static_cast<int64_t>(val), name });
              }
         }
         

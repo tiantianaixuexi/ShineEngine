@@ -84,5 +84,6 @@ namespace shine::render
         std::shared_ptr<RenderPipelineAsset> m_RenderPipelineAsset;
         std::shared_ptr<RenderPipeline> m_RenderPipeline;
         ScriptableRenderContext m_RenderContext;
+        ViewportHandle m_CurrentViewportHandle { 0 };
     };
 }
