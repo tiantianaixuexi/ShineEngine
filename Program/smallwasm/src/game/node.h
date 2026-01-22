@@ -25,8 +25,35 @@ public:
   wasm::SVector<Component*> components;
 
   explicit Node(const char* debugName = nullptr) noexcept : Object(debugName) {}
-  virtual ~Node() = default;
+  virtual ~Node() {
+        // 1. Destroy components (Forward order)
+        for (auto* c : components) {
+            if (c) {
+                c->node = nullptr; // Prevent removeComponent
+                c->parent = nullptr;
+                delete c;
+            }
+        }
+        components.clear();
+  
+        // 2. Destroy children (Forward order)
+        for (auto* n : children) {
+            if (n) {
+                n->parent = nullptr; // Prevent removeChild
+                delete n;
+            }
+        }
+        children.clear();
+  
+        // 3. Detach from parent
+        if (parent) parent->removeChild(this);
+    }
   ObjectKind kind() const noexcept override { return ObjectKind::Node; }
+
+  // GC Helpers
+  bool isOwnedByDead() const override {
+      return parent && (parent->pendingKill() || !parent->gcMarked());
+  }
 
   // ---- Node child ops (Scene graph) ----
   inline void attachChild(Node* n) noexcept {
@@ -127,27 +154,33 @@ public:
       if (n) n->pointerTree(x_ndc, y_ndc, isDown);
     }
   }
-
-  inline void destroyTree() noexcept {
-    for (unsigned int i = 0; i < components.size(); ++i) {
-      Component* c = components[i];
-      if (c) {
-        c->destroyTree();
-        delete c;
-      }
-    }
-    components.clear();
-
-    for (unsigned int i = 0; i < children.size(); ++i) {
-      Node* n = children[i];
-      if (n) {
-        n->destroyTree();
-        delete n;
-      }
-    }
-    children.clear();
-  }
 };
+
+// Implement Component methods that require Node definition
+// inline void Component::detach() ... REMOVED
+
+inline bool Component::isOwnedByDead() const {
+    return (parent && (parent->pendingKill() || !parent->gcMarked())) ||
+           (node && (node->pendingKill() || !node->gcMarked()));
+}
+
+inline Component::~Component() {
+      // 1. Destroy children (Forward order)
+      for (auto* c : children) {
+          if (c) {
+              c->parent = nullptr; // Prevent child from calling removeChild on us
+              c->node = nullptr;
+              delete c;
+          }
+      }
+      children.clear();
+  
+      // 2. Detach from parent
+      onDetach();
+      if (parent) parent->removeChild(this);
+      else if (node) node->removeComponent(this);
+  }
+
 }// namespace shine::game
 
 #endif // SHINE_GAME_NODE_H

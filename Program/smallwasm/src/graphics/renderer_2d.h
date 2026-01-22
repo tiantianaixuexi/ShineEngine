@@ -16,21 +16,17 @@ public:
     // Primitives
     void drawRectColor(float cx, float cy, float w, float h, float r, float g, float b);
     void drawRectUV(int texId, float cx, float cy, float w, float h);
-    void drawRoundRect(float cx, float cy, float w, float h,
-                       float radius_px,
-                       float fill_r, float fill_g, float fill_b, float fill_a,
-                       int texId,
-                       float texTint_r, float texTint_g, float texTint_b, float texTint_a,
-                       float border_px,
-                       float border_r, float border_g, float border_b, float border_a,
-                       float shadow_off_px_x, float shadow_off_px_y,
-                       float shadow_blur_px, float shadow_spread_px,
-                       float shadow_r, float shadow_g, float shadow_b, float shadow_a);
+    struct Color4 { float r, g, b, a; };
+    void drawRoundRect(float cx, float cy, float w, float h, float radius_px,
+                       const Color4& fill,
+                       int texId, const Color4& texTint,
+                       float border_px, const Color4& borderColor,
+                       float shadow_off_x, float shadow_off_y, float shadow_blur, float shadow_spread, const Color4& shadowColor);
 
     // Frame management
     void begin(); // Called at start of frame
     void end();   // Called at end of frame to submit batches
-    void flush(); // Internal or forced flush
+    __attribute__((noinline))  void flush(); // Internal or forced flush
 
     float* allocVtx(int floatCount, int* out_first_vertex = nullptr); 
     
@@ -101,18 +97,6 @@ private:
 
         int shadowBlur = 0;
         int shadowSpread = 0;
-
-        inline bool operator==(const RRUniformState& o) const noexcept {
-            return useTex == o.useTex &&
-                   radX == o.radX && radY == o.radY &&
-                   colorR == o.colorR && colorG == o.colorG && colorB == o.colorB && colorA == o.colorA &&
-                   texTintR == o.texTintR && texTintG == o.texTintG && texTintB == o.texTintB && texTintA == o.texTintA &&
-                   borderColorR == o.borderColorR && borderColorG == o.borderColorG && borderColorB == o.borderColorB && borderColorA == o.borderColorA &&
-                   border == o.border &&
-                   shadowColorR == o.shadowColorR && shadowColorG == o.shadowColorG && shadowColorB == o.shadowColorB && shadowColorA == o.shadowColorA &&
-                   shadowOffX == o.shadowOffX && shadowOffY == o.shadowOffY &&
-                   shadowBlur == o.shadowBlur && shadowSpread == o.shadowSpread;
-        }
     };
 
     struct Batch {
@@ -129,8 +113,10 @@ private:
         RRUniformState rr;
     };
 
+    // checkBatch and checkBatchRR inlined manually in draw functions to reduce call overhead
     void checkBatch(int shaderId, int texId, int firstVertex, int numVerts);
     void checkBatchRR(int texId, const RRUniformState& rr, int firstVertex, int numVerts);
+    void updateRRUniforms(const RRUniformState& b, RRUniformState& last, bool& hasLastRR);
 
     // Per-frame UI vertex buffer stream
     shine::wasm::SVector<float> m_ui_vtx;

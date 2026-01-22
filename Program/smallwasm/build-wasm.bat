@@ -16,27 +16,18 @@ if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
 
 set "BUILD_DIR=%ROOT%\build-wasm"
 
-set "SMALLWASM_DEBUG=ON"
+set "SMALLWASM_ANALYZE=ON"
+
 set "CMAKE_ARGS="
 :parse_args
 if "%~1"=="" goto after_parse_args
 if /I "%~1"=="--debug" (
-  set "SMALLWASM_DEBUG=ON"
+  set "SMALLWASM_ANALYZE=ON"
   shift
   goto parse_args
 )
-if /I "%~1"=="--nodebug" (
-  set "SMALLWASM_DEBUG=OFF"
-  shift
-  goto parse_args
-)
-if /I "%~1"=="--debug=ON" (
-  set "SMALLWASM_DEBUG=ON"
-  shift
-  goto parse_args
-)
-if /I "%~1"=="--debug=OFF" (
-  set "SMALLWASM_DEBUG=OFF"
+if /I "%~1"=="--release" (
+  set "SMALLWASM_ANALYZE=OFF"
   shift
   goto parse_args
 )
@@ -44,6 +35,7 @@ set "CMAKE_ARGS=!CMAKE_ARGS! %1"
 shift
 goto parse_args
 :after_parse_args
+set "CMAKE_ARGS=!CMAKE_ARGS! -DSMALLWASM_ANALYZE=%SMALLWASM_ANALYZE%"
 
 
 echo [smallwasm] root      = "%ROOT%"
@@ -76,7 +68,7 @@ REM Configure
 
 echo [smallwasm] configuring ...
 
-cmake -S "%ROOT%" -B "%BUILD_DIR%" -G Ninja -DSMALLWASM_DEBUG=%SMALLWASM_DEBUG% %CMAKE_ARGS%
+cmake -S "%ROOT%" -B "%BUILD_DIR%" -G Ninja %CMAKE_ARGS%
 
 if errorlevel 1 (
 

@@ -1,8 +1,10 @@
 #pragma once
 
 // wasm_compat.h
-// Small helpers for wasm builds compiled with -nostdlib (no libc, no STL).
+// Small helpers for wasm builds compiled with -nostdlib (no libc, no S
+// TL).
 // Put all the "boilerplate" here so other headers can stay clean.
+
 
 namespace shine::wasm {
 
@@ -35,9 +37,13 @@ static inline int raw_strlen(const char* s) noexcept {
   return n;
 }
 
-static inline int ptr_i32(const void* p) noexcept {return (int)(unsigned long)(uintptr_t)p; }
+__attribute__((noinline)) static  int ptr_i32(const void* p) noexcept {return (int)(unsigned long)(uintptr_t)p; }
 
-static inline int f2i(float f)  noexcept { return *(int*)&f; }
+__attribute__((noinline)) static int f2i(float f) noexcept {
+    return *(int*)&f; 
+}
+
+void svector_reserve_impl(void** pointer_ref, unsigned int* cap_ref, unsigned int length, unsigned int newCap, unsigned int elemSize);
 
 } // namespace shine::wasm
 

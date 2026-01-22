@@ -52,7 +52,7 @@ public:
     CommandBuffer() = default;
 private:
     
-    static constexpr int MAX_CMDS = 4096;
+    static constexpr int MAX_CMDS = 1024;
     // 8 ints per command
     int m_cmds[MAX_CMDS * 8];
     int m_count = 0;

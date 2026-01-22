@@ -50,18 +50,21 @@ public:
     
 
     inline void setBgUrl(const char* url) {
-        const int result = TMINST.request_url(url, shine::wasm::raw_strlen(url), &style->bg_texId, nullptr, nullptr);
-        LOG("resulet:", style->bg_texId);
+        const int len = shine::wasm::raw_strlen(url);
+        TMINST.request_url(url, len, &style->bg_texId, nullptr, nullptr);
     }
 
     inline void setBgDataUrl(const char* dataUrl) {
-        TMINST.request_dataurl(dataUrl, shine::wasm::raw_strlen(dataUrl), &style->bg_texId, nullptr, nullptr);
+        const int len = shine::wasm::raw_strlen(dataUrl);
+        TMINST.request_dataurl(dataUrl, len, &style->bg_texId, nullptr, nullptr);
     }
 
     inline void setBgBase64(const char* mime, const char* b64) {
+        const int mime_len = shine::wasm::raw_strlen(mime);
+        const int b64_len = shine::wasm::raw_strlen(b64);
         TMINST.request_base64(mime,
-            shine::wasm::raw_strlen(mime),
-            b64, shine::wasm::raw_strlen(b64),
+            mime_len,
+            b64, b64_len,
             &style->bg_texId, nullptr, nullptr);
     }
 
@@ -80,36 +83,35 @@ public:
     }
 
     void pointer(float px, float py, int isDown) override {
-        const bool wasOver = isOver;
         const bool nowOver = hit(px, py);
-        isOver = nowOver;
-
-        if (nowOver && !wasOver && HoverEvent) {
-            HoverEvent(this);
-            needRenderColor = &style->bg_hot;
-        } else if (!nowOver && wasOver && UnHoverEvent) {
-            UnHoverEvent(this);
-            needRenderColor = &style->bg_idle;
+        
+        // Hover State Logic
+        if (nowOver != isOver) {
+            isOver = nowOver;
+            needRenderColor = nowOver ? &style->bg_hot : &style->bg_idle;
+            if (nowOver) {
+                if (HoverEvent) HoverEvent(this);
+            } else {
+                if (UnHoverEvent) UnHoverEvent(this);
+            }
         }
 
+        // Click Logic
         if (isDown) {
-            if (!_wasDown) {
-                clicked = 0;
-                if (nowOver) isPressed = true;
-            }
+            if (!_wasDown && nowOver) isPressed = true;
             _wasDown = 1;
-            return;
-        }
-
-        if (_wasDown) {
-            if (isPressed && nowOver) {
-                needRenderColor = &style->bg_hot;
-                clicked = 1;
-                if (ClickEvent) ClickEvent(this);
+        } else {
+            if (_wasDown) {
+                if (isPressed && nowOver) {
+                    // Clicked!
+                    needRenderColor = &style->bg_hot;
+                    clicked = 1;
+                    if (ClickEvent) ClickEvent(this);
+                }
+                isPressed = false;
+                _wasDown = 0;
             }
-            isPressed = false;
         }
-        _wasDown = 0;
     }
 
     void onResize(int view_w, int view_h) override {
@@ -131,30 +133,16 @@ public:
         float border_a = s->border_color.a;
         float texTint_a = s->bg_tex_tint.a;
 
-        // if (isOver && !isPressed) {
-        //     border_px = border_px * 2.0f;
-        //     border_r = 1.0f;
-        //     border_g = 1.0f;
-        //     border_b = 1.0f;
-        //     border_a = 0.85f;
-        //     texTint_a = texTint_a + 0.25f;
-        //     if (texTint_a > 1.0f) texTint_a = 1.0f;
-        // }
-
 
         
         // Rounded background (optionally textured) + border + shadow.
         graphics::Renderer2D::instance().drawRoundRect(
-            x, y, w, h,
-            s->radius_px,
-            needRenderColor->r, needRenderColor->g, needRenderColor->b, needRenderColor->a,
-            s->bg_texId,
-            s->bg_tex_tint.r, s->bg_tex_tint.g, s->bg_tex_tint.b, texTint_a,
-            border_px,
-            border_r, border_g, border_b, border_a,
-            s->shadow_offset_px_x, s->shadow_offset_px_y,
-            s->shadow_blur_px, s->shadow_spread_px,
-            s->shadow_color.r, s->shadow_color.g, s->shadow_color.b, s->shadow_color.a
+            x, y, w, h, s->radius_px,
+            *(const graphics::Renderer2D::Color4*)needRenderColor, // Safe cast
+            s->bg_texId, *(const graphics::Renderer2D::Color4*)&s->bg_tex_tint,
+            border_px, *(const graphics::Renderer2D::Color4*)&s->border_color,
+            s->shadow_offset_px_x, s->shadow_offset_px_y, s->shadow_blur_px, s->shadow_spread_px, 
+            *(const graphics::Renderer2D::Color4*)&s->shadow_color
         );
 
 

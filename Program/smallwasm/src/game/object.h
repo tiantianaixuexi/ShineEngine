@@ -42,6 +42,7 @@ public:
   virtual ~Object() { gc_unlink(); }
 
   virtual ObjectKind kind() const noexcept = 0;
+  virtual bool isOwnedByDead() const { return false; }
 
   inline bool isActive() const noexcept { return (flags & OF_Active) != 0; }
   inline bool isVisible() const noexcept { return (flags & OF_Visible) != 0; }

@@ -20,6 +20,7 @@ void CommandBuffer::reset() {
 void CommandBuffer::push(int op, int a, int b, int c, int d, int e, int f, int g) {
     if (m_count >= MAX_CMDS) return;
     
+#if defined(DEBUG) && DEBUG
     // Stats
     if (op == CMD_DRAW_ARRAYS) {
         m_drawCalls++;
@@ -31,6 +32,7 @@ void CommandBuffer::push(int op, int a, int b, int c, int d, int e, int f, int g
         m_vertices += c * d;
         m_instances += d;
     }
+#endif
 
     int* p = m_cmds + (m_count * 8);
     p[0] = op;

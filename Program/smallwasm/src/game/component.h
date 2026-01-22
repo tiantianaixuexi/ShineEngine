@@ -45,8 +45,11 @@ public:
   Component* parent = nullptr;
 
   explicit Component(const char* debugName = nullptr) noexcept : Object(debugName) {}
-  virtual ~Component() = default;
+  virtual ~Component();
   ObjectKind kind() const noexcept override { return ObjectKind::Component; }
+
+  // GC Helpers
+  bool isOwnedByDead() const override;
 
   // ---- lifecycle ----
   virtual void onAttach() {}
@@ -104,18 +107,6 @@ public:
       Component* c = children[i];
       if (c) c->pointerTree(x_ndc, y_ndc, isDown);
     }
-  }
-
-  inline void destroyTree() noexcept {
-    for (unsigned int i = 0; i < children.size(); ++i) {
-      Component* c = children[i];
-      if (c) {
-        c->destroyTree();
-        delete c;
-      }
-    }
-    children.clear();
-    onDetach();
   }
 };
 

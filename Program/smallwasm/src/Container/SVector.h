@@ -23,13 +23,6 @@ namespace shine::wasm
 			return n;
 		}
 
-		inline void* alloc_bytes(unsigned int newCap) noexcept
-		{
-			if (newCap == 0u) return nullptr;
-			const shine::wasm::size_t bytes = (shine::wasm::size_t)newCap * (shine::wasm::size_t)sizeof(T);
-			return shine::wasm::raw_malloc(bytes);
-		}
-
 	public:
 		SVector() noexcept = default;
 
@@ -86,6 +79,9 @@ namespace shine::wasm
 		inline T& operator[](unsigned int i) noexcept { return static_cast<T*>(pointer)[i]; }
 		inline const T& operator[](unsigned int i) const noexcept { return static_cast<const T*>(pointer)[i]; }
 
+		inline T& back() noexcept { return static_cast<T*>(pointer)[length - 1u]; }
+		inline const T& back() const noexcept { return static_cast<const T*>(pointer)[length - 1u]; }
+
 		inline T* begin() noexcept { return data(); }
 		inline T* end() noexcept { return data() + length; }
 		inline const T* begin() const noexcept { return data(); }
@@ -106,20 +102,7 @@ namespace shine::wasm
 
 		inline void reserve(unsigned int newCap) noexcept
 		{
-			if (newCap <= cap) return;
-			if (sizeof(T) == 0) return;
-
-			void* np = alloc_bytes(newCap);
-			if (!np) return;
-
-			if (pointer != nullptr && length != 0u)
-			{
-				shine::wasm::raw_memcpy(np, pointer,
-					(shine::wasm::size_t)length * (shine::wasm::size_t)sizeof(T));
-			}
-			if (pointer != nullptr) shine::wasm::raw_free(pointer);
-			pointer = np;
-			cap = newCap;
+			shine::wasm::svector_reserve_impl(&pointer, &cap, length, newCap, sizeof(T));
 		}
 
 		inline void resize(unsigned int newSize) noexcept

@@ -1,3 +1,5 @@
+#include "wasm_compat.h"
+
 // wasm_runtime.cpp
 // Minimal runtime bits for -nostdlib wasm32 builds:
 // - malloc/free implementation
@@ -161,3 +163,25 @@ int __cxa_atexit(void (*)(void*), void*, void*) { return 0; }
 void __cxa_finalize(void*) {}
 void __cxa_pure_virtual() {}
 }
+
+namespace shine::wasm {
+
+// Implementation of shared logic for SVector reserve
+void svector_reserve_impl(void** pointer_ref, unsigned int* cap_ref, unsigned int length, unsigned int newCap, unsigned int elemSize) {
+    if (newCap <= *cap_ref) return;
+    if (elemSize == 0) return;
+
+    size_t bytes = (size_t)newCap * (size_t)elemSize;
+    void* np = raw_malloc(bytes);
+    if (!np) return;
+
+    void* old_ptr = *pointer_ref;
+    if (old_ptr && length != 0) {
+        raw_memcpy(np, old_ptr, (size_t)length * (size_t)elemSize);
+    }
+    if (old_ptr) raw_free(old_ptr);
+    *pointer_ref = np;
+    *cap_ref = newCap;
+}
+
+} // namespace shine::wasm

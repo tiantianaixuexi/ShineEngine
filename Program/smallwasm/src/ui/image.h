@@ -20,11 +20,11 @@ public:
   }
 
   inline void setSourceDataUrl(const char* dataUrl) {
-      TMINST.request_dataurl(dataUrl, wasm::raw_strlen(dataUrl), &texId, &texW, &texH);
+    TMINST.request_dataurl(dataUrl, wasm::raw_strlen(dataUrl), &texId, &texW, &texH);
   }
 
   inline void setSourceBase64(const char* mime,  const char* b64, int b64Len) {
-	  TMINST.request_base64(mime, wasm::raw_strlen(mime), b64, b64Len, &texId, &texW, &texH);
+    TMINST.request_base64(mime, wasm::raw_strlen(mime), b64, b64Len, &texId, &texW, &texH);
   }
 
   void onResize(int view_w, int view_h) override {

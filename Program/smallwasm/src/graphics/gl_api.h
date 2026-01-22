@@ -55,6 +55,9 @@ void gl_submit(int ctx, int cmd_ptr, int cmd_count);
 
 } // extern "C"
 
+// Helpers (Implemented in gl_api.cpp)
+int gl_create_program_from_source(int ctx, const char* vs, const char* fs);
+
 // Constants
 static constexpr int GL_ARRAY_BUFFER = 0x8892;
 static constexpr int GL_DYNAMIC_DRAW = 0x88E8;

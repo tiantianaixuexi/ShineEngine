@@ -33,25 +33,8 @@ public:
 
       const bool dead = o->pendingKill() || !o->gcMarked();
       if (dead) {
-        if (o->kind() == ObjectKind::Node) {
-          Node* n = (Node*)o;
-          // If parent is also dead, parent deletion will cover us.
-          const bool parentDead = (n->parent && (n->parent->pendingKill() || !n->parent->gcMarked()));
-          if (!parentDead) {
-            if (n->parent) n->parent->removeChild(n);
-            n->destroyTree();
-            delete n;
-          }
-        } else { // Component
-          Component* c = (Component*)o;
-          const bool parentDead = (c->parent && (c->parent->pendingKill() || !c->parent->gcMarked()));
-          const bool nodeDead = (c->node && (c->node->pendingKill() || !c->node->gcMarked()));
-          if (!parentDead && !nodeDead) {
-            if (c->parent) c->parent->removeChild(c);
-            else if (c->node) c->node->removeComponent(c);
-            c->destroyTree();
-            delete c;
-          }
+        if (!o->isOwnedByDead()) {
+             delete o;
         }
       }
 

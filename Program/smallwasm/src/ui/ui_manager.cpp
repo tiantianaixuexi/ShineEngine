@@ -20,14 +20,6 @@ void UIManager::remove(Element* e) {
     if (!e) return;
     for (unsigned int i = 0; i < m_elements.size(); ++i) {
         if (m_elements[i] == e) {
-            // fast remove (swap with last) if order doesn't matter, 
-            // but for UI z-order usually matters.
-            // SVector doesn't have erase easily, so let's just null it or rebuild?
-            // For now, let's just use swap-remove and assume z-order isn't critical or managed elsewhere.
-            // Actually, let's keep it simple: swap with last and pop.
-            // But wait, that changes order.
-            // SVector erase is O(N).
-            // Let's implement O(N) shift.
             for (unsigned int j = i; j < m_elements.size() - 1; ++j) {
                 m_elements[j] = m_elements[j+1];
             }
@@ -42,16 +34,20 @@ void UIManager::clear() {
 }
 
 void UIManager::onResize(int w, int h) {
+    if (w == m_viewW && h == m_viewH) return;
     m_viewW = w;
     m_viewH = h;
-    for (unsigned int i = 0; i < m_elements.size(); ++i) {
+    const unsigned int count = m_elements.size();
+    for (unsigned int i = 0; i < count; ++i) {
         Element* e = m_elements[i];
         if (e) e->onResize(w, h);
     }
 }
 
 void UIManager::onRender(int ctxId) {
-    for (unsigned int i = 0; i < m_elements.size(); ++i) {
+    const unsigned int count = m_elements.size();
+    if (count == 0) return;
+    for (unsigned int i = 0; i < count; ++i) {
         Element* e = m_elements[i];
         if (e && e->visible) {
             e->render(ctxId);
@@ -60,14 +56,11 @@ void UIManager::onRender(int ctxId) {
 }
 
 void UIManager::onPointer(float px, float py, int isDown) {
-    // Iterate backwards for pointer (top-most first) usually?
-    // But our render is forward (painters algo).
-    // So top-most is last.
-    // If we want to capture events, we should iterate backwards.
-    // But our Element::pointer implementation is simple state update.
-    // It doesn't consume events.
-    for (unsigned int i = 0; i < m_elements.size(); ++i) {
-        Element* e = m_elements[i];
+    if (m_elements.empty()) return;
+    Element** begin = m_elements.data();
+    Element** end = begin + m_elements.size();
+    while (begin < end) {
+        Element* e = *begin++;
         if (e && e->visible) {
             e->pointer(px, py, isDown);
         }

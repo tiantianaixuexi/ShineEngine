@@ -102,56 +102,48 @@ public:
 
   // 当视口大小改变时调用
   virtual void onResize(int view_w, int view_h) {
-    LOG2("Element::onResize", view_w, view_h);
-    this->view_w = (view_w < 1) ? 1 : view_w;
-    this->view_h = (view_h < 1) ? 1 : view_h;
 
-    const float vw = (float)this->view_w;
-    const float vh = (float)this->view_h;
+    // Clamp view size
+    view_w = (view_w < 1) ? 1 : view_w;
+    view_h = (view_h < 1) ? 1 : view_h;
+    this->view_w = view_w;
+    this->view_h = view_h;
 
-    const float ax0 = anchor_min_x * vw;
-    const float ay0 = anchor_min_y * vh;
-    const float ax1 = anchor_max_x * vw;
-    const float ay1 = anchor_max_y * vh;
+    const float vw = (float)view_w;
+    const float vh = (float)view_h;
 
-    const float dx = anchor_max_x - anchor_min_x;
-    const float dy = anchor_max_y - anchor_min_y;
-    const float adx = (dx < 0.0f) ? -dx : dx;
-    const float ady = (dy < 0.0f) ? -dy : dy;
-    const bool stretch_x = (adx > 0.000001f);
-    const bool stretch_y = (ady > 0.000001f);
+    // --- X Axis ---
+    const float min_x = anchor_min_x;
+    const float start_x = min_x * vw + offset_left_px;
+    float width;
 
-    float top_left_x = 0.0f;
-    float top_left_y = 0.0f;
-
-    if (stretch_x) {
-      top_left_x = ax0 + offset_left_px;
-      const float br_x = ax1 - offset_right_px;
-      w = br_x - top_left_x;
+    if (min_x != anchor_max_x) {
+      // Stretch: Right edge - Left edge
+      // Right edge = max_x * vw - offset_right_px
+      width = (anchor_max_x * vw) - offset_right_px - start_x;
     } else {
-      top_left_x = ax0 + offset_left_px;
-      if (size_rel_w > 0.0f) w = vw * size_rel_w;
-      else w = offset_right_px;
+      // Fixed
+      width = (size_rel_w > 0.0f) ? (vw * size_rel_w) : offset_right_px;
     }
 
-    if (stretch_y) {
-      top_left_y = ay0 + offset_top_px;
-      const float br_y = ay1 - offset_bottom_px;
-      h = br_y - top_left_y;
+    if (width < 0.0f) width = 0.0f;
+    this->w = width;
+    this->x = start_x + width * (0.5f - align_x);
+
+    // --- Y Axis ---
+    const float min_y = anchor_min_y;
+    const float start_y = min_y * vh + offset_top_px;
+    float height;
+
+    if (min_y != anchor_max_y) {
+      height = (anchor_max_y * vh) - offset_bottom_px - start_y;
     } else {
-      top_left_y = ay0 + offset_top_px;
-      if (size_rel_h > 0.0f) h = vh * size_rel_h;
-      else h = offset_bottom_px;
+      height = (size_rel_h > 0.0f) ? (vh * size_rel_h) : offset_bottom_px;
     }
 
-    if (w < 0.0f) w = 0.0f;
-    if (h < 0.0f) h = 0.0f;
-
-    top_left_x -= align_x * w;
-    top_left_y -= align_y * h;
-
-    x = top_left_x + w * 0.5f;
-    y = top_left_y + h * 0.5f;
+    if (height < 0.0f) height = 0.0f;
+    this->h = height;
+    this->y = start_y + height * (0.5f - align_y);
   }
 
   inline void setAnchors(float min_x, float min_y, float max_x, float max_y) noexcept {

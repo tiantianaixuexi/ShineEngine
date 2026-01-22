@@ -1,8 +1,19 @@
 param(
-  [Parameter(Mandatory=$true)][string]$MapPath,
+  [string]$MapPath = "",
   [Parameter(Mandatory=$true)][string]$OutPath,
   [int]$TopN = 20
 )
+
+if ([string]::IsNullOrWhiteSpace($MapPath)) {
+  $scriptDir = $PSScriptRoot
+  if ([string]::IsNullOrWhiteSpace($scriptDir)) {
+    $scriptDir = Split-Path -Parent $PSCommandPath
+  }
+  if ([string]::IsNullOrWhiteSpace($scriptDir)) {
+    $scriptDir = Get-Location
+  }
+  $MapPath = Join-Path (Split-Path -Parent $scriptDir) "output.gl.map"
+}
 
 function HexToInt64([string]$h) {
   if ([string]::IsNullOrWhiteSpace($h)) { return 0 }
@@ -17,11 +28,6 @@ if (-not (Test-Path -LiteralPath $MapPath)) {
 
 $lines = Get-Content -LiteralPath $MapPath
 
-# Map format is wasm-ld --print-map. We parse it using:
-#   <Addr> <Off> <Size> <Remainder>
-# The remainder is either a section header (CODE/.rodata/.data/.bss/CUSTOM(...))
-# or an entry (often file:(symbol)) or a demangled name line.
-
 $current = ""
 $sectionSizes = @{}
 $entries = New-Object System.Collections.Generic.List[object]
@@ -30,7 +36,6 @@ $lastKey = $null
 foreach ($line in $lines) {
   if ([string]::IsNullOrWhiteSpace($line)) { continue }
 
-  # Skip header row.
   if ($line -match '^\s*Addr\s+Off\s+Size\s+') { continue }
 
   $m = [regex]::Match($line, '^\s*(\S+)\s+(\S+)\s+(\S+)\s+(.*)$')
@@ -44,7 +49,6 @@ foreach ($line in $lines) {
   $off = HexToInt64 $offS
   $size = HexToInt64 $sizeS
 
-  # Section header lines look like: "-  312  1a07 CODE" or "400 1d1a 900 .rodata" or "- 274f 66a CUSTOM(name)"
   if ($rest -match '^(TYPE|IMPORT|FUNCTION|TABLE|MEMORY|GLOBAL|EXPORT|ELEM|CODE|DATA|\.rodata|\.data|\.bss|CUSTOM\([^\)]+\))$') {
     $current = $Matches[1]
     if (-not $sectionSizes.ContainsKey($current)) { $sectionSizes[$current] = 0 }
@@ -54,7 +58,6 @@ foreach ($line in $lines) {
 
   if ([string]::IsNullOrWhiteSpace($current)) { continue }
 
-  # Demangled companion line: same off/size, rest is "shine::foo(...)" without file:(symbol)
   $key = "$current|$offS|$sizeS"
   if ($rest -notmatch ':\(' -and $lastKey -eq $key) {
     $last = $entries[$entries.Count - 1]
@@ -70,7 +73,6 @@ foreach ($line in $lines) {
   $file = ""
   $name = $rest
 
-  # IMPORTANT: use greedy match for file path because Windows paths contain a drive colon (e.g. E:/...).
   $m2 = [regex]::Match($rest, '^(.*):\((.*)\)$')
   if ($m2.Success) {
     $file = $m2.Groups[1].Value
@@ -116,7 +118,6 @@ function Write-TopList([System.Text.StringBuilder]$sb, [string]$title, $items, [
   [void]$sb.AppendLine('')
 }
 
-# Helpers: aggregate
 function Group-Sum($list, [scriptblock]$keySel, [scriptblock]$labelSel) {
   $ht = @{}
   foreach ($e in $list) {
@@ -135,7 +136,6 @@ $rodata = $entries | Where-Object { $_.Section -eq '.rodata' }
 $data = $entries | Where-Object { $_.Section -eq '.data' }
 $bss = $entries | Where-Object { $_.Section -eq '.bss' }
 
-# Prefer human names; also allow empty file for some lines.
 $topCodeFns = Group-Sum $code { param($e) $e.Name } { param($e) $e.Name } |
   Sort-Object -Property Size -Descending
 
@@ -151,7 +151,6 @@ $topBssSyms = Group-Sum $bss { param($e) $e.Name } { param($e) $e.Name } |
 $codeByObj = Group-Sum $code {
   param($e)
   if ([string]::IsNullOrWhiteSpace($e.File)) { return $null }
-  # Normalize to filename only (but keep non-path labels like <internal>).
   $f = [string]$e.File
   if ($f.StartsWith('<')) { return $f }
   try { return [IO.Path]::GetFileName($f) } catch { return $f }
@@ -169,7 +168,6 @@ $sb = New-Object System.Text.StringBuilder
 [void]$sb.AppendLine(("Time: {0}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss")))
 [void]$sb.AppendLine('')
 
-# Section summary (best-effort: from header sizes we accumulated)
 [void]$sb.AppendLine('Section summary')
 [void]$sb.AppendLine('==============')
 $want = @('CODE','.rodata','.data','.bss','CUSTOM(name)','CUSTOM(producers)','CUSTOM(target_features)','TYPE','IMPORT','EXPORT','ELEM','FUNCTION','TABLE','MEMORY','GLOBAL','DATA')
