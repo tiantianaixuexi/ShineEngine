@@ -150,7 +150,7 @@ void Renderer2D::checkBatchRR(int texId, const Renderer2D::RRUniformState& rr, i
     if (!m_batches.empty()) {
         Batch& last = m_batches.back();
         // Compare POD using memcmp
-        if (last.shaderId == 1 && last.texId == texId && __builtin_memcmp(&last.rr, &rr, sizeof(RRUniformState)) == 0) {
+        if (last.shaderId == 1 && last.texId == texId && shine::wasm::raw_memcmp(&last.rr, &rr, sizeof(RRUniformState)) == 0) {
             last.count += numVerts;
             return;
         }
@@ -352,7 +352,7 @@ void Renderer2D::drawRoundRect(float cx, float cy, float w, float h, float radiu
         m_batches.push_back(b);
     } else {
         Batch& last = m_batches[m_batches.size() - 1];
-        if (last.shaderId != 1 || last.texId != texId || __builtin_memcmp(&last.rr, &rr, sizeof(RRUniformState)) != 0) {
+        if (last.shaderId != 1 || last.texId != texId || shine::wasm::raw_memcmp(&last.rr, &rr, sizeof(RRUniformState)) != 0) {
             Batch b; b.shaderId = 1; b.texId = texId; b.offset = firstVertex; b.count = 0; b.rr = rr;
             m_batches.push_back(b);
         }
@@ -385,7 +385,7 @@ void Renderer2D::updateRRUniforms(const RRUniformState& b, RRUniformState& last,
         // Optimized comparison using raw memory compare instead of operator==
         // RRUniformState is POD, packed with ints.
         // We assume no padding issues or consistent padding.
-        if (__builtin_memcmp(&b, &last, sizeof(RRUniformState)) == 0) return;
+        if (shine::wasm::raw_memcmp(&b, &last, sizeof(RRUniformState)) == 0) return;
     }
 
     cmd_push(CMD_UNIFORM2F, m_uRR_Rad, b.radX, b.radY, 0, 0, 0, 0);
@@ -400,7 +400,7 @@ void Renderer2D::updateRRUniforms(const RRUniformState& b, RRUniformState& last,
     cmd_push(CMD_UNIFORM1F, m_uRR_ShadowSpread, b.shadowSpread, 0, 0, 0, 0, 0);
     
     // Use raw memcpy to update last
-    __builtin_memcpy(&last, &b, sizeof(RRUniformState));
+    shine::wasm::raw_memcpy(&last, &b, sizeof(RRUniformState));
     hasLastRR = true;
 }
 

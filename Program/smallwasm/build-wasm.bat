@@ -17,17 +17,20 @@ if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
 set "BUILD_DIR=%ROOT%\build-wasm"
 
 set "SMALLWASM_ANALYZE=ON"
+set "SMALLWASM_DEBUG_WEB=ON"
 
 set "CMAKE_ARGS="
 :parse_args
 if "%~1"=="" goto after_parse_args
 if /I "%~1"=="--debug" (
   set "SMALLWASM_ANALYZE=ON"
+  set "SMALLWASM_DEBUG_WEB=ON"
   shift
   goto parse_args
 )
 if /I "%~1"=="--release" (
   set "SMALLWASM_ANALYZE=OFF"
+  set "SMALLWASM_DEBUG_WEB=OFF"
   shift
   goto parse_args
 )
@@ -35,7 +38,7 @@ set "CMAKE_ARGS=!CMAKE_ARGS! %1"
 shift
 goto parse_args
 :after_parse_args
-set "CMAKE_ARGS=!CMAKE_ARGS! -DSMALLWASM_ANALYZE=%SMALLWASM_ANALYZE%"
+set "CMAKE_ARGS=!CMAKE_ARGS! -DSMALLWASM_ANALYZE=%SMALLWASM_ANALYZE% -DSMALLWASM_DEBUG_WEB=%SMALLWASM_DEBUG_WEB%"
 
 
 echo [smallwasm] root      = "%ROOT%"

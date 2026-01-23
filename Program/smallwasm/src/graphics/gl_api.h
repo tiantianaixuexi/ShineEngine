@@ -53,10 +53,14 @@ void gl_draw_arrays_instanced(int ctx, int mode, int first, int count, int instC
 // Command Buffer Submit
 void gl_submit(int ctx, int cmd_ptr, int cmd_count);
 
-} // extern "C"
+
+
 
 // Helpers (Implemented in gl_api.cpp)
 int gl_create_program_from_source(int ctx, const char* vs, const char* fs);
+
+} // extern "C"
+
 
 // Constants
 static constexpr int GL_ARRAY_BUFFER = 0x8892;

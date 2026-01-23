@@ -8,6 +8,7 @@ project(smallwasm LANGUAGES C CXX)
 # =========================================================
 
 option(SMALLWASM_ANALYZE "Enable wasm debug info for analysis (names + line tables)" OFF)
+option(SMALLWASM_DEBUG_WEB "Enable web debug HUD (GPU timing, stats, overlay)" ON)
 
 # =========================================================
 
@@ -35,6 +36,77 @@ REQUIRED
 
 set(DIST_DIR "${CMAKE_CURRENT_LIST_DIR}/web/dist" CACHE PATH "Deploy directory")
 file(MAKE_DIRECTORY "${DIST_DIR}")
+
+# Preprocess web files (index.js, index.html) to strip debug code
+function(preprocess_web_file input output is_debug)
+    file(READ "${input}" CONTENT)
+    if(NOT is_debug)
+        set(CURRENT_CONTENT "${CONTENT}")
+        
+        # Remove JS blocks: // #if DEBUG ... // #endif
+        while(TRUE)
+            string(FIND "${CURRENT_CONTENT}" "// #if DEBUG" POS_START)
+            if(POS_START EQUAL -1)
+                break()
+            endif()
+            
+            string(SUBSTRING "${CURRENT_CONTENT}" ${POS_START} -1 REST)
+            string(FIND "${REST}" "// #endif" POS_END_REL)
+            if(POS_END_REL EQUAL -1)
+                message(WARNING "Unmatched // #if DEBUG in ${input}")
+                break()
+            endif()
+            
+            # Length of "// #endif" is 9
+            math(EXPR REMOVE_LEN "${POS_END_REL} + 9")
+            
+            string(SUBSTRING "${CURRENT_CONTENT}" 0 ${POS_START} PART1)
+            math(EXPR PART2_START "${POS_START} + ${REMOVE_LEN}")
+            string(SUBSTRING "${CURRENT_CONTENT}" ${PART2_START} -1 PART2)
+            set(CURRENT_CONTENT "${PART1}${PART2}")
+        endwhile()
+
+        # Remove HTML blocks: <!-- #if DEBUG --> ... <!-- #endif -->
+        while(TRUE)
+            string(FIND "${CURRENT_CONTENT}" "<!-- #if DEBUG -->" POS_START)
+            if(POS_START EQUAL -1)
+                break()
+            endif()
+            
+            string(SUBSTRING "${CURRENT_CONTENT}" ${POS_START} -1 REST)
+            string(FIND "${REST}" "<!-- #endif -->" POS_END_REL)
+            if(POS_END_REL EQUAL -1)
+                message(WARNING "Unmatched <!-- #if DEBUG --> in ${input}")
+                break()
+            endif()
+            
+            # Length of "<!-- #endif -->" is 15
+            math(EXPR REMOVE_LEN "${POS_END_REL} + 15")
+            
+            string(SUBSTRING "${CURRENT_CONTENT}" 0 ${POS_START} PART1)
+            math(EXPR PART2_START "${POS_START} + ${REMOVE_LEN}")
+            string(SUBSTRING "${CURRENT_CONTENT}" ${PART2_START} -1 PART2)
+            set(CURRENT_CONTENT "${PART1}${PART2}")
+        endwhile()
+        
+        set(CONTENT "${CURRENT_CONTENT}")
+    endif()
+    
+    # Fix paths: If we are moving index.js to dist/, we must update paths inside it.
+    # dist/output.gl.wasm -> output.gl.wasm
+    string(REPLACE "dist/output.gl.wasm" "output.gl.wasm" CONTENT "${CONTENT}")
+    
+    file(WRITE "${output}" "${CONTENT}")
+endfunction()
+
+preprocess_web_file("${CMAKE_CURRENT_LIST_DIR}/web/index.js" "${DIST_DIR}/index.js" ${SMALLWASM_DEBUG_WEB})
+preprocess_web_file("${CMAKE_CURRENT_LIST_DIR}/web/index.html" "${DIST_DIR}/index.html" ${SMALLWASM_DEBUG_WEB})
+# Also copy helper scripts if debug is on
+if(SMALLWASM_DEBUG_WEB)
+    file(COPY "${CMAKE_CURRENT_LIST_DIR}/web/debug_utils.js" DESTINATION "${DIST_DIR}")
+    file(COPY "${CMAKE_CURRENT_LIST_DIR}/web/stats_debug.js" DESTINATION "${DIST_DIR}")
+endif()
+
 set(TMP_DIR "${CMAKE_BINARY_DIR}/tmp")
 file(MAKE_DIRECTORY "${TMP_DIR}")
 
@@ -72,7 +144,7 @@ set(SMALLWASM_LD_FLAGS
 --no-entry --export-memory --allow-undefined
 --export=malloc --export=free
 --export=init --export=frame --export=resize --export=pointer
---export=on_tex_loaded --export=on_tex_failed
+--export=on_tex_loaded --export=on_tex_failed --export=gl_create_program_from_source
 )
 
 # ---- Strip control ----
@@ -125,6 +197,7 @@ endfunction()
 # =========================================================
 
 set(GL_SRC   "${CMAKE_CURRENT_LIST_DIR}/src/gl_ctx.cpp")
+set(GAPI_SRC "${CMAKE_CURRENT_LIST_DIR}/src/graphics/gl_api.cpp")
 set(RT_SRC   "${CMAKE_CURRENT_LIST_DIR}/src/util/wasm_runtime.cpp")
 set(OBJ_SRC  "${CMAKE_CURRENT_LIST_DIR}/src/game/object.cpp")
 set(CMD_SRC  "${CMAKE_CURRENT_LIST_DIR}/src/graphics/wasm_command_buffer.cpp")
@@ -135,6 +208,7 @@ set(ENG_SRC  "${CMAKE_CURRENT_LIST_DIR}/src/engine/engine.cpp")
 set(DEMO_SRC "${CMAKE_CURRENT_LIST_DIR}/src/demo/demo_game.cpp")
 
 set(GL_OBJ   "${CMAKE_BINARY_DIR}/gl_ctx.o")
+set(GAPI_OBJ "${CMAKE_BINARY_DIR}/gl_api.o")
 set(RT_OBJ   "${CMAKE_BINARY_DIR}/wasm_runtime.o")
 set(OBJ_OBJ  "${CMAKE_BINARY_DIR}/object.o")
 set(CMD_OBJ  "${CMAKE_BINARY_DIR}/wasm_command_buffer.o")
@@ -158,6 +232,9 @@ set(GL_MAP   "${CMAKE_CURRENT_LIST_DIR}/output.gl.map")
 add_custom_command(OUTPUT ${GL_OBJ}
 COMMAND ${SMALLWASM_CLANG} ${SMALLWASM_CXX_FLAGS} -c ${GL_SRC} -o ${GL_OBJ}
 DEPENDS ${GL_SRC})
+add_custom_command(OUTPUT ${GAPI_OBJ}
+COMMAND ${SMALLWASM_CLANG} ${SMALLWASM_CXX_FLAGS} -c ${GAPI_SRC} -o ${GAPI_OBJ}
+DEPENDS ${GAPI_SRC})
 add_custom_command(OUTPUT ${RT_OBJ}
 COMMAND ${SMALLWASM_CLANG} ${SMALLWASM_CXX_FLAGS} -c ${RT_SRC} -o ${RT_OBJ}
 DEPENDS ${RT_SRC})
@@ -192,10 +269,10 @@ DEPENDS ${DEMO_SRC})
 add_custom_command(
 OUTPUT "${GL_RAW}"
 COMMAND "${SMALLWASM_WASM_LD}" ${SMALLWASM_LD_FLAGS} ${SMALLWASM_LD_STRIP} --Map=${GL_MAP}
-"${GL_OBJ}" "${RT_OBJ}" "${OBJ_OBJ}" "${CMD_OBJ}"
+"${GL_OBJ}" "${GAPI_OBJ}" "${RT_OBJ}" "${OBJ_OBJ}" "${CMD_OBJ}"
 "${R2D_OBJ}" "${TEX_OBJ}" "${UI_OBJ}" "${ENG_OBJ}" "${DEMO_OBJ}"
 -o "${GL_RAW}"
-DEPENDS "${GL_OBJ}" "${RT_OBJ}" "${OBJ_OBJ}" "${CMD_OBJ}"
+DEPENDS "${GL_OBJ}" "${GAPI_OBJ}" "${RT_OBJ}" "${OBJ_OBJ}" "${CMD_OBJ}"
 "${R2D_OBJ}" "${TEX_OBJ}" "${UI_OBJ}" "${ENG_OBJ}" "${DEMO_OBJ}"
 VERBATIM
 )

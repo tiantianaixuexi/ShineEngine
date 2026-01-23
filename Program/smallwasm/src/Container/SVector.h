@@ -16,7 +16,7 @@ namespace shine::wasm
 		unsigned int cap = 0;
 		void* pointer = nullptr;
 
-		static inline unsigned int grow_cap(unsigned int cur, unsigned int need) noexcept
+		inline unsigned int grow_cap(unsigned int cur, unsigned int need) noexcept
 		{
 			unsigned int n = cur ? cur : 8u;
 			while (n < need) n *= 2u;

@@ -30,6 +30,15 @@ static inline void raw_memcpy(void* dst, const void* src, size_t n) noexcept {
   for (size_t i = 0; i < n; ++i) d[i] = s[i];
 }
 
+static inline int raw_memcmp(const void* s1, const void* s2, size_t n) noexcept {
+  const unsigned char* p1 = (const unsigned char*)s1;
+  const unsigned char* p2 = (const unsigned char*)s2;
+  for (size_t i = 0; i < n; ++i) {
+    if (p1[i] != p2[i]) return p1[i] - p2[i];
+  }
+  return 0;
+}
+
 static inline int raw_strlen(const char* s) noexcept {
   if (!s) return 0;
   int n = 0;
@@ -38,6 +47,10 @@ static inline int raw_strlen(const char* s) noexcept {
 }
 
 __attribute__((noinline)) static  int ptr_i32(const void* p) noexcept {return (int)(unsigned long)(uintptr_t)p; }
+
+#define f2i_s(f) shine::wasm::f2i(f)
+
+
 
 __attribute__((noinline)) static int f2i(float f) noexcept {
     return *(int*)&f; 

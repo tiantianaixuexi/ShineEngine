@@ -32,7 +32,7 @@ struct PulseColor final : public shine::game::Component {
     }
     void onUpdate(float t) override {
         if (sr) {
-            float v = base + 0.2f * shine::math::sin(t * 3.0f);
+            float v = base + 0.4f * shine::math::sin(t * 15.0f);
             sr->g = v;
             sr->b = v;
         }
@@ -179,7 +179,7 @@ void DemoGame::onInit(shine::engine::Engine& app) {
     btn->bindOnClick([](shine::ui::Button*){ LOG("button clicked"); });
     btn->bindHoverEvent([](shine::ui::Button*) { LOG("button Hover"); });
     btn->bindUnHoverEvent([](shine::ui::Button*) { LOG("button UnHover"); });
-    btn->setBgUrl("asset/金币.png");
+    btn->setBgUrl("../asset/金币.png");
     btn->setAlignment(0.5f, 0.5f);
     btn->setLayoutRel(0.5f, 0.5f, 0.0f, 0.0f, 0.18f, 0.09f);
     btn->setLayoutPx(0.5f,0.5f,-50.f,50.f,100.f,100.f);

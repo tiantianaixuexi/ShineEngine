@@ -42,7 +42,7 @@ void Engine::init(int triCount) {
 }
 
 void Engine::onResize(int w, int h) {
-    LOG2("Engine::onResize", w, h);
+
     m_width = w;
     m_height = h;
     
@@ -58,11 +58,11 @@ void Engine::onResize(int w, int h) {
     
 }
 
-static inline int f2i(float f) { return *(int*)&f; }
 
 void Engine::frame(float t) {
     if (!m_inited) return;
 
+    LOG("frame", t);
 
     m_timers.tick(t);
 
@@ -76,7 +76,7 @@ void Engine::frame(float t) {
     cmd_push(CMD_VIEWPORT, 0, 0, m_width, m_height, 0, 0, 0);
 
     // Default Clear
-    cmd_push(CMD_CLEAR_COLOR, f2i(0.07f), f2i(0.07f), f2i(0.07f), f2i(1.0f), 0, 0, 0);
+    cmd_push(CMD_CLEAR_COLOR, wasm::f2i(0.07f), wasm::f2i(0.07f), wasm::f2i(0.07f), wasm::f2i(1.0f), 0, 0, 0);
     cmd_push(CMD_CLEAR, GL_COLOR_BUFFER_BIT, 0, 0, 0, 0, 0, 0);
 
     // Game Update & Render

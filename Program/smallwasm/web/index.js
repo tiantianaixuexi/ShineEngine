@@ -1,5 +1,6 @@
 const decoder = new TextDecoder('utf-8');
 
+// #if DEBUG
 // Debug stats UI is heavy; load it on demand.
 let __dbgStats = null;
 async function ensureDbgStats(openCmd = false) {
@@ -14,24 +15,11 @@ async function ensureDbgStats(openCmd = false) {
 }
 
 // -------------------------------
-// HUD toggle (debug overlay text)
+// HUD toggle & Debug Stats
 // -------------------------------
-let __hudEnabled = (localStorage.getItem('hud') !== '0');
-function __setHudEnabled(on) {
-  __hudEnabled = !!on;
-  try { localStorage.setItem('hud', __hudEnabled ? '1' : '0'); } catch {}
-  const el = document.getElementById('hud');
-  if (el) el.style.display = __hudEnabled ? '' : 'none';
-}
-function __toggleHud() { __setHudEnabled(!__hudEnabled); }
-window.__hud = {
-  on: () => __setHudEnabled(true),
-  off: () => __setHudEnabled(false),
-  toggle: () => __toggleHud(),
-  enabled: () => __hudEnabled,
-};
-// Apply initial state
-__setHudEnabled(__hudEnabled);
+// Now handled by DebugUtils (loaded conditionally)
+let _dbg = null; // { hud, stats, timer, GpuTimer }
+// #endif
 
 function cstr(mem, ptr) {
   const u8 = new Uint8Array(mem.buffer);
@@ -65,6 +53,7 @@ function resizeCanvasToWindow(canvas) {
   return { w, h };
 }
 
+
 async function loadBitmapFromUrl(url) {
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -90,21 +79,40 @@ async function runApp(canvas, hud) {
   let mem;
   let wasmExports = null;
 
-  // Debug stats UI loads on demand (press ` or add ?stat=1).
-  const wantStat = (new URLSearchParams(location.search)).get('stat');
-  if (wantStat === '1' || wantStat === 'true') {
-    // Fire and forget; stats will show when loaded.
-    ensureDbgStats(false).catch(() => {});
-  }
+  // #if DEBUG
+  // Debug initialization
+  if (true) {
+    try {
+      const { GpuTimer, DebugHud, DebugStats } = await import('./debug_utils.js');
+      _dbg = {
+        GpuTimer, // Keep class ref for lazy init
+        timer: null, // created after GL context
+        hud: new DebugHud(),
+        stats: new DebugStats()
+      };
 
-  window.addEventListener('keydown', (ev) => {
-    if (ev.key === '`') {
-      ev.preventDefault();
-      // First press loads it, later presses toggle cmd.
-      if (!__dbgStats) ensureDbgStats(true).catch(() => {});
-      else if (__dbgStats.toggleCmd) __dbgStats.toggleCmd();
+      // Auto-load stats if requested
+      const wantStat = (new URLSearchParams(location.search)).get('stat');
+      if (wantStat === '1' || wantStat === 'true') {
+        _dbg.stats.ensure(false).catch(() => { });
+      }
+
+      window.addEventListener('keydown', (ev) => {
+        if (ev.key === '`') {
+          ev.preventDefault();
+          if (_dbg.stats) {
+            // First press loads it, later presses toggle cmd.
+            if (!_dbg.stats.instance) _dbg.stats.ensure(true).catch(() => { });
+            else if (_dbg.stats.toggleCmd) _dbg.stats.toggleCmd();
+          }
+        }
+      });
+
+    } catch (e) {
+      console.warn('Failed to load debug_utils', e);
     }
-  });
+  }
+  // #endif
 
   function smooth(oldV, newV, a) { return oldV * (1 - a) + newV * a; }
 
@@ -128,9 +136,9 @@ async function runApp(canvas, hud) {
     }
     // data url
     return await loadBitmapFromUrl(value);
-    }
+  }
 
- 
+
 
   function createTextureFromBitmap(c, bmp) {
     const gl = c.gl;
@@ -150,8 +158,8 @@ async function runApp(canvas, hud) {
 
   function texNotifyOk(reqId, texId, w, h) {
     if (!wasmExports || !wasmExports.on_tex_loaded) {
-        console.warn('texNotifyOk: no wasmExports.on_tex_loaded');
-        return;
+      console.warn('texNotifyOk: no wasmExports.on_tex_loaded');
+      return;
     }
     wasmExports.on_tex_loaded(reqId | 0, texId | 0, w | 0, h | 0);
   }
@@ -168,13 +176,13 @@ async function runApp(canvas, hud) {
   function texEnsureLoad(c, key, kind, src) {
     const hit = c.texCache.get(key);
     if (hit && hit.state === 'ready') {
-        console.warn('texEnsureLoad hit');
-        return hit;
+      console.warn('texEnsureLoad hit');
+      return hit;
     }
-      if (hit && hit.state === 'pending') {
-          console.warn('texEnsureLoad pending');
-        return null;
-      }
+    if (hit && hit.state === 'pending') {
+      console.warn('texEnsureLoad pending');
+      return null;
+    }
 
     c.texCache.set(key, { state: 'pending', reqIds: [] });
     (async () => {
@@ -187,8 +195,8 @@ async function runApp(canvas, hud) {
 
         const pending = c.texCache.get(key);
         const reqs = pending && pending.reqIds ? pending.reqIds.slice() : [];
-          c.texCache.set(key, { state: 'ready', texId, w, h });
-          console.info('texEnsureLoad ready');
+        c.texCache.set(key, { state: 'ready', texId, w, h });
+        console.info('texEnsureLoad ready');
         for (const r of reqs) texNotifyOk(r, texId, w, h);
       } catch (e) {
         const pending = c.texCache.get(key);
@@ -235,16 +243,20 @@ async function runApp(canvas, hud) {
       // Optional debug stats injection from WASM (DEBUG builds).
       // If stats_debug.js isn't loaded, these are cheap no-ops.
       js_stat_f32(namePtr, nameLen, value, unitPtr, unitLen) {
-        if (!__dbgStats || !__dbgStats.set) return;
+        // #if DEBUG
+        if (!_dbg || !_dbg.stats) return;
         const name = strSlice(mem, namePtr, nameLen);
         const unit = (unitLen | 0) > 0 ? strSlice(mem, unitPtr, unitLen) : '';
-        __dbgStats.set(name, value, unit ? { unit } : undefined);
+        _dbg.stats.set(name, value, unit ? { unit } : undefined);
+        // #endif
       },
       js_stat_i32(namePtr, nameLen, value, unitPtr, unitLen) {
-        if (!__dbgStats || !__dbgStats.set) return;
+        // #if DEBUG
+        if (!_dbg || !_dbg.stats) return;
         const name = strSlice(mem, namePtr, nameLen);
         const unit = (unitLen | 0) > 0 ? strSlice(mem, unitPtr, unitLen) : '';
-        __dbgStats.set(name, value | 0, unit ? { unit } : undefined);
+        _dbg.stats.set(name, value | 0, unit ? { unit } : undefined);
+        // #endif
       },
 
       js_create_context(canvasIdPtr, canvasIdLen) {
@@ -807,10 +819,10 @@ async function runApp(canvas, hud) {
     console.log('wasmUrl', wasmUrl, 'bytes', bytes);
     if (e.get_context_handle) console.log('wasm ctx', e.get_context_handle() | 0);
     else if (e.get_ctx_id) console.log('wasm ctx', e.get_ctx_id() | 0);
-    
+
     if (e.is_inited) console.log('wasm inited', e.is_inited() | 0);
     else if (e.get_inited) console.log('wasm inited', e.get_inited() | 0);
-  } catch {}
+  } catch { }
 
   // pointer events -> wasm (NDC coords)
   let ptrDown = 0;
@@ -835,112 +847,59 @@ async function runApp(canvas, hud) {
     const p = toNDC(ev);
     if (e.pointer) e.pointer(p.x, p.y, 0);
   });
+
+  let lastCanvasW = 0;
+  let lastCanvasH = 0;
+
   window.addEventListener('resize', () => {
     const { w, h } = resizeCanvasToWindow(canvas);
-    if (frame._lastW !== w || frame._lastH !== h) {
-      frame._lastW = w;
-      frame._lastH = h;
-      if (e.resize) e.resize(w, h);
-      else if (e.on_resize) e.on_resize(w, h);
-    }
+    lastCanvasW = w;
+    lastCanvasH = h;
+    e.resize(w, h);
   });
+
   {
-    const { w, h } = resizeCanvasToWindow(canvas);
-    frame._lastW = w;
-    frame._lastH = h;
-    if (e.resize) e.resize(w, h);
-    else if (e.on_resize) e.on_resize(w, h);
+        const { w, h } = resizeCanvasToWindow(canvas);
+      lastCanvasW = w;
+      lastCanvasH = h;
+      e.resize(w, h);
   }
 
   let lastT = performance.now();
+  // #if DEBUG
   let fps = 0;
   let cpuMs = 0;
-  let gpuMs = 0;
-  let gpuDisjoint = false;
-
-  function tryConsumeGpuTiming(c) {
-    if (!c || !c.qExt || c.q.length === 0) return;
-    const gl = c.gl;
-    const ext = c.qExt;
-    // Disjoint flag: if true, timing data invalid (GPU freq changed, etc.)
-    const disjoint = c.isWebGL2
-      ? gl.getParameter(ext.GPU_DISJOINT_EXT)
-      : gl.getParameter(ext.GPU_DISJOINT_EXT);
-    gpuDisjoint = !!disjoint;
-    if (disjoint) return;
-
-    // Read back oldest available query without blocking.
-    if (c.qRead === c.qWrite) return; // nothing pending
-    const q = c.q[c.qRead];
-    let available = false;
-    if (c.isWebGL2) {
-      available = !!gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE);
-      if (!available) return;
-      const ns = gl.getQueryParameter(q, gl.QUERY_RESULT);
-      const ms = Number(ns) / 1e6;
-      gpuMs = smooth(gpuMs, ms, 0.2);
-      c.qRead = (c.qRead + 1) % c.q.length;
-    } else {
-      available = !!ext.getQueryObjectEXT(q, ext.QUERY_RESULT_AVAILABLE_EXT);
-      if (!available) return;
-      const ns = ext.getQueryObjectEXT(q, ext.QUERY_RESULT_EXT);
-      const ms = Number(ns) / 1e6;
-      gpuMs = smooth(gpuMs, ms, 0.2);
-      c.qRead = (c.qRead + 1) % c.q.length;
-    }
-  }
-
-  function beginGpuTiming(c) {
-    if (!c || !c.qExt || c.q.length === 0) return;
-    // avoid overwriting unread queries
-    const nextWrite = (c.qWrite + 1) % c.q.length;
-    if (nextWrite === c.qRead) {
-      // queue full => skip begin; make endGpuTiming a no-op this frame
-      c._gpuTimingActive = false;
-      return;
-    }
-    const gl = c.gl;
-    const ext = c.qExt;
-    const q = c.q[c.qWrite];
-    if (c.isWebGL2) gl.beginQuery(ext.TIME_ELAPSED_EXT, q);
-    else ext.beginQueryEXT(ext.TIME_ELAPSED_EXT, q);
-    c._gpuTimingActive = true;
-  }
-
-  function endGpuTiming(c) {
-    if (!c || !c.qExt || c.q.length === 0) return;
-    if (!c._gpuTimingActive) return;
-    const gl = c.gl;
-    const ext = c.qExt;
-    if (c.isWebGL2) gl.endQuery(ext.TIME_ELAPSED_EXT);
-    else ext.endQueryEXT(ext.TIME_ELAPSED_EXT);
-    c.qWrite = (c.qWrite + 1) % c.q.length;
-    c._gpuTimingActive = false;
-  }
+  // #endif
 
   function frame(now) {
     const dt = now - lastT;
     lastT = now;
+    // #if DEBUG
     fps = fps * 0.9 + (1000 / Math.max(1, dt)) * 0.1;
-
-    const { w, h } = resizeCanvasToWindow(canvas);
-    // Keep JS->WASM to ~1 call per frame: only notify resize when it changes.
-    if (frame._lastW !== w || frame._lastH !== h) {
-      // console.log(`JS resize: ${w}x${h} (last: ${frame._lastW}x${frame._lastH})`);
-      frame._lastW = w;
-      frame._lastH = h;
-      if (e.resize) e.resize(w, h);
-      else if (e.on_resize) e.on_resize(w, h);
-      else console.warn("WASM resize export not found!");
-    }
+    // #endif
 
     const c = ctx(1); // we create exactly one context in init(); its id is 1.
-    tryConsumeGpuTiming(c);
+
+    // #if DEBUG
+    // Lazy init timer if needed
+    if (_dbg && !_dbg.timer && c && _dbg.GpuTimer) {
+      _dbg.timer = new _dbg.GpuTimer(c.gl, c.isWebGL2);
+    }
+
+    if (_dbg && _dbg.timer) _dbg.timer.tryConsume();
+
     const cpuStart = performance.now();
-    beginGpuTiming(c);
+
+    if (_dbg && _dbg.timer) _dbg.timer.begin();
+    // #endif
     e.frame(now * 0.001);
-    endGpuTiming(c);
+    // #if DEBUG
+    if (_dbg && _dbg.timer) _dbg.timer.end();
+    // #endif
+
+    // #if DEBUG
     const cpuEnd = performance.now();
+
     cpuMs = smooth(cpuMs, (cpuEnd - cpuStart), 0.2);
 
     // memory stats
@@ -965,27 +924,29 @@ async function runApp(canvas, hud) {
     const instCount = e.get_instance_count ? (e.get_instance_count() | 0) : 0;
     const texCount = (c && c.textures) ? Math.max(0, (c.textures.length | 0) - 1) : 0;
 
+    const gpuMs = (_dbg && _dbg.timer) ? _dbg.timer.gpuMs : 0;
+
     // Feed debug stats system (customizable + graphs) if loaded
-    if (__dbgStats && __dbgStats.set) {
-      __dbgStats.set('Frame/fps', fps, { unit: 'fps' });
-      __dbgStats.set('Frame/cpuMs', cpuMs, { unit: 'ms' });
-      __dbgStats.set('Frame/gpuMs', gpuMs, { unit: 'ms' });
-      __dbgStats.set('Render/mode', mode, { unit: '' });
-      __dbgStats.set('Render/drawCalls', drawCalls, { unit: '' });
-      __dbgStats.set('Render/vertices', vertCount, { unit: '' });
-      __dbgStats.set('Render/instances', instCount, { unit: '' });
-      __dbgStats.set('Render/textures', texCount, { unit: '' });
-      __dbgStats.set('Memory/wasmMemMB', wasmBytes / (1024 * 1024), { unit: 'MB' });
-      __dbgStats.set('Memory/jsHeapMB', jsHeapMB, { unit: 'MB' });
-      __dbgStats.set('Memory/heapUsedMB', heapUsed / (1024 * 1024), { unit: 'MB' });
-      __dbgStats.set('Memory/heapCapMB', heapCap / (1024 * 1024), { unit: 'MB' });
-      __dbgStats.set('Memory/heapFreeListMB', heapFree / (1024 * 1024), { unit: 'MB' });
-      __dbgStats.set('Memory/heapAllocs', heapAllocs, { unit: '' });
-      __dbgStats.set('Memory/heapFrees', heapFrees, { unit: '' });
-      __dbgStats.set('Memory/heapFails', heapFails, { unit: '' });
+    if (_dbg && _dbg.stats) {
+      _dbg.stats.set('Frame/fps', fps, { unit: 'fps' });
+      _dbg.stats.set('Frame/cpuMs', cpuMs, { unit: 'ms' });
+      _dbg.stats.set('Frame/gpuMs', gpuMs, { unit: 'ms' });
+      _dbg.stats.set('Render/mode', mode, { unit: '' });
+      _dbg.stats.set('Render/drawCalls', drawCalls, { unit: '' });
+      _dbg.stats.set('Render/vertices', vertCount, { unit: '' });
+      _dbg.stats.set('Render/instances', instCount, { unit: '' });
+      _dbg.stats.set('Render/textures', texCount, { unit: '' });
+      _dbg.stats.set('Memory/wasmMemMB', wasmBytes / (1024 * 1024), { unit: 'MB' });
+      _dbg.stats.set('Memory/jsHeapMB', jsHeapMB, { unit: 'MB' });
+      _dbg.stats.set('Memory/heapUsedMB', heapUsed / (1024 * 1024), { unit: 'MB' });
+      _dbg.stats.set('Memory/heapCapMB', heapCap / (1024 * 1024), { unit: 'MB' });
+      _dbg.stats.set('Memory/heapFreeListMB', heapFree / (1024 * 1024), { unit: 'MB' });
+      _dbg.stats.set('Memory/heapAllocs', heapAllocs, { unit: '' });
+      _dbg.stats.set('Memory/heapFrees', heapFrees, { unit: '' });
+      _dbg.stats.set('Memory/heapFails', heapFails, { unit: '' });
     }
 
-    if (__hudEnabled && hud) {
+    if (_dbg && _dbg.hud) {
       const cmdCount = (e.get_cmd_count ? (e.get_cmd_count() | 0) : 0);
       const ctxId = (e.get_context_handle ? (e.get_context_handle() | 0) : (e.get_ctx_id ? (e.get_ctx_id() | 0) : -1));
       const inited = (e.is_inited ? (e.is_inited() | 0) : (e.get_inited ? (e.get_inited() | 0) : -1));
@@ -994,19 +955,18 @@ async function runApp(canvas, hud) {
       const appSize = (e.get_app_size ? (e.get_app_size() | 0) : 0);
       const heapBase = (e.wasm_heap_base_addr ? (e.wasm_heap_base_addr() >>> 0) : 0);
       const heapPtr = (e.wasm_heap_ptr_addr ? (e.wasm_heap_ptr_addr() >>> 0) : 0);
-      hud.textContent =
-        `demo (output.gl.wasm ${bytes} bytes)\n` +
-        `tris=${TRI_COUNT}  mode=${modeName}  ctx=${ctxId}  inited=${inited}  frame=${frameNo}\n` +
-        `drawCalls=${drawCalls}  cmds=${cmdCount}  verts=${vertCount}  inst=${instCount}  tex=${texCount}\n` +
-        `app@0x${appAddr.toString(16)} +${appSize}  heapBase=0x${heapBase.toString(16)} heapPtr=0x${heapPtr.toString(16)}\n` +
-        `fps≈${fps.toFixed(1)}  cpu≈${cpuMs.toFixed(2)}ms  gpu≈${gpuMs.toFixed(2)}ms${gpuDisjoint ? ' (disjoint)' : ''}\n` +
-        `wasmMem=${(wasmBytes / (1024 * 1024)).toFixed(2)}MB  jsHeap≈${jsHeapMB.toFixed(1)}MB\n` +
-        `heap used=${(heapUsed / (1024 * 1024)).toFixed(2)}MB / cap=${(heapCap / (1024 * 1024)).toFixed(2)}MB  freeList≈${(heapFree / (1024 * 1024)).toFixed(2)}MB\n` +
-        `heap allocs=${heapAllocs} frees=${heapFrees} fails=${heapFails}` +
-        (window.__cmdLast ? `\n---\n${window.__cmdLast}` : '');
+
+      _dbg.hud.update({
+        bytes, triCount: TRI_COUNT, modeName, ctxId, inited, frameNo,
+        drawCalls, cmdCount, vertCount, instCount, texCount,
+        fps, cpuMs, gpuMs, gpuDisjoint: (_dbg.timer && _dbg.timer.disjoint),
+        wasmBytes, jsHeapMB, heapUsed, heapCap, heapFree, heapAllocs, heapFrees, heapFails,
+        appAddr, appSize, heapBase, heapPtr
+      });
     }
 
-    if (__dbgStats && __dbgStats.draw) __dbgStats.draw();
+    if (_dbg && _dbg.stats) _dbg.stats.draw();
+    // #endif
     requestAnimationFrame(frame);
   }
 

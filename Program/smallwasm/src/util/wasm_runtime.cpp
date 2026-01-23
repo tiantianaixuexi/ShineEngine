@@ -162,6 +162,52 @@ void* __dso_handle = (void*)0;
 int __cxa_atexit(void (*)(void*), void*, void*) { return 0; }
 void __cxa_finalize(void*) {}
 void __cxa_pure_virtual() {}
+
+// Standard C library memory functions
+void* memset(void* ptr, int value, size_t num) {
+    unsigned char* p = (unsigned char*)ptr;
+    unsigned char v = (unsigned char)value;
+    for (size_t i = 0; i < num; ++i) {
+        p[i] = v;
+    }
+    return ptr;
+}
+
+void* memcpy(void* dest, const void* src, size_t num) {
+    unsigned char* d = (unsigned char*)dest;
+    const unsigned char* s = (const unsigned char*)src;
+    for (size_t i = 0; i < num; ++i) {
+        d[i] = s[i];
+    }
+    return dest;
+}
+
+void* memmove(void* dest, const void* src, size_t num) {
+    unsigned char* d = (unsigned char*)dest;
+    const unsigned char* s = (const unsigned char*)src;
+    if (d < s) {
+        for (size_t i = 0; i < num; ++i) {
+            d[i] = s[i];
+        }
+    } else {
+        for (size_t i = num; i > 0; --i) {
+            d[i - 1] = s[i - 1];
+        }
+    }
+    return dest;
+}
+
+int memcmp(const void* ptr1, const void* ptr2, size_t num) {
+    const unsigned char* p1 = (const unsigned char*)ptr1;
+    const unsigned char* p2 = (const unsigned char*)ptr2;
+    for (size_t i = 0; i < num; ++i) {
+        if (p1[i] != p2[i]) {
+            return p1[i] - p2[i];
+        }
+    }
+    return 0;
+}
+
 }
 
 namespace shine::wasm {
@@ -171,8 +217,8 @@ void svector_reserve_impl(void** pointer_ref, unsigned int* cap_ref, unsigned in
     if (newCap <= *cap_ref) return;
     if (elemSize == 0) return;
 
-    size_t bytes = (size_t)newCap * (size_t)elemSize;
-    void* np = raw_malloc(bytes);
+    unsigned int bytes = newCap * elemSize;
+    void* np = raw_malloc((size_t)(bytes));
     if (!np) return;
 
     void* old_ptr = *pointer_ref;
