@@ -26,10 +26,10 @@ static inline void set_f32(const char* name, float value, const char* unit = "")
   if (!name) return;
   if (!unit) unit = "";
   js_stat_f32(
-    shine::wasm::ptr_i32(name),
+    ptr_i32(name),
     shine::wasm::raw_strlen(name),
     value,
-    shine::wasm::ptr_i32(unit),
+    ptr_i32(unit),
     shine::wasm::raw_strlen(unit)
   );
 }

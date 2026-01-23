@@ -26,7 +26,7 @@ public:
     // Frame management
     void begin(); // Called at start of frame
     void end();   // Called at end of frame to submit batches
-    __attribute__((noinline))  void flush(); // Internal or forced flush
+    void flush(); // Internal or forced flush
 
     float* allocVtx(int floatCount, int* out_first_vertex = nullptr); 
     

@@ -112,7 +112,7 @@ void Renderer2D::init(int ctx) {
     for (const auto& u : kUniforms) {
         int* target = (int*)((char*)this + u.offset);
         int prog = progs[u.progIdx];
-        *target = gl_get_uniform_location(ctx, prog, shine::wasm::ptr_i32(u.name), shine::wasm::raw_strlen(u.name));
+        *target = gl_get_uniform_location(ctx, prog, ptr_i32(u.name), shine::wasm::raw_strlen(u.name));
     }
 
     // Initial Buffer
@@ -175,7 +175,7 @@ void Renderer2D::flush() {
     
     // Upload & Bind
     cmd_push(CMD_BIND_BUFFER, GL_ARRAY_BUFFER, m_vbo, 0, 0, 0, 0, 0);
-    cmd_push(CMD_BUFFER_DATA_F32, GL_ARRAY_BUFFER, shine::wasm::ptr_i32(m_ui_vtx.data()), (int)m_ui_vtx.size(), GL_DYNAMIC_DRAW, 0, 0, 0);
+    cmd_push(CMD_BUFFER_DATA_F32, GL_ARRAY_BUFFER, ptr_i32(m_ui_vtx.data()), (int)m_ui_vtx.size(), GL_DYNAMIC_DRAW, 0, 0, 0);
     cmd_push(CMD_BIND_VAO, m_vao, 0, 0, 0, 0, 0, 0);
 
     // Render State

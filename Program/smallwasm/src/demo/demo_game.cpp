@@ -56,7 +56,6 @@ struct KillOnClick final : public shine::game::Component {
         if (y < cy - h * 0.5f || y > cy + h * 0.5f) return;
 
 
-
         node->markPendingKill();
     }
 };
@@ -104,10 +103,10 @@ static void demo_rc_draw_rect_tex(void* /*user*/, int texId, float cx, float cy,
 //    g_demo_ui_list.push_back(e);
 // }
 
-void DemoGame::onInit(shine::engine::Engine& app) {
+void DemoGame::onInit() {
 
     g_demo_game = this;
-    int ctx = app.getCtx();
+    int ctx = SHINE_ENGINE.getCtx();
 
     rc.user = nullptr;
     rc.drawRectCol = demo_rc_draw_rect_col;
@@ -140,7 +139,7 @@ void DemoGame::onInit(shine::engine::Engine& app) {
     };
     vbo_inst_base = gl_create_buffer(ctx);
     gl_bind_buffer(ctx, GL_ARRAY_BUFFER, vbo_inst_base);
-    gl_buffer_data_f32(ctx, GL_ARRAY_BUFFER, shine::wasm::ptr_i32(q), 30, GL_DYNAMIC_DRAW);
+    gl_buffer_data_f32(ctx, GL_ARRAY_BUFFER, ptr_i32(q), 30, GL_DYNAMIC_DRAW);
 
     vbo_inst_data = gl_create_buffer(ctx);
     vao_inst = gl_create_vertex_array(ctx);
@@ -198,26 +197,25 @@ void DemoGame::onInit(shine::engine::Engine& app) {
 
 }
 
-void DemoGame::onResize(shine::engine::Engine& app, int w, int h) {
-    (void)app;
+void DemoGame::onResize(int w, int h) {
     (void)w;
     (void)h;
 
     //LOG2("Resize:", w, h);
 }
 
-void DemoGame::onUpdate(shine::engine::Engine& app, float t) {
+void DemoGame::onUpdate(float t) {
     scene.update(t);
     scene.collectGarbage();
 }
 
-void DemoGame::onRender(shine::engine::Engine& app, float t) {
+void DemoGame::onRender(float t) {
     // 1. Draw raw demo stuff (Triangles / Instances)
     if (render_mode == 0) {
         update_vertices(t);
         if (tri_count > 0 && buf.data()) {
             cmd_push(CMD_BIND_BUFFER, GL_ARRAY_BUFFER, vbo, 0, 0, 0, 0, 0);
-            cmd_push(CMD_BUFFER_DATA_F32, GL_ARRAY_BUFFER, shine::wasm::ptr_i32(buf.data()), tri_count * 3 * 5, GL_DYNAMIC_DRAW, 0, 0, 0);
+            cmd_push(CMD_BUFFER_DATA_F32, GL_ARRAY_BUFFER, ptr_i32(buf.data()), tri_count * 3 * 5, GL_DYNAMIC_DRAW, 0, 0, 0);
             cmd_push(CMD_BIND_VAO, vao_basic, 0, 0, 0, 0, 0, 0);
             cmd_push(CMD_USE_PROGRAM, prog, 0, 0, 0, 0, 0, 0);
             cmd_push(CMD_DRAW_ARRAYS, GL_TRIANGLES, 0, tri_count * 3, 0, 0, 0, 0);
@@ -226,7 +224,7 @@ void DemoGame::onRender(shine::engine::Engine& app, float t) {
         update_instances(t);
         if (inst_count > 0 && inst.data()) {
             cmd_push(CMD_BIND_BUFFER, GL_ARRAY_BUFFER, vbo_inst_data, 0, 0, 0, 0, 0);
-            cmd_push(CMD_BUFFER_DATA_F32, GL_ARRAY_BUFFER, shine::wasm::ptr_i32(inst.data()), inst_count * 6, GL_DYNAMIC_DRAW, 0, 0, 0);
+            cmd_push(CMD_BUFFER_DATA_F32, GL_ARRAY_BUFFER, ptr_i32(inst.data()), inst_count * 6, GL_DYNAMIC_DRAW, 0, 0, 0);
             cmd_push(CMD_BIND_VAO, vao_inst, 0, 0, 0, 0, 0, 0);
             cmd_push(CMD_USE_PROGRAM, prog_inst, 0, 0, 0, 0, 0, 0);
             cmd_push(CMD_DRAW_ARRAYS_INSTANCED, GL_TRIANGLES, 0, 6, inst_count, 0, 0, 0);
@@ -237,21 +235,22 @@ void DemoGame::onRender(shine::engine::Engine& app, float t) {
     scene.render(rc, t);
 
     // 3. Draw UI
-    int ctx = app.getCtx();
+    int ctx = SHINE_ENGINE.getCtx();
     shine::ui::UIManager::instance().onRender(ctx);
 }
 
-void DemoGame::onPointer(shine::engine::Engine& app, float x, float y, int isDown) {
+void DemoGame::onPointer(float x, float y, int isDown) {
     scene.pointer(x, y, isDown);
     
     // Convert NDC to Pixels for UI
-    int w = app.getWidth();
-    int h = app.getHeight();
-    const float half_w = 0.5f * (float)w;
-    const float half_h = 0.5f * (float)h;
+    float half_w = 0.f;
+    float half_h = 0.f;
+
+    SHINE_ENGINE.getHalf(half_w, half_h);
+
+
     float px = (x + 1.0f) * half_w;
     float py = (1.0f - y) * half_h;
-
 
 
     // UI pointer
@@ -260,8 +259,8 @@ void DemoGame::onPointer(shine::engine::Engine& app, float x, float y, int isDow
 
 void DemoGame::ensure_buffer(int count) {
     // x,y,r,g,b per vertex; 3 vertices per tri
-    const unsigned int floats_per_tri = 3u * 5u;
-    const unsigned int total = (unsigned int)count * floats_per_tri;
+    //const unsigned int floats_per_tri = 3u * 5u;
+    const unsigned int total = 15u * count;
     buf = shine::wasm::SArray<float>(total);
     tri_count = count;
 }
@@ -278,10 +277,9 @@ void DemoGame::update_vertices(float t) {
     const int count = tri_count;
     if (count <= 0 || !buf.data()) return;
 
-    int w = SHINE_ENGINE.getWidth();
-    int h = SHINE_ENGINE.getHeight();
-
-    float aspect = (float)w / (float)h;
+ 
+    const float aspect = SHINE_ENGINE.aspect; 
+    
     float sx = 1.0f;
     if (shine::math::f_abs(aspect) > 0.00001f) sx = 1.0f / aspect;
 

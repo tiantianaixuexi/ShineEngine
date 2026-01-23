@@ -15,6 +15,7 @@
 namespace shine::game {
 
 class Node : public Object {
+  
 public:
   Node* parent = nullptr;
 

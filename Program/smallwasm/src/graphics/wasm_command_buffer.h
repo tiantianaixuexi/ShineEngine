@@ -43,11 +43,7 @@ public:
 private:
     friend class CommandBuffer; // Should not be needed for static instance but for completeness
     
-    // Make constructor public or friend the static instance holder?
-    // The simplest way for a singleton in C++ without complex friend logic is public ctor
-    // or just rely on static local variable in instance().
-    // But here we used a file-scope static in cpp.
-    // Let's make it public for simplicity or friend the file scope.
+
 public:
     CommandBuffer() = default;
 private:

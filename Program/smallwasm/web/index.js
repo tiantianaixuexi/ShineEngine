@@ -836,16 +836,16 @@ async function runApp(canvas, hud) {
     ptrDown = 1;
     canvas.setPointerCapture(ev.pointerId);
     const p = toNDC(ev);
-    if (e.pointer) e.pointer(p.x, p.y, 1);
+    e.pointer(p.x, p.y, 1);
   });
   canvas.addEventListener('pointermove', (ev) => {
     const p = toNDC(ev);
-    if (e.pointer) e.pointer(p.x, p.y, ptrDown);
+    e.pointer(p.x, p.y, ptrDown);
   });
   canvas.addEventListener('pointerup', (ev) => {
     ptrDown = 0;
     const p = toNDC(ev);
-    if (e.pointer) e.pointer(p.x, p.y, 0);
+    e.pointer(p.x, p.y, 0);
   });
 
   let lastCanvasW = 0;

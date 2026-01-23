@@ -86,7 +86,7 @@ namespace shine::wasm {
 			req[slot].out_texId = out_texId;
 			req[slot].out_w = out_w;
 			req[slot].out_h = out_h;
-			js_tex_load_dataurl(ctxId, shine::wasm::ptr_i32(data), dataLen, id);
+			js_tex_load_dataurl(ctxId, ptr_i32(data), dataLen, id);
 			return id;
 		}
 
@@ -95,7 +95,7 @@ namespace shine::wasm {
 			if (!b64 || b64Len <= 0 || !out_texId) return 0;
 			if (!mime || mimeLen <= 0) { mime = "image/png"; mimeLen = 9; }
 
-			const int cached = js_tex_load_base64_sync(ctxId, shine::wasm::ptr_i32(mime), mimeLen, shine::wasm::ptr_i32(b64), b64Len);
+			const int cached = js_tex_load_base64_sync(ctxId, ptr_i32(mime), mimeLen, ptr_i32(b64), b64Len);
 			if (cached != 0) {
 				*out_texId = cached;
 				set_wh_from_tex(ctxId, cached, out_w, out_h);
@@ -109,7 +109,7 @@ namespace shine::wasm {
 			req[slot].out_texId = out_texId;
 			req[slot].out_w = out_w;
 			req[slot].out_h = out_h;
-			js_tex_load_base64(ctxId, shine::wasm::ptr_i32(mime), mimeLen, shine::wasm::ptr_i32(b64), b64Len, id);
+			js_tex_load_base64(ctxId, ptr_i32(mime), mimeLen, ptr_i32(b64), b64Len, id);
 			return id;
 		}
 
@@ -149,7 +149,7 @@ namespace shine::wasm {
 			req[slot].out_texId = out_texId;
 			req[slot].out_w = out_w;
 			req[slot].out_h = out_h;
-			js_tex_load_dataurl(ctxId, shine::wasm::ptr_i32(data), dataLen, id);
+			js_tex_load_dataurl(ctxId, ptr_i32(data), dataLen, id);
 			return id;
 		}
 
@@ -158,7 +158,7 @@ namespace shine::wasm {
 			if (!b64 || b64Len <= 0 || !out_texId) return 0;
 			if (!mime || mimeLen <= 0) { mime = "image/png"; mimeLen = 9; }
 
-			const int cached = js_tex_load_base64_sync(ctxId, shine::wasm::ptr_i32(mime), mimeLen, shine::wasm::ptr_i32(b64), b64Len);
+			const int cached = js_tex_load_base64_sync(ctxId, ptr_i32(mime), mimeLen, ptr_i32(b64), b64Len);
 			if (cached != 0) {
 				*out_texId = cached;
 				set_wh_from_tex(ctxId, cached, out_w, out_h);
@@ -172,7 +172,7 @@ namespace shine::wasm {
 			req[slot].out_texId = out_texId;
 			req[slot].out_w = out_w;
 			req[slot].out_h = out_h;
-			js_tex_load_base64(ctxId, shine::wasm::ptr_i32(mime), mimeLen, shine::wasm::ptr_i32(b64), b64Len, id);
+			js_tex_load_base64(ctxId, ptr_i32(mime), mimeLen, ptr_i32(b64), b64Len, id);
 			return id;
 		}
 

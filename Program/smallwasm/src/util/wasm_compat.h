@@ -46,15 +46,10 @@ static inline int raw_strlen(const char* s) noexcept {
   return n;
 }
 
-__attribute__((noinline)) static  int ptr_i32(const void* p) noexcept {return (int)(unsigned long)(uintptr_t)p; }
-
-#define f2i_s(f) shine::wasm::f2i(f)
+#define ptr_i32(p) static_cast<unsigned int>(reinterpret_cast<uintptr_t>(p))
 
 
-
-__attribute__((noinline)) static int f2i(float f) noexcept {
-    return *(int*)&f; 
-}
+#define f2i(f) __builtin_bit_cast(int, f)
 
 void svector_reserve_impl(void** pointer_ref, unsigned int* cap_ref, unsigned int length, unsigned int newCap, unsigned int elemSize);
 

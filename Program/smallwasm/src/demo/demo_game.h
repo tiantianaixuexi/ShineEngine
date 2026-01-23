@@ -15,12 +15,11 @@ public:
     DemoGame() = default;
     virtual ~DemoGame() = default;
 
-    void onInit(shine::engine::Engine& app) override;
-    void onResize(shine::engine::Engine& app, int w, int h) override;
-    void onUpdate(shine::engine::Engine& app, float t) override;
-    void onRender(shine::engine::Engine& app, float t) override;
-    void onPointer(shine::engine::Engine& app, float x_ndc, float y_ndc, int isDown) override;
-
+    void onInit() override;
+    void onResize(int w, int h) override;
+    void onUpdate(float t) override;
+    void onRender(float t) override;
+    void onPointer(float x_ndc, float y_ndc, int isDown) override;
 
     // Demo specific data
     shine::game::Scene scene;

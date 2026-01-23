@@ -16,14 +16,14 @@ static const char kCanvasId[] = "c";
 // Global static instance (safe in .bss)
 static Engine s_engine_instance;
 
-Engine& Engine::instance() {
+Engine& Engine::instance() noexcept {
     return s_engine_instance;
 }
 
 void Engine::init(int triCount) {
 
     if (m_ctx == 0) {
-        m_ctx = js_create_context(wasm::ptr_i32(kCanvasId), sizeof(kCanvasId) - 1);
+        m_ctx = js_create_context(ptr_i32(kCanvasId), sizeof(kCanvasId) - 1);
         LOG("ctxId", m_ctx);
     }
     m_inited = (m_ctx != 0);
@@ -37,7 +37,7 @@ void Engine::init(int triCount) {
         // Use Factory
         m_game = CreateGame();
         
-        m_game->onInit(*this);
+        m_game->onInit();
     }
 }
 
@@ -45,14 +45,17 @@ void Engine::onResize(int w, int h) {
 
     m_width = w;
     m_height = h;
-    
+    half_w = 0.5f * m_width;
+    half_h = 0.5f * m_height;
+    aspect = (float)w / (float)h;
+
     graphics::Renderer2D::instance().m_viewW = w;
     graphics::Renderer2D::instance().m_viewH = h;
 
     shine::ui::UIManager::instance().onResize(w, h);
 
     if (m_game) {
-        m_game->onResize(*this, w, h);
+        m_game->onResize(w, h);
     }
 
     
@@ -76,27 +79,27 @@ void Engine::frame(float t) {
     cmd_push(CMD_VIEWPORT, 0, 0, m_width, m_height, 0, 0, 0);
 
     // Default Clear
-    cmd_push(CMD_CLEAR_COLOR, wasm::f2i(0.07f), wasm::f2i(0.07f), wasm::f2i(0.07f), wasm::f2i(1.0f), 0, 0, 0);
+    cmd_push(CMD_CLEAR_COLOR, f2i(0.07f), f2i(0.07f), f2i(0.07f), f2i(1.0f), 0, 0, 0);
     cmd_push(CMD_CLEAR, GL_COLOR_BUFFER_BIT, 0, 0, 0, 0, 0, 0);
 
     // Game Update & Render
     if (m_game) {
-        m_game->onUpdate(*this, t);
-        m_game->onRender(*this, t);
+        m_game->onUpdate(t);
+        m_game->onRender(t);
     }
 
     graphics::Renderer2D::instance().end();
 
     // Submit commands
     CommandBuffer& cb = CommandBuffer::instance();
-    gl_submit(m_ctx, shine::wasm::ptr_i32(cb.getData()), cb.getCount());
+    gl_submit(m_ctx, ptr_i32(cb.getData()), cb.getCount());
     
     m_frameNo++;
 }
 
 void Engine::pointer(float x, float y, int isDown) {
     if (m_game) {
-        m_game->onPointer(*this, x, y, isDown);
+        m_game->onPointer(x, y, isDown);
     }
 }
 
