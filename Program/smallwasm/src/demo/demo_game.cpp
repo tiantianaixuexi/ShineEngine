@@ -32,7 +32,7 @@ struct PulseColor final : public shine::game::Component {
     }
     void onUpdate(float t) override {
         if (sr) {
-            float v = base + 0.4f * shine::math::sin(t * 15.0f);
+            float v = base + 0.4f * sin(t * 15.0f);
             sr->g = v;
             sr->b = v;
         }
@@ -281,7 +281,7 @@ void DemoGame::update_vertices(float t) {
     const float aspect = SHINE_ENGINE.aspect; 
     
     float sx = 1.0f;
-    if (shine::math::f_abs(aspect) > 0.00001f) sx = 1.0f / aspect;
+    if (abs(aspect) > 0.00001f) sx = 1.0f / aspect;
 
     int grid = 1;
     while (grid * grid < count) grid++;
@@ -289,7 +289,7 @@ void DemoGame::update_vertices(float t) {
     float cell = 2.0f / (float)grid;
     float size = cell * 0.28f;
     const float inv_grid = 1.0f / (float)grid;
-    const float b = 0.5f + 0.5f * shine::math::sin(t);
+    const float b = 0.5f + 0.5f * sin(t);
     const float t_base = t * 0.1f;
 
     float* outp = buf.data();
@@ -317,7 +317,7 @@ void DemoGame::update_vertices(float t) {
         float gy_f = (float)gy;
         float cy_base_row = base_pos_off + gy_f * cell;
         // Hoist sin calculation (depends on gy)
-        const float cx_sin_offset = shine::math::sin(t_base + gy_f * 0.1f) * 0.05f;
+        const float cx_sin_offset = sin(t_base + gy_f * 0.1f) * 0.05f;
         g = gy_f * inv_grid;
 
         // Strength reduction for inner loop
@@ -328,7 +328,7 @@ void DemoGame::update_vertices(float t) {
         for (int gx = 0; gx < row_limit; ++gx) {
             cx = cx_linear + cx_sin_offset;
             // Cos depends on gx, but we use incremental arg
-            cy = cy_base_row + shine::math::cos(cos_arg) * 0.05f;
+            cy = cy_base_row + cos(cos_arg) * 0.05f;
             r = r_val;
             
             cx_size = cx + size;
@@ -387,13 +387,13 @@ void DemoGame::update_instances(float t) {
         
         // Inline tri_wave/tri01 logic manually if needed, or trust compiler inliner
         // Simplified for size:
-        float dx = shine::math::sin(t + fi * k0) * offset_scale; // replaced tri_wave with sin for size? no, keep math
-        float dy = shine::math::sin(t + fi * k1) * offset_scale;
-        float sc = scale_base + scale_var * (0.5f + 0.5f * shine::math::sin(t + fi * k2));
+        float dx = sin(t + fi * k0) * offset_scale; // replaced tri_wave with sin for size? no, keep math
+        float dy = sin(t + fi * k1) * offset_scale;
+        float sc = scale_base + scale_var * (0.5f + 0.5f * sin(t + fi * k2));
 
-        float r = 0.5f + 0.5f * shine::math::sin(t + fi * k3);
-        float g = 0.5f + 0.5f * shine::math::sin(t + fi * k4 + 2.0f);
-        float b = 0.5f + 0.5f * shine::math::sin(t + fi * k5 + 4.0f);
+        float r = 0.5f + 0.5f * sin(t + fi * k3);
+        float g = 0.5f + 0.5f * sin(t + fi * k4 + 2.0f);
+        float b = 0.5f + 0.5f * sin(t + fi * k5 + 4.0f);
 
         *outp++ = cx + dx;
         *outp++ = cy + dy;
