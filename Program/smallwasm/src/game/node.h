@@ -19,11 +19,8 @@ class Node : public Object {
 public:
   Node* parent = nullptr;
 
-  // Scene hierarchy (Node children)
-  wasm::SVector<Node*> children;
 
-  // Components mounted on THIS node
-  wasm::SVector<Component*> components;
+
 
   explicit Node(const char* debugName = nullptr) noexcept : Object(debugName) {}
   virtual ~Node() {
@@ -91,12 +88,10 @@ public:
 
   inline void markTree() noexcept {
     gcMark();
-    for (unsigned int i = 0; i < components.size(); ++i) {
-      Component* c = components[i];
+    for (auto& c : components) {
       if (c) c->markTree();
     }
-    for (unsigned int i = 0; i < children.size(); ++i) {
-      Node* n = children[i];
+    for (auto& n : children) {
       if (n) n->markTree();
     }
   }
@@ -133,14 +128,12 @@ public:
   }
 
   inline void renderTree(RenderContext& rc, float t) noexcept {
-    if (!isActive() || !isVisible()) return; // Node visibility gates the whole subtree
-    for (unsigned int i = 0; i < components.size(); ++i) {
-      Component* c = components[i];
+
+    for (auto& c : _ActivateComps) {
       if (c) c->renderTree(rc, t);
     }
-    for (unsigned int i = 0; i < children.size(); ++i) {
-      Node* n = children[i];
-      if (n) n->renderTree(rc, t);
+    for (auto& c : _ActivateChild) {
+      if (c) c->renderTree(rc, t);
     }
   }
 
@@ -155,6 +148,16 @@ public:
       if (n) n->pointerTree(x_ndc, y_ndc, isDown);
     }
   }
+
+  private:
+
+    // Components mounted on THIS node
+    wasm::SVector<Node*> _ActivateChild;
+    wasm::SVector<Component*> _ActivateComps;
+
+    wasm::SVector<Node*> children;
+    wasm::SVector<Component*> components;
+
 };
 
 // Implement Component methods that require Node definition
@@ -164,23 +167,6 @@ inline bool Component::isOwnedByDead() const {
     return (parent && (parent->pendingKill() || !parent->gcMarked())) ||
            (node && (node->pendingKill() || !node->gcMarked()));
 }
-
-inline Component::~Component() {
-      // 1. Destroy children (Forward order)
-      for (auto* c : children) {
-          if (c) {
-              c->parent = nullptr; // Prevent child from calling removeChild on us
-              c->node = nullptr;
-              delete c;
-          }
-      }
-      children.clear();
-  
-      // 2. Detach from parent
-      onDetach();
-      if (parent) parent->removeChild(this);
-      else if (node) node->removeComponent(this);
-  }
 
 }// namespace shine::game
 

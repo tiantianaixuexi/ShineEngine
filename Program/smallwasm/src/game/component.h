@@ -40,8 +40,7 @@ public:
     return m_typeId;
   }
 
-  // Component sub-tree (NOT Scene/Node hierarchy).
-  shine::wasm::SVector<Component*> children;
+
   Component* parent = nullptr;
 
   explicit Component(const char* debugName = nullptr) noexcept : Object(debugName) {}
@@ -61,52 +60,21 @@ public:
   virtual void onPointer(float /*x_ndc*/, float /*y_ndc*/, int /*isDown*/) {}
 
   // ---- component-child ops (sub-components) ----
-  inline void attachChild(Component* c) noexcept {
-    if (!c) return;
-    c->parent = this;
-    c->node = node; // inherits Node binding
-    children.push_back(c);
-    c->onAttach();
-  }
 
-  inline void removeChild(Component* c) noexcept {
-    if (!c) return;
-    children.erase_first_unordered(c);
-  }
-
-  inline void markTree() noexcept {
-    gcMark();
-    for (unsigned int i = 0; i < children.size(); ++i) {
-      Component* c = children[i];
-      if (c) c->markTree();
-    }
-  }
 
   inline void update(float t) noexcept {
     if (!isActive()) return;
     if (tickEnabled()) onUpdate(t);
-    for (unsigned int i = 0; i < children.size(); ++i) {
-      Component* c = children[i];
-      if (c) c->update(t);
-    }
   }
 
   inline void renderTree(RenderContext& rc, float t) noexcept {
     if (!isActive()) return;
     if (isVisible() && renderEnabled()) onRender(rc, t);
-    for (unsigned int i = 0; i < children.size(); ++i) {
-      Component* c = children[i];
-      if (c) c->renderTree(rc, t);
-    }
   }
 
   inline void pointerTree(float x_ndc, float y_ndc, int isDown) noexcept {
     if (!isActive()) return;
     if (pointerEnabled()) onPointer(x_ndc, y_ndc, isDown);
-    for (unsigned int i = 0; i < children.size(); ++i) {
-      Component* c = children[i];
-      if (c) c->pointerTree(x_ndc, y_ndc, isDown);
-    }
   }
 };
 
