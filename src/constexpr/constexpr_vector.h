@@ -2,7 +2,6 @@
 
 #include <array>
 #include <concepts>
-
 #include "iterator.h"
 
 namespace shine

@@ -1,9 +1,7 @@
 #pragma once
 
-#include "shine_define.h"
 #include "command_buffer.h"  // 需要完整定义，因为 std::vector<CommandBuffer> 需要知道大小
 #include <vector>
-#include <memory>
 #include <functional>
 
 namespace shine::render

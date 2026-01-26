@@ -14,7 +14,7 @@ namespace shine::editor::views {
         // So we only need to flush pending types here.
         
         // CRITICAL: Must Flush Pending Types to Registry for Lookup to work!
-        Shine::Reflection::TypeRegistry::RegisterAllTypes();
+        shine::reflection::TypeRegistry::RegisterAllTypes();
     }
 
     SettingsView::~SettingsView() {

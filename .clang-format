@@ -8,4 +8,4 @@ ContinuationIndentWidth: 4
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
 AlignTrailingComments: true
-AccessModifierOffset: 0
+AccessModifierOffset: -4

@@ -3,7 +3,7 @@
 #include "Reflection.h"
 #include <string>
 
-namespace Shine::Reflection {
+namespace shine::reflection {
 
     class Serializer {
     public:

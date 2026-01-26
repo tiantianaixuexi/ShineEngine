@@ -6,7 +6,7 @@ namespace shine::editor::util {
     class PropertyDrawer {
     public:
         // Main entry point to draw a field based on its UI schema and metadata
-        static void DrawField(void* instance, const Shine::Reflection::FieldInfo& field, const Shine::Reflection::TypeInfo* ownerType = nullptr);
+        static void DrawField(void* instance, const reflection::FieldInfo& field, const reflection::TypeInfo* ownerType = nullptr);
 
         // Immediate mode helpers (Static access without FieldInfo)
         static bool DrawFloat(const char* label, float& value, float min = 0.0f, float max = 0.0f);

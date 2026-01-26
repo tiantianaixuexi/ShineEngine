@@ -5,7 +5,7 @@
 #include <map>
 #include <mutex>
 
-namespace Shine::Reflection::QuickJS {
+namespace shine::reflection::QuickJS {
 
     // -------------------------------------------------------------------------
     // Registry for TypeId -> JSClassID

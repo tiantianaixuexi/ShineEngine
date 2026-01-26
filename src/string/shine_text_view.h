@@ -297,7 +297,7 @@ namespace shine
             return npos;
         }
 
-        [[nodiscard]] size_t find_cp(char32_t cp, size_t start = 0) const { return find(cp); }
+        [[nodiscard]] size_t find_cp(char32_t cp) const { return find(cp); }
 
         [[nodiscard]] bool contains(STextView pattern) const { return find(pattern) != npos; }
         [[nodiscard]] bool contains(char32_t cp) const { return find(cp) != npos; }

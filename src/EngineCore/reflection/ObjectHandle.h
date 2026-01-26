@@ -4,7 +4,7 @@
 #include <mutex>
 #include <unordered_map>
 
-namespace Shine::Reflection {
+namespace shine::reflection {
 
     struct ObjectHandle {
         uint32_t index = 0;

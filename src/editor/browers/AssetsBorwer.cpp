@@ -43,15 +43,12 @@ void AssetsBrower::Render() {
             ImGui::EndChild();
         }
 
-        ImGuiIO& io = ImGui::GetIO();
 
         // ImGui::SetNextWindowContentSize(ImVec2(0.f,))
         if (ImGui::BeginChild("##Assets",
             ImVec2(0.f, -ImGui::GetTextLineHeightWithSpacing()),
             ImGuiChildFlags_Borders, ImGuiWindowFlags_NoMove)) {
-            ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-            const float avail_width = ImGui::GetContentRegionAvail().x;
 
             ImGuiMultiSelectFlags ms_flags = ImGuiMultiSelectFlags_ClearOnEscape |
                 ImGuiMultiSelectFlags_ClearOnClickVoid;

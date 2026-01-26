@@ -10,7 +10,7 @@ import shine.memory;
 #include "../../memory/memory.ixx"
 #endif
 
-namespace Shine::Reflection {
+namespace shine::reflection {
 
     // -----------------------------------------------------------------------------
     // Helper: Type Checks
@@ -84,7 +84,7 @@ namespace Shine::Reflection {
         return yyjson_mut_null(ctx.doc);
     }
 
-    static yyjson_mut_val* SerializeSequence(JsonWriterContext& ctx, const void* instance, const SequenceTrait* trait) {
+    static yyjson_mut_val *SerializeSequence(JsonWriterContext &ctx, const void *instance, const ArrayTrait *trait) {
         yyjson_mut_val* arr = yyjson_mut_arr(ctx.doc);
         size_t size = trait->getSize(instance);
         for (size_t i = 0; i < size; ++i) {
@@ -127,7 +127,7 @@ namespace Shine::Reflection {
         yyjson_mut_val* obj = yyjson_mut_obj(ctx.doc);
         
         // Helper to traverse hierarchy
-        auto processFields = [&](const TypeInfo* currentInfo, auto& self) -> void {
+        auto processFields = [&](const shine::reflection::TypeInfo* currentInfo, auto& self) -> void {
             if (currentInfo->baseType) self(currentInfo->baseType, self);
             
             for (const auto& field : currentInfo->fields) {
@@ -158,7 +158,7 @@ namespace Shine::Reflection {
                 
                 // Check Container
                 if (field.containerType == ContainerType::Sequence) {
-                     const SequenceTrait* seqTrait = static_cast<const SequenceTrait*>(field.containerTrait);
+                    const ArrayTrait *seqTrait = static_cast<const ArrayTrait *>(field.containerTrait);
                      fieldVal = SerializeSequence(ctx, storage, seqTrait);
                 } 
                 else if (field.containerType == ContainerType::Associative) {
@@ -238,7 +238,7 @@ namespace Shine::Reflection {
         if (typeId == GetTypeId<bool>()) *static_cast<bool*>(instance) = yyjson_get_bool(val);
         else if (typeId == GetTypeId<int>()) *static_cast<int*>(instance) = yyjson_get_int(val);
         else if (typeId == GetTypeId<int64_t>()) *static_cast<int64_t*>(instance) = yyjson_get_sint(val);
-        else if (typeId == GetTypeId<uint32_t>()) *static_cast<uint32_t*>(instance) = yyjson_get_uint(val);
+        else if (typeId == GetTypeId<uint32_t>()) *static_cast<uint32_t*>(instance) = static_cast<uint32_t>(yyjson_get_uint(val));
         else if (typeId == GetTypeId<uint64_t>()) *static_cast<uint64_t*>(instance) = yyjson_get_uint(val);
         else if (typeId == GetTypeId<float>()) *static_cast<float*>(instance) = (float)yyjson_get_real(val);
         else if (typeId == GetTypeId<double>()) *static_cast<double*>(instance) = yyjson_get_real(val);
@@ -250,7 +250,7 @@ namespace Shine::Reflection {
         // Skip for now.
     }
 
-    static void DeserializeSequence(yyjson_val* arr, void* instance, const SequenceTrait* trait) {
+    static void DeserializeSequence(yyjson_val *arr, void *instance, const ArrayTrait *trait) {
         if (!yyjson_is_arr(arr)) return;
         size_t count = yyjson_arr_size(arr);
         trait->resize(instance, count);
@@ -284,7 +284,7 @@ namespace Shine::Reflection {
             // For now, assume Key is std::string or int
             // We need a temp storage for key
             const TypeInfo* keyInfo = TypeRegistry::Get().Find(trait->keyType);
-            size_t keySize = keyInfo ? keyInfo->size : sizeof(std::string); 
+            //size_t keySize = keyInfo ? keyInfo->size : sizeof(std::string); 
             // Warning: if keyInfo is null (primitive), we need size.
             // Hack: use a buffer
             char keyBuf[64];
@@ -371,7 +371,7 @@ namespace Shine::Reflection {
                 field.Get(instance, storage);
 
                 if (field.containerType == ContainerType::Sequence) {
-                    DeserializeSequence(fieldVal, storage, static_cast<const SequenceTrait*>(field.containerTrait));
+                    DeserializeSequence(fieldVal, storage, static_cast<const ArrayTrait *>(field.containerTrait));
                 } else if (field.containerType == ContainerType::Associative) {
                     DeserializeMap(fieldVal, storage, static_cast<const MapTrait*>(field.containerTrait));
                 } else {

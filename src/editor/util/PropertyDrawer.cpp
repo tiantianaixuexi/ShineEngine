@@ -7,20 +7,23 @@
 
 namespace shine::editor::util {
 
+
+    using namespace reflection;
+
     // Internal Visitor
     struct FieldRendererVisitor {
         void* instance;
-        const Shine::Reflection::FieldInfo& field;
-        const Shine::Reflection::TypeInfo* ownerType;
+        const reflection::FieldInfo& field;
+        const reflection::TypeInfo* ownerType;
 
         // 1. None / Default Fallback
-        void operator()(const Shine::Reflection::UI::None&) {
-            using namespace Shine::Reflection;
+        void operator()(const reflection::UI::None&) {
+
 
             // --- Recursive Struct Drawing ---
             // If field is a POD or Reflectable Struct (but not a basic type we handled elsewhere), try to draw its inspector
             // Check if it has TypeInfo registered
-            const TypeInfo* fieldTypeInfo = TypeRegistry::Get().Find(field.typeId);
+            const reflection::TypeInfo* fieldTypeInfo = TypeRegistry::Get().Find(field.typeId);
             if (fieldTypeInfo) {
                 // Enum Handling
                 if (fieldTypeInfo->isEnum) {
@@ -106,8 +109,8 @@ namespace shine::editor::util {
             }
 
             // --- Array/Vector Drawing ---
-            if (field.containerType == Shine::Reflection::ContainerType::Sequence) {
-                const auto* trait = static_cast<const Shine::Reflection::SequenceTrait*>(field.containerTrait);
+            if (field.containerType == ContainerType::Sequence) {
+                const auto *trait = static_cast<const reflection::ArrayTrait *>(field.containerTrait);
                 if (ImGui::TreeNode(field.name.data())) {
                     void* arrayPtr = static_cast<char*>(instance) + field.offset;
                     size_t size = trait->getSize(arrayPtr);
@@ -170,8 +173,8 @@ namespace shine::editor::util {
         }
 
         // 2. Slider
-        void operator()(const Shine::Reflection::UI::Slider& slider) {
-            using namespace Shine::Reflection;
+        void operator()(const reflection::UI::Slider& slider) {
+    
 
             // Get Min/Max from Metadata (Range) or fallback to Schema defaults
             float min = slider.min;
@@ -218,8 +221,9 @@ namespace shine::editor::util {
         }
 
         // 3. Checkbox
-        void operator()(const Shine::Reflection::UI::Checkbox& cb) {
-            using namespace Shine::Reflection;
+        void operator()(const reflection::UI::Checkbox& cb) {
+
+
             if (field.typeId == GetTypeId<bool>()) {
                 bool val;
                 field.Get(instance, &val);
@@ -232,9 +236,8 @@ namespace shine::editor::util {
         }
 
         // 4. InputText
-        void operator()(const Shine::Reflection::UI::InputText& text) {
-            using namespace Shine::Reflection;
-            
+        void operator()(const reflection::UI::InputText& text) {
+   
             if (field.typeId == GetTypeId<std::string>()) {
                 std::string val;
                 field.Get(instance, &val); 
@@ -272,14 +275,13 @@ namespace shine::editor::util {
         }
 
         // 5. Color
-        void operator()(const Shine::Reflection::UI::Color& color) {
+        void operator()(const reflection::UI::Color& color) {
              ImGui::TextColored(ImVec4(1, 0, 0, 1), "Color Not Implemented");
         }
 
         // 6. Function Selector
-        void operator()(const Shine::Reflection::UI::FunctionSelector& selector) {
-            using namespace Shine::Reflection;
-            
+        void operator()(const reflection::UI::FunctionSelector& selector) {
+
             // Assume field is std::string
             std::string currentFunc;
             field.Get(instance, &currentFunc);
@@ -320,7 +322,7 @@ namespace shine::editor::util {
         }
     };
 
-    void PropertyDrawer::DrawField(void* instance, const Shine::Reflection::FieldInfo& field, const Shine::Reflection::TypeInfo* ownerType) {
+    void PropertyDrawer::DrawField(void* instance, const reflection::FieldInfo& field, const reflection::TypeInfo* ownerType) {
         std::visit(FieldRendererVisitor{ instance, field, ownerType }, field.uiSchema);
     }
 

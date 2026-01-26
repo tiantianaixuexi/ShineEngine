@@ -6,20 +6,20 @@
 
 namespace shine::editor::util {
 
-    void InspectorBuilder::DrawInspector(void* instance, const Shine::Reflection::TypeInfo* typeInfo) {
+    void InspectorBuilder::DrawInspector(void* instance, const reflection::TypeInfo* typeInfo) {
         if (!instance || !typeInfo) {
             ImGui::TextDisabled("Invalid Instance or TypeInfo");
             return;
         }
 
-        Shine::Reflection::InspectorView view;
+        reflection::InspectorView view;
         view.typeInfo = typeInfo;
 
         std::string currentCategory = "";
 
         for (auto& field : view) {
             // Category Grouping Logic
-            auto* meta = field.GetMeta(Shine::Reflection::Hash("Category"));
+            auto* meta = field.GetMeta(reflection::Hash("Category"));
             if (meta) {
                 std::string_view cat = std::get<std::string_view>(*meta);
                 if (cat != currentCategory) {

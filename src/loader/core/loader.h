@@ -64,8 +64,8 @@ namespace shine::loader
             return _supportedExtensions;
         }
 
-        const bool supportsExtension(const std::string& ext) const noexcept {
-            return _supportedExtensions.count(ext) > 0;
+        bool supportsExtension(const std::string& ext) const noexcept {
+            return _supportedExtensions.contains(ext);
         }
 
         // 状态查询

@@ -29,7 +29,7 @@ namespace shine::editor::util {
                 
                 ImGui::PushID(instance);
                 StaticInspectorBuilder<T> builder(instance);
-                T::RegisterReflection(builder);
+                //T::RegisterReflection(builder);
                 ImGui::PopID();
                 
                 ImGui::EndTable();
@@ -92,8 +92,8 @@ namespace shine::editor::util {
         private:
             // Compile-time dispatch for drawing
             template<size_t N>
-            void DrawField(const Shine::Reflection::DSL::FieldDescriptor<N>& desc) {
-                using namespace Shine::Reflection;
+            void DrawField(const shine::reflection::DSL::FieldDescriptor<N>& desc) {
+                using namespace shine::reflection;
 
                 // 1. Get Value
                 using MemberType = typename DSLType::MemberType;
@@ -135,7 +135,7 @@ namespace shine::editor::util {
                 ImGui::AlignTextToFramePadding();
 
                 // Special case for Vectors and Structs (TreeNodes)
-                if constexpr (Shine::Reflection::IsVector<MemberType>::value) {
+                if constexpr (IsVector<MemberType>) {
                      ImGui::TableNextRow();
                      ImGui::TableSetColumnIndex(0);
                      bool open = ImGui::TreeNodeEx(desc.name.data(), ImGuiTreeNodeFlags_SpanFullWidth);
@@ -151,7 +151,7 @@ namespace shine::editor::util {
                          
                          // Elements
                          for (size_t i = 0; i < value.size(); ++i) {
-                             ImGui::PushID((int)i);
+                             ImGui::PushID(static_cast<int>(i));
                              
                              ImGui::TableNextRow();
                              ImGui::TableSetColumnIndex(0);
@@ -183,7 +183,7 @@ namespace shine::editor::util {
                          ImGui::TableSetColumnIndex(1);
                          ImGui::PushItemWidth(-1);
 
-                         using namespace Shine::Reflection;
+                         using namespace shine::reflection;
                          // We need to look up TypeInfo via TypeId, not compile-time template if possible
                          // But StaticInspectorBuilder knows MemberType at compile time.
                          const TypeInfo* typeInfo = TypeRegistry::Get().Find<MemberType>();
@@ -208,30 +208,19 @@ namespace shine::editor::util {
                                      bool isSelected = (currentVal == e.value);
                                      if (ImGui::Selectable(e.name.data(), isSelected)) {
                                          value = (MemberType)e.value;
-                                         if (desc.onChange) desc.onChange(builder.instance, &currentVal); // currentVal is int64, we need MemberType
-                                         // Wait, desc.onChange expects MemberType* or void*.
-                                         // currentVal is int64_t. We need to cast it back to MemberType?
-                                         // Actually our Reflection OnChange wrapper handles casting if we pass pointer.
-                                         // But we have 'currentVal' which is OLD value (before we set 'value').
-                                         // Correct.
+                                         if (desc.onChange) desc.onChange(builder.instance, &currentVal);
                                      }
                                      if (isSelected) ImGui::SetItemDefaultFocus();
                                  }
                                  ImGui::EndCombo();
                              }
                          } else {
-                             // Try to register enum on the fly if missing!
-                             // We can't do this easily without specific knowledge of the Enum type's reflection function.
-                             // But wait, if we are in StaticInspectorBuilder<T>, and MemberType is GameDifficulty.
-                             // Can we try to call GameDifficulty_Reflect?
-                             // No, the name is mangled.
-                             
-                             // Fallback: Just draw as Int
-                             int val = (int)value;
-                             int oldVal = val;
-                             std::string label = "##" + std::string(desc.name);
+
+                             int         val    = static_cast<int>(value);
+                             int         oldVal = val;
+                             std::string label  = "##" + std::string(desc.name);
                              if (ImGui::InputInt(label.c_str(), &val)) {
-                                 value = (MemberType)val;
+                                 value = static_cast<MemberType>(val);
                                  if (desc.onChange) desc.onChange(builder.instance, &oldVal);
                              }
                              ImGui::SameLine();
@@ -276,11 +265,11 @@ namespace shine::editor::util {
                 for(const auto& m : desc.metadata) {
                     if (m.key == Hash("Min")) {
                         if (std::holds_alternative<float>(m.value)) min = std::get<float>(m.value);
-                        else if (std::holds_alternative<int>(m.value)) min = (float)std::get<int>(m.value);
+                        else if (std::holds_alternative<int>(m.value)) min = static_cast<float>(std::get<int>(m.value));
                     }
                     if (m.key == Hash("Max")) {
                         if (std::holds_alternative<float>(m.value)) max = std::get<float>(m.value);
-                        else if (std::holds_alternative<int>(m.value)) max = (float)std::get<int>(m.value);
+                        else if (std::holds_alternative<int>(m.value)) max = static_cast<float>(std::get<int>(m.value));
                     }
                 }
 
@@ -297,7 +286,7 @@ namespace shine::editor::util {
                 }
                 else if constexpr (std::is_same_v<MemberType, int>) {
                     if (min != 0.0f || max != 0.0f) {
-                        if (ImGui::SliderInt(labelC, &value, (int)min, (int)max)) changed = true;
+                        if (ImGui::SliderInt(labelC, &value, static_cast<int>(min), static_cast<int>(max))) changed = true;
                     } else {
                         if (ImGui::DragInt(labelC, &value)) changed = true;
                     }
@@ -309,9 +298,9 @@ namespace shine::editor::util {
                     // Check for FunctionSelector schema
                     bool isFunctionSelector = false;
                     bool onlyScriptCallable = true;
-                    if (std::holds_alternative<Shine::Reflection::UI::FunctionSelector>(desc.uiSchema)) {
+                    if (std::holds_alternative<shine::reflection::UI::FunctionSelector>(desc.uiSchema)) {
                         isFunctionSelector = true;
-                        onlyScriptCallable = std::get<Shine::Reflection::UI::FunctionSelector>(desc.uiSchema).onlyScriptCallable;
+                        onlyScriptCallable = std::get<shine::reflection::UI::FunctionSelector>(desc.uiSchema).onlyScriptCallable;
                     }
 
                     if (isFunctionSelector) {
@@ -321,7 +310,7 @@ namespace shine::editor::util {
                         // or better, use the owner type T from StaticInspectorBuilder<T>
                         
                         // Current object type is ObjectType (T)
-                        using namespace Shine::Reflection;
+                        using namespace shine::reflection;
                         const TypeInfo* typeInfo = TypeRegistry::Get().Find<ObjectType>();
 
                         // Fallback: Build TypeInfo on the fly if missing (fixes "TypeInfo Not Found")

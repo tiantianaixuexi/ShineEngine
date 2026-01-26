@@ -22,7 +22,7 @@ namespace shine::gameplay
 
 namespace shine::render
 {
-    using ViewportHandle = u32;
+    using ViewportHandle = s32;
 
 	struct ViewportRecord {
         int width{0};

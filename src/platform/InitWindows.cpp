@@ -54,13 +54,13 @@ namespace shine::windows
 		auto& info = context.GetSystem<WindowsInfo>()->info;
 		
 		// auto renderBackend = context.GetSystem<render::RenderManager>()->CreateRenderBackend();
-        // Use factory to create backend. 
-        // TODO: Read configuration to decide which backend to use. Defaulting to OpenGL for now.
-        auto renderBackend = shine::render::backend::RenderBackendFactory::create(shine::render::backend::RenderBackendType::OpenGL);
-        
-        if (!renderBackend) {
-            return -1; // Failed to create backend
-        }
+                // Use factory to create backend. 
+                // TODO: Read configuration to decide which backend to use. Defaulting to OpenGL for now.
+                auto renderBackend = shine::render::backend::RenderBackendFactory::create(shine::render::backend::RenderBackendType::OpenGL);
+                
+                if (!renderBackend) {
+                    return false; // Failed to create backend
+                }
 
 		if (const int result = renderBackend->init(info.hwnd, wc); result != 0)
 		{

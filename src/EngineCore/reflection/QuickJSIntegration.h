@@ -8,7 +8,7 @@ extern "C" {
 #include "quickjs/quickjs.h"
 }
 
-namespace Shine::Reflection::QuickJS {
+namespace shine::reflection::QuickJS {
 
     // -------------------------------------------------------------------------
     // 4. this / Native Handle Specification

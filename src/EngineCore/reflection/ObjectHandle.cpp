@@ -1,6 +1,6 @@
 #include "ObjectHandle.h"
 
-namespace Shine::Reflection {
+namespace shine::reflection {
 
     HandleRegistry& HandleRegistry::Get() {
         static HandleRegistry instance;

@@ -6,8 +6,8 @@
 #include "render/resources/texture_handle.h"
 #include "manager/AssetManager.h"
 // #include "util/singleton.h"
-#include "../../EngineCore/subsystem.h"
-#include "../../EngineCore/engine_context.h"
+#include "EngineCore/subsystem.h"
+#include "EngineCore/engine_context.h"
 
 // 前向声明
 namespace shine::image
