@@ -382,7 +382,7 @@ namespace shine::editor::util {
             bool moved = false;
             
             MethodProxy(StaticInspectorBuilder& b, DSLType d) : builder(b), dsl(d) {}
-            MethodProxy(MethodProxy&& other) : builder(other.builder), dsl(other.dsl) { other.moved = true; }
+            MethodProxy(MethodProxy&& other) noexcept : builder(other.builder), dsl(other.dsl) { other.moved = true; }
 
             // Chaining methods - Must move *this to avoid copy (which is deleted)
             // And to ensure "moved" flag propagates if we were creating new objects

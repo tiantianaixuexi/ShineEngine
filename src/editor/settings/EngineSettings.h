@@ -66,7 +66,7 @@ struct EngineSettings
 
 
 REFLECTION_STRUCT(EngineSettings) {
-    REFLECT_FIELD(masterVolume)
+    REFLECT_FIELD(EngineSettings::masterVolume)
         .Range(0.0f, 100.0f)
         .UI(reflection::UI::Slider{})
         .EditAnywhere()
@@ -74,67 +74,67 @@ REFLECTION_STRUCT(EngineSettings) {
         .DisplayName("主音量")
         .Meta("Category", "Audio");
 
-    REFLECT_FIELD(resolutionWidth)
+    REFLECT_FIELD(EngineSettings::resolutionWidth)
         .Range(640.0f, 3840.0f)
         .UI(reflection::UI::Slider{})
         .EditAnywhere()
         .DisplayName("分辨率宽度")
         .Meta("Category", "Display");
 
-    REFLECT_FIELD(resolutionHeight)
+    REFLECT_FIELD(EngineSettings::resolutionHeight)
         .Range(360.0f, 2160.0f)
         .UI(reflection::UI::Slider{})
         .EditAnywhere()
         .DisplayName("分辨率高度")
         .Meta("Category", "Display");
 
-    REFLECT_FIELD(fullScreen)
+    REFLECT_FIELD(EngineSettings::fullScreen)
         .UI(reflection::UI::Checkbox{})
         .EditAnywhere()
         .DisplayName("全屏模式")
         .Meta("Category", "Display");
 
-    REFLECT_FIELD(vsync)
+    REFLECT_FIELD(EngineSettings::vsync)
         .UI(reflection::UI::Checkbox{})
         .EditAnywhere()
         .DisplayName("垂直同步")
         .Meta("Category", "Display");
 
-    REFLECT_FIELD(rendererType)
+    REFLECT_FIELD(EngineSettings::rendererType)
         .UI(reflection::UI::InputText{})
         .EditAnywhere()
         .DisplayName("渲染器类型")
         .Meta("Category", "Display");
 
-    REFLECT_FIELD(shadowDistance)
+    REFLECT_FIELD(EngineSettings::shadowDistance)
         .Range(0.0f, 200.0f)
         .UI(reflection::UI::Slider{})
         .EditAnywhere()
         .DisplayName("阴影距离")
         .Meta("Category", "Graphics");
 
-    REFLECT_FIELD(enableBloom)
+    REFLECT_FIELD(EngineSettings::enableBloom)
         .UI(reflection::UI::Checkbox{})
         .EditAnywhere()
         .DisplayName("开启泛光")
         .Meta("Category", "Graphics");
 
     // Function Selector Test
-    REFLECT_FIELD(onGameStart)
+    REFLECT_FIELD(EngineSettings::onGameStart)
         .EditAnywhere()
         .FunctionSelect()
         .DisplayName("游戏开始事件")
         .Meta("Category", "Events");
 
-    REFLECT_FIELD(difficulty)
+    REFLECT_FIELD(EngineSettings::difficulty)
         .EditAnywhere()
         .OnChange<&EngineSettings::OnDifficultyChanged>()
         .DisplayName("游戏难度")
         .Meta("Category", "GamePlay");
 
-    REFLECT_METHOD(PlaySound).ScriptCallable();
-    REFLECT_METHOD(SpawnPlayer).Meta("BlueprintFunction", true);
-    REFLECT_METHOD(InternalReset); // Should not appear
+    REFLECT_METHOD(EngineSettings::PlaySound).ScriptCallable();
+    REFLECT_METHOD(EngineSettings::SpawnPlayer).Meta("BlueprintFunction", true);
+    REFLECT_METHOD(EngineSettings::InternalReset);
 }
 
 REFLECTION_REGISTER(EngineSettings)
