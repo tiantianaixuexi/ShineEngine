@@ -43,7 +43,7 @@ public:
 
     constexpr auto rend() -> std::reverse_iterator<iterator> { return std::reverse_iterator<iterator>(begin()); }
     constexpr auto rend() const -> std::reverse_iterator<const_iterator> { return std::reverse_iterator<const_iterator>(begin()); }
-     
+
     constexpr size_t size() const { return current_size; }
 
     constexpr static std::integral_constant<size_type, N> capacity{};
@@ -87,7 +87,7 @@ public:
 
     constexpr bool contains(key_type const &key) {
         for (auto const &[k, v] : *this) {
-            if constexpr (k == v) {
+            if constexpr (k == key) {
                 return true;
             }
         }

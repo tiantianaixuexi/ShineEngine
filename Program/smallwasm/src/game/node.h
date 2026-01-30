@@ -14,6 +14,9 @@
 
 namespace shine::game {
 
+class Transform;
+void markTransformDirty(Node* n) noexcept;
+
 class Node : public Object {
   
 public:
@@ -58,6 +61,7 @@ public:
     if (!n) return;
     n->parent = this;
     children.push_back(n);
+    markTransformDirty(n);
   }
 
   inline void removeChild(Node* n) noexcept {
@@ -78,18 +82,22 @@ public:
     c->node = this;
     c->parent = nullptr;
     components.push_back(c);
+    m_cachedType = nullptr;
+    m_cachedComp = nullptr;
     c->onAttach();
   }
 
   inline void removeComponent(Component* c) noexcept {
     if (!c) return;
     components.erase_first_unordered(c);
+    m_cachedType = nullptr;
+    m_cachedComp = nullptr;
   }
 
   inline void markTree() noexcept {
     gcMark();
     for (auto& c : components) {
-      if (c) c->markTree();
+      //if (c) c->markTree();
     }
     for (auto& n : children) {
       if (n) n->markTree();
@@ -107,9 +115,14 @@ public:
   template<typename T>
   inline T* getComponent() noexcept {
     const ComponentTypeId want = ComponentType<T>::id();
+    if (likely(m_cachedType == want && m_cachedComp)) return (T*)m_cachedComp;
     for (unsigned int i = 0; i < components.size(); ++i) {
       Component* c = components[i];
-      if (c && c->typeId() == want) return (T*)c;
+      if (c && c->typeId() == want) {
+        m_cachedType = want;
+        m_cachedComp = c;
+        return (T*)c;
+      }
     }
     return nullptr;
   }
@@ -128,12 +141,14 @@ public:
   }
 
   inline void renderTree(RenderContext& rc, float t) noexcept {
-
-    for (auto& c : _ActivateComps) {
+    if (!isActive()) return;
+    for (unsigned int i = 0; i < components.size(); ++i) {
+      Component* c = components[i];
       if (c) c->renderTree(rc, t);
     }
-    for (auto& c : _ActivateChild) {
-      if (c) c->renderTree(rc, t);
+    for (unsigned int i = 0; i < children.size(); ++i) {
+      Node* n = children[i];
+      if (n) n->renderTree(rc, t);
     }
   }
 
@@ -150,13 +165,13 @@ public:
   }
 
   private:
-
-    // Components mounted on THIS node
-    wasm::SVector<Node*> _ActivateChild;
-    wasm::SVector<Component*> _ActivateComps;
+    friend class Transform;
+    friend class Scene;
 
     wasm::SVector<Node*> children;
     wasm::SVector<Component*> components;
+    ComponentTypeId m_cachedType = nullptr;
+    Component* m_cachedComp = nullptr;
 
 };
 

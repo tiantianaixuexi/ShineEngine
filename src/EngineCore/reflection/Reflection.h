@@ -15,7 +15,6 @@
 #include "../../string/shine_string.h"
 
 #include "Field/FieldInfo.h"
-#include "ReflectionConcept.h"
 #include "ReflectionFlags.h"
 #include "ReflectionHash.h"
 #include "ReflectionScript.h"
@@ -27,8 +26,7 @@ import shine.memory;
 #include "../../memory/memory.ixx"
 #endif
 
-template<typename T>
-concept IsNumberAndFloat = std::is_floating_point_v<T> || std::is_integral_v<T>;
+
 
 // -----------------------------------------------------------------------------
 // 3. Metadata & Info Structures
@@ -65,41 +63,6 @@ struct EnumEntry {
     std::string_view name;
 };
 
-struct TypeInfo {
-    std::string_view name;
-    TypeId           id;
-    size_t           size;
-    size_t           alignment;
-
-    std::vector<FieldInfo>  fields;
-    std::vector<MethodInfo> methods;
-
-    const TypeInfo *baseType   = nullptr;
-    TypeId          baseTypeId = 0;
-
-    bool                   isEnum = false;
-    std::vector<EnumEntry> enumEntries;
-
-    void *(*create)();
-    void (*destroy)(void *);
-    void (*construct)(void *);
-    void (*destruct)(void *);
-    void (*copy)(void *dst, const void *src); // Assignment
-
-    bool isTrivial;
-    bool isManaged = false; // If true, use ObjectHandle in scripts
-
-    const FieldInfo *FindField(std::string_view fieldName) const {
-        if (const auto it = std::ranges::find_if(fields, [fieldName](const FieldInfo &f) { return f.name == fieldName; }); it != fields.end())
-            return &(*it);
-        return baseType ? baseType->FindField(fieldName) : nullptr;
-    }
-    const MethodInfo *FindMethod(std::string_view methodName) const {
-        if (const auto it = std::ranges::find_if(methods, [methodName](const MethodInfo &m) { return m.name == methodName; }); it != methods.end())
-            return &(*it);
-        return baseType ? baseType->FindMethod(methodName) : nullptr;
-    }
-};
 } // namespace shine::reflection
 
 // -----------------------------------------------------------------------------
@@ -350,7 +313,7 @@ struct ScriptView : public TypeView {
         for (size_t i = 0; i < args.size(); ++i) {
             const TypeInfo *pType = GetTypeInfo(method->paramTypes[i]);
             if (!pType)
-                return ScriptValue(); // Param type not found
+                return {}; // Param type not found
 
             if (pType->size <= 8 && pType->alignment <= 8) {
                 // Small optimization for simple types (int/float/bool) - Reuse pointer if possible or alloc small
@@ -448,6 +411,8 @@ struct member_pointer_traits<Ptr> {
     using ClassType  = Class;
     using MemberType = Member;
 
+
+    // 把“成员指针”转化为“成员在对象中的字节偏移量
     static constexpr std::size_t offset() noexcept {
         return reinterpret_cast<std::size_t>(
             &(reinterpret_cast<Class const volatile *>(0)->*Ptr));
@@ -455,10 +420,17 @@ struct member_pointer_traits<Ptr> {
 
     static_assert(!std::is_reference_v<Member>,
                   "Reflection does not support reference members");
+
+
+
+    // 标准布局
+    static_assert(std::is_standard_layout_v<Class>,
+                  "offset() requires standard-layout type");
 };
 
 
 
+// std::is_member_object_pointer_v 检测成员变量指针是否为成员对象指针
 template <auto MemberPtr, std::size_t NMeta = 0>
     requires std::is_member_object_pointer_v<decltype(MemberPtr)>
 struct FieldDSLNode {
@@ -478,20 +450,20 @@ struct FieldDSLNode {
               sizeof(MemberType),
               alignof(MemberType),
               std::is_trivially_copyable_v<MemberType>,
-              PropertyFlags::None,
+              ReflectionFlag::None,
               {},
               UI::None{}} {}
 
     constexpr FieldDSLNode(FieldDescriptor<NMeta> d) : desc(d) {}
 
-    constexpr auto Flags(PropertyFlags f) const {
+    constexpr auto Flags(ReflectionFlag f) const {
         auto newDesc  = desc;
         newDesc.flags = newDesc.flags | f;
         return FieldDSLNode<MemberPtr, NMeta>(newDesc);
     }
-    constexpr auto EditAnywhere() const { return Flags(PropertyFlags::EditAnywhere); }
-    constexpr auto ReadOnly() const { return Flags(PropertyFlags::ReadOnly); }
-    constexpr auto ScriptReadWrite() const { return Flags(PropertyFlags::ScriptReadWrite); }
+    constexpr auto EditAnywhere() const { return Flags(ReflectionFlag::EditAnywhere); }
+    constexpr auto ReadOnly() const { return Flags(ReflectionFlag::ReadOnly); }
+    constexpr auto ScriptReadWrite() const { return Flags(ReflectionFlag::ScriptReadWrite); }
 
     // ---------- UI ----------
 
@@ -513,7 +485,7 @@ struct FieldDSLNode {
 
         FieldDescriptor<NMeta + 1> newDesc;
 
-        newDesc.name      = desc.name;
+        newDesc.name      = desc.name;                      
         newDesc.typeId    = desc.typeId;
         newDesc.offset    = desc.offset;
         newDesc.size      = desc.size;
@@ -747,110 +719,6 @@ void InvokeThunkImpl(const Class *instance, Ret (Class::*Func)(Args...) const, v
 }
 
 template <typename T>
-struct TypeBuilder;
-
-// Forward declare FieldInjector_Impl and MethodInjector_Impl
-template <typename T, typename DSLType>
-struct FieldInjector_Impl;
-template <typename T, typename DSLType>
-struct MethodInjector_Impl;
-
-
-
-template <typename T, typename DSLType>
-struct FieldInjector_Impl {
-    TypeBuilder<T> &builder;
-    DSLType         dsl;
-    bool            moved = false;
-
-    constexpr FieldInjector_Impl(TypeBuilder<T> &b, DSLType d) : builder(b), dsl(d) {}
-
-    ~FieldInjector_Impl() {
-        if (!moved) {
-           // builder.template RegisterFieldImpl<typename DSLType::ClassType, typename DSLType::traits, DSLType::traits>(dsl.desc);
-        }
-    }
-    constexpr FieldInjector_Impl(FieldInjector_Impl &&other) : builder(other.builder), dsl(other.dsl) { other.moved = true; }
-
-    constexpr auto EditAnywhere() { return Chain(dsl.EditAnywhere()); }
-    constexpr auto ReadOnly() { return Chain(dsl.ReadOnly()); }
-    constexpr auto ScriptReadWrite() { return Chain(dsl.ScriptReadWrite()); }
-    constexpr auto FunctionSelect(bool onlyScriptCallable = true) { return Chain(dsl.FunctionSelect(onlyScriptCallable)); }
-
-    template <auto CallbackPtr>
-    constexpr auto OnChange() {
-        return Chain(dsl.template OnChange<CallbackPtr>());
-    }
-
-    template <typename U>
-    constexpr auto UI(U &&schema) { return Chain(dsl.UI(std::forward<U>(schema))); }
-
-    template <size_t N, typename V>
-    constexpr auto Meta(const char (&key)[N], V &&val) {
-        return Chain(dsl.Meta(Hash(key), std::forward<V>(val)));
-    }
-
-    // Fallback for runtime strings
-    template <typename V>
-    constexpr auto Meta(std::string_view key, V &&val) {
-        return Chain(dsl.Meta(Hash(key), std::forward<V>(val)));
-    }
-
-    template <typename V>
-    requires ( IsNumberAndFloat<V> )
-    constexpr auto Range(V min, V max) { return Chain(dsl.Range(min, max)); }
-
-    template <size_t N>
-    constexpr auto DisplayName(const char (&name)[N]) { return Meta("DisplayName", name); }
-    constexpr auto DisplayName(std::string_view name) { return Meta("DisplayName", name); }
-
-    template <size_t N>
-    constexpr auto Category(const char (&name)[N]) { return Meta("Category", name); }
-    constexpr auto Category(std::string_view name) { return Meta("Category", name); }
-
-    template <size_t N>
-    constexpr auto EditCondition(const char (&condition)[N]) { return Meta("EditCondition", condition); }
-    constexpr auto EditCondition(std::string_view condition) { return Meta("EditCondition", condition); }
-
-    private:
-    template <typename NewDSL>
-    constexpr auto Chain(NewDSL newDSL) {
-        moved = true;
-        return FieldInjector_Impl<T, NewDSL>(builder, newDSL);
-    }
-};
-
-template <typename T, typename DSLType>
-struct MethodInjector_Impl {
-    TypeBuilder<T> &builder;
-    DSLType         dsl;
-    bool            moved = false;
-    MethodInjector_Impl(TypeBuilder<T> &b, DSLType d) : builder(b), dsl(d) {}
-
-    // Fix: Call RegisterMethodImpl directly to avoid recursion
-    ~MethodInjector_Impl() {
-        if (!moved) {
-            builder.template RegisterMethodImpl<typename DSLType::ClassType, DSLType::MethodPtr, typename DSLType::ReturnType, typename DSLType::ArgsTuple>(dsl.desc);
-        }
-    }
-    MethodInjector_Impl(MethodInjector_Impl &&other) : builder(other.builder), dsl(other.dsl) { other.moved = true; }
-    auto ScriptCallable() { return Chain(dsl.ScriptCallable()); }
-    auto EditorCallable() { return Chain(dsl.EditorCallable()); }
-    template <typename V>
-    auto Meta(std::string_view key, V &&val) { return Chain(dsl.Meta(Hash(key), std::forward<V>(val))); }
-    template <size_t N>
-    auto DisplayName(const char (&name)[N]) { return Meta("DisplayName", name); }
-    auto DisplayName(std::string_view name) { return Meta("DisplayName", name); }
-
-    private:
-    template <typename NewDSL>
-    auto Chain(NewDSL newDSL) {
-        moved = true;
-        return MethodInjector_Impl<T, NewDSL>(builder, newDSL);
-    }
-};
-
-template <typename T>
 template <typename DSLType>
 constexpr  auto TypeBuilder<T>::RegisterFieldFromDSL(const DSLType &dsl) {
     return FieldInjector_Impl<T, DSLType>(*this, dsl);
@@ -908,3 +776,4 @@ using BuilderType = typename std::remove_reference_t<Builder>::ObjectType;
         return true;                                                                 \
     }();                                                                             \
     void Type##_Reflect(shine::reflection::TypeBuilder<Type> &builder)
+

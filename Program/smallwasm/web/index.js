@@ -291,12 +291,14 @@ async function runApp(canvas, hud) {
           instExt: null,
           vaoExt: null,
           vaos: [null],
+          floatTexExt: null,
         };
 
         // Instancing support (WebGL2 or ANGLE_instanced_arrays)
         if (!c.isWebGL2) {
           c.instExt = gl.getExtension('ANGLE_instanced_arrays');
           c.vaoExt = gl.getExtension('OES_vertex_array_object');
+          c.floatTexExt = gl.getExtension('OES_texture_float');
         }
 
         // Setup GPU timer query extension if possible.
@@ -516,6 +518,22 @@ async function runApp(canvas, hud) {
         c.uniforms.push(loc);
         return c.uniforms.length - 1;
       },
+      gl_get_uniform_block_index(ctxId, prog_id, name_ptr, name_len) {
+        const c = ctx(ctxId);
+        if (!c.isWebGL2) return -1;
+        const name = decoder.decode(new Uint8Array(mem.buffer, name_ptr, name_len));
+        const prog = c.programs[prog_id];
+        if (!prog) return -1;
+        const idx = c.gl.getUniformBlockIndex(prog, name);
+        return (idx === c.gl.INVALID_INDEX) ? -1 : (idx | 0);
+      },
+      gl_uniform_block_binding(ctxId, prog_id, block_index, binding) {
+        const c = ctx(ctxId);
+        if (!c.isWebGL2) return;
+        const prog = c.programs[prog_id];
+        if (!prog) return;
+        c.gl.uniformBlockBinding(prog, block_index >>> 0, binding | 0);
+      },
 
       gl_uniform1i(ctxId, loc_id, v) {
         const c = ctx(ctxId);
@@ -654,6 +672,44 @@ async function runApp(canvas, hud) {
       },
       gl_draw_arrays(ctxId, mode, first, count) { ctx(ctxId).gl.drawArrays(mode, first, count); },
 
+      js_tex_create_f32(ctxId, w, h) {
+        const c = ctx(ctxId);
+        const gl = c.gl;
+        if (!c.isWebGL2 && !c.floatTexExt) return 0;
+        const tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        if (c.isWebGL2) {
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
+        } else {
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.FLOAT, null);
+        }
+        c.textures.push(tex);
+        const texId = c.textures.length - 1;
+        c.texInfo[texId] = { w: w | 0, h: h | 0 };
+        return texId;
+      },
+
+      js_tex_update_f32(ctxId, texId, w, h, ptr, floatCount) {
+        const c = ctx(ctxId);
+        const gl = c.gl;
+        if (!c.isWebGL2 && !c.floatTexExt) return;
+        const tex = c.textures[texId];
+        if (!tex) return;
+        const count = floatCount | 0;
+        const arr = new Float32Array(mem.buffer, ptr, count);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        if (c.isWebGL2) {
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, arr);
+        } else {
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.FLOAT, arr);
+        }
+        c.texInfo[texId] = { w: w | 0, h: h | 0 };
+      },
+
       // Command buffer submit: reduce wasm->JS boundary overhead.
       // cmd is a packed i32 array: each command is 8 i32:
       // [op, a, b, c, d, e, f, g]
@@ -672,6 +728,7 @@ async function runApp(canvas, hud) {
         let curTex = -1;
         let curActiveTex = 0;
         let curVao = -1;
+        let curUbo = -1;
 
         for (let i = 0, o = 0; i < (cmdCount | 0); i++, o += 8) {
           const op = i32[o + 0] | 0;
@@ -738,6 +795,13 @@ async function runApp(canvas, hud) {
               gl.bufferSubData(a0, a1, arr);
               break;
             }
+            case 18: { // bindBufferBase: target, index, buf_id
+              if (curUbo !== a2) {
+                gl.bindBufferBase(a0, a1, c.buffers[a2]);
+                curUbo = a2;
+              }
+              break;
+            }
             case 8: { // drawArrays: mode, first, count
               // console.log(`drawArrays mode=${a0} first=${a1} count=${a2} prog=${curProg} vao=${curVao}`);
               gl.drawArrays(a0, a1, a2);
@@ -787,6 +851,32 @@ async function runApp(canvas, hud) {
                 curActiveTex = a4;
               }
               gl.uniform1i(c.uniforms[a3], a4);
+              break;
+            }
+            case 19: { // uniformRRBlock: ptr
+              const u = new Int32Array(mem.buffer, a0, 34);
+              // locs
+              const locRad = c.uniforms[u[0]];
+              const locUseTex = c.uniforms[u[1]];
+              const locColor = c.uniforms[u[2]];
+              const locTexTint = c.uniforms[u[3]];
+              const locBorderColor = c.uniforms[u[4]];
+              const locBorder = c.uniforms[u[5]];
+              const locShadowColor = c.uniforms[u[6]];
+              const locShadowOff = c.uniforms[u[7]];
+              const locShadowBlur = c.uniforms[u[8]];
+              const locShadowSpread = c.uniforms[u[9]];
+              // values
+              gl.uniform2f(locRad, i2f(u[10]), i2f(u[11]));
+              gl.uniform1i(locUseTex, u[12]);
+              gl.uniform4f(locColor, i2f(u[13]), i2f(u[14]), i2f(u[15]), i2f(u[16]));
+              gl.uniform4f(locTexTint, i2f(u[17]), i2f(u[18]), i2f(u[19]), i2f(u[20]));
+              gl.uniform4f(locBorderColor, i2f(u[21]), i2f(u[22]), i2f(u[23]), i2f(u[24]));
+              gl.uniform1f(locBorder, i2f(u[25]));
+              gl.uniform4f(locShadowColor, i2f(u[26]), i2f(u[27]), i2f(u[28]), i2f(u[29]));
+              gl.uniform2f(locShadowOff, i2f(u[30]), i2f(u[31]));
+              gl.uniform1f(locShadowBlur, i2f(u[32]));
+              gl.uniform1f(locShadowSpread, i2f(u[33]));
               break;
             }
             default:

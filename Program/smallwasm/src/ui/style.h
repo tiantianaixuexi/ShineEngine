@@ -1,13 +1,13 @@
 #pragma once
 
-namespace shine { namespace ui {
+#include "../math/Color4.h"
+#include "../util/wasm_compat.h"
 
-struct Color4 {
-  float r = 1.0f;
-  float g = 1.0f;
-  float b = 1.0f;
-  float a = 1.0f;
-};
+namespace shine { 
+
+  using namespace math;
+  
+namespace ui {
 
 struct ButtonStyle {
   Color4 bg_idle    { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -34,7 +34,7 @@ struct ButtonStyle {
 };
 
 // 这种方法可以减少 wasm 生成的代码量
-inline constinit ButtonStyle DefaultButtonStyleInstance{
+SHINE_INLINE_VAR SHINE_CONSTINIT ButtonStyle DefaultButtonStyleInstance{
   {1.0f, 1.0f, 1.0f, 1.0f},
   {0.8f, 0.8f, 0.8f, 1.0f},
   {0.9f, 0.9f, 0.9f, 1.0f},

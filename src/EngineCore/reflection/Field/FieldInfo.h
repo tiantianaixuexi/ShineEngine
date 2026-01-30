@@ -14,7 +14,7 @@ namespace shine::reflection {
     using MetadataKey       = TypeId;
     using MetadataValue     = std::variant<int, float, bool, std::string_view>;
     using MetadataContainer = std::vector<std::pair<MetadataKey, MetadataValue>>;
-
+    
 
     struct TypeOps {
 

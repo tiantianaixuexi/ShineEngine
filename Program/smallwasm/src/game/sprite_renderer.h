@@ -14,21 +14,55 @@ public:
   float r = 1.0f;
   float g = 1.0f;
   float b = 1.0f;
+  int transparent = 0;
+  int depthOnly = 0;
+  int emissive = 0;
+
+  inline void setTransparent(bool v) noexcept { transparent = v ? 1 : 0; }
+  inline void setDepthOnly(bool v) noexcept { depthOnly = v ? 1 : 0; }
+  inline void setEmissive(bool v) noexcept { emissive = v ? 1 : 0; }
 
   void onRender(RenderContext& rc, float /*t*/) override {
     if (!node) return;
+    if (rc.pass == renderer::PASS_DEPTH) {
+      if (!depthOnly) return;
+    } else if (rc.pass == renderer::PASS_OPAQUE) {
+      if (transparent || emissive) return;
+    } else if (rc.pass == renderer::PASS_TRANSPARENT) {
+      if (!transparent) return;
+    } else if (rc.pass == renderer::PASS_EMISSIVE) {
+      if (!emissive) return;
+    } else if (rc.pass == renderer::PASS_BASE_COLOR || rc.pass == renderer::PASS_UNLIT) {
+      if (transparent || emissive) return;
+    } else {
+      return;
+    }
     Transform* tr = node->getComponent<Transform>();
     if (!tr) return;
 
-    float cx, cy;
-    tr->worldXY(cx, cy);
+    float cx, cy, cz;
+    tr->worldXYZ(cx, cy, cz);
     const float w = tr->w;
     const float h = tr->h;
+    const Rect rect{cx, cy, w, h};
+    const Color4 color{r, g, b, 1.0f};
+
+    // SortKey layout: [layer:8][material:8][depth:16]
+    unsigned int layer = rc.sortKey & 0xFFu;
+    unsigned int mat = (unsigned int)(texId & 0xFF);
+    float nz = (cz + 1.0f) * 0.5f;
+    if (nz < 0.0f) nz = 0.0f;
+    if (nz > 1.0f) nz = 1.0f;
+    unsigned int depthKey = (unsigned int)(nz * 65535.0f);
+    if (transparent) depthKey = 65535u - depthKey;
+    unsigned int sortKey = (layer << 24) | (mat << 16) | depthKey;
 
     if (texId != 0) {
-      if (rc.drawRectTex) rc.drawRectTex(rc.user, texId, cx, cy, w, h);
+      if (rc.drawRectTexEx) rc.drawRectTexEx(rc.user, texId, rect, sortKey);
+      else if (rc.drawRectTex) rc.drawRectTex(rc.user, texId, rect);
     } else {
-      if (rc.drawRectCol) rc.drawRectCol(rc.user, cx, cy, w, h, r, g, b);
+      if (rc.drawRectColEx) rc.drawRectColEx(rc.user, rect, color, sortKey);
+      else if (rc.drawRectCol) rc.drawRectCol(rc.user, rect, color);
     }
   }
 };

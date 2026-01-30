@@ -39,7 +39,12 @@ public:
     gc_link();
   }
 
-  virtual ~Object() { gc_unlink(); }
+  virtual ~Object() {
+    if ((flags & OF_PendingKill) != 0u && s_pending_kill_count > 0u) {
+      --s_pending_kill_count;
+    }
+    gc_unlink();
+  }
 
   virtual ObjectKind kind() const noexcept = 0;
   virtual bool isOwnedByDead() const { return false; }
@@ -50,6 +55,7 @@ public:
   inline bool renderEnabled() const noexcept { return (flags & OF_Render) != 0; }
   inline bool pointerEnabled() const noexcept { return (flags & OF_Pointer) != 0; }
   inline bool pendingKill() const noexcept { return (flags & OF_PendingKill) != 0; }
+  static inline unsigned int pendingKillCount() noexcept { return s_pending_kill_count; }
 
   inline void setActive(bool v) noexcept { flags = v ? (flags | OF_Active) : (flags & ~OF_Active); }
   inline void setVisible(bool v) noexcept { flags = v ? (flags | OF_Visible) : (flags & ~OF_Visible); }
@@ -63,7 +69,12 @@ public:
   inline bool gcMarked() const noexcept { return (flags & OF_GCMark) != 0; }
 
   // Lifetime hint (optional for later):
-  inline void markPendingKill() noexcept { flags |= OF_PendingKill; }
+  inline void markPendingKill() noexcept {
+    if ((flags & OF_PendingKill) == 0u) {
+      flags |= OF_PendingKill;
+      ++s_pending_kill_count;
+    }
+  }
 
   // ---- GC registry (very small & simple) ----
   static inline Object* gcHead() noexcept { return s_gc_head; }
@@ -74,6 +85,7 @@ private:
   Object* gc_prev = nullptr;
   Object* gc_next = nullptr;
   static Object* s_gc_head;
+  static unsigned int s_pending_kill_count;
 
   inline void gc_link() noexcept {
     // Insert at head.

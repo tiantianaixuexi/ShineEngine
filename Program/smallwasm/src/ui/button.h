@@ -50,18 +50,18 @@ public:
     
 
     inline void setBgUrl(const char* url) {
-        const int len = shine::wasm::raw_strlen(url);
+        const int len = raw_strlen(url);
         TMINST.request_url(url, len, &style->bg_texId, nullptr, nullptr);
     }
 
     inline void setBgDataUrl(const char* dataUrl) {
-        const int len = shine::wasm::raw_strlen(dataUrl);
+        const int len = raw_strlen(dataUrl);
         TMINST.request_dataurl(dataUrl, len, &style->bg_texId, nullptr, nullptr);
     }
 
     inline void setBgBase64(const char* mime, const char* b64) {
-        const int mime_len = shine::wasm::raw_strlen(mime);
-        const int b64_len = shine::wasm::raw_strlen(b64);
+        const int mime_len = raw_strlen(mime);
+        const int b64_len = raw_strlen(b64);
         TMINST.request_base64(mime,
             mime_len,
             b64, b64_len,
@@ -127,23 +127,30 @@ public:
 
         // Make hover feedback VERY obvious (even with bg texture):
         float border_px = s->border_px;
-        float border_r = s->border_color.r;
-        float border_g = s->border_color.g;
-        float border_b = s->border_color.b;
-        float border_a = s->border_color.a;
-        float texTint_a = s->bg_tex_tint.a;
 
 
         
         // Rounded background (optionally textured) + border + shadow.
-        graphics::Renderer2D::instance().drawRoundRect(
-            x, y, w, h, s->radius_px,
-            *(const graphics::Renderer2D::Color4*)needRenderColor, // Safe cast
-            s->bg_texId, *(const graphics::Renderer2D::Color4*)&s->bg_tex_tint,
-            border_px, *(const graphics::Renderer2D::Color4*)&s->border_color,
-            s->shadow_offset_px_x, s->shadow_offset_px_y, s->shadow_blur_px, s->shadow_spread_px, 
-            *(const graphics::Renderer2D::Color4*)&s->shadow_color
-        );
+        const graphics::Renderer2D::Rect rect{x, y, w, h};
+        const graphics::Renderer2D::Color4 fill{needRenderColor->r, needRenderColor->g, needRenderColor->b, needRenderColor->a};
+        const graphics::Renderer2D::Color4 texTint{s->bg_tex_tint.r, s->bg_tex_tint.g, s->bg_tex_tint.b, s->bg_tex_tint.a};
+        const graphics::Renderer2D::Color4 borderColor{s->border_color.r, s->border_color.g, s->border_color.b, s->border_color.a};
+        const graphics::Renderer2D::Color4 shadowColor{s->shadow_color.r, s->shadow_color.g, s->shadow_color.b, s->shadow_color.a};
+
+        graphics::Renderer2D::RoundRectStyle style;
+        style.radius_px = s->radius_px;
+        style.fill = fill;
+        style.texId = s->bg_texId;
+        style.texTint = texTint;
+        style.border_px = border_px;
+        style.borderColor = borderColor;
+        style.shadow_off_x = s->shadow_offset_px_x;
+        style.shadow_off_y = s->shadow_offset_px_y;
+        style.shadow_blur = s->shadow_blur_px;
+        style.shadow_spread = s->shadow_spread_px;
+        style.shadowColor = shadowColor;
+
+        graphics::Renderer2D::instance().drawRoundRect(rect, style);
 
 
     }

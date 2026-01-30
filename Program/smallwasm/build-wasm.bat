@@ -99,6 +99,41 @@ if errorlevel 1 (
 
 
 
+REM Report wasm size and compare to last build
+
+set "WASM_PATH=%ROOT%\web\dist\output.gl.wasm"
+set "WASM_SIZE_FILE=%ROOT%\web\dist\output.gl.wasm.size"
+
+if exist "%WASM_PATH%" (
+
+  for %%I in ("%WASM_PATH%") do set "WASM_SIZE=%%~zI"
+
+  set "WASM_DELTA=0"
+  if exist "%WASM_SIZE_FILE%" (
+    set /p "WASM_PREV_SIZE="<"%WASM_SIZE_FILE%"
+    for /f "delims=0123456789" %%N in ("!WASM_PREV_SIZE!") do set "WASM_PREV_SIZE="
+    if defined WASM_PREV_SIZE (
+      if !WASM_SIZE! GTR !WASM_PREV_SIZE! (
+        set "WASM_DELTA=100"
+      ) else if !WASM_SIZE! LSS !WASM_PREV_SIZE! (
+        set "WASM_DELTA=-100"
+      )
+    )
+  )
+
+  echo [smallwasm] output.gl.wasm size = !WASM_SIZE! bytes
+  echo [smallwasm] size delta = !WASM_DELTA!
+
+  >"%WASM_SIZE_FILE%" echo !WASM_SIZE!
+
+) else (
+
+  echo [smallwasm] WARNING: "%WASM_PATH%" not found.
+
+)
+
+
+
 echo [smallwasm] OK
 
 exit /b 0

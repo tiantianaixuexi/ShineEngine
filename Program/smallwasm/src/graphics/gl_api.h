@@ -10,6 +10,8 @@ extern "C" {
 // Context / Texture
 int js_create_context(int canvas_id_ptr, int canvas_id_len); // returns ctxId
 int js_create_texture_checker(int ctx, int size); // returns texId
+int js_tex_create_f32(int ctx, int w, int h); // returns texId
+void js_tex_update_f32(int ctx, int texId, int w, int h, int ptr, int float_count);
 void js_tex_load_url(int ctx, int url_ptr, int url_len, int reqId);
 void js_tex_load_dataurl(int ctx, int data_ptr, int data_len, int reqId);
 void js_tex_load_base64(int ctx, int mime_ptr, int mime_len, int b64_ptr, int b64_len, int reqId);
@@ -24,6 +26,8 @@ int  gl_create_program(int ctx, int vs, int fs);
 int  gl_create_program_instanced(int ctx, int vs, int fs);
 void gl_use_program(int ctx, int prog);
 int  gl_get_uniform_location(int ctx, int prog, int name_ptr, int name_len); // returns locId
+int  gl_get_uniform_block_index(int ctx, int prog, int name_ptr, int name_len); // returns block index or -1
+void gl_uniform_block_binding(int ctx, int prog, int block_index, int binding);
 
 // Uniforms
 void gl_uniform1i(int ctx, int loc, int v);
@@ -58,6 +62,7 @@ void gl_submit(int ctx, int cmd_ptr, int cmd_count);
 
 // Helpers (Implemented in gl_api.cpp)
 int gl_create_program_from_source(int ctx, const char* vs, const char* fs);
+int gl_create_program_from_source_ubo(int ctx, const char* vs, const char* fs, const char* blockName, int binding);
 
 } // extern "C"
 
@@ -70,3 +75,4 @@ static constexpr int GL_TRIANGLES = 0x0004;
 static constexpr int GL_VERTEX_SHADER = 0x8B31;
 static constexpr int GL_FRAGMENT_SHADER = 0x8B30;
 static constexpr int GL_TEXTURE_2D = 0x0DE1;
+static constexpr int GL_UNIFORM_BUFFER = 0x8A11;

@@ -121,6 +121,10 @@ set(SMALLWASM_CXX_FLAGS
 -Oz
 -ffreestanding -nostdlib
 -fno-exceptions -fno-rtti -fno-threadsafe-statics
+-fno-unwind-tables -fno-asynchronous-unwind-tables
+-fvisibility=hidden
+-ffunction-sections -fdata-sections
+-flto=thin
 -std=c++23
 )
 
@@ -145,6 +149,7 @@ set(SMALLWASM_LD_FLAGS
 --export=malloc --export=free
 --export=init --export=frame --export=resize --export=pointer
 --export=on_tex_loaded --export=on_tex_failed --export=gl_create_program_from_source
+--gc-sections --lto-O2
 )
 
 # ---- Strip control ----
@@ -175,7 +180,7 @@ VERBATIM
 else()
 add_custom_command(
 OUTPUT "${out_wasm}"
-COMMAND "${WASMOPT}" -Oz --strip-dwarf --strip-producers --strip-names "${in_wasm}" -o "${out_wasm}"
+COMMAND "${WASMOPT}" -Oz --strip-dwarf --strip-producers --strip-names --zero-filled-memory --converge "${in_wasm}" -o "${out_wasm}"
 DEPENDS "${in_wasm}"
 VERBATIM
 )

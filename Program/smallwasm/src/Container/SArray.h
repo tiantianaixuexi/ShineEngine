@@ -80,7 +80,7 @@ namespace shine::wasm
 		inline void clear_zero() noexcept
 		{
 			if (!pointer || length == 0) return;
-			wasm::raw_memset(pointer, 0, static_cast<shine::wasm::size_t>(length) * sizeof(T));
+			raw_memset(pointer, 0, static_cast<shine::wasm::size_t>(length) * sizeof(T));
 		}
 	};
 

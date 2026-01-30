@@ -3,6 +3,7 @@
 #include "fmt/base.h"
 
 #include <iostream>
+#include <map>
 #include <string>
 
 namespace shine::editor::settings {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ui.h"
+#include "../graphics/renderer_2d.h"
 #include "../graphics/texture_manager.h"
 
 namespace shine { namespace ui {
@@ -16,15 +17,15 @@ public:
   // - Uses JS cache: if already loaded, texId is set immediately (sync).
   // - Otherwise kicks async load and texId is set on callback.
   inline void setSourceUrl(const char* url) {
-      TMINST.request_url(url, wasm::raw_strlen(url), &texId, &texW, &texH);
+      TMINST.request_url(url, raw_strlen(url), &texId, &texW, &texH);
   }
 
   inline void setSourceDataUrl(const char* dataUrl) {
-    TMINST.request_dataurl(dataUrl, wasm::raw_strlen(dataUrl), &texId, &texW, &texH);
+    TMINST.request_dataurl(dataUrl, raw_strlen(dataUrl), &texId, &texW, &texH);
   }
 
   inline void setSourceBase64(const char* mime,  const char* b64, int b64Len) {
-    TMINST.request_base64(mime, wasm::raw_strlen(mime), b64, b64Len, &texId, &texW, &texH);
+    TMINST.request_base64(mime, raw_strlen(mime), b64, b64Len, &texId, &texW, &texH);
   }
 
   void onResize(int view_w, int view_h) override {
@@ -33,7 +34,9 @@ public:
 
   void render(int ctxId) override {
     if (texId == 0) return;
-    ui_draw_rect_uv(ctxId, x, y, w, h, texId);
+    (void)ctxId;
+    const graphics::Renderer2D::Rect rect{x, y, w, h};
+    graphics::Renderer2D::instance().drawRectUV(texId, rect);
   }
 };
 

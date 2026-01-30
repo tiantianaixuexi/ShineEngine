@@ -18,13 +18,21 @@ static inline uintptr_t align_up(uintptr_t x, uintptr_t a) { return (x + (a - 1)
 static constexpr uintptr_t kAlign = 16;
 static constexpr uintptr_t kPageSize = 64u * 1024u;
 
-struct Block {
-  size_t size;
-  Block* next;
+struct BlockHeader {
+  size_t size_flags; // includes header; LSB = free flag
+  BlockHeader* next;
+};
+
+static constexpr size_t kFreeFlag = 1;
+static constexpr size_t kHeaderSize = (sizeof(BlockHeader) + kAlign - 1) & ~(kAlign - 1);
+static constexpr size_t kMinBlockSize = kHeaderSize + kAlign;
+static constexpr unsigned int kBinCount = 8;
+static constexpr size_t kBinLimits[kBinCount - 1] = {
+    64, 128, 256, 512, 1024, 2048, 4096,
 };
 
 static uintptr_t g_heap_ptr = 0;
-static Block* g_free_list = nullptr;
+static BlockHeader* g_free_bins[kBinCount] = {};
 static uintptr_t g_heap_base = 0;
 static unsigned int g_alloc_count = 0;
 static unsigned int g_free_count = 0;
@@ -47,58 +55,111 @@ static bool ensure_capacity(uintptr_t need_end) {
   return old != 0xFFFFFFFFul;
 }
 
+static inline size_t block_size(const BlockHeader* b) { return b->size_flags & ~kFreeFlag; }
+static inline bool block_is_free(const BlockHeader* b) { return (b->size_flags & kFreeFlag) != 0; }
+static inline unsigned int size_to_bin(size_t size) {
+  for (unsigned int i = 0; i < kBinCount - 1; ++i) {
+    if (size <= kBinLimits[i]) return i;
+  }
+  return kBinCount - 1;
+}
+
+static inline void remove_free(BlockHeader* b) {
+  unsigned int bin = size_to_bin(block_size(b));
+  BlockHeader* prev = nullptr;
+  for (BlockHeader* cur = g_free_bins[bin]; cur; cur = cur->next) {
+    if (cur == b) {
+      if (prev) prev->next = cur->next;
+      else g_free_bins[bin] = cur->next;
+      break;
+    }
+    prev = cur;
+  }
+  b->next = nullptr;
+}
+
+static inline void insert_free(BlockHeader* b) {
+  unsigned int bin = size_to_bin(block_size(b));
+  b->next = g_free_bins[bin];
+  g_free_bins[bin] = b;
+}
+
+static BlockHeader* find_suitable_block(size_t need) {
+  unsigned int bin = size_to_bin(need);
+  for (unsigned int i = bin; i < kBinCount; ++i) {
+    for (BlockHeader* b = g_free_bins[i]; b; b = b->next) {
+      if (block_size(b) >= need) {
+        remove_free(b);
+        return b;
+      }
+    }
+  }
+  return nullptr;
+}
+
+static BlockHeader* coalesce(BlockHeader* b) {
+  uintptr_t b_addr = reinterpret_cast<uintptr_t>(b);
+  size_t total = block_size(b);
+
+  uintptr_t next_addr = b_addr + total;
+  if (next_addr < g_heap_ptr) {
+    BlockHeader* nb = reinterpret_cast<BlockHeader*>(next_addr);
+    if (block_is_free(nb)) {
+      remove_free(nb);
+      total += block_size(nb);
+      b->size_flags = total | kFreeFlag;
+    }
+  }
+  return b;
+}
+
 extern "C" void* malloc(size_t size) {
-  if (size == 0) return nullptr;
+  if (expect(size == 0, 0)) return nullptr;
   ensure_heap_inited();
   size = static_cast<size_t>(align_up(static_cast<uintptr_t>(size), kAlign));
 
-  Block** prevp = &g_free_list;
-  for (Block* b = g_free_list; b; b = b->next) {
-    if (b->size >= size) {
-      *prevp = b->next;
+  size_t need = size + kHeaderSize;
+  need = static_cast<size_t>(align_up(static_cast<uintptr_t>(need), kAlign));
+  assume((need & (kAlign - 1)) == 0);
 
-      uintptr_t b_addr = reinterpret_cast<uintptr_t>(b);
-      uintptr_t payload_addr = b_addr + sizeof(Block);
-      uintptr_t new_payload_addr = payload_addr + size;
-      uintptr_t new_block_addr = align_up(new_payload_addr, kAlign);
-      uintptr_t b_end = payload_addr + b->size;
-
-      if (new_block_addr + sizeof(Block) + kAlign <= b_end) {
-        Block* nb = reinterpret_cast<Block*>(new_block_addr);
-        uintptr_t nb_payload = new_block_addr + sizeof(Block);
-        nb->size = static_cast<size_t>(b_end - nb_payload);
-        nb->next = g_free_list;
-        g_free_list = nb;
-        b->size = size;
-      }
-      ++g_alloc_count;
-      return reinterpret_cast<void*>(payload_addr);
+  BlockHeader* b = find_suitable_block(need);
+  if (b) {
+    size_t b_size = block_size(b);
+    size_t remain = b_size - need;
+    if (remain >= kMinBlockSize) {
+      BlockHeader* nb = reinterpret_cast<BlockHeader*>(reinterpret_cast<uintptr_t>(b) + need);
+      nb->size_flags = remain | kFreeFlag;
+      insert_free(nb);
+      b->size_flags = need;
+    } else {
+      b->size_flags = b_size;
     }
-    prevp = &b->next;
+    ++g_alloc_count;
+    return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(b) + kHeaderSize);
   }
 
   uintptr_t block_addr = align_up(g_heap_ptr, kAlign);
-  uintptr_t payload_addr = block_addr + sizeof(Block);
-  uintptr_t end = payload_addr + size;
-  if (!ensure_capacity(end)) {
+  uintptr_t end = block_addr + need;
+  if (expect(!ensure_capacity(end), 0)) {
     ++g_alloc_fail_count;
     return nullptr;
   }
 
-  Block* b = reinterpret_cast<Block*>(block_addr);
-  b->size = size;
+  b = reinterpret_cast<BlockHeader*>(block_addr);
+  b->size_flags = need;
   b->next = nullptr;
   g_heap_ptr = end;
   ++g_alloc_count;
-  return reinterpret_cast<void*>(payload_addr);
+  return reinterpret_cast<void*>(block_addr + kHeaderSize);
 }
 
 extern "C" void free(void* p) {
-  if (!p) return;
+  if (expect(!p, 0)) return;
   uintptr_t payload_addr = reinterpret_cast<uintptr_t>(p);
-  Block* b = reinterpret_cast<Block*>(payload_addr - sizeof(Block));
-  b->next = g_free_list;
-  g_free_list = b;
+  BlockHeader* b = reinterpret_cast<BlockHeader*>(payload_addr - kHeaderSize);
+  b->size_flags = block_size(b) | kFreeFlag;
+  b = coalesce(b);
+  insert_free(b);
   ++g_free_count;
 }
 
@@ -114,7 +175,13 @@ extern "C" unsigned int wasm_heap_used_bytes() {
 }
 extern "C" unsigned int wasm_heap_free_list_bytes() {
   unsigned int sum = 0;
-  for (Block* b = g_free_list; b; b = b->next) sum += (unsigned int)b->size;
+  for (unsigned int i = 0; i < kBinCount; ++i) {
+    for (BlockHeader* b = g_free_bins[i]; b; b = b->next) {
+      size_t payload = block_size(b);
+      if (payload > kHeaderSize) payload -= kHeaderSize;
+      sum += (unsigned int)payload;
+    }
+  }
   return sum;
 }
 extern "C" unsigned int wasm_heap_capacity_bytes() {
@@ -167,20 +234,30 @@ void __cxa_pure_virtual() {}
 
 namespace shine::wasm {
 
+void* raw_realloc(void* p, size_t oldSize, size_t newSize) noexcept {
+    if (!p) return raw_malloc(newSize);
+    if (newSize == 0) {
+        raw_free(p);
+        return nullptr;
+    }
+    void* np = raw_malloc(newSize);
+    if (!np) return nullptr;
+    const size_t copySize = (oldSize < newSize) ? oldSize : newSize;
+    if (copySize > 0) raw_memcpy(np, p, copySize);
+    raw_free(p);
+    return np;
+}
+
 // Implementation of shared logic for SVector reserve
 void svector_reserve_impl(void** pointer_ref, unsigned int* cap_ref, unsigned int length, unsigned int newCap, unsigned int elemSize) {
     if (newCap <= *cap_ref) return;
     if (elemSize == 0) return;
 
     unsigned int bytes = newCap * elemSize;
-    void* np = raw_malloc((size_t)(bytes));
-    if (!np) return;
-
     void* old_ptr = *pointer_ref;
-    if (old_ptr && length != 0) {
-        raw_memcpy(np, old_ptr, (size_t)length * (size_t)elemSize);
-    }
-    if (old_ptr) raw_free(old_ptr);
+    const size_t old_bytes = (size_t)length * (size_t)elemSize;
+    void* np = raw_realloc(old_ptr, old_bytes, (size_t)bytes);
+    if (!np) return;
     *pointer_ref = np;
     *cap_ref = newCap;
 }

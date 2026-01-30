@@ -43,8 +43,8 @@ public:
 
 
   static Matrix4 rotationZ(float radians) {
-    float c = shine::math::cos_approx(radians);
-    float s = shine::math::sin_approx(radians);
+    float c = cos(radians);
+    float s = sin(radians);
 
     Matrix4 m = identity();
     // column-major for Z rotation
@@ -55,18 +55,67 @@ public:
     return m;
   }
 
+  static Matrix4 fromQuatScaleTranslation(float qx, float qy, float qz, float qw,
+                                          float sx, float sy, float sz,
+                                          float tx, float ty, float tz) {
+    const float xx = qx * qx;
+    const float yy = qy * qy;
+    const float zz = qz * qz;
+    const float xy = qx * qy;
+    const float xz = qx * qz;
+    const float yz = qy * qz;
+    const float wx = qw * qx;
+    const float wy = qw * qy;
+    const float wz = qw * qz;
+
+    Matrix4 m{};
+    m.e[0] = (1.0f - 2.0f * (yy + zz)) * sx;
+    m.e[1] = (2.0f * (xy + wz)) * sx;
+    m.e[2] = (2.0f * (xz - wy)) * sx;
+    m.e[3] = 0.0f;
+
+    m.e[4] = (2.0f * (xy - wz)) * sy;
+    m.e[5] = (1.0f - 2.0f * (xx + zz)) * sy;
+    m.e[6] = (2.0f * (yz + wx)) * sy;
+    m.e[7] = 0.0f;
+
+    m.e[8] = (2.0f * (xz + wy)) * sz;
+    m.e[9] = (2.0f * (yz - wx)) * sz;
+    m.e[10]= (1.0f - 2.0f * (xx + yy)) * sz;
+    m.e[11]= 0.0f;
+
+    m.e[12]= tx;
+    m.e[13]= ty;
+    m.e[14]= tz;
+    m.e[15]= 1.0f;
+    return m;
+  }
+
   static Matrix4 multiply(const Matrix4 &a, const Matrix4 &b) noexcept {
     Matrix4 r{};
-    // r = a * b (column-major)
-    for (int col = 0; col < 4; ++col) {
-      for (int row = 0; row < 4; ++row) {
-        float sum = 0.0f;
-        for (int k = 0; k < 4; ++k) {
-          sum += a.e[row + k * 4] * b.e[k + col * 4];
-        }
-        r.e[row + col * 4] = sum;
-      }
-    }
+    const float* ae = a.e;
+    const float* be = b.e;
+    float* re = r.e;
+
+    re[0]  = ae[0] * be[0]  + ae[4] * be[1]  + ae[8]  * be[2]  + ae[12] * be[3];
+    re[1]  = ae[1] * be[0]  + ae[5] * be[1]  + ae[9]  * be[2]  + ae[13] * be[3];
+    re[2]  = ae[2] * be[0]  + ae[6] * be[1]  + ae[10] * be[2]  + ae[14] * be[3];
+    re[3]  = ae[3] * be[0]  + ae[7] * be[1]  + ae[11] * be[2]  + ae[15] * be[3];
+
+    re[4]  = ae[0] * be[4]  + ae[4] * be[5]  + ae[8]  * be[6]  + ae[12] * be[7];
+    re[5]  = ae[1] * be[4]  + ae[5] * be[5]  + ae[9]  * be[6]  + ae[13] * be[7];
+    re[6]  = ae[2] * be[4]  + ae[6] * be[5]  + ae[10] * be[6]  + ae[14] * be[7];
+    re[7]  = ae[3] * be[4]  + ae[7] * be[5]  + ae[11] * be[6]  + ae[15] * be[7];
+
+    re[8]  = ae[0] * be[8]  + ae[4] * be[9]  + ae[8]  * be[10] + ae[12] * be[11];
+    re[9]  = ae[1] * be[8]  + ae[5] * be[9]  + ae[9]  * be[10] + ae[13] * be[11];
+    re[10] = ae[2] * be[8]  + ae[6] * be[9]  + ae[10] * be[10] + ae[14] * be[11];
+    re[11] = ae[3] * be[8]  + ae[7] * be[9]  + ae[11] * be[10] + ae[15] * be[11];
+
+    re[12] = ae[0] * be[12] + ae[4] * be[13] + ae[8]  * be[14] + ae[12] * be[15];
+    re[13] = ae[1] * be[12] + ae[5] * be[13] + ae[9]  * be[14] + ae[13] * be[15];
+    re[14] = ae[2] * be[12] + ae[6] * be[13] + ae[10] * be[14] + ae[14] * be[15];
+    re[15] = ae[3] * be[12] + ae[7] * be[13] + ae[11] * be[14] + ae[15] * be[15];
     return r;
   }
 
@@ -91,8 +140,8 @@ public:
   }
 
   inline void rotationZ_set(float radians) noexcept {
-    float c = shine::math::cos_approx(radians);
-    float s = shine::math::sin_approx(radians);
+    float c = cos(radians);
+    float s = sin(radians);
     e[0] = c;
     e[4] = -s;
     e[1] = s;
@@ -107,16 +156,31 @@ public:
   }
 
   inline void multiply_set(const Matrix4 &a) noexcept {
+    float be[16];
+    for (int i = 0; i < 16; ++i) be[i] = e[i];
 
-    for (int col = 0; col < 4; ++col) {
-      for (int row = 0; row < 4; ++row) {
-        float sum = 0.0f;
-        for (int k = 0; k < 4; ++k) {
-          sum += a.e[row + k * 4] * e[k + col * 4];
-        }
-        e[row + col * 4] = sum;
-      }
-    }
+    const float* ae = a.e;
+    float* re = e;
+
+    re[0]  = ae[0] * be[0]  + ae[4] * be[1]  + ae[8]  * be[2]  + ae[12] * be[3];
+    re[1]  = ae[1] * be[0]  + ae[5] * be[1]  + ae[9]  * be[2]  + ae[13] * be[3];
+    re[2]  = ae[2] * be[0]  + ae[6] * be[1]  + ae[10] * be[2]  + ae[14] * be[3];
+    re[3]  = ae[3] * be[0]  + ae[7] * be[1]  + ae[11] * be[2]  + ae[15] * be[3];
+
+    re[4]  = ae[0] * be[4]  + ae[4] * be[5]  + ae[8]  * be[6]  + ae[12] * be[7];
+    re[5]  = ae[1] * be[4]  + ae[5] * be[5]  + ae[9]  * be[6]  + ae[13] * be[7];
+    re[6]  = ae[2] * be[4]  + ae[6] * be[5]  + ae[10] * be[6]  + ae[14] * be[7];
+    re[7]  = ae[3] * be[4]  + ae[7] * be[5]  + ae[11] * be[6]  + ae[15] * be[7];
+
+    re[8]  = ae[0] * be[8]  + ae[4] * be[9]  + ae[8]  * be[10] + ae[12] * be[11];
+    re[9]  = ae[1] * be[8]  + ae[5] * be[9]  + ae[9]  * be[10] + ae[13] * be[11];
+    re[10] = ae[2] * be[8]  + ae[6] * be[9]  + ae[10] * be[10] + ae[14] * be[11];
+    re[11] = ae[3] * be[8]  + ae[7] * be[9]  + ae[11] * be[10] + ae[15] * be[11];
+
+    re[12] = ae[0] * be[12] + ae[4] * be[13] + ae[8]  * be[14] + ae[12] * be[15];
+    re[13] = ae[1] * be[12] + ae[5] * be[13] + ae[9]  * be[14] + ae[13] * be[15];
+    re[14] = ae[2] * be[12] + ae[6] * be[13] + ae[10] * be[14] + ae[14] * be[15];
+    re[15] = ae[3] * be[12] + ae[7] * be[13] + ae[11] * be[14] + ae[15] * be[15];
   }
 
 };

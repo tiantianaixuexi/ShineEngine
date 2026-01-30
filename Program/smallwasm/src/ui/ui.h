@@ -7,6 +7,9 @@
 #include "../logfmt.h"
 namespace shine { namespace ui {
 
+class Element;
+void ui_mark_dirty(Element* e);
+
 class Element {
 public:
 
@@ -72,7 +75,8 @@ public:
           bool visible : 1;   // 是否可见
           bool isOver : 1;    // 鼠标是否悬停
           bool isPressed : 1; // 鼠标是否按下
-          bool reserved : 5;  // 保留位
+          bool uiDirty : 1;   // UI 缓存脏标记
+          bool reserved : 4;  // 保留位
       };
       unsigned char flags;   // 用于对齐/批量操作
   };
@@ -144,6 +148,7 @@ public:
     if (height < 0.0f) height = 0.0f;
     this->h = height;
     this->y = start_y + height * (0.5f - align_y);
+    markDirty();
   }
 
   inline void setAnchors(float min_x, float min_y, float max_x, float max_y) noexcept {
@@ -205,6 +210,13 @@ public:
     size_rel_w = 0.0f;
     size_rel_h = 0.0f;
     onResize(view_w, view_h);
+  }
+
+  inline void markDirty() noexcept {
+    if (!uiDirty) {
+      uiDirty = true;
+      ui_mark_dirty(this);
+    }
   }
 
   virtual void render(int /*ctxId*/)

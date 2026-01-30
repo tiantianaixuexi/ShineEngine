@@ -1,9 +1,21 @@
 #pragma once
+
+
 #include <list>
 #include <map>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
+
+#include "ReflectionFlags.h"
+
+// 判断传进来的是否是  ReflectionFlag
+template <typename... T>
+concept ReflectionFlagConcept = (std::same_as<T, ReflectionFlag> && ...);
+
+
+template <typename T>
+concept ReflectionMetaFlagConcept = std::same_as<T, ReflectionMetaFlag>;
 
 
 template <typename T>
@@ -50,3 +62,8 @@ inline constexpr bool IsUnorderedMapV<
 
 template <typename T>
 concept IsUnorderedMap = IsUnorderedMapV<remove_cvref_t<T>>;
+
+
+
+template <typename T>
+concept IsNumberAndFloat = std::is_floating_point_v<T> || std::is_integral_v<T>;

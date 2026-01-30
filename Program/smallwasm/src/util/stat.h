@@ -38,10 +38,10 @@ static inline void set_i32(const char* name, int value, const char* unit = "") n
   if (!name) return;
   if (!unit) unit = "";
   js_stat_i32(
-    shine::wasm::ptr_i32(name),
+    ptr_i32(name),
     shine::wasm::raw_strlen(name),
     value,
-    shine::wasm::ptr_i32(unit),
+    ptr_i32(unit),
     shine::wasm::raw_strlen(unit)
   );
 }

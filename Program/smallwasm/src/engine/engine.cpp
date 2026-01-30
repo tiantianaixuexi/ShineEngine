@@ -11,7 +11,7 @@ namespace shine::engine {
 
 using namespace shine::graphics;
 
-static const char kCanvasId[] = "c";
+static SHINE_CONSTINIT const char kCanvasId[] = "c";
 
 // Global static instance (safe in .bss)
 static Engine s_engine_instance;
@@ -75,12 +75,14 @@ void Engine::frame(float t) {
 
 
     
+    CommandBuffer::Pass pass = g_cmd_buffer.begin_pass();
+
     // Set Viewport
-    cmd_push(CMD_VIEWPORT, 0, 0, m_width, m_height, 0, 0, 0);
+    pass.push(CMD_VIEWPORT, 0, 0, m_width, m_height, 0, 0, 0);
 
     // Default Clear
-    cmd_push(CMD_CLEAR_COLOR, f2i(0.07f), f2i(0.07f), f2i(0.07f), f2i(1.0f), 0, 0, 0);
-    cmd_push(CMD_CLEAR, GL_COLOR_BUFFER_BIT, 0, 0, 0, 0, 0, 0);
+    pass.push(CMD_CLEAR_COLOR, f2i(0.07f), f2i(0.07f), f2i(0.07f), f2i(1.0f), 0, 0, 0);
+    pass.push(CMD_CLEAR, GL_COLOR_BUFFER_BIT, 0, 0, 0, 0, 0, 0);
 
     // Game Update & Render
     if (m_game) {
@@ -92,7 +94,9 @@ void Engine::frame(float t) {
 
     // Submit commands
     CommandBuffer& cb = CommandBuffer::instance();
-    gl_submit(m_ctx, ptr_i32(cb.getData()), cb.getCount());
+    int submit_count = 0;
+    const int* submit_data = cb.getSubmitData(submit_count);
+    gl_submit(m_ctx, ptr_i32(submit_data), submit_count);
     
     m_frameNo++;
 }

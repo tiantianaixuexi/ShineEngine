@@ -5,6 +5,7 @@
 #include "../game/component.h"
 #include "../game/transform.h"
 #include "../game/sprite_renderer.h"
+#include "../game/mesh_renderer_3d.h"
 #include "../util/math_def.h" // Added for shine::math
 
 #include "../ui/button.h"
@@ -12,6 +13,8 @@
 #include "../ui/ui_manager.h" // Added UIManager
 
 #include "../logfmt.h"
+#include "../renderer/renderer_3d.h"
+#include "../renderer/pass/base_pass.h"
 
 
 using namespace shine::graphics;
@@ -64,15 +67,15 @@ struct KillOnClick final : public shine::game::Component {
 // Shaders for raw demo
 // ----------------------------------------------------------------------------
 
-static const char kVS[] =
+static SHINE_CONSTINIT const char kVS[] =
   "#version 300 es\n"
   "precision mediump float;in vec2 aPos;in vec3 aCol;out vec3 vCol;void main(){vCol=aCol;gl_Position=vec4(aPos,0.0,1.0);}";
 
-static const char kFS[] =
+static SHINE_CONSTINIT const char kFS[] =
   "#version 300 es\n"
   "precision mediump float;in vec3 vCol;out vec4 outColor;void main(){outColor=vec4(vCol,1.0);}";
 
-static const char kVS_INST[] =
+static SHINE_CONSTINIT const char kVS_INST[] =
   "#version 300 es\n"
   "precision mediump float;in vec2 aPos;in vec3 aCol;in vec3 aOffsetScale;in vec3 aICol;out vec3 vCol;"
   "void main(){vec2 pos=aOffsetScale.xy+aPos*aOffsetScale.z;gl_Position=vec4(pos,0.0,1.0);vCol=aICol;}";
@@ -89,12 +92,20 @@ static void demo_on_mode_click(shine::ui::Button* w) {
   }
 }
 
-static void demo_rc_draw_rect_col(void* /*user*/, float cx, float cy, float w, float h, float r, float g, float b) {
-    RENDERER_2D.drawRectColor(cx, cy, w, h, r, g, b);
+static void demo_rc_draw_rect_col(void* /*user*/, const shine::game::Rect& rect, const shine::game::Color4& color) {
+    RENDERER_2D.drawRectColor(rect.cx, rect.cy, rect.w, rect.h, color.r, color.g, color.b);
 }
 
-static void demo_rc_draw_rect_tex(void* /*user*/, int texId, float cx, float cy, float w, float h) {
-    RENDERER_2D.drawRectUV(texId, cx, cy, w, h);
+static void demo_rc_draw_rect_tex(void* /*user*/, int texId, const shine::game::Rect& rect) {
+    RENDERER_2D.drawRectUV(texId, rect.cx, rect.cy, rect.w, rect.h);
+}
+
+static void demo_rc_draw_rect_col_ex(void* /*user*/, const shine::game::Rect& rect, const shine::game::Color4& color, unsigned int sortKey) {
+    RENDERER_2D.drawRectColorSorted(rect.cx, rect.cy, rect.w, rect.h, color.r, color.g, color.b, sortKey);
+}
+
+static void demo_rc_draw_rect_tex_ex(void* /*user*/, int texId, const shine::game::Rect& rect, unsigned int sortKey) {
+    RENDERER_2D.drawRectUVSorted(texId, rect.cx, rect.cy, rect.w, rect.h, sortKey);
 }
 
 // UI list wrapper for legacy ui_add - REMOVED
@@ -111,6 +122,9 @@ void DemoGame::onInit() {
     rc.user = nullptr;
     rc.drawRectCol = demo_rc_draw_rect_col;
     rc.drawRectTex = demo_rc_draw_rect_tex;
+    rc.drawRectColEx = demo_rc_draw_rect_col_ex;
+    rc.drawRectTexEx = demo_rc_draw_rect_tex_ex;
+    pipeline.add_default_passes();
 
     // Init raw shaders
     prog = gl_create_program_from_source(ctx, kVS, kFS);
@@ -129,7 +143,7 @@ void DemoGame::onInit() {
         gl_create_shader(ctx, GL_FRAGMENT_SHADER, (int)kFS, sizeof(kFS)-1)
     );
     // Base quad for instances
-    static const float q[] = {
+    static SHINE_CONSTINIT const float q[] = {
         -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
          1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
          1.0f,  1.0f, 0.0f, 0.0f, 0.0f,
@@ -158,17 +172,19 @@ void DemoGame::onInit() {
     weapon = player->addChildNode<shine::game::Node>("Weapon");
 
     auto* tPlayer = player->addComponent<shine::game::Transform>();
-    tPlayer->x = 0.0f; tPlayer->y = 0.0f; tPlayer->w = 0.35f; tPlayer->h = 0.35f;
+    tPlayer->setPosition(0.0f, 0.0f);
+    tPlayer->setSize(0.35f, 0.35f);
     auto* sPlayer = player->addComponent<shine::game::SpriteRenderer>();
     sPlayer->texId = js_create_texture_checker(ctx, 64);
 
     auto* tWeapon = weapon->addComponent<shine::game::Transform>();
-    tWeapon->x = 0.45f; tWeapon->y = 0.05f; tWeapon->w = 0.22f; tWeapon->h = 0.12f;
+    tWeapon->setPosition(0.45f, 0.05f);
+    tWeapon->setSize(0.22f, 0.12f);
     auto* sWeapon = weapon->addComponent<shine::game::SpriteRenderer>();
     sWeapon->texId = 0; 
     sWeapon->r = 0.9f; sWeapon->g = 0.2f; sWeapon->b = 0.2f;
 
-    sWeapon->attachChild(new PulseColor(sWeapon));
+    //sWeapon->attachChild(new PulseColor(sWeapon));
     weapon->addComponent<KillOnClick>();
 
     // UI setup
@@ -206,37 +222,30 @@ void DemoGame::onResize(int w, int h) {
 
 void DemoGame::onUpdate(float t) {
     scene.update(t);
-    scene.collectGarbage();
+    if (++gc_frame >= gc_interval) {
+        gc_frame = 0;
+        scene.collectGarbage();
+    }
 }
 
 void DemoGame::onRender(float t) {
-    // 1. Draw raw demo stuff (Triangles / Instances)
-    if (render_mode == 0) {
-        update_vertices(t);
-        if (tri_count > 0 && buf.data()) {
-            cmd_push(CMD_BIND_BUFFER, GL_ARRAY_BUFFER, vbo, 0, 0, 0, 0, 0);
-            cmd_push(CMD_BUFFER_DATA_F32, GL_ARRAY_BUFFER, ptr_i32(buf.data()), tri_count * 3 * 5, GL_DYNAMIC_DRAW, 0, 0, 0);
-            cmd_push(CMD_BIND_VAO, vao_basic, 0, 0, 0, 0, 0, 0);
-            cmd_push(CMD_USE_PROGRAM, prog, 0, 0, 0, 0, 0, 0);
-            cmd_push(CMD_DRAW_ARRAYS, GL_TRIANGLES, 0, tri_count * 3, 0, 0, 0, 0);
-        }
-    } else {
-        update_instances(t);
-        if (inst_count > 0 && inst.data()) {
-            cmd_push(CMD_BIND_BUFFER, GL_ARRAY_BUFFER, vbo_inst_data, 0, 0, 0, 0, 0);
-            cmd_push(CMD_BUFFER_DATA_F32, GL_ARRAY_BUFFER, ptr_i32(inst.data()), inst_count * 6, GL_DYNAMIC_DRAW, 0, 0, 0);
-            cmd_push(CMD_BIND_VAO, vao_inst, 0, 0, 0, 0, 0, 0);
-            cmd_push(CMD_USE_PROGRAM, prog_inst, 0, 0, 0, 0, 0, 0);
-            cmd_push(CMD_DRAW_ARRAYS_INSTANCED, GL_TRIANGLES, 0, 6, inst_count, 0, 0, 0);
-        }
-    }
-
-    // 2. Draw Scene
-    scene.render(rc, t);
-
-    // 3. Draw UI
+    const shine::renderer::RenderPass* passes = pipeline.data();
+    const unsigned int pass_count = pipeline.count();
     int ctx = SHINE_ENGINE.getCtx();
-    shine::ui::UIManager::instance().onRender(ctx);
+    shine::renderer::Renderer3D::instance().begin_frame();
+    shine::renderer::Renderer3D::instance().ensure_frame_ubo(ctx, 0);
+
+    // Per-frame 3D uniforms (identity view/proj for now).
+    static SHINE_CONSTINIT const float kIdentity[16] = {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+    shine::renderer::Renderer3D::instance().set_frame_matrices(kIdentity, kIdentity);
+    shine::renderer::Renderer3D::instance().set_frame_light({0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f});
+
+    shine::renderer::RunDemoPasses(*this, passes, pass_count, t, ctx);
 }
 
 void DemoGame::onPointer(float x, float y, int isDown) {

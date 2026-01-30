@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../util/wasm_compat.h"
 
 namespace shine::math {
 
@@ -9,7 +10,6 @@ namespace shine::math {
         float y = 0.0f;
         float z = 0.0f;
 
-   
         constexpr Vector3() noexcept = default;
         constexpr Vector3(float x_, float y_, float z_) noexcept : x(x_), y(y_), z(z_) {}
 
@@ -31,13 +31,15 @@ namespace shine::math {
 
     };
 
-    inline constinit Vector3 Zero{0.0f, 0.0f, 0.0f};
-    inline constinit Vector3 One{1.0f, 1.0f, 1.0f};
-    inline constinit Vector3 Up{0.0f, 1.0f, 0.0f};
-    inline constinit Vector3 Down{0.0f, -1.0f, 0.0f};
-    inline constinit Vector3 Left{-1.0f, 0.0f, 0.0f};
-    inline constinit Vector3 Right{1.0f, 0.0f, 0.0f};
-    inline constinit Vector3 Forward{0.0f, 0.0f, 1.0f};
-    inline constinit Vector3 Back{0.0f, 0.0f, -1.0f};
+    using Vec3 = Vector3;
+
+    SHINE_INLINE_VAR SHINE_CONSTINIT Vector3 Zero{0.0f, 0.0f, 0.0f};
+    SHINE_INLINE_VAR SHINE_CONSTINIT Vector3 One{1.0f, 1.0f, 1.0f};
+    SHINE_INLINE_VAR SHINE_CONSTINIT Vector3 Up{0.0f, 1.0f, 0.0f};
+    SHINE_INLINE_VAR SHINE_CONSTINIT Vector3 Down{0.0f, -1.0f, 0.0f};
+    SHINE_INLINE_VAR SHINE_CONSTINIT Vector3 Left{-1.0f, 0.0f, 0.0f};
+    SHINE_INLINE_VAR SHINE_CONSTINIT Vector3 Right{1.0f, 0.0f, 0.0f};
+    SHINE_INLINE_VAR SHINE_CONSTINIT Vector3 Forward{0.0f, 0.0f, 1.0f};
+    SHINE_INLINE_VAR SHINE_CONSTINIT Vector3 Back{0.0f, 0.0f, -1.0f};
 
 }

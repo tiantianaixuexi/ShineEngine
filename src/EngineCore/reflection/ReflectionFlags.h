@@ -3,7 +3,7 @@
 #include <cstdint>
 #include "util/EnumFlags.h"
 
-enum class PropertyFlags : uint64_t {
+enum class ReflectionFlag : uint64_t {
     None            = 0,
     EditAnywhere    = 1 << 0,
     ReadOnly        = 1 << 1,
@@ -29,6 +29,16 @@ enum class FunctionFlags : uint64_t {
      Associative
  };
 
-ENABLE_ENUM_FLAGS(PropertyFlags)
+
+enum class ReflectionMetaFlag {
+    Clamp,
+    DisplayName,
+    Catregory,
+    Range,
+    EditCondition
+};
+
+ENABLE_ENUM_FLAGS(ReflectionFlag)
+ENABLE_ENUM_FLAGS(ReflectionMetaFlag)
 
 ENABLE_ENUM_FLAGS(FunctionFlags)

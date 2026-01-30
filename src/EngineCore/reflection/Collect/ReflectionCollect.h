@@ -3,21 +3,28 @@
 
 #include <type_traits>
 
+
+#include "memory/memory.ixx"
 #include "EngineCore/reflection/Reflection.h"
+#include "EngineCore/reflection/ReflectionConcept.h"
 
 namespace shine::reflection {
 
+    // 这是一个反射系统收集器
+    // 流程 :
+    //  1.收集对应的类名和字段
+    //  2.收集反射信息 EditAnywhere , ScriptCallable ,meta 信息
 
 
-    
 
+        
 
-// Define TypeBuilder first (but with forward declared methods if needed, or inline)
     template <typename T>
-    struct TypeBuilder {
+    struct ReflectionCollector {
 
         using ObjectType = std::remove_reference_t<T>;
         TypeInfo info;
+
 
         template <typename F>
         constexpr auto CreateInstanceFunction(F f, T &Builder) {
@@ -27,8 +34,8 @@ namespace shine::reflection {
                 // after
             };
         }
-
-        constexpr TypeBuilder(std::string_view name) {
+        
+        constexpr ReflectionCollector(std::string_view name) {
 
             info.name      = name;
             info.id        = GetTypeId<T>();

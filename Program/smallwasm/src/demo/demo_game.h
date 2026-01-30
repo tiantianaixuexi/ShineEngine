@@ -6,6 +6,7 @@
 #include "../ui/image.h"
 #include "../engine/engine.h"
 #include "../Container/SArray.h"
+#include "../renderer/render_pipeline.h"
 
 // Demo Game Implementation
 // Moved out of gl_ctx.cpp
@@ -24,6 +25,7 @@ public:
     // Demo specific data
     shine::game::Scene scene;
     shine::game::RenderContext rc;
+    shine::renderer::RenderPipeline pipeline;
 
     shine::game::Node* player = nullptr;
     shine::game::Node* weapon = nullptr;
@@ -36,6 +38,10 @@ public:
 
     // Render mode: 0=Tri, 1=Instanced
     int render_mode = 0;
+
+    // GC throttle (frames)
+    int gc_frame = 0;
+    int gc_interval = 8;
 
     // Tri demo
     int tri_count = 0;

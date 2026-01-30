@@ -19,7 +19,10 @@ namespace shine::wasm
 		inline unsigned int grow_cap(unsigned int cur, unsigned int need) noexcept
 		{
 			unsigned int n = cur ? cur : 8u;
-			while (n < need) n *= 2u;
+			while (n < need) {
+				unsigned int half = n >> 1;
+				n = n + (half ? half : 1u);
+			}
 			return n;
 		}
 
@@ -108,7 +111,7 @@ namespace shine::wasm
 		inline void resize(unsigned int newSize) noexcept
 		{
 			if (newSize <= length) { length = newSize; return; }
-			if (newSize > cap) reserve(grow_cap(cap, newSize));
+			if (unlikely(newSize > cap)) reserve(grow_cap(cap, newSize));
 
 			// Value-initialize new tail.
 			T* p = data();
@@ -121,14 +124,14 @@ namespace shine::wasm
 		inline void resize_uninitialized(unsigned int newSize) noexcept
 		{
 			if (newSize <= length) { length = newSize; return; }
-			if (newSize > cap) reserve(grow_cap(cap, newSize));
+			if (unlikely(newSize > cap)) reserve(grow_cap(cap, newSize));
 			length = newSize;
 		}
 
 		inline void push_back(const T& v) noexcept
 		{
 			const unsigned int n = length + 1u;
-			if (n > cap) reserve(grow_cap(cap, n));
+			if (unlikely(n > cap)) reserve(grow_cap(cap, n));
 			static_cast<T*>(pointer)[length] = v;
 			length = n;
 		}
@@ -136,8 +139,10 @@ namespace shine::wasm
 		template<typename... Args>
 		inline void emplace_back(Args&&... args) noexcept
 		{
-			T tmp((Args&&)args...);
-			push_back(tmp);
+			const unsigned int n = length + 1u;
+			if (unlikely(n > cap)) reserve(grow_cap(cap, n));
+			::new (static_cast<T*>(pointer) + length) T((Args&&)args...);
+			length = n;
 		}
 
 		inline void pop_back() noexcept
@@ -149,7 +154,7 @@ namespace shine::wasm
 		// Unordered erase: swap-with-last then pop.
 		inline bool erase_unordered_at(unsigned int idx) noexcept
 		{
-			if (idx >= length) return false;
+			if (unlikely(idx >= length)) return false;
 			if (length > 1u && idx != (length - 1u))
 			{
 				static_cast<T*>(pointer)[idx] = static_cast<T*>(pointer)[length - 1u];
