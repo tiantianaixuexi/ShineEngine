@@ -16,6 +16,16 @@ constexpr uint32_t Hash(std::string_view str) {
     return hash;
 }
 
+template <size_t N>
+consteval uint32_t Hash(const char (&str)[N]) {
+    uint32_t hash = 2166136261u;
+    for (size_t i = 0; i + 1 < N; ++i) {
+        hash ^= static_cast<uint8_t>(str[i]);
+        hash *= 16777619u;
+    }
+    return hash;
+}
+
 template <typename T>
 consteval std::string_view GetTypeName() {
     std::string_view name  = __FUNCSIG__;
@@ -33,4 +43,4 @@ template <typename T>
 consteval TypeId GetTypeId() {
     return Hash(GetTypeName<T>());
 }
-} // namespace Shine::Reflection
+} // namespace shine::reflection

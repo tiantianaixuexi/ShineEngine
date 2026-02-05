@@ -100,7 +100,7 @@ namespace shine::editor::util {
                 // Fix C2327/C2065: FieldProxy is a nested struct but not a member of StaticInspectorBuilder.
                 // It holds a reference `builder` to the parent builder.
                 // We must access `builder.instance` instead of `instance`.
-                auto& value = builder.instance->*DSLType::MemberPtr;
+                auto& value = builder.instance->*DSLType::MemberPtrValue;
 
                 // 2. Handle Category
                 const char* category = nullptr;
@@ -313,13 +313,10 @@ namespace shine::editor::util {
                         using namespace shine::reflection;
                         const TypeInfo* typeInfo = TypeRegistry::Get().Find<ObjectType>();
 
-                        // Fallback: Build TypeInfo on the fly if missing (fixes "TypeInfo Not Found")
-                        TypeInfo localTypeInfo;
                         if (!typeInfo) {
-                            TypeBuilder<ObjectType> tempBuilder("Temp");
-                            ObjectType::RegisterReflection(tempBuilder);
-                            localTypeInfo = std::move(tempBuilder.info);
-                            typeInfo = &localTypeInfo;
+                            static constexpr auto ctInfo = shine::reflection::BuildTypeInfoCT<ObjectType>("Temp");
+                            TypeRegistry::Get().Register(ctInfo);
+                            typeInfo = TypeRegistry::Get().Find<ObjectType>();
                         }
                         
                         if (typeInfo) {

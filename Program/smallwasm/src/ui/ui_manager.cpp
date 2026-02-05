@@ -4,6 +4,7 @@ namespace shine::ui {
 
 static UIManager s_uiMgr;
 
+
 static inline int clampi(int v, int lo, int hi) {
     if (v < lo) return lo;
     if (v > hi) return hi;

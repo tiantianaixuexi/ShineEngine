@@ -6,7 +6,7 @@
   ],
   "files": [
     "Program/smallwasm/CMakeLists.txt",
-    "Program/smallwasm/build-wasm-debug.bat",
+    "Program/smallwasm/build-wasm.bat",
     "Program/smallwasm/tools/map_report.ps1",
     "Program/smallwasm/web/index.html",
     "Program/smallwasm/web/index.js"

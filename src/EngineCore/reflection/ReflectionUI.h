@@ -1,35 +1,70 @@
 #pragma once
+#include <string_view>
 #include <variant>
 
 namespace shine::reflection {
+namespace UI {
 
-    // UI Schema (Constexpr Friendly)
-    namespace UI {
+// UI模式基类
+struct Schema {};
 
-        struct None {};
+// 无UI显示
+struct None : Schema {};
 
-        struct Slider {
-            float min  = 0.0f;
-            float max  = 0.0f;
-            float step = 1.0f;
-        };
+// 文本输入框
+struct TextInput : Schema {
+    size_t max_length = 0;
+    bool multiline = false;
+};
 
-        struct Color {
-            bool hasAlpha = true;
-        };
+// 数字输入框
+struct NumberInput : Schema {
+    double min_value = 0.0;
+    double max_value = 100.0;
+    double step = 1.0;
+};
 
-        struct Checkbox {};
-        struct InputText {
-            size_t maxLength = 256;
-        };
+// 滑动条
+struct Slider : Schema {
+    double min_value = 0.0;
+    double max_value = 100.0;
+    double step = 1.0;
+};
 
-        struct FunctionSelector {
-            bool onlyScriptCallable = true;
-        };
+// 下拉选择框
+struct Dropdown : Schema {
+    // 选项将在运行时提供
+};
 
-        using Schema = std::variant<None, Slider, Color, Checkbox, InputText, FunctionSelector>;
-    }
+// 复选框
+struct Checkbox : Schema {};
 
+// 颜色选择器
+struct ColorPicker : Schema {};
 
+// 文件选择器
+struct FilePicker : Schema {
+    std::string_view filter;
+    bool allow_multiple = false;
+};
 
+// 函数选择器
+struct FunctionSelector : Schema {
+    bool only_script_callable = true;
+};
+
+// 向量编辑器
+struct VectorEditor : Schema {
+    size_t dimensions = 3;
+    double min_value = -1000.0;
+    double max_value = 1000.0;
+};
+
+// 矩阵编辑器
+struct MatrixEditor : Schema {
+    size_t rows = 4;
+    size_t cols = 4;
+};
+
+} // namespace UI
 } // namespace shine::reflection

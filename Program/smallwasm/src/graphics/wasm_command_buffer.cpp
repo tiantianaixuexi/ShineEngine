@@ -61,6 +61,7 @@ const int* CommandBuffer::getSubmitData(int& out_count) {
     m_submit_cmds.resize_uninitialized(total_ints);
     int* dst = m_submit_cmds.data();
     const unsigned int main_ints = (unsigned int)m_count * 8u;
+
     if (main_ints > 0) {
         raw_memcpy(dst, m_cmds, (shine::wasm::size_t)main_ints * sizeof(int));
     }

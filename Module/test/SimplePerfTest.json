@@ -1,11 +1,12 @@
 {
   "name": "SimplePerfTest",
+  "files": [
+    "test/SimplePerfTest/simple_main.cpp"
+  ],
   "dirs": [
     "test/SimplePerfTest"
   ],
   "deps": [
-    "string_util",
-    "memory",
     "fmt"
   ],
   "defines": [
@@ -28,6 +29,9 @@
   ],
   "platform": [
     "Windows"
+  ],
+  "buildMode": [
+    "both"
   ],
   "output": "exe/SimplePerfTest.exe"
 }

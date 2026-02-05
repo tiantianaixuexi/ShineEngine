@@ -51,7 +51,7 @@ namespace shine::editor::util {
                                 else if (field.size == 2) *(int16_t*)fieldPtr = (int16_t)e.value;
                                 else if (field.size == 8) *(int64_t*)fieldPtr = e.value;
                                 
-                                if (field.onChange) field.onChange(instance, &currentVal); // Pass OLD value
+                                field.OnChange(instance, &currentVal); // Pass OLD value
                             }
                             if (isSelected) ImGui::SetItemDefaultFocus();
                         }
@@ -97,7 +97,7 @@ namespace shine::editor::util {
                     int oldVal = val;
                     if (ImGui::InputInt(field.name.data(), &val)) {
                         field.Set(instance, &val);
-                        if (field.onChange) field.onChange(instance, &oldVal);
+                        field.OnChange(instance, &oldVal);
                     }
                     return;
                 }
@@ -113,24 +113,24 @@ namespace shine::editor::util {
                 const auto *trait = static_cast<const reflection::ArrayTrait *>(field.containerTrait);
                 if (ImGui::TreeNode(field.name.data())) {
                     void* arrayPtr = static_cast<char*>(instance) + field.offset;
-                    size_t size = trait->getSize(arrayPtr);
+                    size_t size = trait->GetSize(arrayPtr);
                     
                     // Simple Size Display
                     ImGui::Text("Size: %zu", size);
 
                     // Add Button (Simple resize + 1)
                     if (ImGui::Button("+")) {
-                        trait->resize(arrayPtr, size + 1);
+                        trait->Resize(arrayPtr, size + 1);
                     }
                     ImGui::SameLine();
                     if (ImGui::Button("-") && size > 0) {
-                        trait->resize(arrayPtr, size - 1);
+                        trait->Resize(arrayPtr, size - 1);
                     }
 
                     // Elements
                     for (size_t i = 0; i < size; ++i) {
                         ImGui::PushID((int)i);
-                        void* elemPtr = trait->getElement(arrayPtr, i);
+                        void* elemPtr = trait->GetElement(arrayPtr, i);
                         
                         // Try to find TypeInfo for element
                         // Note: field.typeId is vector<T>, we need T. 
@@ -160,7 +160,7 @@ namespace shine::editor::util {
                 float oldVal = val;
                 if (ImGui::DragFloat(field.name.data(), &val)) {
                     field.Set(instance, &val);
-                    if (field.onChange) field.onChange(instance, &oldVal);
+                    field.OnChange(instance, &oldVal);
                 }
                 return;
             }
@@ -193,7 +193,7 @@ namespace shine::editor::util {
                 float oldVal = val;
                 if (ImGui::SliderFloat(field.name.data(), &val, min, max)) {
                     field.Set(instance, &val);
-                    if (field.onChange) field.onChange(instance, &oldVal);
+                    field.OnChange(instance, &oldVal);
                 }
             }
             // Int Slider
@@ -215,7 +215,7 @@ namespace shine::editor::util {
                 int oldVal = val;
                 if (ImGui::SliderInt(field.name.data(), &val, minI, maxI)) {
                     field.Set(instance, &val);
-                    if (field.onChange) field.onChange(instance, &oldVal);
+                    field.OnChange(instance, &oldVal);
                 }
             }
         }
@@ -230,7 +230,7 @@ namespace shine::editor::util {
                 bool oldVal = val;
                 if (ImGui::Checkbox(field.name.data(), &val)) {
                     field.Set(instance, &val);
-                    if (field.onChange) field.onChange(instance, &oldVal);
+                    field.OnChange(instance, &oldVal);
                 }
             }
         }
@@ -249,7 +249,7 @@ namespace shine::editor::util {
                 if (ImGui::InputText(field.name.data(), buffer, sizeof(buffer))) {
                     val = buffer;
                     field.Set(instance, &val); 
-                    if (field.onChange) field.onChange(instance, &oldVal);
+                    field.OnChange(instance, &oldVal);
                 }
             }
             else if (field.typeId == GetTypeId<shine::SString>()) {
@@ -269,7 +269,7 @@ namespace shine::editor::util {
                     field.Set(instance, &newVal);
                     
                     // Trigger onChange without oldVal for now to avoid copy cost/complexity
-                    if (field.onChange) field.onChange(instance, nullptr); 
+                    field.OnChange(instance, nullptr);
                 }
             }
         }
@@ -309,7 +309,7 @@ namespace shine::editor::util {
                                 std::string oldVal = currentFunc;
                                 currentFunc = method.name;
                                 field.Set(instance, &currentFunc);
-                                if (field.onChange) field.onChange(instance, &oldVal);
+                                field.OnChange(instance, &oldVal);
                             }
                             if (isSelected) ImGui::SetItemDefaultFocus();
                         }

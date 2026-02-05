@@ -85,24 +85,57 @@ public:
         __assume(false);
     }
 
-    constexpr bool contains(key_type const &key) {
-        for (auto const &[k, v] : *this) {
-            if constexpr (k == key) {
+    constexpr bool contains(key_type const &key) const {
+        for (size_t i = 0; i < current_size; ++i) {
+            if (storage[i].key == key) {
                 return true;
             }
         }
         return false;
     }
 
-    constexpr bool put(key_type const &key, mapped_type const &value) {
-        for (auto &[k, v] : *this) {
-            if constexpr  (k == value) {
-                v = value;
-                return false;
+    // 编译期哈希查找优化
+    template<key_type Key>
+    constexpr bool contains_ct() const {
+        return contains(Key);
+    }
+
+    template<key_type Key>
+    constexpr mapped_type& get_ct() {
+        for (size_t i = 0; i < current_size; ++i) {
+            if (storage[i].key == Key) {
+                return storage[i].value;
             }
         }
-        storage[current_size++] = {key, value};
-        return true;
+        __assume(false);
+    }
+
+    template<key_type Key>
+    constexpr const mapped_type& get_ct() const {
+        for (size_t i = 0; i < current_size; ++i) {
+            if (storage[i].key == Key) {
+                return storage[i].value;
+            }
+        }
+        __assume(false);
+    }
+
+    constexpr bool put(key_type const &key, mapped_type const &value) {
+        // 查找是否已存在
+        for (size_t i = 0; i < current_size; ++i) {
+            if (storage[i].key == key) {
+                storage[i].value = value;
+                return false; // 更新现有项
+            }
+        }
+        
+        // 添加新项
+        if (current_size < N) {
+            storage[current_size++] = {key, value};
+            return true; // 新增项
+        }
+        
+        return false; // 容量满
     }
 
     constexpr size_type erase(key_type const& key) {
@@ -125,7 +158,9 @@ private:
 
 } // namespace constexpr_
 
-template <typename K, typename V, std::size_t N>
-constexpr auto ct_capacity_v<constexpr_::constexpr_map<K, V, N>> = N;
+}
 
-} // namespace shine
+
+template <typename K, typename V, std::size_t N>
+inline constexpr auto ct_capacity_v<shine::constexpr_::constexpr_map<K, V, N>> = N;
+

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <concepts>
+#include <utility>
 #include "iterator.h"
 
 namespace shine
@@ -56,6 +57,7 @@ namespace shine
         constexpr auto back() const noexcept   -> const_reference        { return storage[current_size - 1]; }
 
         constexpr auto size() noexcept         -> size_t                 { return current_size; }
+        constexpr auto size() const noexcept   -> size_t                 { return current_size; }
 
 
 
@@ -140,10 +142,11 @@ namespace shine
 }
 
 
-    // 模板特化：为 constexpr_vector 特化 capacity_v 变量模板
-    // 用于编译时获取向量的容量（类似于 std::tuple_size）
-    template<typename T, size_t N>
-    constexpr size_t ct_capacity_v<constexpr_::constexpr_vector<T, N>> = N;
+}
 
 
-};
+// 模板特化：为 constexpr_vector 特化 capacity_v 变量模板
+// 用于编译时获取向量的容量（类似于 std::tuple_size）
+template<typename T, size_t N>
+inline constexpr size_t ct_capacity_v<shine::constexpr_::constexpr_vector<T, N>> = N;
+
