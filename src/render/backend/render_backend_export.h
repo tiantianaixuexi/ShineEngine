@@ -1,16 +1,21 @@
-﻿#pragma once
+#pragma once
 
-#include "opengl/opengl3_backend.h"
+// ============================================================================
+// Compile-time backend selection via type alias
+// Use RenderBackendFactory for runtime selection instead when possible.
+// ============================================================================
+
+#if defined(SHINE_WEBGL2)
 #include "webgl2/webgl2_backend.h"
-#include "opengl/opengl3_backend.h"
-
-namespace shine::render::backend
-{
-#ifdef SHINE_WEBGL2
+namespace shine::render::backend {
     using SRenderBackend = webgl2::WebGL2RenderBackend;
-#elif defined(SHINE_OPENGL)
-    using SRenderBackend = opengl3::OpenGLRenderBackend;
-#elif defined(SHINE_DX12)
-    using SRenderBackend = DX12RenderBackend;
-#endif
 }
+#elif defined(SHINE_OPENGL)
+#include "opengl/opengl3_backend.h"
+namespace shine::render::backend {
+    using SRenderBackend = opengl3::OpenGLRenderBackend;
+}
+#elif defined(SHINE_DX12)
+// Future: #include "dx12/dx12_backend.h"
+// namespace shine::render::backend { using SRenderBackend = dx12::DX12RenderBackend; }
+#endif

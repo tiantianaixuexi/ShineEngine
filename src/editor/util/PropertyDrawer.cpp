@@ -7,7 +7,6 @@
 
 namespace shine::editor::util {
 
-
     using namespace reflection;
 
     // Internal Visitor
@@ -16,109 +15,162 @@ namespace shine::editor::util {
         const reflection::FieldInfo& field;
         const reflection::TypeInfo* ownerType;
 
-        // 1. None / Default Fallback
+        // 1. None / Auto-Deduce — automatically select UI control based on C++ type
+        //    Like UE5 UPROPERTY: no explicit UI schema needed; type determines the widget.
+        //    If .Range() metadata is present, numeric types use Slider; otherwise DragFloat/DragInt.
         void operator()(const reflection::UI::None&) {
 
-
-            // --- Recursive Struct Drawing ---
-            // If field is a POD or Reflectable Struct (but not a basic type we handled elsewhere), try to draw its inspector
-            // Check if it has TypeInfo registered
-            const reflection::TypeInfo* fieldTypeInfo = TypeRegistry::Get().Find(field.typeId);
-            if (fieldTypeInfo) {
-                // Enum Handling
-                if (fieldTypeInfo->isEnum) {
-                    void* fieldPtr = static_cast<char*>(instance) + field.offset;
-                    int64_t currentVal = 0;
-                    
-                    // Simple support for common enum sizes (assuming int/enum class : int)
-                    // TODO: Handle other sizes properly based on field.size
-                    if (field.size == 4) currentVal = (int64_t)*(int32_t*)fieldPtr;
-                    else if (field.size == 1) currentVal = (int64_t)*(int8_t*)fieldPtr;
-                    else if (field.size == 2) currentVal = (int64_t)*(int16_t*)fieldPtr;
-                    else if (field.size == 8) currentVal = *(int64_t*)fieldPtr;
-
-                    const char* currentName = "Unknown";
-                    for(const auto& e : fieldTypeInfo->enumEntries) {
-                        if (e.value == currentVal) { currentName = e.name.data(); break; }
-                    }
-
-                    if (ImGui::BeginCombo(field.name.data(), currentName)) {
-                        for (const auto& e : fieldTypeInfo->enumEntries) {
-                            bool isSelected = (currentVal == e.value);
-                            if (ImGui::Selectable(e.name.data(), isSelected)) {
-                                if (field.size == 4) *(int32_t*)fieldPtr = (int32_t)e.value;
-                                else if (field.size == 1) *(int8_t*)fieldPtr = (int8_t)e.value;
-                                else if (field.size == 2) *(int16_t*)fieldPtr = (int16_t)e.value;
-                                else if (field.size == 8) *(int64_t*)fieldPtr = e.value;
-                                
-                                field.OnChange(instance, &currentVal); // Pass OLD value
-                            }
-                            if (isSelected) ImGui::SetItemDefaultFocus();
-                        }
-                        ImGui::EndCombo();
-                    }
-                    return;
+            // --- bool → Checkbox ---
+            if (field.typeId == GetTypeId<bool>()) {
+                bool val;
+                field.Get(instance, &val);
+                bool oldVal = val;
+                if (ImGui::Checkbox(field.name.data(), &val)) {
+                    field.Set(instance, &val);
+                    field.OnChange(instance, &oldVal);
                 }
-            } else {
-                // If TypeInfo is missing but it's an enum (checked via other means? No field info doesn't tell us if it's enum unless we have TypeInfo)
-                // But wait, field.typeId IS the enum type id.
-                // If we can't find TypeInfo, we can't draw enum names.
-                // We should fallback to int editor if we suspect it's an enum or just int.
-                // But PropertyDrawer doesn't know if it is an enum without TypeInfo.
+                return;
             }
 
-            if (fieldTypeInfo && !fieldTypeInfo->fields.empty()) {
-                    if (ImGui::TreeNode(field.name.data())) {
-                        // Calculate pointer to field instance
-                        // Note: This requires the field getter to support getting a pointer, or we compute offset manually
-                        // Since we are inside the object, instance + offset is the field address.
-                        void* fieldInstance = static_cast<char*>(instance) + field.offset;
-                        
-                        InspectorBuilder::DrawInspector(fieldInstance, fieldTypeInfo);
-                        
-                        ImGui::TreePop();
-                    }
-                    return;
-            } else {
-                // TypeInfo Missing Fallbacks
-            }
+            // --- float → SliderFloat (if Range) or DragFloat ---
+            if (field.typeId == GetTypeId<float>()) {
+                const auto* metaMin = field.GetMeta(MetaKeys::Min);
+                const auto* metaMax = field.GetMeta(MetaKeys::Max);
+                bool hasRange = metaMin && metaMax;
 
-            // Fallback for int-like types if no schema provided (and no TypeInfo found above)
-            // This handles Enums that are not registered (TypeInfo not found) but are fundamentally ints.
-            // Or just plain ints that didn't use .UI(Slider)
-            if (field.typeId == GetTypeId<int>() || field.size == sizeof(int)) {
-                // WARNING: field.size == 4 is a heuristic. It could be float, int, uint, or Enum.
-                // If it was float, GetTypeId<float> check in Slider/etc usually handles it, but here we are in None schema.
-                
-                // Let's try to be smart. If GetTypeId matches int exactly:
-                if (field.typeId == GetTypeId<int>()) {
-                    int val;
-                    field.Get(instance, &val);
-                    int oldVal = val;
-                    if (ImGui::InputInt(field.name.data(), &val)) {
+                float val;
+                field.Get(instance, &val);
+                float oldVal = val;
+
+                if (hasRange) {
+                    float min = 0.f, max = 100.f;
+                    if (std::holds_alternative<float>(*metaMin)) min = std::get<float>(*metaMin);
+                    if (std::holds_alternative<float>(*metaMax)) max = std::get<float>(*metaMax);
+                    if (ImGui::SliderFloat(field.name.data(), &val, min, max)) {
                         field.Set(instance, &val);
                         field.OnChange(instance, &oldVal);
                     }
-                    return;
+                } else {
+                    if (ImGui::DragFloat(field.name.data(), &val)) {
+                        field.Set(instance, &val);
+                        field.OnChange(instance, &oldVal);
+                    }
                 }
-                
-                // If it is an Enum (but missing info), it likely has a unique TypeId but size 4.
-                // We can't distinguish it from float easily without TypeInfo or extra metadata.
-                // But we can try to render it as int if we are desperate.
-                // Let's NOT do dangerous casts unless we are sure.
+                return;
             }
 
-            // --- Array/Vector Drawing ---
-            if (field.containerType == ContainerType::Sequence) {
-                const auto *trait = static_cast<const reflection::ArrayTrait *>(field.containerTrait);
+            // --- int → SliderInt (if Range) or DragInt ---
+            if (field.typeId == GetTypeId<int>()) {
+                const auto* metaMin = field.GetMeta(MetaKeys::Min);
+                const auto* metaMax = field.GetMeta(MetaKeys::Max);
+                bool hasRange = metaMin && metaMax;
+
+                int val;
+                field.Get(instance, &val);
+                int oldVal = val;
+
+                if (hasRange) {
+                    int minI = 0, maxI = 100;
+                    if (std::holds_alternative<float>(*metaMin)) minI = (int)std::get<float>(*metaMin);
+                    else if (std::holds_alternative<int>(*metaMin)) minI = std::get<int>(*metaMin);
+                    if (std::holds_alternative<float>(*metaMax)) maxI = (int)std::get<float>(*metaMax);
+                    else if (std::holds_alternative<int>(*metaMax)) maxI = std::get<int>(*metaMax);
+                    if (ImGui::SliderInt(field.name.data(), &val, minI, maxI)) {
+                        field.Set(instance, &val);
+                        field.OnChange(instance, &oldVal);
+                    }
+                } else {
+                    if (ImGui::DragInt(field.name.data(), &val)) {
+                        field.Set(instance, &val);
+                        field.OnChange(instance, &oldVal);
+                    }
+                }
+                return;
+            }
+
+            // --- double → DragScalar ---
+            if (field.typeId == GetTypeId<double>()) {
+                double val;
+                field.Get(instance, &val);
+                double oldVal = val;
+                float speed = 0.1f;
+                if (ImGui::DragScalar(field.name.data(), ImGuiDataType_Double, &val, speed)) {
+                    field.Set(instance, &val);
+                    field.OnChange(instance, &oldVal);
+                }
+                return;
+            }
+
+            // --- std::string → TextInput ---
+            if (field.typeId == GetTypeId<std::string>()) {
+                std::string val;
+                field.Get(instance, &val);
+                std::string oldVal = val;
+
+                char buffer[256];
+                strncpy_s(buffer, val.c_str(), sizeof(buffer) - 1);
+
+                if (ImGui::InputText(field.name.data(), buffer, sizeof(buffer))) {
+                    val = buffer;
+                    field.Set(instance, &val);
+                    field.OnChange(instance, &oldVal);
+                }
+                return;
+            }
+
+            // --- Enum → Dropdown (Combo) ---
+            const reflection::TypeInfo* fieldTypeInfo = TypeRegistry::Get().Find(field.typeId);
+            if (fieldTypeInfo && fieldTypeInfo->isEnum) {
+                void* fieldPtr = static_cast<char*>(instance) + field.offset;
+                int64_t currentVal = 0;
+
+                if (field.size == 4) currentVal = (int64_t)*(int32_t*)fieldPtr;
+                else if (field.size == 1) currentVal = (int64_t)*(int8_t*)fieldPtr;
+                else if (field.size == 2) currentVal = (int64_t)*(int16_t*)fieldPtr;
+                else if (field.size == 8) currentVal = *(int64_t*)fieldPtr;
+
+                const char* currentName = "Unknown";
+                for (const auto& e : fieldTypeInfo->enumEntries) {
+                    if (e.value == currentVal) { currentName = e.name.data(); break; }
+                }
+
+                if (ImGui::BeginCombo(field.name.data(), currentName)) {
+                    for (const auto& e : fieldTypeInfo->enumEntries) {
+                        bool isSelected = (currentVal == e.value);
+                        if (ImGui::Selectable(e.name.data(), isSelected)) {
+                            if (field.size == 4) *(int32_t*)fieldPtr = (int32_t)e.value;
+                            else if (field.size == 1) *(int8_t*)fieldPtr = (int8_t)e.value;
+                            else if (field.size == 2) *(int16_t*)fieldPtr = (int16_t)e.value;
+                            else if (field.size == 8) *(int64_t*)fieldPtr = e.value;
+
+                            field.OnChange(instance, &currentVal);
+                        }
+                        if (isSelected) ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+                return;
+            }
+
+            // --- Struct (recursive) ---
+            if (fieldTypeInfo && !fieldTypeInfo->fields.empty()) {
                 if (ImGui::TreeNode(field.name.data())) {
+                    void* fieldInstance = static_cast<char*>(instance) + field.offset;
+                    InspectorBuilder::DrawInspector(fieldInstance, fieldTypeInfo);
+                    ImGui::TreePop();
+                }
+                return;
+            }
+
+            // --- Array/Vector ---
+            if (field.containerType == ContainerType::Sequence) {
+                const auto* trait = static_cast<const reflection::SequenceTrait*>(field.containerTrait);
+                if (trait && ImGui::TreeNode(field.name.data())) {
                     void* arrayPtr = static_cast<char*>(instance) + field.offset;
                     size_t size = trait->GetSize(arrayPtr);
-                    
-                    // Simple Size Display
+
                     ImGui::Text("Size: %zu", size);
 
-                    // Add Button (Simple resize + 1)
                     if (ImGui::Button("+")) {
                         trait->Resize(arrayPtr, size + 1);
                     }
@@ -127,21 +179,9 @@ namespace shine::editor::util {
                         trait->Resize(arrayPtr, size - 1);
                     }
 
-                    // Elements
                     for (size_t i = 0; i < size; ++i) {
                         ImGui::PushID((int)i);
-                        void* elemPtr = trait->GetElement(arrayPtr, i);
-                        
-                        // Try to find TypeInfo for element
-                        // Note: field.typeId is vector<T>, we need T. 
-                        // Current Reflection system might not expose T directly in FieldInfo easily without parsing name
-                        // BUT, usually we register vectors as fields. 
-                        // For this prototype, let's assume we can't easily deep-draw generic T without more info in FieldInfo.
-                        // Wait! FieldInfo doesn't store ElementTypeId. 
-                        // Fix: We need to enhance Reflection to store elementTypeId for arrays.
-                        // For now, print placeholder.
                         ImGui::Text("Element %zu", i);
-                        
                         ImGui::PopID();
                     }
                     ImGui::TreePop();
@@ -149,44 +189,24 @@ namespace shine::editor::util {
                 return;
             }
 
-            // Fallback: If it's an Enum-like type (size 1/2/4/8) but we missed TypeInfo,
-            // we might want to display it as int with a warning.
-            // But checking size is risky (could be float).
-            
-            // Check for float specifically to avoid confusion
-            if (field.typeId == GetTypeId<float>()) {
-                float val;
-                field.Get(instance, &val);
-                float oldVal = val;
-                if (ImGui::DragFloat(field.name.data(), &val)) {
-                    field.Set(instance, &val);
-                    field.OnChange(instance, &oldVal);
-                }
-                return;
-            }
-
+            // --- Final fallback ---
             ImGui::Text("%s", field.name.data());
             ImGui::SameLine();
-            ImGui::TextDisabled("(No UI Schema)");
-            // Debug Hint
-            // ImGui::SameLine(); ImGui::TextDisabled("[%s]", field.typeId == GetTypeId<int>() ? "int" : "unknown");
+            ImGui::TextDisabled("(Unknown Type)");
         }
 
         // 2. Slider
         void operator()(const reflection::UI::Slider& slider) {
-    
-
-            // Get Min/Max from Metadata (Range) or fallback to Schema defaults
             float min = slider.min;
             float max = slider.max;
 
-            auto* metaMin = field.GetMeta(Hash("Min"));
-            auto* metaMax = field.GetMeta(Hash("Max"));
+            const auto* metaMin = field.GetMeta(MetaKeys::Min);
+            const auto* metaMax = field.GetMeta(MetaKeys::Max);
 
             // Float Slider
             if (field.typeId == GetTypeId<float>()) {
-                if (metaMin) min = std::get<float>(*metaMin);
-                if (metaMax) max = std::get<float>(*metaMax);
+                if (metaMin && std::holds_alternative<float>(*metaMin)) min = std::get<float>(*metaMin);
+                if (metaMax && std::holds_alternative<float>(*metaMax)) max = std::get<float>(*metaMax);
 
                 float val;
                 field.Get(instance, &val);
@@ -221,9 +241,7 @@ namespace shine::editor::util {
         }
 
         // 3. Checkbox
-        void operator()(const reflection::UI::Checkbox& cb) {
-
-
+        void operator()(const reflection::UI::Checkbox&) {
             if (field.typeId == GetTypeId<bool>()) {
                 bool val;
                 field.Get(instance, &val);
@@ -235,12 +253,11 @@ namespace shine::editor::util {
             }
         }
 
-        // 4. InputText
-        void operator()(const reflection::UI::InputText& text) {
-   
+        // 4. TextInput (InputText alias)
+        void operator()(const reflection::UI::TextInput&) {
             if (field.typeId == GetTypeId<std::string>()) {
                 std::string val;
-                field.Get(instance, &val); 
+                field.Get(instance, &val);
                 std::string oldVal = val;
                 
                 char buffer[256];
@@ -248,41 +265,19 @@ namespace shine::editor::util {
                 
                 if (ImGui::InputText(field.name.data(), buffer, sizeof(buffer))) {
                     val = buffer;
-                    field.Set(instance, &val); 
+                    field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
-                }
-            }
-            else if (field.typeId == GetTypeId<shine::SString>()) {
-                shine::SString val;
-                field.Get(instance, &val);
-                // SString is move-only, so careful with oldVal if we want to support onChange
-                // For now, skip oldVal for SString or implement manual clone
-                
-                std::string utf8 = val.to_utf8();
-                char buffer[256];
-                strncpy_s(buffer, utf8.c_str(), sizeof(buffer) - 1);
-                
-                if (ImGui::InputText(field.name.data(), buffer, sizeof(buffer))) {
-                    // Reconstruct SString from UTF8
-                    // We need to move it back
-                    shine::SString newVal = shine::SString::from_utf8(buffer);
-                    field.Set(instance, &newVal);
-                    
-                    // Trigger onChange without oldVal for now to avoid copy cost/complexity
-                    field.OnChange(instance, nullptr);
                 }
             }
         }
 
-        // 5. Color
-        void operator()(const reflection::UI::Color& color) {
-             ImGui::TextColored(ImVec4(1, 0, 0, 1), "Color Not Implemented");
+        // 5. ColorPicker (Color alias)
+        void operator()(const reflection::UI::ColorPicker&) {
+            ImGui::TextColored(ImVec4(1, 0, 0, 1), "Color Not Implemented");
         }
 
         // 6. Function Selector
         void operator()(const reflection::UI::FunctionSelector& selector) {
-
-            // Assume field is std::string
             std::string currentFunc;
             field.Get(instance, &currentFunc);
             
@@ -291,16 +286,11 @@ namespace shine::editor::util {
                     for (const auto& method : ownerType->methods) {
                         bool show = !selector.onlyScriptCallable;
                         
-                        // Check ScriptCallable flag
                         if (selector.onlyScriptCallable) {
                             if (HasFlag(method.flags, FunctionFlags::ScriptCallable)) show = true;
                             
-                            // Also check for "BlueprintFunction" metadata
-                            // Manual lookup since MethodInfo might not have GetMeta helper
-                            TypeId bpKey = Hash("BlueprintFunction");
-                            auto it = std::lower_bound(method.metadata.begin(), method.metadata.end(), bpKey, 
-                                [](const auto& pair, TypeId k) { return pair.first < k; });
-                            if (it != method.metadata.end() && it->first == bpKey) show = true;
+                            const auto* bpMeta = method.GetMeta(MetaKeys::BlueprintFunction);
+                            if (bpMeta) show = true;
                         }
                         
                         if (show) {
@@ -319,6 +309,47 @@ namespace shine::editor::util {
                 }
                 ImGui::EndCombo();
             }
+        }
+
+        // 7. NumberInput
+        void operator()(const reflection::UI::NumberInput&) {
+            if (field.typeId == GetTypeId<float>()) {
+                float val;
+                field.Get(instance, &val);
+                float oldVal = val;
+                if (ImGui::DragFloat(field.name.data(), &val)) {
+                    field.Set(instance, &val);
+                    field.OnChange(instance, &oldVal);
+                }
+            } else if (field.typeId == GetTypeId<int>()) {
+                int val;
+                field.Get(instance, &val);
+                int oldVal = val;
+                if (ImGui::DragInt(field.name.data(), &val)) {
+                    field.Set(instance, &val);
+                    field.OnChange(instance, &oldVal);
+                }
+            }
+        }
+
+        // 8. Dropdown
+        void operator()(const reflection::UI::Dropdown&) {
+            ImGui::TextDisabled("Dropdown Not Implemented");
+        }
+
+        // 9. FilePicker
+        void operator()(const reflection::UI::FilePicker&) {
+            ImGui::TextDisabled("FilePicker Not Implemented");
+        }
+
+        // 10. VectorEditor
+        void operator()(const reflection::UI::VectorEditor&) {
+            ImGui::TextDisabled("VectorEditor Not Implemented");
+        }
+
+        // 11. MatrixEditor
+        void operator()(const reflection::UI::MatrixEditor&) {
+            ImGui::TextDisabled("MatrixEditor Not Implemented");
         }
     };
 

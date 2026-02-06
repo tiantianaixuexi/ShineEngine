@@ -1,5 +1,12 @@
 #include "encoding_util.ixx"
 
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
+#endif
+
 #include "editor/views/EditorView.h"
 
 namespace shine::util

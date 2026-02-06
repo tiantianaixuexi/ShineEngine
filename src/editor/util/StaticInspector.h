@@ -6,6 +6,15 @@
 
 namespace shine::editor::util {
 
+    // Helper type trait: detect vector-like containers
+    template<typename T>
+    struct IsVectorHelper : std::false_type {};
+
+    template<typename T, typename A>
+    struct IsVectorHelper<std::vector<T, A>> : std::true_type {};
+
+    template<typename T>
+    inline constexpr bool IsVector = IsVectorHelper<T>::value;
 
     // 编译期静态检查器构建器
     // 这个类在编译期被 REFLECT_STRUCT 实例化，直接生成绘制代码
@@ -29,7 +38,7 @@ namespace shine::editor::util {
                 
                 ImGui::PushID(instance);
                 StaticInspectorBuilder<T> builder(instance);
-                //T::RegisterReflection(builder);
+                _ReflectStaticBuild(builder, static_cast<T*>(nullptr));
                 ImGui::PopID();
                 
                 ImGui::EndTable();
@@ -91,8 +100,7 @@ namespace shine::editor::util {
             }
         private:
             // Compile-time dispatch for drawing
-            template<size_t N>
-            void DrawField(const shine::reflection::DSL::FieldDescriptor<N>& desc) {
+            void DrawField(const shine::reflection::DSL::FieldDescriptorBase& desc) {
                 using namespace shine::reflection;
 
                 // 1. Get Value
@@ -105,11 +113,11 @@ namespace shine::editor::util {
                 // 2. Handle Category
                 const char* category = nullptr;
                 for(const auto& m : desc.metadata) {
-                    if (m.key == Hash("Category")) {
-                        if (std::holds_alternative<std::string_view>(m.value)) {
+                    if (m.first == MetaKeys::Category) {
+                        if (std::holds_alternative<std::string_view>(m.second)) {
                             // Note: std::string_view might point to temporary if not careful, 
                             // but in our DSL it points to string literal from .Meta("Category", "Audio")
-                             category = std::get<std::string_view>(m.value).data();
+                             category = std::get<std::string_view>(m.second).data();
                         }
                     }
                 }
@@ -246,9 +254,9 @@ namespace shine::editor::util {
                 // Normal Field
                 const char* displayName = desc.name.data();
                 for(const auto& m : desc.metadata) {
-                    if (m.key == Hash("DisplayName")) {
-                        if (std::holds_alternative<std::string_view>(m.value)) {
-                            displayName = std::get<std::string_view>(m.value).data();
+                    if (m.first == MetaKeys::DisplayName) {
+                        if (std::holds_alternative<std::string_view>(m.second)) {
+                            displayName = std::get<std::string_view>(m.second).data();
                         }
                     }
                 }
@@ -263,13 +271,13 @@ namespace shine::editor::util {
                 // Helper to extract Range from metadata
                 float min = 0.0f, max = 0.0f;
                 for(const auto& m : desc.metadata) {
-                    if (m.key == Hash("Min")) {
-                        if (std::holds_alternative<float>(m.value)) min = std::get<float>(m.value);
-                        else if (std::holds_alternative<int>(m.value)) min = static_cast<float>(std::get<int>(m.value));
+                    if (m.first == MetaKeys::Min) {
+                        if (std::holds_alternative<float>(m.second)) min = std::get<float>(m.second);
+                        else if (std::holds_alternative<int>(m.second)) min = static_cast<float>(std::get<int>(m.second));
                     }
-                    if (m.key == Hash("Max")) {
-                        if (std::holds_alternative<float>(m.value)) max = std::get<float>(m.value);
-                        else if (std::holds_alternative<int>(m.value)) max = static_cast<float>(std::get<int>(m.value));
+                    if (m.first == MetaKeys::Max) {
+                        if (std::holds_alternative<float>(m.second)) max = std::get<float>(m.second);
+                        else if (std::holds_alternative<int>(m.second)) max = static_cast<float>(std::get<int>(m.second));
                     }
                 }
 
@@ -314,8 +322,8 @@ namespace shine::editor::util {
                         const TypeInfo* typeInfo = TypeRegistry::Get().Find<ObjectType>();
 
                         if (!typeInfo) {
-                            static constexpr auto ctInfo = shine::reflection::BuildTypeInfoCT<ObjectType>("Temp");
-                            TypeRegistry::Get().Register(ctInfo);
+                            auto tempInfo = shine::reflection::BuildTypeInfo<ObjectType>("Temp");
+                            TypeRegistry::Get().Register(std::move(tempInfo));
                             typeInfo = TypeRegistry::Get().Find<ObjectType>();
                         }
                         
@@ -326,7 +334,7 @@ namespace shine::editor::util {
                                     if (onlyScriptCallable) {
                                         if (HasFlag(method.flags, FunctionFlags::ScriptCallable)) show = true;
                                         // Check metadata "BlueprintFunction"
-                                        TypeId bpKey = Hash("BlueprintFunction");
+                                        TypeId bpKey = MetaKeys::BlueprintFunction;
                                         auto it = std::lower_bound(method.metadata.begin(), method.metadata.end(), bpKey, 
                                             [](const auto& pair, TypeId k) { return pair.first < k; });
                                         if (it != method.metadata.end() && it->first == bpKey) show = true;
@@ -398,14 +406,13 @@ namespace shine::editor::util {
         private:
             void DrawMethod() {
                 // Draw a button for the method
-                // Use DSLType::MethodPtr to call it
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
                 ImGui::Text("%s", dsl.desc.name.data());
                 
                 ImGui::TableSetColumnIndex(1);
                 if (ImGui::Button(dsl.desc.name.data())) {
-                    (builder.instance->*DSLType::MethodPtr)();
+                    (builder.instance->*DSLType::MethodPtrValue)();
                 }
             }
         };

@@ -74,7 +74,7 @@ using namespace shine;
 
 
 
-shine::render::backend::IRenderBackend* RenderBackend = nullptr;
+shine::render::backend::IRenderBackend* RenderBackend = nullptr;  // Non-owning, lifetime managed by RendererService
 
 shine::gameplay::Camera g_Camera("默认相机");
 

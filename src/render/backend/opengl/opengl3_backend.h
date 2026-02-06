@@ -2,16 +2,21 @@
 
 #include "shine_define.h"
 
-
 #include <memory>
-#include <unordered_set>
-#include <functional>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <expected>
 
 #include <GL/glew.h>
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
+
 #include "render/backend/render_backend.h"
 #include "render/backend/gl/gl_common.h"
-
 
 namespace shine::render::opengl3
 {
@@ -21,107 +26,84 @@ namespace shine::render::opengl3
     using ViewportInfo = shine::render::backend::gl::ViewportInfo;
 
     class OpenGLRenderBackend : public backend::IRenderBackend
-	{
-	public:
-		//  一些参数
+    {
+    public:
+        // ---- Framebuffer resources (previously in base) ----
+        GLuint g_FramebufferObject  = 0;
+        GLuint g_FramebufferTexture = 0;
+        GLuint g_DepthRenderbuffer  = 0;
 
-		GLuint g_FramebufferObject = 0;
-		GLuint g_FramebufferTexture = 0;
-		GLuint g_DepthRenderbuffer = 0;
+        // ---- Platform context ----
+        HGLRC g_hRC  = nullptr;
+        HDC   g_hdc  = nullptr;
 
-		HGLRC g_hRC;
-		HDC g_hdc;
+        // ---- Per-frame UBOs ----
+        GLuint m_CameraUbo = 0;  // std140, binding=0
+        GLuint m_LightUbo  = 0;  // std140, binding=1
 
-
-
-        // 全局相机UBO，std140, binding=0
-        GLuint m_CameraUbo = 0;
-        // 全局光照UBO，std140, binding=1
-        GLuint m_LightUbo = 0;
-
-        // Command List removed (stateless visitor used instead)
-
-        // 多视口FBO注册表
+        // ---- Multi-viewport FBO registry ----
         std::unordered_map<s32, ViewportInfo> m_Viewports;
         s32 m_NextViewportHandle{1};
 
-		//  初始化
-		virtual int  init(HWND hwnd, WNDCLASSEXW& wc);
+        // ---- Backend dimensions (moved from base class) ----
+        int m_Width  = 800;
+        int m_Height = 600;
 
+        // ==== IRenderBackend implementation ====
 
-		//  初始化Imgui后端
-		virtual void InitImguiBackend(HWND hwnd);
+        int  init(backend::NativeWindowHandle window, void* platformData) override;
+        void InitImguiBackend(backend::NativeWindowHandle window) override;
+        void ImguiNewFrame() override;
+        bool CreateDevice(backend::NativeWindowHandle window) override;
+        void CleanupDevice(backend::NativeWindowHandle window) override;
+        void ClearUp(backend::NativeWindowHandle window) override;
 
-		//  Imgui 新帧
-		virtual void ImguiNewFrame();
+        bool         CreateFrameBuffer() override;
+        void         ReSizeFrameBuffer(int width, int height) override;
+        unsigned int GetFramebufferTexture() override;
 
-		//  初始化设备
-		virtual bool CreateDevice(HWND hwnd);
+        void SetSize(int width, int height) override;
+        [[nodiscard]] std::pair<int,int> GetSize() const noexcept override;
 
-		//  清理设备
-		virtual void CleanupDevice(HWND hwnd);
+        void RenderScene(float deltaTime = 0.016f) override;
+        void RenderSceneToFrameBuffer() override;
+        void RenderSceneToViewport(s32 handle) override;
+        void RenderToFramebuffer(const std::array<float, 4>& clear_color) override;
 
-		//  创建帧缓冲
-		virtual bool CreateFrameBuffer();
+        void CompileShaders() override;
 
-		//  渲染场景
-		virtual void RenderScene(float deltaTime = 0.016f);
+        void ExecuteCommandBuffer(s32 viewportHandle,
+                                  const shine::render::CommandBuffer* cmdBuffer) override;
 
-        //  渲染场景到帧缓冲（默认FBO）
-        virtual void RenderSceneToFrameBuffer();
-        //  渲染场景到指定视口FBO（多视口）
-        virtual void RenderSceneToViewport(s32 handle) override;
+        s32                CreateViewport(int width, int height) override;
+        void               DestroyViewport(s32 handle) override;
+        void               ResizeViewport(s32 handle, int width, int height) override;
+        void               BindViewport(s32 handle) override;
+        unsigned long long  GetViewportTexture(u32 handle) override;
 
-		//  渲染到帧缓冲
-        virtual void RenderToFramebuffer(std::array<float, 4> clear_color);
+        // ---- Texture ----
+        uint32_t CreateTexture2D(int width, int height, const void* data = nullptr,
+                                 bool generateMipmaps = false, bool linearFilter = true,
+                                 bool clampToEdge = true) override;
+        void UpdateTexture2D(uint32_t textureId, int width, int height,
+                             const void* data) override;
+        void ReleaseTexture(uint32_t textureId) override;
 
-        virtual unsigned int GetFramebufferTexture();
-        virtual s32 CreateViewport(int width, int height) override;
-        virtual void DestroyViewport(s32 handle) override;
-        virtual void ResizeViewport(s32 handle, int width, int height) override;
-        virtual void BindViewport(s32 handle) override;
-        virtual unsigned long long  GetViewportTexture(u32 handle) override;
+        // ---- Shader ----
+        std::expected<uint32_t, std::string>
+        CreateShaderProgram(std::string_view vsSource,
+                            std::string_view fsSource) override;
+        void ReleaseShaderProgram(uint32_t programId) override;
 
-		virtual void ReSizeFrameBuffer(int width, int height);
+        // ---- Uniform query ----
+        int32_t GetUniformLocation(uint32_t programId,
+                                   std::string_view name) override;
 
-        // 编译/链接着色器并创建VAO/VBO
-        virtual void CompileShaders();
-
-		//  清理
-		virtual void ClearUp(HWND hwnd);
-
-
-		virtual int getWidth() const;
-		virtual int getHeight() const;
-
-
-		virtual void setWidth(int width);
-		virtual void setHeight(int height);
-
-        // 回调式渲染接口实现
-        virtual void ExecuteCommandBuffer(s32 viewportHandle, const shine::render::CommandBuffer* cmdBuffer) override;
-
-        // 每帧更新相机UBO
+        // ---- Per-frame UBO updates ----
         void UpdateCameraUBO();
-        // 每帧更新光照UBO
         void UpdateLightUBO();
+    };
 
-        // ========================================================================
-        // 纹理创建接口实现
-        // ========================================================================
-
-        virtual uint32_t CreateTexture2D(int width, int height, const void* data = nullptr,
-            bool generateMipmaps = false, bool linearFilter = true, bool clampToEdge = true) override;
-
-        virtual void UpdateTexture2D(uint32_t textureId, int width, int height, const void* data) override;
-
-        virtual void ReleaseTexture(uint32_t textureId) override;
-
-        // Shader creation interface implementation
-        virtual uint32_t CreateShaderProgram(const char* vsSource, const char* fsSource, std::string& outLog) override;
-        virtual void ReleaseShaderProgram(uint32_t programId) override;
-	};
+#endif // SHINE_OPENGL
 
 }
-
-#endif

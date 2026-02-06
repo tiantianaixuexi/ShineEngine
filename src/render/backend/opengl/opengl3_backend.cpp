@@ -1,8 +1,6 @@
 #include "opengl3_backend.h"
 
-
 #include <memory>
-
 #include <fmt/format.h>
 
 #include <imgui/imgui.h>
@@ -15,179 +13,170 @@
 #include "render/pipeline/command_buffer.h"
 #include "EngineCore/engine_context.h"
 
-
 namespace shine::render::opengl3
 {
 #ifdef SHINE_OPENGL
 
-	int OpenGLRenderBackend::init(HWND hwnd, WNDCLASSEXW& wc)
-	{
-		if (!CreateDevice(hwnd))
-		{
-			CleanupDevice(hwnd);
-			::DestroyWindow(hwnd);
-			::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-			return 1;
-		}
-		wglMakeCurrent(g_hdc, g_hRC);
+    int OpenGLRenderBackend::init(backend::NativeWindowHandle window, void* platformData)
+    {
+        HWND hwnd = static_cast<HWND>(window);
+        auto* wc  = static_cast<WNDCLASSEXW*>(platformData);
 
-		// 初始化GLEW
-		GLenum err = glewInit();
-		if (GLEW_OK != err)
-		{
-			fmt::println("GLEW初始化错误: {}", reinterpret_cast<const char*>(glewGetErrorString(err)));
-			CleanupDevice(hwnd);
-			wglDeleteContext(g_hRC);
-			::DestroyWindow(hwnd);
-			::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-			return 1;
-		}
+        if (!CreateDevice(window))
+        {
+            CleanupDevice(window);
+            ::DestroyWindow(hwnd);
+            if (wc) ::UnregisterClassW(wc->lpszClassName, wc->hInstance);
+            return 1;
+        }
+        wglMakeCurrent(g_hdc, g_hRC);
 
-		fmt::println("GLEW版本: {}", reinterpret_cast<const char*>(glewGetString(GLEW_VERSION)));
+        // Initialize GLEW
+        GLenum err = glewInit();
+        if (GLEW_OK != err)
+        {
+            fmt::println("GLEW初始化错误: {}", reinterpret_cast<const char*>(glewGetErrorString(err)));
+            CleanupDevice(window);
+            wglDeleteContext(g_hRC);
+            ::DestroyWindow(hwnd);
+            if (wc) ::UnregisterClassW(wc->lpszClassName, wc->hInstance);
+            return 1;
+        }
 
-		// 检查帧缓冲扩展是否可用
-		if (!GLEW_ARB_framebuffer_object)
-		{
-			fmt::println("您的显卡不支持帧缓冲对象扩展，无法创建渲染目标");
-			CleanupDevice(hwnd);
-			wglDeleteContext(g_hRC);
-			::DestroyWindow(hwnd);
-			::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-			return 1;
-		}
+        fmt::println("GLEW版本: {}", reinterpret_cast<const char*>(glewGetString(GLEW_VERSION)));
 
-		// 创建全局相机UBO，binding = 0
-		if (!m_CameraUbo) {
-			glGenBuffers(1, &m_CameraUbo);
-			glBindBuffer(GL_UNIFORM_BUFFER, m_CameraUbo);
-			// std140 瀵归綈锛歮at4 64瀛楄妭 + vec4 16瀛楄妭锛岀暀浣欓噺鎸?96 鍒嗛厤
-			glBufferData(GL_UNIFORM_BUFFER, 96, nullptr, GL_DYNAMIC_DRAW);
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
-			glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_CameraUbo);
-		}
-		// 创建全局光照UBO，binding = 1: dir(vec4) + color(vec4) + intensity(vec4)
-		if (!m_LightUbo) {
-			glGenBuffers(1, &m_LightUbo);
-			glBindBuffer(GL_UNIFORM_BUFFER, m_LightUbo);
-			glBufferData(GL_UNIFORM_BUFFER, 3 * 16, nullptr, GL_DYNAMIC_DRAW);
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
-			glBindBufferBase(GL_UNIFORM_BUFFER, 1, m_LightUbo);
-		}
-		return 0;
-	}
+        // Check framebuffer extension
+        if (!GLEW_ARB_framebuffer_object)
+        {
+            fmt::println("您的显卡不支持帧缓冲对象扩展，无法创建渲染目标");
+            CleanupDevice(window);
+            wglDeleteContext(g_hRC);
+            ::DestroyWindow(hwnd);
+            if (wc) ::UnregisterClassW(wc->lpszClassName, wc->hInstance);
+            return 1;
+        }
 
-	void OpenGLRenderBackend::InitImguiBackend(HWND hwnd)
-	{
-		ImGui_ImplWin32_InitForOpenGL(hwnd);
-		ImGui_ImplOpenGL3_Init();
-	}
+        // Create global camera UBO, binding = 0
+        if (!m_CameraUbo) {
+            glGenBuffers(1, &m_CameraUbo);
+            glBindBuffer(GL_UNIFORM_BUFFER, m_CameraUbo);
+            glBufferData(GL_UNIFORM_BUFFER, 96, nullptr, GL_DYNAMIC_DRAW);
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+            glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_CameraUbo);
+        }
+        // Create global light UBO, binding = 1
+        if (!m_LightUbo) {
+            glGenBuffers(1, &m_LightUbo);
+            glBindBuffer(GL_UNIFORM_BUFFER, m_LightUbo);
+            glBufferData(GL_UNIFORM_BUFFER, 3 * 16, nullptr, GL_DYNAMIC_DRAW);
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+            glBindBufferBase(GL_UNIFORM_BUFFER, 1, m_LightUbo);
+        }
+        return 0;
+    }
 
-	void OpenGLRenderBackend::ImguiNewFrame()
-	{
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
-	}
+    void OpenGLRenderBackend::InitImguiBackend(backend::NativeWindowHandle window)
+    {
+        ImGui_ImplWin32_InitForOpenGL(static_cast<HWND>(window));
+        ImGui_ImplOpenGL3_Init();
+    }
 
-	bool OpenGLRenderBackend::CreateDevice(HWND hwnd)
-	{
-		HDC hDc = ::GetDC(hwnd);
-		PIXELFORMATDESCRIPTOR pfd = { 0 };
-		pfd.nSize = sizeof(pfd);
-		pfd.nVersion = 1;
-		pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-		pfd.iPixelType = PFD_TYPE_RGBA;
-		pfd.cColorBits = 32;
+    void OpenGLRenderBackend::ImguiNewFrame()
+    {
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplWin32_NewFrame();
+        ImGui::NewFrame();
+    }
 
-		const int pf = ::ChoosePixelFormat(hDc, &pfd);
-		if (pf == 0)
-			return false;
-		if (::SetPixelFormat(hDc, pf, &pfd) == false)
-			return false;
-		::ReleaseDC(hwnd, hDc);
+    bool OpenGLRenderBackend::CreateDevice(backend::NativeWindowHandle window)
+    {
+        HWND hwnd = static_cast<HWND>(window);
+        HDC hDc = ::GetDC(hwnd);
+        PIXELFORMATDESCRIPTOR pfd = { 0 };
+        pfd.nSize = sizeof(pfd);
+        pfd.nVersion = 1;
+        pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+        pfd.iPixelType = PFD_TYPE_RGBA;
+        pfd.cColorBits = 32;
 
-		g_hdc = ::GetDC(hwnd);
-		if (!g_hRC)
-			g_hRC = wglCreateContext(g_hdc);
-		return true;
-	}
+        const int pf = ::ChoosePixelFormat(hDc, &pfd);
+        if (pf == 0)
+            return false;
+        if (::SetPixelFormat(hDc, pf, &pfd) == false)
+            return false;
+        ::ReleaseDC(hwnd, hDc);
 
-	void OpenGLRenderBackend::CleanupDevice(HWND hwnd)
-	{
-		wglMakeCurrent(nullptr, nullptr);
-		::ReleaseDC(hwnd, g_hdc);
-	}
+        g_hdc = ::GetDC(hwnd);
+        if (!g_hRC)
+            g_hRC = wglCreateContext(g_hdc);
+        return true;
+    }
 
-	bool OpenGLRenderBackend::CreateFrameBuffer()
-	{
-		// 清理任何现有的帧缓冲
-		if (g_FramebufferObject != 0)
-		{
-			glDeleteFramebuffers(1, &g_FramebufferObject);
-			glDeleteTextures(1, &g_FramebufferTexture);
-			glDeleteRenderbuffers(1, &g_DepthRenderbuffer);
-			g_FramebufferObject = 0;
-			g_FramebufferTexture = 0;
-			g_DepthRenderbuffer = 0;
-		}
+    void OpenGLRenderBackend::CleanupDevice(backend::NativeWindowHandle window)
+    {
+        HWND hwnd = static_cast<HWND>(window);
+        wglMakeCurrent(nullptr, nullptr);
+        ::ReleaseDC(hwnd, g_hdc);
+    }
 
-		// 创建帧缓冲对象
-		glGenFramebuffers(1, &g_FramebufferObject);
-		glBindFramebuffer(GL_FRAMEBUFFER, g_FramebufferObject);
+    bool OpenGLRenderBackend::CreateFrameBuffer()
+    {
+        // Clean up existing framebuffer
+        if (g_FramebufferObject != 0)
+        {
+            glDeleteFramebuffers(1, &g_FramebufferObject);
+            glDeleteTextures(1, &g_FramebufferTexture);
+            glDeleteRenderbuffers(1, &g_DepthRenderbuffer);
+            g_FramebufferObject = 0;
+            g_FramebufferTexture = 0;
+            g_DepthRenderbuffer = 0;
+        }
 
-		// 创建纹理附件
-		glGenTextures(1, &g_FramebufferTexture);
-		glBindTexture(GL_TEXTURE_2D, g_FramebufferTexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, g_Width, g_Height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_FramebufferTexture, 0);
+        glGenFramebuffers(1, &g_FramebufferObject);
+        glBindFramebuffer(GL_FRAMEBUFFER, g_FramebufferObject);
 
-		// 创建渲染缓冲对象作为深度缓冲
-		glGenRenderbuffers(1, &g_DepthRenderbuffer);
-		glBindRenderbuffer(GL_RENDERBUFFER, g_DepthRenderbuffer);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, g_Width, g_Height);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, g_DepthRenderbuffer);
+        glGenTextures(1, &g_FramebufferTexture);
+        glBindTexture(GL_TEXTURE_2D, g_FramebufferTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_Width, m_Height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_FramebufferTexture, 0);
 
-		// 检查帧缓冲是否完整
-		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (status != GL_FRAMEBUFFER_COMPLETE)
-		{
-			fmt::println("帧缓冲创建错误，错误码: 0x{:x}", status);
-			return false;
-		}
+        glGenRenderbuffers(1, &g_DepthRenderbuffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, g_DepthRenderbuffer);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, m_Width, m_Height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, g_DepthRenderbuffer);
 
-		// 恢复默认帧缓冲
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		fmt::println("成功创建帧缓冲，大小：{}x{}", g_Width, g_Height);
-		return true;
-	}
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE)
+        {
+            fmt::println("帧缓冲创建错误，错误码: 0x{:x}", status);
+            return false;
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        fmt::println("成功创建帧缓冲，大小：{}x{}", m_Width, m_Height);
+        return true;
+    }
 
     void OpenGLRenderBackend::RenderScene(float deltaTime)
-	{
-        // 默认渲染流程，清屏并设置视口，但不负责具体物体渲染
-        // Direct GL calls instead of m_CommandList
-        glViewport(0, 0, g_Width, g_Height);
+    {
+        glViewport(0, 0, m_Width, m_Height);
         glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
-        
-        GLbitfield mask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
-        glClear(mask);
-        
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
-	}
+    }
 
-	void OpenGLRenderBackend::CompileShaders()
-	{
+    void OpenGLRenderBackend::CompileShaders()
+    {
+    }
 
-	}
-
-	void OpenGLRenderBackend::RenderSceneToFrameBuffer()
-	{
-		// 绑定帧缓冲并调用通用渲染流程
+    void OpenGLRenderBackend::RenderSceneToFrameBuffer()
+    {
         glBindFramebuffer(GL_FRAMEBUFFER, g_FramebufferObject);
-		RenderScene(0.016f);
+        RenderScene(0.016f);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
+    }
 
     void OpenGLRenderBackend::RenderSceneToViewport(s32 handle)
     {
@@ -202,7 +191,7 @@ namespace shine::render::opengl3
     {
         if (!cmdBuffer) return;
 
-        auto bindFbo = [&](s32 h){
+        auto bindFbo = [&](s32 h) {
             auto it = m_Viewports.find(h);
             if (it == m_Viewports.end())
                 glBindFramebuffer(GL_FRAMEBUFFER, g_FramebufferObject);
@@ -211,26 +200,23 @@ namespace shine::render::opengl3
         };
 
         bindFbo(handle);
-        
-        // 根据目标FBO选择合适的视窗大小，避免视口混乱
-        int vpW = g_Width, vpH = g_Height;
-        {
-            auto it2 = m_Viewports.find(handle);
-            if (it2 != m_Viewports.end()) { vpW = it2->second.width; vpH = it2->second.height; }
+
+        int vpW = m_Width, vpH = m_Height;
+        if (auto it = m_Viewports.find(handle); it != m_Viewports.end()) {
+            vpW = it->second.width;
+            vpH = it->second.height;
         }
-        
-        // Setup default state before executing commands
+
+        // Default state
         glViewport(0, 0, vpW, vpH);
         glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
 
-        // 每帧更新一次相关UBO
         UpdateCameraUBO();
         UpdateLightUBO();
-        // UpdateLightUBO(); // Duplicate call in original code, removing
 
-        // Execute commands using the visitor
+        // Execute commands via visitor
         shine::render::backend::gl::GLExecutor executor;
         for (const auto& cmd : cmdBuffer->GetCommands())
         {
@@ -240,120 +226,127 @@ namespace shine::render::opengl3
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-	void OpenGLRenderBackend::RenderToFramebuffer(std::array<float, 4> clear_color)
-	{
-		// 渲染到帧缓冲
-		RenderSceneToFrameBuffer();
-        
-        glViewport(0, 0, g_Width, g_Height);
+    void OpenGLRenderBackend::RenderToFramebuffer(const std::array<float, 4>& clear_color)
+    {
+        RenderSceneToFrameBuffer();
+
+        glViewport(0, 0, m_Width, m_Height);
         glClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
-        
-        // Clear color only (true, false)
         glClear(GL_COLOR_BUFFER_BIT);
-        
-        // ImGui Render
-        extern void ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data);
+
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        
-		// Present
-		::SwapBuffers(g_hdc);
-	}
 
-	unsigned int OpenGLRenderBackend::GetFramebufferTexture()
-	{
-		return g_FramebufferTexture;
-	}
-
-s32 OpenGLRenderBackend::CreateViewport(int width, int height)
-{
-    // 创建颜色纹理
-    GLuint color=0, depth=0, fbo=0;
-    glGenFramebuffers(1, &fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-    glGenTextures(1, &color);
-    glBindTexture(GL_TEXTURE_2D, color);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color, 0);
-
-    glGenRenderbuffers(1, &depth);
-    glBindRenderbuffer(GL_RENDERBUFFER, depth);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        if (color) glDeleteTextures(1, &color);
-        if (depth) glDeleteRenderbuffers(1, &depth);
-        if (fbo) glDeleteFramebuffers(1, &fbo);
-        return 0;
+        ::SwapBuffers(g_hdc);
     }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    s32 handle = m_NextViewportHandle++;
-    m_Viewports.emplace(handle, ViewportInfo(fbo, color, depth, width, height));
-    return handle;
-}
+    unsigned int OpenGLRenderBackend::GetFramebufferTexture()
+    {
+        return g_FramebufferTexture;
+    }
 
-void OpenGLRenderBackend::DestroyViewport(s32 handle)
-{
-    auto it = m_Viewports.find(handle);
-    if (it == m_Viewports.end()) return;
-    if (it->second.fbo) glDeleteFramebuffers(1, &it->second.fbo);
-    if (it->second.color) glDeleteTextures(1, &it->second.color);
-    if (it->second.depth) glDeleteRenderbuffers(1, &it->second.depth);
-    m_Viewports.erase(it);
-}
+    // ---- Size ----
+    void OpenGLRenderBackend::SetSize(int width, int height)
+    {
+        m_Width  = width;
+        m_Height = height;
+    }
 
-void OpenGLRenderBackend::ResizeViewport(s32 handle, int width, int height)
-{
-    auto it = m_Viewports.find(handle);
-    if (it == m_Viewports.end()) return;
-    // 重新创建附件
-    glBindTexture(GL_TEXTURE_2D, it->second.color);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-    glBindRenderbuffer(GL_RENDERBUFFER, it->second.depth);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
-    it->second.width = width; it->second.height = height;
-}
+    std::pair<int,int> OpenGLRenderBackend::GetSize() const noexcept
+    {
+        return { m_Width, m_Height };
+    }
 
-void OpenGLRenderBackend::BindViewport(s32 handle)
-{
-    auto it = m_Viewports.find(handle);
-    if (it == m_Viewports.end()) { glBindFramebuffer(GL_FRAMEBUFFER, g_FramebufferObject); return; }
-    glBindFramebuffer(GL_FRAMEBUFFER, it->second.fbo);
-}
+    // ---- Viewport management ----
+    s32 OpenGLRenderBackend::CreateViewport(int width, int height)
+    {
+        GLuint color = 0, depth = 0, fbo = 0;
+        glGenFramebuffers(1, &fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-unsigned long long OpenGLRenderBackend::GetViewportTexture(u32 handle)
-{
-    auto it = m_Viewports.find(handle);
-    if (it == m_Viewports.end()) return GetFramebufferTexture();
-    return it->second.color;
-}
+        glGenTextures(1, &color);
+        glBindTexture(GL_TEXTURE_2D, color);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color, 0);
 
-	void OpenGLRenderBackend::ReSizeFrameBuffer(int width, int height)
-	{
-		if (g_FramebufferObject != 0) {
-			g_Width = width;
-			g_Height = height;
-			CreateFrameBuffer();
-		}
-	}
+        glGenRenderbuffers(1, &depth);
+        glBindRenderbuffer(GL_RENDERBUFFER, depth);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
 
-	void OpenGLRenderBackend::ClearUp(HWND hwnd)
-	{
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            if (color) glDeleteTextures(1, &color);
+            if (depth) glDeleteRenderbuffers(1, &depth);
+            if (fbo)   glDeleteFramebuffers(1, &fbo);
+            return 0;
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		// 清理ImGui
-		ImGui_ImplOpenGL3_Shutdown();
-		ImGui_ImplWin32_Shutdown();
-		ImGui::DestroyContext();
-		// 清理OpenGL
+        s32 handle = m_NextViewportHandle++;
+        m_Viewports.emplace(handle, ViewportInfo(fbo, color, depth, width, height));
+        return handle;
+    }
 
-		CleanupDevice(hwnd);
-		wglDeleteContext(g_hRC);
-	}
+    void OpenGLRenderBackend::DestroyViewport(s32 handle)
+    {
+        auto it = m_Viewports.find(handle);
+        if (it == m_Viewports.end()) return;
+        if (it->second.fbo)   glDeleteFramebuffers(1, &it->second.fbo);
+        if (it->second.color) glDeleteTextures(1, &it->second.color);
+        if (it->second.depth) glDeleteRenderbuffers(1, &it->second.depth);
+        m_Viewports.erase(it);
+    }
+
+    void OpenGLRenderBackend::ResizeViewport(s32 handle, int width, int height)
+    {
+        auto it = m_Viewports.find(handle);
+        if (it == m_Viewports.end()) return;
+        glBindTexture(GL_TEXTURE_2D, it->second.color);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+        glBindRenderbuffer(GL_RENDERBUFFER, it->second.depth);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+        it->second.width = width;
+        it->second.height = height;
+    }
+
+    void OpenGLRenderBackend::BindViewport(s32 handle)
+    {
+        auto it = m_Viewports.find(handle);
+        if (it == m_Viewports.end()) {
+            glBindFramebuffer(GL_FRAMEBUFFER, g_FramebufferObject);
+            return;
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, it->second.fbo);
+    }
+
+    unsigned long long OpenGLRenderBackend::GetViewportTexture(u32 handle)
+    {
+        auto it = m_Viewports.find(handle);
+        if (it == m_Viewports.end()) return GetFramebufferTexture();
+        return it->second.color;
+    }
+
+    void OpenGLRenderBackend::ReSizeFrameBuffer(int width, int height)
+    {
+        if (g_FramebufferObject != 0) {
+            m_Width  = width;
+            m_Height = height;
+            CreateFrameBuffer();
+        }
+    }
+
+    void OpenGLRenderBackend::ClearUp(backend::NativeWindowHandle window)
+    {
+        HWND hwnd = static_cast<HWND>(window);
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplWin32_Shutdown();
+        ImGui::DestroyContext();
+
+        CleanupDevice(window);
+        wglDeleteContext(g_hRC);
+    }
 
     void OpenGLRenderBackend::UpdateCameraUBO()
     {
@@ -379,124 +372,109 @@ unsigned long long OpenGLRenderBackend::GetViewportTexture(u32 handle)
         const float color4[4] = { lm.directional().color[0], lm.directional().color[1], lm.directional().color[2], 1.0f };
         const float inten4[4] = { lm.directional().intensity, 0.0f, 0.0f, 0.0f };
         glBindBuffer(GL_UNIFORM_BUFFER, m_LightUbo);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, 16, dir4);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0,  16, dir4);
         glBufferSubData(GL_UNIFORM_BUFFER, 16, 16, color4);
         glBufferSubData(GL_UNIFORM_BUFFER, 32, 16, inten4);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
         glBindBufferBase(GL_UNIFORM_BUFFER, 1, m_LightUbo);
     }
 
-	int OpenGLRenderBackend::getWidth() const
-	{
-		return g_Width;
-	}
-
-	int OpenGLRenderBackend::getHeight() const
-	{
-		return g_Height;
-	}
-
-	void OpenGLRenderBackend::setWidth(int width)
-	{
-		g_Width = width;
-	}
-
-	void OpenGLRenderBackend::setHeight(int height)
-	{
-		g_Height = height;
-	}
-
-	uint32_t OpenGLRenderBackend::CreateTexture2D(int width, int height, const void* data,
-		bool generateMipmaps, bool linearFilter, bool clampToEdge)
-	{
-		if (width <= 0 || height <= 0)
-		{
-			return 0;
-		}
-
-		GLuint textureId = 0;
-		glGenTextures(1, &textureId);
-		glBindTexture(GL_TEXTURE_2D, textureId);
-
-		// 设置纹理过滤参数
-		GLint minFilter = linearFilter ? (generateMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR) : GL_NEAREST;
-		GLint magFilter = linearFilter ? GL_LINEAR : GL_NEAREST;
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
-
-		// 设置纹理环绕模式
-		GLint wrapMode = clampToEdge ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapMode);
-
-		// 上传纹理数据
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-			static_cast<GLsizei>(width),
-			static_cast<GLsizei>(height),
-			0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-		// 生成mipmap（如果需要）
-		if (generateMipmaps && data != nullptr)
-		{
-			glGenerateMipmap(GL_TEXTURE_2D);
-		}
-
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		return static_cast<uint32_t>(textureId);
-	}
-
-	void OpenGLRenderBackend::UpdateTexture2D(uint32_t textureId, int width, int height, const void* data)
-	{
-		if (textureId == 0 || width <= 0 || height <= 0)
-		{
-			return;
-		}
-
-		glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(textureId));
-
-		// 更新纹理数据
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
-
-	void OpenGLRenderBackend::ReleaseTexture(uint32_t textureId)
-	{
-		if (textureId != 0)
-		{
-			GLuint glTextureId = static_cast<GLuint>(textureId);
-			glDeleteTextures(1, &glTextureId);
-		}
-	}
-
-    uint32_t OpenGLRenderBackend::CreateShaderProgram(const char* vsSource, const char* fsSource, std::string& outLog)
+    // ---- Texture ----
+    uint32_t OpenGLRenderBackend::CreateTexture2D(int width, int height, const void* data,
+        bool generateMipmaps, bool linearFilter, bool clampToEdge)
     {
-        GLint ok = 0; outLog.clear();
+        if (width <= 0 || height <= 0) return 0;
+
+        GLuint textureId = 0;
+        glGenTextures(1, &textureId);
+        glBindTexture(GL_TEXTURE_2D, textureId);
+
+        GLint minFilter = linearFilter ? (generateMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR) : GL_NEAREST;
+        GLint magFilter = linearFilter ? GL_LINEAR : GL_NEAREST;
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
+
+        GLint wrapMode = clampToEdge ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapMode);
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+            static_cast<GLsizei>(width), static_cast<GLsizei>(height),
+            0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+        if (generateMipmaps && data != nullptr)
+            glGenerateMipmap(GL_TEXTURE_2D);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+        return static_cast<uint32_t>(textureId);
+    }
+
+    void OpenGLRenderBackend::UpdateTexture2D(uint32_t textureId, int width, int height, const void* data)
+    {
+        if (textureId == 0 || width <= 0 || height <= 0) return;
+        glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(textureId));
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    void OpenGLRenderBackend::ReleaseTexture(uint32_t textureId)
+    {
+        if (textureId != 0) {
+            GLuint glId = static_cast<GLuint>(textureId);
+            glDeleteTextures(1, &glId);
+        }
+    }
+
+    // ---- Shader ----
+    std::expected<uint32_t, std::string>
+    OpenGLRenderBackend::CreateShaderProgram(std::string_view vsSource,
+                                             std::string_view fsSource)
+    {
+        GLint ok = 0;
+
+        // Vertex shader
         GLuint v = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(v, 1, &vsSource, nullptr);
+        const char* vsSrc = vsSource.data();
+        GLint vsLen = static_cast<GLint>(vsSource.size());
+        glShaderSource(v, 1, &vsSrc, &vsLen);
         glCompileShader(v);
         glGetShaderiv(v, GL_COMPILE_STATUS, &ok);
         if (!ok) {
-            char log[2048]{}; glGetShaderInfoLog(v, 2048, nullptr, log); outLog += "VS:"; outLog += log; glDeleteShader(v); return 0;
+            char log[2048]{};
+            glGetShaderInfoLog(v, 2048, nullptr, log);
+            glDeleteShader(v);
+            return std::unexpected(std::string("VS:") + log);
         }
 
+        // Fragment shader
         GLuint f = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(f, 1, &fsSource, nullptr);
+        const char* fsSrc = fsSource.data();
+        GLint fsLen = static_cast<GLint>(fsSource.size());
+        glShaderSource(f, 1, &fsSrc, &fsLen);
         glCompileShader(f);
         glGetShaderiv(f, GL_COMPILE_STATUS, &ok);
         if (!ok) {
-            char log[2048]{}; glGetShaderInfoLog(f, 2048, nullptr, log); outLog += "FS:"; outLog += log; glDeleteShader(v); glDeleteShader(f); return 0;
+            char log[2048]{};
+            glGetShaderInfoLog(f, 2048, nullptr, log);
+            glDeleteShader(v);
+            glDeleteShader(f);
+            return std::unexpected(std::string("FS:") + log);
         }
 
+        // Link
         GLuint prog = glCreateProgram();
         glAttachShader(prog, v);
         glAttachShader(prog, f);
         glLinkProgram(prog);
         glGetProgramiv(prog, GL_LINK_STATUS, &ok);
         if (!ok) {
-            char log[2048]{}; glGetProgramInfoLog(prog, 2048, nullptr, log); outLog += "LK:"; outLog += log; glDeleteShader(v); glDeleteShader(f); glDeleteProgram(prog); return 0;
+            char log[2048]{};
+            glGetProgramInfoLog(prog, 2048, nullptr, log);
+            glDeleteShader(v);
+            glDeleteShader(f);
+            glDeleteProgram(prog);
+            return std::unexpected(std::string("LK:") + log);
         }
         glDeleteShader(v);
         glDeleteShader(f);
@@ -506,7 +484,7 @@ unsigned long long OpenGLRenderBackend::GetViewportTexture(u32 handle)
         if (blockIndex != GL_INVALID_INDEX) {
             glUniformBlockBinding(prog, blockIndex, 0);
         }
-        
+
         return static_cast<uint32_t>(prog);
     }
 
@@ -515,5 +493,18 @@ unsigned long long OpenGLRenderBackend::GetViewportTexture(u32 handle)
         if (programId) glDeleteProgram(static_cast<GLuint>(programId));
     }
 
-#endif
+    // ---- Uniform query ----
+    int32_t OpenGLRenderBackend::GetUniformLocation(uint32_t programId,
+                                                     std::string_view name)
+    {
+        if (programId == 0) return -1;
+        // glGetUniformLocation needs a null-terminated string.
+        // string_view from string literals / std::string is already null-terminated in practice,
+        // but to be safe we pass the data pointer (which is fine for our use case).
+        return static_cast<int32_t>(
+            glGetUniformLocation(static_cast<GLuint>(programId),
+                                 name.data()));
+    }
+
+#endif // SHINE_OPENGL
 }

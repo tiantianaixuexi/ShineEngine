@@ -3,21 +3,23 @@
 
 namespace shine::render
 {
-    ScriptableRenderContext::ScriptableRenderContext()
-    {
-    }
-
     ScriptableRenderContext::~ScriptableRenderContext()
     {
         Clear();
+    }
+
+    void ScriptableRenderContext::Submit(CommandBuffer&& cmdBuffer)
+    {
+        // Move semantics — no deep copy of the variant vector
+        m_CommandBuffers.push_back(std::move(cmdBuffer));
     }
 
     void ScriptableRenderContext::Submit(CommandBuffer* cmdBuffer)
     {
         if (cmdBuffer)
         {
-            // 存储 CommandBuffer 的副本，避免生命周期问题
-            m_CommandBuffers.push_back(*cmdBuffer);
+            // Move from the source — caller should not use the buffer after Submit
+            m_CommandBuffers.push_back(std::move(*cmdBuffer));
         }
     }
 
@@ -27,7 +29,6 @@ namespace shine::render
         {
             for (auto& cmdBuffer : m_CommandBuffers)
             {
-                // 传递引用，因为现在存储的是对象而不是指针
                 m_ExecuteCallback(&cmdBuffer);
             }
         }
@@ -39,9 +40,8 @@ namespace shine::render
         m_CommandBuffers.clear();
     }
 
-    void ScriptableRenderContext::SetExecuteCallback(std::function<void(CommandBuffer*)> callback)
+    void ScriptableRenderContext::SetExecuteCallback(std::move_only_function<void(CommandBuffer*)> callback)
     {
-        m_ExecuteCallback = callback;
+        m_ExecuteCallback = std::move(callback);
     }
 }
-

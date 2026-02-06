@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include "render_backend.h"
 #include "render_backend_type.h"
 
@@ -11,8 +12,9 @@ namespace shine::render::backend
         /**
          * @brief Create a render backend instance
          * @param type The type of backend to create
-         * @return Pointer to the backend instance, or nullptr if not supported/available
+         * @return unique_ptr to the backend, or nullptr if not supported
          */
-        static IRenderBackend* create(RenderBackendType type);
+        [[nodiscard]]
+        static std::unique_ptr<IRenderBackend> create(RenderBackendType type);
     };
 }

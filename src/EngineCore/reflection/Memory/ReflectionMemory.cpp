@@ -2,199 +2,214 @@
 #include <algorithm>
 #include <cstring>
 
+// =============================================================================
+// ReflectionMemoryManager — implementation
+// =============================================================================
+//
+// All allocations now route through shine::co::Memory (mimalloc backend)
+// with MemoryScope to tag them as Reflection.  This replaces the previous
+// _aligned_malloc / _aligned_free path, giving us:
+//   • Unified profiling through the engine's tag system
+//   • mimalloc performance (thread-local heaps, size classes)
+//   • No per-allocation mutex — stats are atomic
+//
+
 namespace shine::reflection {
 
+    // ---- Allocate ----
+
     void* ReflectionMemoryManager::AllocateImpl(size_t size, MemoryTag tag, size_t alignment) {
-        // 更新统计数据
-        {
-            std::lock_guard<std::mutex> lock(statsMutex_);
-            stats_.allocationCount++;
-            stats_.totalAllocated += size;
-            stats_.peakUsage = std::max(stats_.peakUsage, stats_.totalAllocated);
+        // Tag this allocation as Reflection in the engine's global tracker
+        shine::co::MemoryScope engineScope(shine::co::MemoryTag::Reflection);
 
-            // 按标签分类统计
-            if (HasFlag(tag, MemoryTag::TypeInfo)) {
-                stats_.typeInfoBytes += size;
-            }
-            if (HasFlag(tag, MemoryTag::FieldInfo)) {
-                stats_.fieldInfoBytes += size;
-            }
-            if (HasFlag(tag, MemoryTag::StringStorage)) {
-                stats_.stringBytes += size;
-            }
-            if (HasFlag(tag, MemoryTag::CacheData)) {
-                stats_.cacheBytes += size;
-            }
+        // Atomic stat updates — no mutex required
+        allocationCount_.fetch_add(1, std::memory_order_relaxed);
+
+        size_t prevTotal = totalAllocated_.fetch_add(size, std::memory_order_relaxed);
+        size_t newTotal  = prevTotal + size;
+
+        // Update peak with CAS loop (matches engine pattern)
+        size_t peak = peakUsage_.load(std::memory_order_relaxed);
+        while (newTotal > peak) {
+            if (peakUsage_.compare_exchange_weak(peak, newTotal, std::memory_order_relaxed))
+                break;
         }
 
-        // 对于临时分配，使用帧分配器
+        // Per-sub-tag byte tracking
+        if (HasFlag(tag, MemoryTag::TypeInfo))
+            typeInfoBytes_.fetch_add(size, std::memory_order_relaxed);
+        if (HasFlag(tag, MemoryTag::FieldInfo))
+            fieldInfoBytes_.fetch_add(size, std::memory_order_relaxed);
+        if (HasFlag(tag, MemoryTag::StringStorage))
+            stringBytes_.fetch_add(size, std::memory_order_relaxed);
+        if (HasFlag(tag, MemoryTag::CacheData))
+            cacheBytes_.fetch_add(size, std::memory_order_relaxed);
+
+        // Temporary allocations go to the arena (O(1) bump, no syscall)
         if (HasFlag(tag, MemoryTag::TemporaryBuffers)) {
-            return temporaryAllocator_.Allocate(size, tag, alignment);
+            return arena_.Allocate(size, alignment);
         }
 
-        // 小对象使用shine内存系统
-        if (size <= SMALL_OBJECT_THRESHOLD) {
-            shine::co::MemoryScope scope(shine::co::MemoryTag::Reflection);
-            return shine::co::Memory::Alloc(size, alignment);
-        }
-
-        // 大对象直接分配
-        return std::aligned_alloc(alignment, size);
+        // Everything else routes through engine Memory (mimalloc)
+        return shine::co::Memory::Alloc(size, alignment);
     }
+
+    // ---- Deallocate ----
 
     void ReflectionMemoryManager::DeallocateImpl(void* ptr, size_t size, MemoryTag tag) {
         if (!ptr) return;
 
-        // 更新统计数据
-        {
-            std::lock_guard<std::mutex> lock(statsMutex_);
-            stats_.deallocationCount++;
-            stats_.totalAllocated = (stats_.totalAllocated > size) ? 
-                                   stats_.totalAllocated - size : 0;
+        // Atomic stat updates
+        deallocationCount_.fetch_add(1, std::memory_order_relaxed);
 
-            // 按标签分类统计
-            if (HasFlag(tag, MemoryTag::TypeInfo) && stats_.typeInfoBytes >= size) {
-                stats_.typeInfoBytes -= size;
+        // Clamp-to-zero subtraction on totalAllocated_
+        size_t prev = totalAllocated_.load(std::memory_order_relaxed);
+        while (true) {
+            size_t newVal = (prev > size) ? prev - size : 0;
+            if (totalAllocated_.compare_exchange_weak(prev, newVal, std::memory_order_relaxed))
+                break;
+        }
+
+        // Per-sub-tag byte tracking
+        if (HasFlag(tag, MemoryTag::TypeInfo)) {
+            size_t p = typeInfoBytes_.load(std::memory_order_relaxed);
+            while (p >= size) {
+                if (typeInfoBytes_.compare_exchange_weak(p, p - size, std::memory_order_relaxed))
+                    break;
             }
-            if (HasFlag(tag, MemoryTag::FieldInfo) && stats_.fieldInfoBytes >= size) {
-                stats_.fieldInfoBytes -= size;
+        }
+        if (HasFlag(tag, MemoryTag::FieldInfo)) {
+            size_t p = fieldInfoBytes_.load(std::memory_order_relaxed);
+            while (p >= size) {
+                if (fieldInfoBytes_.compare_exchange_weak(p, p - size, std::memory_order_relaxed))
+                    break;
             }
-            if (HasFlag(tag, MemoryTag::StringStorage) && stats_.stringBytes >= size) {
-                stats_.stringBytes -= size;
+        }
+        if (HasFlag(tag, MemoryTag::StringStorage)) {
+            size_t p = stringBytes_.load(std::memory_order_relaxed);
+            while (p >= size) {
+                if (stringBytes_.compare_exchange_weak(p, p - size, std::memory_order_relaxed))
+                    break;
             }
-            if (HasFlag(tag, MemoryTag::CacheData) && stats_.cacheBytes >= size) {
-                stats_.cacheBytes -= size;
+        }
+        if (HasFlag(tag, MemoryTag::CacheData)) {
+            size_t p = cacheBytes_.load(std::memory_order_relaxed);
+            while (p >= size) {
+                if (cacheBytes_.compare_exchange_weak(p, p - size, std::memory_order_relaxed))
+                    break;
             }
         }
 
-        // 临时分配不需要显式释放
+        // Arena allocations are freed in bulk by Reset/Clear — no-op here
         if (HasFlag(tag, MemoryTag::TemporaryBuffers)) {
             return;
         }
 
-        // 小对象使用shine内存系统释放
-        if (size <= SMALL_OBJECT_THRESHOLD) {
-            shine::co::MemoryScope scope(shine::co::MemoryTag::Reflection);
-            shine::co::Memory::Free(ptr);
-            return;
-        }
-
-        // 大对象直接释放
-        std::free(ptr);
+        shine::co::Memory::Free(ptr);
     }
+
+    // ---- UpdateStatistics ----
 
     void ReflectionMemoryManager::UpdateStatistics() {
-        std::lock_guard<std::mutex> lock(statsMutex_);
-        
-        // 计算命中率
-        if (stats_.allocationCount > 0) {
-            stats_.hitRate = (static_cast<double>(stats_.allocationCount - stats_.deallocationCount) / 
-                             static_cast<double>(stats_.allocationCount)) * 100.0;
-        }
+        size_t allocs = allocationCount_.load(std::memory_order_relaxed);
+        size_t deallocs = deallocationCount_.load(std::memory_order_relaxed);
+        size_t peak = peakUsage_.load(std::memory_order_relaxed);
+        size_t total = totalAllocated_.load(std::memory_order_relaxed);
 
-        // 简单的碎片率估算
-        stats_.fragmentation = (stats_.peakUsage > 0) ? 
-                              (1.0 - static_cast<double>(stats_.totalAllocated) / 
-                               static_cast<double>(stats_.peakUsage)) * 100.0 : 0.0;
+        double hr = (allocs > 0)
+            ? (static_cast<double>(allocs - deallocs) / static_cast<double>(allocs)) * 100.0
+            : 0.0;
+        hitRate_.store(hr, std::memory_order_relaxed);
+
+        double frag = (peak > 0)
+            ? (1.0 - static_cast<double>(total) / static_cast<double>(peak)) * 100.0
+            : 0.0;
+        fragmentation_.store(frag, std::memory_order_relaxed);
     }
 
-    void ReflectionMemoryManager::ClearPools() {
-        // 清理shine内存池
-        shine::co::MemoryScope scope(shine::co::MemoryTag::Reflection);
-        // 注意：这里可能需要shine内存系统的特定清理接口
-    }
+    // =========================================================================
+    // StringMemoryManager — implementation
+    // =========================================================================
 
-    // TemporaryAllocator 实现
-    void* ReflectionMemoryManager::TemporaryAllocator::Allocate(size_t size, MemoryTag tag, size_t alignment) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        
-        // 简单实现：直接分配内存
-        void* ptr = std::aligned_alloc(alignment, size);
-        if (ptr) {
-            blocks_.push_back({ptr, size, tag});
-        }
-        return ptr;
-    }
-
-    void ReflectionMemoryManager::TemporaryAllocator::Reset() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        // 重置但保留内存块以供下次使用
-        blocks_.clear();
-    }
-
-    void ReflectionMemoryManager::TemporaryAllocator::Clear() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        for (const auto& block : blocks_) {
-            std::free(block.ptr);
-        }
-        blocks_.clear();
-    }
-
-    // StringMemoryManager 实现
     StringMemoryManager::~StringMemoryManager() {
         ClearStrings();
     }
 
     const char* StringMemoryManager::StoreString(std::string_view str) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return stringPool_.Allocate(str);
+        // ---- Fast-path: deduplicate via hash set ----
+        //
+        // If the exact string content was already interned, return
+        // the existing pointer.  This avoids allocating duplicate
+        // copies of common names like "float", "int", field names, etc.
+
+        if (auto it = internSet_.find(str); it != internSet_.end()) {
+            return it->data();
+        }
+
+        // ---- Slow-path: store in arena + insert into set ----
+        const char* stored = arena_.Store(str);
+        if (stored) {
+            // Create a string_view pointing into the arena memory
+            internSet_.emplace(stored, str.size());
+            stringCount_.fetch_add(1, std::memory_order_relaxed);
+        }
+        return stored;
     }
 
     void StringMemoryManager::ClearStrings() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        stringPool_.Clear();
+        internSet_.clear();
+        arena_.Clear();
+        stringCount_.store(0, std::memory_order_relaxed);
     }
 
-    size_t StringMemoryManager::GetStringCount() const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return stringPool_.GetCount();
+    size_t StringMemoryManager::GetStringCount() const noexcept {
+        return stringCount_.load(std::memory_order_relaxed);
     }
 
-    // StringPool 实现
-    const char* StringMemoryManager::StringPool::Allocate(std::string_view str) {
-        std::lock_guard<std::mutex> lock(mutex_);
+    size_t StringMemoryManager::GetTotalBytes() const noexcept {
+        return arena_.GetTotalStored();
+    }
 
-        size_t required_size = str.length() + 1; // +1 for null terminator
+    // =========================================================================
+    // StringArena — implementation
+    // =========================================================================
 
-        // 查找合适的块
-        for (auto& block : blocks_) {
-            if (block.capacity - block.used >= required_size) {
-                char* result = block.buffer.get() + block.used;
-                std::memcpy(result, str.data(), str.length());
-                result[str.length()] = '\0';
-                block.used += required_size;
-                return result;
+    const char* StringMemoryManager::StringArena::Store(std::string_view str) {
+        const size_t required = str.length() + 1;  // +1 for null terminator
+
+        // Try to fit in the last block
+        if (!blocks_.empty()) {
+            auto& back = blocks_.back();
+            if (back.used + required <= back.capacity) {
+                char* dest = back.buffer.get() + back.used;
+                std::memcpy(dest, str.data(), str.length());
+                dest[str.length()] = '\0';
+                back.used += required;
+                totalStored_ += required;
+                return dest;
             }
         }
 
-        // 创建新块
-        size_t new_block_size = std::max(INITIAL_BLOCK_SIZE, required_size);
-        StringBlock new_block;
-        new_block.buffer = std::make_unique<char[]>(new_block_size);
-        new_block.capacity = new_block_size;
-        new_block.used = 0;
+        // Allocate a new block (via operator new → engine Memory)
+        size_t blockCap = std::max(BLOCK_SIZE, required);
+        Block block;
+        block.buffer   = std::make_unique<char[]>(blockCap);
+        block.capacity = blockCap;
+        block.used     = 0;
 
-        char* result = new_block.buffer.get();
-        std::memcpy(result, str.data(), str.length());
-        result[str.length()] = '\0';
-        new_block.used = required_size;
+        char* dest = block.buffer.get();
+        std::memcpy(dest, str.data(), str.length());
+        dest[str.length()] = '\0';
+        block.used = required;
+        totalStored_ += required;
 
-        blocks_.push_back(std::move(new_block));
-        return result;
+        blocks_.push_back(std::move(block));
+        return dest;
     }
 
-    void StringMemoryManager::StringPool::Clear() {
-        std::lock_guard<std::mutex> lock(mutex_);
+    void StringMemoryManager::StringArena::Clear() {
         blocks_.clear();
-    }
-
-    size_t StringMemoryManager::StringPool::GetCount() const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        size_t count = 0;
-        for (const auto& block : blocks_) {
-            count += block.used; // 这里简单估算，实际应该统计字符串数量
-        }
-        return count;
+        totalStored_ = 0;
     }
 
 } // namespace shine::reflection

@@ -9,8 +9,6 @@
 #include "render/resources/TextureManager.h"
 #include "render/resources/shader_manager.h"
 
-// extern shine::EngineContext* g_EngineContext; // Removed global pointer declaration
-
 namespace shine::render
 {
     void RendererService::init(backend::IRenderBackend* backend) noexcept
@@ -26,15 +24,15 @@ namespace shine::render
             m_RenderPipeline = m_RenderPipelineAsset->CreatePipeline();
         }
 
-        // 设置渲染上下文的执行回调
         setupRenderContext();
     }
+
     ViewportHandle RendererService::createViewport(int width, int height) noexcept
     {
         if (!m_Backend) return 0;
         const auto handle = m_Backend->CreateViewport(width, height);
         if (handle != 0) {
-            m_Viewports.emplace(handle, ViewportRecord(width, height));
+            m_Viewports.emplace(handle, ViewportRecord{ width, height });
         }
         return handle;
     }
@@ -50,11 +48,12 @@ namespace shine::render
     {
         if (!m_Backend || handle == 0) return;
         m_Backend->ResizeViewport(handle, width, height);
-        auto it = m_Viewports.find(handle);
-        if (it != m_Viewports.end()) { it->second.width = width; it->second.height = height; }
+        if (auto it = m_Viewports.find(handle); it != m_Viewports.end()) {
+            it->second = ViewportRecord{ width, height };
+        }
     }
 
-    unsigned long long  RendererService::getViewportTexture(ViewportHandle handle) const noexcept
+    unsigned long long RendererService::getViewportTexture(ViewportHandle handle) const noexcept
     {
         if (!m_Backend || handle == 0) return 0;
         return m_Backend->GetViewportTexture(handle);
@@ -70,16 +69,12 @@ namespace shine::render
         if (!m_Backend || handle == 0) return;
         if (!m_RenderPipeline) return;
 
-        // 收集渲染数据
         RenderingData renderingData = collectRenderingData(handle, camera);
 
-        // 清空渲染上下文
         m_RenderContext.Clear();
 
-        // 执行渲染管线
         m_RenderPipeline->Render(m_RenderContext, renderingData);
 
-        // 执行所有提交的命令
         m_RenderContext.Execute();
     }
 
@@ -92,8 +87,8 @@ namespace shine::render
     {
         if (asset)
         {
-            m_RenderPipelineAsset = asset;
-            m_RenderPipeline = asset->CreatePipeline();
+            m_RenderPipelineAsset = std::move(asset);
+            m_RenderPipeline = m_RenderPipelineAsset->CreatePipeline();
         }
     }
 
@@ -101,7 +96,6 @@ namespace shine::render
     {
         RenderingData data;
 
-        // 设置主相机
         if (camera)
         {
             data.mainCamera = camera;
@@ -109,7 +103,6 @@ namespace shine::render
         }
         else
         {
-            // 如果没有传入相机，从 CameraManager 获取主相机
             if (auto* mainCam = manager::CameraManager::get().getMainCamera())
             {
                 data.mainCamera = mainCam;
@@ -117,24 +110,18 @@ namespace shine::render
             }
         }
 
-        // 设置光源管理器
         data.lightManager = &shine::manager::LightManager::get();
 
-        // 收集场景对象
         data.sceneObjects.reserve(m_SceneObjects.size());
         for (auto* obj : m_SceneObjects)
         {
-            if (obj)
-            {
-                data.sceneObjects.push_back(obj);
-            }
+            if (obj) data.sceneObjects.push_back(obj);
         }
 
-        // 设置视口信息
         if (const auto it = m_Viewports.find(handle); it != m_Viewports.end())
         {
             data.viewport.handle = handle;
-            data.viewport.width = it->second.width;
+            data.viewport.width  = it->second.width;
             data.viewport.height = it->second.height;
         }
 
@@ -143,19 +130,15 @@ namespace shine::render
 
     void RendererService::setupRenderContext() noexcept
     {
-        // 设置执行回调，将 CommandBuffer 的命令执行到后端
-        // 使用 ExecuteCommandBuffer 直接执行命令缓冲区
         m_RenderContext.SetExecuteCallback([this](CommandBuffer* cmdBuffer) {
             if (!cmdBuffer || !m_Backend) return;
 
-            // 获取当前视口句柄
             ViewportHandle viewportHandle = m_CurrentViewportHandle;
             if (viewportHandle == 0 && !m_Viewports.empty())
             {
-                 viewportHandle = m_Viewports.begin()->first;
+                viewportHandle = m_Viewports.begin()->first;
             }
 
-            // 直接执行命令缓冲区，无需通过 ICommandList 回调
             m_Backend->ExecuteCommandBuffer(static_cast<s32>(viewportHandle), cmdBuffer);
         });
     }

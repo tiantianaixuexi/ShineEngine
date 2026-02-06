@@ -1,10 +1,7 @@
 {
   "name": "SimplePerfTest",
   "files": [
-    "test/SimplePerfTest/simple_main.cpp"
-  ],
-  "dirs": [
-    "test/SimplePerfTest"
+    "test/SimplePerfTest/string_test.cpp"
   ],
   "deps": [
     "fmt"

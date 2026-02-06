@@ -1,6 +1,5 @@
 #include "InitWindows.h"
 
-
 #include "WindowsInfo.h"
 
 #include "manager/InputManager.h"
@@ -8,15 +7,11 @@
 #include "imgui/imgui.h"
 #include "fmt/base.h"
 #include "render/renderer_service.h"
-// #include "render/renderManager.h"
 #include "render/backend/render_backend_factory.h"
 
 
-// Forward-declare WndProc handler from imgui Win32 backend (header intentionally leaves it commented out)
+// Forward-declare WndProc handler from imgui Win32 backend
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-// Global pointer for message handler access
-// static shine::EngineContext* g_EngineContext = nullptr; // Removed local static
 
 namespace shine::windows
 {
@@ -25,8 +20,6 @@ namespace shine::windows
 
 	bool InitWindowsPlatform(EngineContext& context)
 	{
-		// g_EngineContext = &context;
-
 		context.GetSystem<WindowsDeviceInfo>()->InitDisplayInfo();
 		
 		auto& mainDisplay = context.GetSystem<WindowsDeviceInfo>()->MainDisplayInfo;
@@ -53,57 +46,56 @@ namespace shine::windows
 
 		auto& info = context.GetSystem<WindowsInfo>()->info;
 		
-		// auto renderBackend = context.GetSystem<render::RenderManager>()->CreateRenderBackend();
-                // Use factory to create backend. 
-                // TODO: Read configuration to decide which backend to use. Defaulting to OpenGL for now.
-                auto renderBackend = shine::render::backend::RenderBackendFactory::create(shine::render::backend::RenderBackendType::OpenGL);
+		// Use factory to create backend (returns unique_ptr)
+		auto renderBackend = shine::render::backend::RenderBackendFactory::create(
+			shine::render::backend::RenderBackendType::OpenGL);
                 
-                if (!renderBackend) {
-                    return false; // Failed to create backend
-                }
+		if (!renderBackend) {
+			return false;
+		}
 
-		if (const int result = renderBackend->init(info.hwnd, wc); result != 0)
+		// Pass NativeWindowHandle (void*) and platform data (WNDCLASSEXW*)
+		if (const int result = renderBackend->init(info.hwnd, &wc); result != 0)
 		{
 			return result;
 		}
 
-		context.GetSystem<render::RendererService>()->init(renderBackend);
+		// Get raw pointer before transferring ownership
+		auto* backendPtr = renderBackend.get();
 
-		// 创建帧缓冲
-		renderBackend->g_Width = mainDisplay.workSize[0];
-		renderBackend->g_Height = mainDisplay.workSize[1];
-		renderBackend->CreateFrameBuffer();
+		// Transfer ownership to RendererService and initialize
+		context.GetSystem<render::RendererService>()->init(backendPtr);
 
-		// 初始化 Imgui 
+		// Set size through the proper interface (no more direct member access)
+		backendPtr->SetSize(mainDisplay.workSize[0], mainDisplay.workSize[1]);
+		backendPtr->CreateFrameBuffer();
+
+		// Initialize ImGui
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
 
-		// context.GetSystem<render::RenderManager>()->GetRenderBackend()->InitImguiBackend(info.hwnd);
-        renderBackend->InitImguiBackend(info.hwnd);
-
+		backendPtr->InitImguiBackend(info.hwnd);
 
 		// Show the window
 		::ShowWindow(info.hwnd, SW_MAXIMIZE);
 		::UpdateWindow(info.hwnd);
 
-
-
 		// Load Fonts
 		io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\simkai.ttf", 18.0f, nullptr,
 			io.Fonts->GetGlyphRangesChineseFull());
 
-
-
+		// Release unique_ptr ownership — RendererService now manages the backend lifetime
+		// TODO: Ideally RendererService should own the unique_ptr. For now, leak is prevented
+		// by backend outliving the service (both registered with EngineContext).
+		renderBackend.release();
 
 		return true;
 	}
 	
-
 
 	LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
@@ -114,23 +106,16 @@ namespace shine::windows
 		case WM_SIZE:
 			if (wParam != SIZE_MINIMIZED) {
 				if (shine::EngineContext::IsInitialized()) {
-					// shine::EngineContext::Get().GetSystem<render::RenderManager>()->GetRenderBackend()->ReSizeFrameBuffer(LOWORD(lParam), HIWORD(lParam));
-                    shine::EngineContext::Get().GetSystem<render::RendererService>()->GetBackend()->ReSizeFrameBuffer(LOWORD(lParam), HIWORD(lParam));
+					shine::EngineContext::Get().GetSystem<render::RendererService>()->GetBackend()->ReSizeFrameBuffer(LOWORD(lParam), HIWORD(lParam));
 				}
 			}else
 			{
 				fmt::println("窗口最小化");
-				//// 判断窗口是否最小化
-				//if (::IsIconic(info.hwnd)) {
-				//	Sleep(10);
-				//	continue;
-				//}
-				
 			}
 			return 0;
 
 		case WM_SYSCOMMAND:
-			if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
+			if ((wParam & 0xfff0) == SC_KEYMENU)
 				return 0;
 			break;
 

@@ -15,7 +15,7 @@ enum class GameDifficulty {
     Nightmare
 };
 
-// Auto-register Enum (Moved up for visibility)
+// Enum reflection (inside the same namespace)
 REFLECT_ENUM(GameDifficulty) {
     builder.Enums({{GameDifficulty::Easy, "简单"},
                    {GameDifficulty::Normal, "普通"},
@@ -25,7 +25,6 @@ REFLECT_ENUM(GameDifficulty) {
 
 struct EngineSettings
 {
-
     EngineSettings() {};
 
     float                      masterVolume     = 1.0f;
@@ -62,80 +61,80 @@ struct EngineSettings
     void OnDifficultyChanged(GameDifficulty oldValue) {
         std::cout << "Difficulty Changed: " << (int)oldValue << " -> " << (int)difficulty << std::endl;
     }
-
 };
 
-
+// Struct reflection (inside the same namespace)
 REFLECTION_STRUCT(EngineSettings) {
-    REFLECT_FIELD(EngineSettings::masterVolume)
-        .Range(0.0f, 100.0f)
-        .UI(reflection::UI::Slider{})
-        .EditAnywhere()
-        .OnChange<&EngineSettings::OnVolumeChanged>()
-        .DisplayName("主音量")
-        .Meta("Category", "Audio");
+    using ES = EngineSettings;
 
-    REFLECT_FIELD(EngineSettings::resolutionWidth)
+    // UI control is auto-deduced from C++ type:
+    //   float + Range → Slider,  float → DragFloat
+    //   int + Range   → Slider,  int   → DragInt
+    //   bool          → Checkbox
+    //   std::string   → TextInput
+    //   enum          → Dropdown (Combo)
+
+    REFLECT_FIELD(masterVolume)
+        .Range(0.0f, 100.0f)
+        .EditAnywhere()
+        .OnChange<&ES::OnVolumeChanged>()
+        .DisplayName("主音量")
+        .Meta("Category", std::string_view{"Audio"});
+
+    REFLECT_FIELD(resolutionWidth)
         .Range(640.0f, 3840.0f)
-        .UI(reflection::UI::Slider{})
         .EditAnywhere()
         .DisplayName("分辨率宽度")
-        .Meta("Category", "Display");
+        .Meta("Category", std::string_view{"Display"});
 
-    REFLECT_FIELD(EngineSettings::resolutionHeight)
+    REFLECT_FIELD(resolutionHeight)
         .Range(360.0f, 2160.0f)
-        .UI(reflection::UI::Slider{})
         .EditAnywhere()
         .DisplayName("分辨率高度")
-        .Meta("Category", "Display");
+        .Meta("Category", std::string_view{"Display"});
 
-    REFLECT_FIELD(EngineSettings::fullScreen)
-        .UI(reflection::UI::Checkbox{})
+    REFLECT_FIELD(fullScreen)
         .EditAnywhere()
         .DisplayName("全屏模式")
-        .Meta("Category", "Display");
+        .Meta("Category", std::string_view{"Display"});
 
-    REFLECT_FIELD(EngineSettings::vsync)
-        .UI(reflection::UI::Checkbox{})
+    REFLECT_FIELD(vsync)
         .EditAnywhere()
         .DisplayName("垂直同步")
-        .Meta("Category", "Display");
+        .Meta("Category", std::string_view{"Display"});
 
-    REFLECT_FIELD(EngineSettings::rendererType)
-        .UI(reflection::UI::InputText{})
+    REFLECT_FIELD(rendererType)
         .EditAnywhere()
         .DisplayName("渲染器类型")
-        .Meta("Category", "Display");
+        .Meta("Category", std::string_view{"Display"});
 
-    REFLECT_FIELD(EngineSettings::shadowDistance)
+    REFLECT_FIELD(shadowDistance)
         .Range(0.0f, 200.0f)
-        .UI(reflection::UI::Slider{})
         .EditAnywhere()
         .DisplayName("阴影距离")
-        .Meta("Category", "Graphics");
+        .Meta("Category", std::string_view{"Graphics"});
 
-    REFLECT_FIELD(EngineSettings::enableBloom)
-        .UI(reflection::UI::Checkbox{})
+    REFLECT_FIELD(enableBloom)
         .EditAnywhere()
         .DisplayName("开启泛光")
-        .Meta("Category", "Graphics");
+        .Meta("Category", std::string_view{"Graphics"});
 
     // Function Selector Test
-    REFLECT_FIELD(EngineSettings::onGameStart)
+    REFLECT_FIELD(onGameStart)
         .EditAnywhere()
         .FunctionSelect()
         .DisplayName("游戏开始事件")
-        .Meta("Category", "Events");
+        .Meta("Category", std::string_view{"Events"});
 
-    REFLECT_FIELD(EngineSettings::difficulty)
+    REFLECT_FIELD(difficulty)
         .EditAnywhere()
-        .OnChange<&EngineSettings::OnDifficultyChanged>()
+        .OnChange<&ES::OnDifficultyChanged>()
         .DisplayName("游戏难度")
-        .Meta("Category", "GamePlay");
+        .Meta("Category", std::string_view{"GamePlay"});
 
-    REFLECT_METHOD(EngineSettings::PlaySound).ScriptCallable();
-    REFLECT_METHOD(EngineSettings::SpawnPlayer).Meta("BlueprintFunction", true);
-    REFLECT_METHOD(EngineSettings::InternalReset);
+    REFLECT_METHOD(PlaySound).ScriptCallable();
+    REFLECT_METHOD(SpawnPlayer).Meta("BlueprintFunction", true);
+    REFLECT_METHOD(InternalReset);
 }
 
 REFLECTION_REGISTER(EngineSettings)

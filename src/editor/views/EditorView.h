@@ -5,17 +5,18 @@
 namespace shine::editor::EditorView
 {
 
-	class EditView
-	{
+    class EditView
+    {
 	public:
+
         EditView(shine::EngineContext& context) : m_Context(context) {}
 
         void Init();
-		void Render();
+        void Render() const;
 
     private:
         shine::EngineContext& m_Context;
         shine::render::ViewportHandle Viewport = 0;
-	};
+    };
 
 }

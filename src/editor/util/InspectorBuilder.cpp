@@ -19,8 +19,8 @@ namespace shine::editor::util {
 
         for (auto& field : view) {
             // Category Grouping Logic
-            auto* meta = field.GetMeta(reflection::Hash("Category"));
-            if (meta) {
+            const auto* meta = field.GetMeta(reflection::MetaKeys::Category);
+            if (meta && std::holds_alternative<std::string_view>(*meta)) {
                 std::string_view cat = std::get<std::string_view>(*meta);
                 if (cat != currentCategory) {
                     currentCategory = cat;

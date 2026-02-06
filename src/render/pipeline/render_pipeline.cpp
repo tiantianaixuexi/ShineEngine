@@ -99,11 +99,8 @@ namespace shine::render
             }
         }
 
-        // 提交命令缓冲区
-        // if (cmdBuffer.GetCommandCount() > 0)
-        {
-            context.Submit(&cmdBuffer);
-        }
+        // 提交命令缓冲区 (move semantics — 避免深拷贝)
+        context.Submit(std::move(cmdBuffer));
     }
 
     void RenderPipeline::RenderTransparentObjects(ScriptableRenderContext& context, RenderingData& data, shine::gameplay::Camera* camera)
