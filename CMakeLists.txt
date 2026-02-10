@@ -1111,9 +1111,14 @@ foreach(module_name ${MODULE_LIST})
 
             # 检查依赖是否是 exe 类型，exe 类型不应该被当作库来链接
             check_module_type("${dep_types}" "exe" dep_is_executable)
+            check_module_type("${dep_types}" "third" dep_is_third)
+            check_module_type("${dep_types}" "static" dep_is_static)
 
             set(needs_link FALSE)
-            if(NOT dep_is_executable AND (dep STREQUAL "fmt" OR "${dep_files}" MATCHES "\\.(cpp|ixx|cppm)$"))
+            # third 或 static 类型的模块总是需要链接（即使只有头文件也能生成 .lib）
+            if(dep_is_third OR dep_is_static)
+                set(needs_link TRUE)
+            elseif(NOT dep_is_executable AND (dep STREQUAL "fmt" OR "${dep_files}" MATCHES "\\.(cpp|ixx|cppm)$"))
                 set(needs_link TRUE)
             endif()
 
@@ -1326,7 +1331,7 @@ endif()
 
 # ================================
 # 复制第三方库 DLL 文件到输出目录
-if(WIN32 AND TARGET MainEngine)
+if(WIN32 AND (TARGET MainEngine OR TARGET EngineLauncher))
     add_custom_command(TARGET MainEngine POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_SOURCE_DIR}/src/third/lib/glew32.dll"
