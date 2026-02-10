@@ -150,6 +150,116 @@ namespace shine::util
          */
         [[nodiscard]] static std::string URLDecode(std::string_view input);
 
+        // ===================== UTF-8 字符操作 =====================
+
+        /**
+         * @brief 检查字节是否为UTF-8起始字节（非续接字节）
+         * @param c 字节值
+         * @return 如果是起始字节则为true
+         */
+        [[nodiscard]] static constexpr bool IsUTF8StartByte(unsigned char c) noexcept
+        {
+            return (c & 0xC0) != 0x80;
+        }
+
+        /**
+         * @brief 获取UTF-8字符的字节长度（根据首字节判断）
+         * @param c 首字节
+         * @return 字节长度（1-4），无效时返回0
+         */
+        [[nodiscard]] static constexpr int UTF8CharLen(unsigned char c) noexcept
+        {
+            if (c < 0x80) return 1;
+            if ((c & 0xE0) == 0xC0) return 2;
+            if ((c & 0xF0) == 0xE0) return 3;
+            if ((c & 0xF8) == 0xF0) return 4;
+            return 0;
+        }
+
+        /**
+         * @brief 将UTF-8编码的字符解码为UTF-32码点
+         * @param p 指向UTF-8字节序列的指针
+         * @param avail 可用字节数
+         * @return {码点, 消耗字节数}，无效时返回 {U+FFFD, 1}
+         */
+        [[nodiscard]] static constexpr std::pair<char32_t, int> UTF8ToUTF32Char(const char* p, size_t avail) noexcept
+        {
+            if (avail == 0) return {0, 0};
+            unsigned char c = static_cast<unsigned char>(p[0]);
+            if (c < 0x80) return {static_cast<char32_t>(c), 1};
+            if ((c & 0xE0) == 0xC0 && avail >= 2) {
+                char32_t cp = ((c & 0x1F) << 6) | (static_cast<unsigned char>(p[1]) & 0x3F);
+                return {cp, 2};
+            }
+            if ((c & 0xF0) == 0xE0 && avail >= 3) {
+                char32_t cp = ((c & 0x0F) << 12) | ((static_cast<unsigned char>(p[1]) & 0x3F) << 6)
+                    | (static_cast<unsigned char>(p[2]) & 0x3F);
+                return {cp, 3};
+            }
+            if ((c & 0xF8) == 0xF0 && avail >= 4) {
+                char32_t cp = ((c & 0x07) << 18) | ((static_cast<unsigned char>(p[1]) & 0x3F) << 12)
+                    | ((static_cast<unsigned char>(p[2]) & 0x3F) << 6) | (static_cast<unsigned char>(p[3]) & 0x3F);
+                return {cp, 4};
+            }
+            return {0xFFFD, 1}; // replacement char
+        }
+
+        /**
+         * @brief 解码一个UTF-8码点，并移动迭代器
+         * @param it 迭代器引用（会被前进）
+         * @param end 结束位置
+         * @return 解码的UTF-32码点
+         */
+        static constexpr char32_t DecodeCodePoint(const char*& it, const char* end) noexcept
+        {
+            if (it >= end) return 0;
+            auto [cp, len] = UTF8ToUTF32Char(it, static_cast<size_t>(end - it));
+            it += len;
+            return cp;
+        }
+
+        /**
+         * @brief 将UTF-32码点编码为UTF-8
+         * @param cp UTF-32码点
+         * @param out 输出缓冲区（至少4字节）
+         * @return 写入的字节数
+         */
+        static constexpr int UTF32ToUTF8(char32_t cp, char* out) noexcept
+        {
+            if (cp < 0x80) {
+                out[0] = static_cast<char>(cp);
+                return 1;
+            }
+            if (cp < 0x800) {
+                out[0] = static_cast<char>(0xC0 | (cp >> 6));
+                out[1] = static_cast<char>(0x80 | (cp & 0x3F));
+                return 2;
+            }
+            if (cp < 0x10000) {
+                out[0] = static_cast<char>(0xE0 | (cp >> 12));
+                out[1] = static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+                out[2] = static_cast<char>(0x80 | (cp & 0x3F));
+                return 3;
+            }
+            out[0] = static_cast<char>(0xF0 | (cp >> 18));
+            out[1] = static_cast<char>(0x80 | ((cp >> 12) & 0x3F));
+            out[2] = static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+            out[3] = static_cast<char>(0x80 | (cp & 0x3F));
+            return 4;
+        }
+
+        /**
+         * @brief 将UTF-32码点编码并追加到std::string
+         * @param cp UTF-32码点
+         * @param out 目标字符串
+         */
+        static void EncodeCodePoint(char32_t cp, std::string& out)
+        {
+            char buf[4];
+            int len = UTF32ToUTF8(cp, buf);
+            out.append(buf, static_cast<size_t>(len));
+        }
+
         // ===================== 编码检测 =====================
 
         /**
@@ -157,7 +267,7 @@ namespace shine::util
          * @param data 数据缓冲区
          * @return 如果存在UTF-8 BOM则为true
          */
-        [[nodiscard]] static bool HasUTF8BOM(std::span<unsigned char> data);
+        [[nodiscard]] static bool HasUTF8BOM(std::span<const unsigned char> data);
 
         /**
          * @brief 检测字节流的编码（基本检测）
@@ -311,6 +421,19 @@ namespace shine::util
             return 0;
         }
 
+        /**
+         * @brief 检查字符是否为有效十六进制字符
+         * @param c 要检查的字符
+         * @return 如果是有效十六进制字符则为true
+         */
+        [[nodiscard]] static constexpr bool isAlphaNumericHex(unsigned char c) noexcept
+        {
+            if (c >= '0' && c <= '9') return true;
+            if (c >= 'A' && c <= 'F') return true;
+            if (c >= 'a' && c <= 'f') return true;
+            return false;
+        }
+
 #ifdef _WIN32
         /**
          * @brief 将UTF-8字符串转换为系统本机多字节编码(ANSI)
@@ -332,12 +455,5 @@ namespace shine::util
         [[nodiscard]] static std::string FromNativeEncoding(std::string_view str) { return std::string(str); }
 #endif
 
-    private:
-        // 用于不区分大小写比较的辅助函数
-        struct CaseInsensitiveCompare {
-            bool operator()(unsigned char c1, unsigned char c2) const {
-                return std::tolower(c1) == std::tolower(c2);
-            }
-        };
     };
 }

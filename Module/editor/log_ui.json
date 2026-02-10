@@ -1,0 +1,8 @@
+{
+    "name": "log_ui",
+    "type": "static",
+    "dirs": ["src/editor/log"],
+    "deps": ["shine_define", "engine_log", "imgui", "fmt"],
+    "buildMode": "editor",
+    "comment": "Editor Log UI"
+}

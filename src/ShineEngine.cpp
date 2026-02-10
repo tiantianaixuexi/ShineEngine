@@ -142,19 +142,13 @@ int main(int argc, char** argv) {
 
 	bool done = false;
 	while (!done) {
-        // shine::co::MemoryScope frameScope(shine::co::MemoryTag::Core);
-		
-		// FPS控制 - 帧开始
-        {
-             shine::co::MemoryScope scope(shine::co::MemoryTag::Physics);
-		     g_FPSManager.BeginFrame();
-		     const double dt_d = g_FPSManager.GetDeltaTime();
-		     const float dt = static_cast<float>(dt_d);
-        }
+ 
+
+		g_FPSManager.BeginFrame();
+		const double dt_d = g_FPSManager.GetDeltaTime();
+		const float dt = static_cast<float>(dt_d);
 
 		// Poll and handle messages (inputs, window resize, etc.)
-        {
-            shine::co::MemoryScope scope(shine::co::MemoryTag::AI);
             MSG msg;
             while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) {
                 ::TranslateMessage(&msg);
@@ -162,41 +156,28 @@ int main(int argc, char** argv) {
                 if (msg.message == WM_QUIT)
                     done = true;
             }
-        }
+    //    }
 
 		if (done)
 			break;
 
-        // 渲染服务，帧开始
+
         {
-             shine::co::MemoryScope renderScope(shine::co::MemoryTag::Render);
-		     RenderService->beginFrame();
+             // Tag frame allocations as Render
+            shine::co::MemoryScope scope(shine::co::MemoryTag::Render);
+
+			RenderService->beginFrame();
+
+            mainEditor->Render();
+
+			Camera->getMainCamera()->Apply();
+
+
+			RenderService->endFrame(clear_color);
         }
 
 
-        // 编辑器UI渲染
-        {
-             shine::co::MemoryScope editorScope(shine::co::MemoryTag::Render);
-             mainEditor->Render();
-        }
-		
-		// 应用摄像机
-        {
-             shine::co::MemoryScope coreScope(shine::co::MemoryTag::Job);
-		     Camera->getMainCamera()->Apply();
-        }
-
-        // 统一用渲染服务提供帧缓冲渲染/显示
-        {
-             shine::co::MemoryScope renderScope(shine::co::MemoryTag::Render);
-		     RenderService->endFrame(clear_color);
-        }
-
-		// FPS控制 - 帧结束
-        {
-             shine::co::MemoryScope scope(shine::co::MemoryTag::Physics);
-		     g_FPSManager.EndFrame();
-        }
+		g_FPSManager.EndFrame();
 
 	}
 

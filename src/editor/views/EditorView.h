@@ -1,6 +1,12 @@
 #pragma once
 
 #include "render/renderer_service.h"
+#include <memory>
+
+    // Forward declaration
+    namespace shine::render::demo {
+        class EngineDemoScene;
+    }
 
 namespace shine::editor::EditorView
 {
@@ -9,14 +15,17 @@ namespace shine::editor::EditorView
     {
 	public:
 
-        EditView(shine::EngineContext& context) : m_Context(context) {}
+        EditView(shine::EngineContext& context);
+        ~EditView();
 
         void Init();
-        void Render() const;
+        void Render(); // Note: Removed const to allow updating renderer state
 
     private:
         shine::EngineContext& m_Context;
         shine::render::ViewportHandle Viewport = 0;
+        
+        std::unique_ptr<shine::render::demo::EngineDemoScene> m_DemoScene;
     };
 
 }

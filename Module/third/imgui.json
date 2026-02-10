@@ -16,6 +16,6 @@
     "IMGUI_DEFINE_MATH_OPERATORS",
     "SHINE_IMGUI"
   ],
-  "platform": [ "Windows", "Wasm" ]
+  "platform": [ "Windows"]
 }
 

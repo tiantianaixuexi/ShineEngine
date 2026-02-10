@@ -13,25 +13,7 @@ module shine.math.matrix4;
 #endif
 namespace shine::math
 {
-    template<FloatingPoint T>
-    Matrix4<T>::Matrix4()
-    {
-        m_data.fill(T(0));
-        // identity
-        m_data[0] = m_data[5] = m_data[10] = m_data[15] = T(1);
-    }
 
-    template<FloatingPoint T>
-    Matrix4<T>::Matrix4(T diag)
-    {
-        m_data.fill(T(0));
-        m_data[0] = m_data[5] = m_data[10] = m_data[15] = diag;
-    }
-
-    template<FloatingPoint T>
-    Matrix4<T>::Matrix4(const std::array<T, 16>& values)
-        : m_data(values)
-    {}
 
     template<FloatingPoint T>
     T Matrix4<T>::get(int row, int col) const noexcept
@@ -258,22 +240,7 @@ namespace shine::math
         return result;
     }
 
-    template<FloatingPoint T>
-    constexpr Matrix4<T> Matrix4<T>::identity() noexcept
-    {
-        Matrix4<T> m;
-        m.m_data.fill(T(0));
-        m.m_data[0] = m.m_data[5] = m.m_data[10] = m.m_data[15] = T(1);
-        return m;
-    }
 
-    template<FloatingPoint T>
-    constexpr Matrix4<T> Matrix4<T>::zero() noexcept
-    {
-        Matrix4<T> m;
-        m.m_data.fill(T(0));
-        return m;
-    }
 
     template<FloatingPoint T>
     Matrix4<T> Matrix4<T>::translate(const TVector<T>& translation) noexcept

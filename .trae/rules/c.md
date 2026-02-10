@@ -1,1 +1,1 @@
-- use c++23 and c17 standard
+- use c++23 and c23 standard

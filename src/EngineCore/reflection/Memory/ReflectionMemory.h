@@ -72,121 +72,79 @@ namespace shine::reflection {
     };
 
     // =========================================================================
-    // ArenaAllocator — bump / linear allocator for temporary data
+    // LinearAllocator — lightweight arena with Reset support
     // =========================================================================
     //
-    // Allocates by bumping a pointer inside large pages.  Reset() is O(1)
-    // per page (just rewinds the offset).  Individual Deallocate is a no-op.
-    //
-    // Thread-safety: NOT thread-safe by design.  Use one per thread, or
-    // protect externally (TemporaryAllocator below uses MemoryScope instead).
+    // Similar to ArenaAllocator but designed for general-purpose use cases
+    // like per-frame rendering data. Uses engine Memory allocator for blocks.
     //
 
-    class ArenaAllocator {
+    class LinearAllocator {
     public:
-        static constexpr size_t DEFAULT_PAGE_SIZE = 64 * 1024;  // 64 KB
-
-        explicit ArenaAllocator(size_t pageSize = DEFAULT_PAGE_SIZE) noexcept
+        explicit LinearAllocator(size_t pageSize = 64 * 1024) 
             : pageSize_(pageSize) {}
 
-        ~ArenaAllocator() { Clear(); }
+        ~LinearAllocator() { Clear(); }
 
-        // Non-copyable, movable
-        ArenaAllocator(const ArenaAllocator&) = delete;
-        ArenaAllocator& operator=(const ArenaAllocator&) = delete;
-        ArenaAllocator(ArenaAllocator&& o) noexcept
-            : pages_(std::move(o.pages_)), pageSize_(o.pageSize_),
-              currentPage_(o.currentPage_), currentOffset_(o.currentOffset_) {
-            o.currentPage_ = 0;
-            o.currentOffset_ = 0;
-        }
-        ArenaAllocator& operator=(ArenaAllocator&&) = delete;
+        LinearAllocator(const LinearAllocator&) = delete;
+        LinearAllocator& operator=(const LinearAllocator&) = delete;
 
-        /// Bump-allocate 'size' bytes with the given alignment.
-        /// Returns nullptr only if the backing allocator (mimalloc) fails.
-        [[nodiscard]]
-        void* Allocate(size_t size, size_t alignment = alignof(std::max_align_t)) noexcept {
-            if (size == 0) return nullptr;
-
-            // Align the current offset
+        void* Allocate(size_t size, size_t alignment = alignof(std::max_align_t)) {
             size_t aligned = (currentOffset_ + alignment - 1) & ~(alignment - 1);
-
-            // Does it fit in the current page?
             if (currentPage_ < pages_.size() && aligned + size <= pages_[currentPage_].capacity) {
-                void* ptr = pages_[currentPage_].data + aligned;
+                void* ptr = static_cast<char*>(pages_[currentPage_].data) + aligned;
                 currentOffset_ = aligned + size;
                 return ptr;
             }
-
-            // Need a new page (or we're past the last page after a Reset)
             return AllocateNewPage(size, alignment);
         }
 
-        /// Rewind all pages to offset 0 — O(pageCount).
-        /// Does NOT free backing memory; it will be reused on next Allocate.
-        void Reset() noexcept {
-            currentPage_   = 0;
+        template<typename T, typename... Args>
+        T* New(Args&&... args) {
+            void* p = Allocate(sizeof(T), alignof(T));
+            return new(p) T(std::forward<Args>(args)...);
+        }
+
+        void Reset() {
+            currentPage_ = 0;
             currentOffset_ = 0;
         }
 
-        /// Release all backing memory.
-        void Clear() noexcept {
+        void Clear() {
             for (auto& page : pages_) {
                 shine::co::Memory::Free(page.data);
             }
             pages_.clear();
-            currentPage_   = 0;
+            currentPage_ = 0;
             currentOffset_ = 0;
-        }
-
-        [[nodiscard]] size_t GetPageCount()    const noexcept { return pages_.size(); }
-        [[nodiscard]] size_t GetUsedBytes()    const noexcept {
-            size_t total = 0;
-            for (size_t i = 0; i < currentPage_ && i < pages_.size(); ++i)
-                total += pages_[i].capacity;  // fully used
-            total += currentOffset_;           // partially used current page
-            return total;
-        }
-        [[nodiscard]] size_t GetReservedBytes() const noexcept {
-            size_t total = 0;
-            for (const auto& p : pages_) total += p.capacity;
-            return total;
         }
 
     private:
         struct Page {
-            char*  data     = nullptr;
-            size_t capacity = 0;
+            void* data;
+            size_t capacity;
         };
-
         std::vector<Page> pages_;
-        size_t pageSize_      = DEFAULT_PAGE_SIZE;
-        size_t currentPage_   = 0;
+        size_t pageSize_;
+        size_t currentPage_ = 0;
         size_t currentOffset_ = 0;
 
-        void* AllocateNewPage(size_t size, size_t alignment) noexcept {
-            // Move to next pre-existing page (after a Reset)?
+        void* AllocateNewPage(size_t size, size_t alignment) {
             while (currentPage_ + 1 < pages_.size()) {
                 currentPage_++;
-                size_t aligned = (alignment - 1) & ~(alignment - 1);  // 0 for power-of-two
+                size_t aligned = (alignment - 1) & ~(alignment - 1);
                 if (aligned + size <= pages_[currentPage_].capacity) {
                     currentOffset_ = aligned + size;
-                    return pages_[currentPage_].data + aligned;
+                    return static_cast<char*>(pages_[currentPage_].data) + aligned;
                 }
             }
-
-            // Allocate a brand-new page
             size_t needed = std::max(pageSize_, size + alignment);
-            shine::co::MemoryScope scope(shine::co::MemoryTag::Reflection);
-            char* mem = static_cast<char*>(
-                shine::co::Memory::Alloc(needed, alignof(std::max_align_t)));
-            if (!mem) [[unlikely]] return nullptr;
-
+            void* mem = shine::co::Memory::Alloc(needed);
             pages_.push_back({mem, needed});
-            currentPage_   = pages_.size() - 1;
-            size_t aligned = 0;  // page is at least max_align_t aligned
-            currentOffset_ = aligned + size;
-            return mem + aligned;
+            currentPage_ = pages_.size() - 1;
+            size_t aligned = (size_t(mem) + alignment - 1) & ~(alignment - 1);
+            currentOffset_ = (aligned - size_t(mem)) + size;
+            return (void*)aligned;
         }
     };
 
@@ -267,7 +225,7 @@ namespace shine::reflection {
         void  UpdateStatistics();
 
         // Temporary arena (frame-lifetime data)
-        ArenaAllocator arena_;
+        LinearAllocator arena_;
 
         // ---- Atomic statistics (no mutex needed) ----
         std::atomic<size_t>   totalAllocated_{0};

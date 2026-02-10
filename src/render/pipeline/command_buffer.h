@@ -28,6 +28,7 @@ namespace shine::render
         void DrawIndexedTriangles(s32 indexCount, command::IndexType indexType, u64 indexBufferOffsetBytes = 0);
         void SetUniform1f(s32 location, float value);
         void SetUniform3f(s32 location, float x, float y, float z);
+        void SetUniformMatrix4fv(s32 location, const std::vector<float>& data, bool transpose = false);
         void RenderImGui(void* drawData);
         void SwapBuffers(void* nativeSwapContext);
 

@@ -1,0 +1,7 @@
+{
+    "name": "engine_log",
+    "type": "static",
+    "dirs": ["src/EngineCore/log"],
+    "deps": ["shine_define", "fmt"],
+    "comment": "Core Logging System"
+}

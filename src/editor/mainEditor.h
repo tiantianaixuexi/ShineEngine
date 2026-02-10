@@ -3,6 +3,7 @@
 #include "widget/shineButton.h"
 #include "editor/browers/AssetsBrower.h"
 #include "editor/views/EditorView.h"
+#include "editor/log/LogUI.h"
 
 // 前向声明
 namespace shine::editor::views
@@ -51,6 +52,7 @@ namespace shine::editor::main_editor
 		views::ImageViewerView* imageViewerView = nullptr;
         views::SettingsView* settingsView = nullptr;
         views::MemoryProfiler* memoryProfiler = nullptr;
+        views::LogUI* logUI = nullptr;
 
 		button::shineButton* myButton = nullptr;
 

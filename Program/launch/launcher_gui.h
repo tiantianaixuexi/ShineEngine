@@ -6,7 +6,8 @@
 #include <functional>
 #include <memory>
 
-#include "imgui.h"
+#include "string/shine_string.h"
+#include "imgui/imgui.h"
 #include "render/backend/render_backend.h"
 
 namespace fs = std::filesystem;
@@ -15,22 +16,22 @@ namespace shine::launcher
 {
     struct ProjectInfo
     {
-        std::string name;
-        std::string path;
-        std::string category = "Games"; // Games, Templates, Samples, etc.
-        std::string engineVersion = "1.0.0";
-        std::string description;
-        std::string thumbnail; // path to thumbnail image
+        SString name;
+        SString path;
+        SString category = "Games"; // Games, Templates, Samples, etc.
+        SString engineVersion = "1.0.0";
+        SString description;
+        SString thumbnail; // path to thumbnail image
         time_t lastModified = 0;
     };
 
     struct ProjectTemplate
     {
-        std::string name;
-        std::string description;
-        std::string category;
-        std::string templatePath; // path to template directory
-        std::string thumbnail;
+        SString name;
+        SString description;
+        SString category;
+        SString templatePath; // path to template directory
+        SString thumbnail;
     };
 
     class LauncherGUI
@@ -47,6 +48,8 @@ namespace shine::launcher
         void LoadRecentProjects();
         void SaveRecentProjects();
         void AddRecentProject(const ProjectInfo& project);
+        void RemoveRecentProject(const SString& projectPath);
+        void DeleteProjectFiles(const SString& projectPath);
 
         // Configuration management
         void LoadSettings();
@@ -57,16 +60,16 @@ namespace shine::launcher
 
         // Actions
         void LaunchProject(const ProjectInfo& project);
-        void CreateNewProject(const std::string& name, const std::string& path, const ProjectTemplate& template_);
+        void CreateNewProject(const SString& name, const SString& path, const ProjectTemplate& template_);
 
         // Project browsing
-        void ScanForProjects(const std::string& directory);
+        void ScanForProjects(const SString& directory);
         void BrowseForProject();
 
         // Helper methods
         void CopyTemplateFiles(const fs::path& templatePath, const fs::path& projectPath);
-        void CreateProjectConfig(const fs::path& projectPath, const std::string& name, const ProjectTemplate& template_);
-        void CreateBasicSourceFiles(const fs::path& projectPath, const std::string& name);
+        void CreateProjectConfig(const fs::path& projectPath, const SString& name, const ProjectTemplate& template_);
+        void CreateBasicSourceFiles(const fs::path& projectPath, const SString& name);
 
     private:
         void RenderMainWindow();
@@ -74,6 +77,7 @@ namespace shine::launcher
         void RenderBrowseTab();
         void RenderLibraryTab();
         void RenderNewProjectDialog();
+        void RenderDeleteConfirmDialog();
 
         // Library tab sub-components
         void RenderEngineVersionsTab();
@@ -86,8 +90,10 @@ namespace shine::launcher
 
         // UI state
         bool showNewProjectDialog = false;
-        std::string newProjectName;
-        std::string newProjectPath;
+        bool showDeleteConfirm = false;
+        SString projectToDeletePath;
+        SString newProjectName;
+        SString newProjectPath;
         int selectedTemplateIndex = 0;
 
         // Data
@@ -96,21 +102,21 @@ namespace shine::launcher
         int currentTab = 0; // 0: Recent, 1: Browse, 2: Library
 
         // Settings
-        std::string engineRootPath;
-        std::string projectsRootPath;
+        SString engineRootPath;
+        SString projectsRootPath;
 
         // Configuration
         struct LauncherSettings {
             bool showWelcomeDialog = true;
-            std::string defaultProjectPath;
+            SString defaultProjectPath;
             int maxRecentProjects = 10;
             bool autoLaunchLastProject = false;
         } settings;
 
         // Error handling
         struct ErrorInfo {
-            std::string message;
-            std::string details;
+            SString message;
+            SString details;
             time_t timestamp = 0;
         };
         
@@ -119,7 +125,7 @@ namespace shine::launcher
         ErrorInfo currentError;
 
         // Error handling
-        void ReportError(const std::string& message, const std::string& details = "");
+        void ReportError(const SString& message, const SString& details = "");
         void ClearErrorLog();
         void ShowErrorDialog(const ErrorInfo& error);
         void RenderErrorDialog();

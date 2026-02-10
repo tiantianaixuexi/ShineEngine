@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 namespace shine::editor::views
 {
     /**
@@ -17,5 +19,6 @@ namespace shine::editor::views
 
     private:
         bool isOpen_ = true;
+        bool m_PauseProfiling = false;
     };
 }

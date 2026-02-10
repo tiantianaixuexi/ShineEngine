@@ -71,6 +71,9 @@ namespace shine
 
         // =========================================================
         // UTF-8 Utilities (static)
+        // Note: Canonical versions are in StringUtil (IsUTF8StartByte,
+        //       UTF8CharLen, UTF8ToUTF32Char, DecodeCodePoint, etc.)
+        //       These are kept for backward compatibility.
         // =========================================================
 
         [[nodiscard]] static bool is_valid_utf8(std::string_view sv) noexcept {

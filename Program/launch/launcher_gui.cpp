@@ -3,16 +3,16 @@
 #include <fstream>
 #include <algorithm>
 #include <chrono>
+#include <sstream>
 
-#include "imgui.h"
-#include "imgui_internal.h"
-#include "file_util.h"
-#include "path_util.h"
+#include "imgui/imgui_internal.h"
+#include "fmt/format.h"
 
 #ifdef SHINE_PLATFORM_WIN64
 #include <windows.h>
 #include <shellapi.h>
 #include <commdlg.h>
+#include <shlobj.h>
 #endif
 
 namespace shine::launcher
@@ -22,7 +22,7 @@ namespace shine::launcher
     LauncherGUI::LauncherGUI()
     {
         // Initialize paths
-        engineRootPath = fs::current_path().string();
+        engineRootPath = fs::current_path().string().c_str();
 
         LoadSettings();
         LoadRecentProjects();
@@ -101,6 +101,7 @@ namespace shine::launcher
     {
         RenderMainWindow();
         RenderNewProjectDialog();
+        RenderDeleteConfirmDialog();
         RenderErrorDialog();
     }
 
@@ -251,7 +252,7 @@ namespace shine::launcher
 
         if (ImGui::Button("浏览", ImVec2(120, 44)))
         {
-            // TODO: Open file browser
+            BrowseForProject();
         }
 
         ImGui::SameLine();
@@ -358,7 +359,7 @@ namespace shine::launcher
             ScanForProjects(settings.defaultProjectPath);
             fs::path documentsPath = fs::path(getenv("USERPROFILE")) / "Documents" / "ShineEngine";
             if (fs::exists(documentsPath)) {
-                ScanForProjects(documentsPath.string());
+                ScanForProjects(documentsPath.string().c_str());
             }
         }
 
@@ -595,7 +596,7 @@ namespace shine::launcher
         if (ImGui::Button("重置为默认", ImVec2(160, 36)))
         {
             settings.showWelcomeDialog = true;
-            settings.defaultProjectPath = (fs::current_path() / "Projects").string();
+            settings.defaultProjectPath = (fs::current_path() / "Projects").string().c_str();
             settings.maxRecentProjects = 10;
             settings.autoLaunchLastProject = false;
             SaveSettings();
@@ -733,7 +734,19 @@ namespace shine::launcher
             ImGui::SameLine();
             if (ImGui::Button("浏览...", ImVec2(70, 0)))
             {
-                // TODO: Open directory picker
+#ifdef SHINE_PLATFORM_WIN64
+                BROWSEINFO bi = { 0 };
+                bi.lpszTitle = "Select Project Location";
+                bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+                LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
+                if (pidl != 0) {
+                    char path[MAX_PATH];
+                    if (SHGetPathFromIDList(pidl, path)) {
+                        newProjectPath = path;
+                    }
+                    CoTaskMemFree(pidl);
+                }
+#endif
             }
 
             ImGui::Spacing();
@@ -913,11 +926,19 @@ namespace shine::launcher
         {
             if (ImGui::MenuItem("在资源管理器中显示"))
             {
-                // TODO: Open project folder in explorer
+#ifdef SHINE_PLATFORM_WIN64
+                ShellExecute(NULL, "open", project.path.c_str(), NULL, NULL, SW_SHOW);
+#endif
             }
             if (ImGui::MenuItem("从列表中移除"))
             {
-                // TODO: Remove from recent projects
+                RemoveRecentProject(project.path);
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("删除项目"))
+            {
+                projectToDeletePath = project.path;
+                showDeleteConfirm = true;
             }
             ImGui::EndPopup();
         }
@@ -1032,10 +1053,10 @@ namespace shine::launcher
                 std::getline(ss, lastModifiedStr, '|')) {
 
                 ProjectInfo project;
-                project.name = name;
-                project.path = path;
-                project.category = category;
-                project.engineVersion = engineVersion;
+                project.name = name.c_str();
+                project.path = path.c_str();
+                project.category = category.c_str();
+                project.engineVersion = engineVersion.c_str();
                 project.lastModified = std::stoll(lastModifiedStr);
 
                 // Verify project still exists
@@ -1059,7 +1080,7 @@ namespace shine::launcher
         fs::path settingsPath = fs::current_path() / "launcher_settings.ini";
         if (!fs::exists(settingsPath)) {
             // Use defaults
-            settings.defaultProjectPath = (fs::current_path() / "Projects").string();
+            settings.defaultProjectPath = (fs::current_path() / "Projects").string().c_str();
             return;
         }
 
@@ -1076,7 +1097,7 @@ namespace shine::launcher
                 if (key == "showWelcomeDialog") {
                     settings.showWelcomeDialog = (value == "true");
                 } else if (key == "defaultProjectPath") {
-                    settings.defaultProjectPath = value;
+                    settings.defaultProjectPath = value.c_str();
                 } else if (key == "maxRecentProjects") {
                     settings.maxRecentProjects = std::stoi(value);
                 } else if (key == "autoLaunchLastProject") {
@@ -1089,7 +1110,7 @@ namespace shine::launcher
 
         // Ensure default project path exists
         if (settings.defaultProjectPath.empty()) {
-            settings.defaultProjectPath = (fs::current_path() / "Projects").string();
+            settings.defaultProjectPath = (fs::current_path() / "Projects").string().c_str();
         }
     }
 
@@ -1105,7 +1126,7 @@ namespace shine::launcher
 
         // Write settings
         settingsFile << "showWelcomeDialog=" << (settings.showWelcomeDialog ? "true" : "false") << "\n";
-        settingsFile << "defaultProjectPath=" << settings.defaultProjectPath << "\n";
+        settingsFile << "defaultProjectPath=" << settings.defaultProjectPath.c_str() << "\n";
         settingsFile << "maxRecentProjects=" << settings.maxRecentProjects << "\n";
         settingsFile << "autoLaunchLastProject=" << (settings.autoLaunchLastProject ? "true" : "false") << "\n";
 
@@ -1125,10 +1146,10 @@ namespace shine::launcher
 
         // Write recent projects
         for (const auto& project : recentProjects) {
-            configFile << project.name << "|"
-                      << project.path << "|"
-                      << project.category << "|"
-                      << project.engineVersion << "|"
+            configFile << project.name.c_str() << "|"
+                      << project.path.c_str() << "|"
+                      << project.category.c_str() << "|"
+                      << project.engineVersion.c_str() << "|"
                       << project.lastModified << "\n";
         }
 
@@ -1151,6 +1172,28 @@ namespace shine::launcher
             recentProjects.resize(10);
 
         SaveRecentProjects();
+    }
+
+    void LauncherGUI::RemoveRecentProject(const SString& projectPath)
+    {
+        recentProjects.erase(
+            std::remove_if(recentProjects.begin(), recentProjects.end(),
+                [&](const ProjectInfo& p) { return p.path == projectPath; }),
+            recentProjects.end());
+        
+        SaveRecentProjects();
+    }
+
+    void LauncherGUI::DeleteProjectFiles(const SString& projectPath)
+    {
+        try {
+            if (fs::exists(projectPath.c_str())) {
+                fs::remove_all(projectPath.c_str());
+                RemoveRecentProject(projectPath);
+            }
+        } catch (const std::exception& e) {
+            ReportError("Failed to delete project", e.what());
+        }
     }
 
     void LauncherGUI::LoadProjectTemplates()
@@ -1187,32 +1230,34 @@ namespace shine::launcher
 
         if (!fs::exists(exePath)) {
             ReportError("Engine executable not found",
-                      fmt::format("{},path:{}", "Please build the engine first using 'build.bat run' or check your installation.", exePath.string()));
+                      SString(fmt::format("{},path:{}", "Please build the engine first using 'build.bat run' or check your installation.", exePath.string()).c_str()));
             return;
         }
 
-        std::string command = "\"" + exePath.string() + "\"";
+        SString command = SString("\"") + exePath.string().c_str() + "\"";
         if (!project.path.empty()) {
-            command += " --project \"" + project.path + "\"";
+            command += " --project \"";
+            command += project.path;
+            command += "\"";
         }
 
 #ifdef SHINE_PLATFORM_WIN64
         STARTUPINFO si = { sizeof(si) };
         PROCESS_INFORMATION pi;
 
-        if (CreateProcess(NULL, const_cast<char*>(command.c_str()), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+        if (CreateProcess(NULL, command.data(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
             CloseHandle(pi.hProcess);
             CloseHandle(pi.hThread);
             exit(0); // Exit launcher
         } else {
-            std::cout << "Failed to launch MainEngine.exe" << std::endl;
+            fmt::println("Failed to lacunch MainEngine.exe");
         }
 #endif
     }
 
-    void LauncherGUI::CreateNewProject(const std::string& name, const std::string& path, const ProjectTemplate& template_)
+    void LauncherGUI::CreateNewProject(const SString& name, const SString& path, const ProjectTemplate& template_)
     {
-        fs::path projectPath = fs::path(path) / name;
+        fs::path projectPath = fs::path(path.c_str()) / name.c_str();
 
         try {
             // Create project directory
@@ -1225,7 +1270,7 @@ namespace shine::launcher
             fs::create_directories(projectPath / "Assets");
 
             // Copy template files if template exists
-            fs::path templatePath = fs::current_path() / template_.templatePath;
+            fs::path templatePath = fs::current_path() / template_.templatePath.c_str();
             if (fs::exists(templatePath)) {
                 CopyTemplateFiles(templatePath, projectPath);
             }
@@ -1237,14 +1282,14 @@ namespace shine::launcher
             CreateBasicSourceFiles(projectPath, name);
 
             // Add to recent projects
-            ProjectInfo newProject{name, projectPath.string(), template_.category, "1.0.0"};
+            ProjectInfo newProject{name, projectPath.string().c_str(), template_.category, "1.0.0"};
             newProject.lastModified = time(nullptr);
             AddRecentProject(newProject);
 
-            std::cout << "Successfully created new project: " << projectPath.string() << std::endl;
+            fmt::println("Successfully created new project: {}", projectPath.string());
 
         } catch (const std::exception& e) {
-            ReportError("Failed to create project", std::string("Project: ") + name + "\nError: " + e.what());
+            ReportError("Failed to create project", (SString("Project: ") + name + "\nError: " + e.what()).c_str());
         }
     }
 
@@ -1261,20 +1306,20 @@ namespace shine::launcher
                 }
             }
         } catch (const std::exception& e) {
-            std::cout << "Warning: Failed to copy template files: " << e.what() << std::endl;
+            fmt::println("Warning: Failed to copy template files: {}", e.what());
         }
     }
 
-    void LauncherGUI::CreateProjectConfig(const fs::path& projectPath, const std::string& name, const ProjectTemplate& template_)
+    void LauncherGUI::CreateProjectConfig(const fs::path& projectPath, const SString& name, const ProjectTemplate& template_)
     {
         std::ofstream config(projectPath / "project.json");
         if (config.is_open()) {
             config << "{\n";
-            config << "  \"name\": \"" << name << "\",\n";
+            config << "  \"name\": \"" << name.c_str() << "\",\n";
             config << "  \"engineVersion\": \"1.0.0\",\n";
-            config << "  \"template\": \"" << template_.name << "\",\n";
-            config << "  \"category\": \"" << template_.category << "\",\n";
-            config << "  \"description\": \"" << template_.description << "\",\n";
+            config << "  \"template\": \"" << template_.name.c_str() << "\",\n";
+            config << "  \"category\": \"" << template_.category.c_str() << "\",\n";
+            config << "  \"description\": \"" << template_.description.c_str() << "\",\n";
             config << "  \"created\": " << time(nullptr) << ",\n";
             config << "  \"lastModified\": " << time(nullptr) << "\n";
             config << "}\n";
@@ -1282,10 +1327,10 @@ namespace shine::launcher
         }
     }
 
-    void LauncherGUI::ScanForProjects(const std::string& directory)
+    void LauncherGUI::ScanForProjects(const SString& directory)
     {
         try {
-            for (const auto& entry : fs::directory_iterator(directory)) {
+            for (const auto& entry : fs::directory_iterator(directory.c_str())) {
                 if (fs::is_directory(entry)) {
                     fs::path projectJsonPath = entry.path() / "project.json";
                     if (fs::exists(projectJsonPath)) {
@@ -1297,7 +1342,7 @@ namespace shine::launcher
 
                             // Simple JSON parsing (basic implementation)
                             ProjectInfo project;
-                            project.path = entry.path().string();
+                            project.path = entry.path().string().c_str();
 
                             // Extract name
                             size_t namePos = content.find("\"name\"");
@@ -1306,7 +1351,7 @@ namespace shine::launcher
                                 size_t startQuote = content.find("\"", colonPos);
                                 size_t endQuote = content.find("\"", startQuote + 1);
                                 if (startQuote != std::string::npos && endQuote != std::string::npos) {
-                                    project.name = content.substr(startQuote + 1, endQuote - startQuote - 1);
+                                    project.name = content.substr(startQuote + 1, endQuote - startQuote - 1).c_str();
                                 }
                             }
 
@@ -1317,7 +1362,7 @@ namespace shine::launcher
                                 size_t startQuote = content.find("\"", colonPos);
                                 size_t endQuote = content.find("\"", startQuote + 1);
                                 if (startQuote != std::string::npos && endQuote != std::string::npos) {
-                                    project.category = content.substr(startQuote + 1, endQuote - startQuote - 1);
+                                    project.category = content.substr(startQuote + 1, endQuote - startQuote - 1).c_str();
                                 }
                             }
 
@@ -1328,7 +1373,7 @@ namespace shine::launcher
                                 size_t startQuote = content.find("\"", colonPos);
                                 size_t endQuote = content.find("\"", startQuote + 1);
                                 if (startQuote != std::string::npos && endQuote != std::string::npos) {
-                                    project.engineVersion = content.substr(startQuote + 1, endQuote - startQuote - 1);
+                                    project.engineVersion = content.substr(startQuote + 1, endQuote - startQuote - 1).c_str();
                                 }
                             }
 
@@ -1341,7 +1386,7 @@ namespace shine::launcher
                 }
             }
         } catch (const std::exception& e) {
-            std::cout << "Error scanning for projects: " << e.what() << std::endl;
+            fmt::println("Error scanning for projects: {}", e.what());
         }
     }
 
@@ -1365,22 +1410,22 @@ namespace shine::launcher
             fs::path selectedPath = szFile;
             if (selectedPath.filename() == "project.json") {
                 fs::path projectPath = selectedPath.parent_path();
-                ScanForProjects(projectPath.parent_path().string());
+                ScanForProjects(projectPath.parent_path().string().c_str());
             }
         }
 #endif
     }
 
-    void LauncherGUI::CreateBasicSourceFiles(const fs::path& projectPath, const std::string& name)
+    void LauncherGUI::CreateBasicSourceFiles(const fs::path& projectPath, const SString& name)
     {
         // Create a basic game script file
         fs::path scriptPath = projectPath / "Source" / "main.js";
         std::ofstream script(scriptPath);
         if (script.is_open()) {
-            script << "// " << name << " - Main Game Script\n";
+            script << "// " << name.c_str() << " - Main Game Script\n";
             script << "// This file is automatically generated by the ShineEngine Launcher\n\n";
             script << "function init() {\n";
-            script << "    console.log('Initializing " << name << "...');\n";
+            script << "    console.log('Initializing " << name.c_str() << "...');\n";
             script << "    // Add your initialization code here\n";
             script << "}\n\n";
             script << "function update(deltaTime) {\n";
@@ -1396,7 +1441,7 @@ namespace shine::launcher
         fs::path readmePath = projectPath / "README.md";
         std::ofstream readme(readmePath);
         if (readme.is_open()) {
-            readme << "# " << name << "\n\n";
+            readme << "# " << name.c_str() << "\n\n";
             readme << "A game project created with ShineEngine.\n\n";
             readme << "## Getting Started\n\n";
             readme << "1. Open this project in ShineEngine\n";
@@ -1412,7 +1457,7 @@ namespace shine::launcher
         }
     }
 
-    void LauncherGUI::ReportError(const std::string& message, const std::string& details)
+    void LauncherGUI::ReportError(const SString& message, const SString& details)
     {
         ErrorInfo error;
         error.message = message;
@@ -1431,9 +1476,9 @@ namespace shine::launcher
         showErrorDialog = true;
 
         // Also log to console
-        std::cout << "Error: " << message << std::endl;
+        fmt::println("Error: {}", message.c_str());
         if (!details.empty()) {
-            std::cout << "Details: " << details << std::endl;
+            fmt::println("Details: {}", details.c_str());
         }
     }
 
@@ -1509,6 +1554,58 @@ namespace shine::launcher
     {
         if (showErrorDialog) {
             ShowErrorDialog(currentError);
+        }
+    }
+
+    void LauncherGUI::RenderDeleteConfirmDialog()
+    {
+        if (showDeleteConfirm) {
+            ImGui::OpenPopup("删除项目?");
+        }
+
+        // Center the popup
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+        if (ImGui::BeginPopupModal("删除项目?", &showDeleteConfirm, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
+        {
+            ImGui::Text("您确定要永久删除此项目吗？");
+            ImGui::Spacing();
+            
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));
+            ImGui::TextWrapped("%s", projectToDeletePath.c_str());
+            ImGui::PopStyleColor();
+            
+            ImGui::Spacing();
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
+            ImGui::Text("此操作无法撤销！所有项目文件将被永久删除。");
+            ImGui::PopStyleColor();
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            // Buttons
+            float buttonWidth = 120.0f;
+            
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.3f, 0.3f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.6f, 0.1f, 0.1f, 1.0f));
+            if (ImGui::Button("删除", ImVec2(buttonWidth, 0))) {
+                DeleteProjectFiles(projectToDeletePath);
+                showDeleteConfirm = false;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::PopStyleColor(3);
+            
+            ImGui::SameLine();
+            
+            if (ImGui::Button("取消", ImVec2(buttonWidth, 0))) {
+                showDeleteConfirm = false;
+                ImGui::CloseCurrentPopup();
+            }
+            
+            ImGui::EndPopup();
         }
     }
 }

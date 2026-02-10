@@ -1277,39 +1277,39 @@ if(MSVC)
     endforeach()
 endif()
 
-# 链接所有模块（排除可执行文件类型）和第三方库
-foreach(module_name ${MODULE_LIST})
-    get_property(name GLOBAL PROPERTY "MODULE_${module_name}_NAME")
-    get_property(types GLOBAL PROPERTY "MODULE_${module_name}_TYPES")
-    
-    check_module_type("${types}" "exe" is_executable)
-    check_module_type("${types}" "subcmake" is_subcmake)
-    check_module_type("${types}" "third" is_third_party)
-    
-    if(NOT is_executable AND NOT is_subcmake AND TARGET ${name})
-        add_dependencies(MainEngine ${name})
-        get_property(is_interface GLOBAL PROPERTY "MODULE_${module_name}_IS_INTERFACE")
-        if(is_third_party OR is_interface)
-            target_link_libraries(MainEngine PUBLIC ${name})
-        else()
-            target_link_libraries(MainEngine PRIVATE ${name})
+    # 链接所有模块（排除可执行文件类型）和第三方库
+    foreach(module_name ${MODULE_LIST})
+        get_property(name GLOBAL PROPERTY "MODULE_${module_name}_NAME")
+        get_property(types GLOBAL PROPERTY "MODULE_${module_name}_TYPES")
+        
+        check_module_type("${types}" "exe" is_executable)
+        check_module_type("${types}" "subcmake" is_subcmake)
+        check_module_type("${types}" "third" is_third_party)
+        
+        if(NOT is_executable AND NOT is_subcmake AND TARGET ${name})
+            add_dependencies(MainEngine ${name})
+            get_property(is_interface GLOBAL PROPERTY "MODULE_${module_name}_IS_INTERFACE")
+            if(is_third_party OR is_interface)
+                target_link_libraries(MainEngine PUBLIC ${name})
+            else()
+                target_link_libraries(MainEngine PRIVATE ${name})
+            endif()
         endif()
-    endif()
-    
-    # 链接第三方库的静态库文件
-    if(is_third_party)
-        get_property(third_libs_debug GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_DEBUG")
-        get_property(third_libs_release GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_RELEASE")
-        foreach(lib ${third_libs_debug})
-            target_link_libraries(MainEngine PRIVATE 
-                $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
-        endforeach()
-        foreach(lib ${third_libs_release})
-            target_link_libraries(MainEngine PRIVATE 
-                $<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
-        endforeach()
-    endif()
-endforeach()
+        
+        # 链接第三方库的静态库文件
+        if(is_third_party)
+            get_property(third_libs_debug GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_DEBUG")
+            get_property(third_libs_release GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_RELEASE")
+            foreach(lib ${third_libs_debug})
+                target_link_libraries(MainEngine PRIVATE 
+                    $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
+            endforeach()
+            foreach(lib ${third_libs_release})
+                target_link_libraries(MainEngine PRIVATE 
+                    $<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
+            endforeach()
+        endif()
+    endforeach()
 
 target_link_libraries(MainEngine PRIVATE
     $<$<CONFIG:Debug>:glew32d>
