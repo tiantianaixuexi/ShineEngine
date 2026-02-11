@@ -130,6 +130,42 @@ namespace shine::launcher
         void ShowErrorDialog(const ErrorInfo& error);
         void RenderErrorDialog();
 
+        // Installation
+        bool IsEngineInstalled();
+        bool InstallEngine(const SString& installPath);
+        void RenderInstallWizard();
+        void RenderInstallLocationPage();
+        void RenderInstallProgressPage();
+        void RenderInstallCompletePage();
+        void RenderEngineSelectPage();
+        void SaveEngineSettings(const fs::path& configPath);
+
+        // Installation state
+        enum class InstallState {
+            NotInstalled,
+            SelectingLocation,
+            Installing,
+            Installed,
+            Error
+        };
+
+        InstallState installState = InstallState::NotInstalled;
+        float installProgress = 0.0f;
+        SString installStatus;
+        SString installPath;
+        bool installSuccess = false;
+        SString installError;
+
+        // Engine versions
+        struct EngineVersion {
+            SString version;
+            SString path;
+            bool isInstalled = false;
+            bool isLatest = false;
+        };
+        std::vector<EngineVersion> engineVersions;
+        int selectedEngineVersion = 0;
+
         // Rendering
         shine::render::backend::IRenderBackend* renderBackend = nullptr;
         ImFont* titleFont = nullptr;

@@ -147,7 +147,7 @@ namespace shine::launcher
         // Settings button
         if (ImGui::Button("设置", ImVec2(100, 36)))
         {
-            // TODO: Open settings dialog
+            currentTab = 2; // Switch to Library tab
         }
         ImGui::SameLine();
 
@@ -468,26 +468,18 @@ namespace shine::launcher
         // Engine actions
         if (ImGui::Button("验证安装", ImVec2(160, 36)))
         {
-            // TODO: Verify engine installation
+            ReportError("验证安装", "验证安装功能将在后续版本中实现。");
         }
 
         ImGui::SameLine();
 
         if (ImGui::Button("修复引擎", ImVec2(160, 36)))
         {
-            // TODO: Repair engine installation
+            ReportError("修复引擎", "修复引擎功能将在后续版本中实现。");
         }
 
         ImGui::EndChild();
         ImGui::PopStyleColor();
-
-        ImGui::Spacing();
-        ImGui::Text("引擎特性：");
-        ImGui::BulletText("QuickJS 脚本引擎");
-        ImGui::BulletText("OpenGL 渲染");
-        ImGui::BulletText("ImGui UI 框架");
-        ImGui::BulletText("图像加载 (JPEG, PNG, WebP)");
-        ImGui::BulletText("3D 模型加载 (glTF)");
     }
 
     void LauncherGUI::RenderPluginsTab()
@@ -516,7 +508,9 @@ namespace shine::launcher
 
         if (ImGui::Button("浏览插件", ImVec2(160, 36)))
         {
-            // TODO: Open plugin browser/marketplace
+#ifdef SHINE_PLATFORM_WIN64
+            ShellExecute(NULL, "open", "https://shineengine.github.io/plugins", NULL, NULL, SW_SHOW);
+#endif
         }
     }
 
@@ -548,7 +542,7 @@ namespace shine::launcher
 
         if (ImGui::Button("验证内容", ImVec2(160, 36)))
         {
-            // TODO: Validate content integrity
+            ReportError("验证内容", "验证内容功能将在后续版本中实现。");
         }
     }
 
@@ -573,7 +567,20 @@ namespace shine::launcher
         ImGui::SameLine();
         if (ImGui::Button("浏览..."))
         {
-            // TODO: Open folder picker for default path
+#ifdef SHINE_PLATFORM_WIN64
+            BROWSEINFO bi = { 0 };
+            bi.lpszTitle = "选择默认项目位置";
+            bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+            LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
+            if (pidl != 0) {
+                char path[MAX_PATH];
+                if (SHGetPathFromIDList(pidl, path)) {
+                    settings.defaultProjectPath = path;
+                    strcpy(defaultPath, path);
+                }
+                CoTaskMemFree(pidl);
+            }
+#endif
         }
 
         ImGui::Spacing();
@@ -1607,5 +1614,586 @@ namespace shine::launcher
             
             ImGui::EndPopup();
         }
+    }
+
+    bool LauncherGUI::IsEngineInstalled()
+    {
+        fs::path enginePath = fs::path(engineRootPath.c_str()) / ".." / "Engine";
+        if (!fs::exists(enginePath)) {
+            enginePath = fs::path(engineRootPath.c_str()) / "Engine";
+        }
+        return fs::exists(enginePath / "Modules");
+    }
+
+    bool LauncherGUI::InstallEngine(const SString& installPath)
+    {
+        try {
+            installProgress = 0.0f;
+            installStatus = "正在初始化...";
+            fs::path targetPath = fs::path(installPath.c_str()) / "Engine";
+
+            if (!fs::exists(targetPath)) {
+                fs::create_directories(targetPath);
+            }
+
+            installProgress = 10.0f;
+            installStatus = "正在安装模块...";
+
+            fs::path modulesPath = targetPath / "Modules";
+            fs::create_directories(modulesPath);
+
+            std::vector<std::pair<fs::path, fs::path>> copyPairs = {
+                {fs::current_path() / "Module" / "EngineCore", modulesPath / "EngineCore"},
+                {fs::current_path() / "Module" / "Program", modulesPath / "Program"},
+                {fs::current_path() / "Module" / "image", modulesPath / "image"},
+                {fs::current_path() / "Module" / "loader", modulesPath / "loader"},
+                {fs::current_path() / "Module" / "third", modulesPath / "third"},
+                {fs::current_path() / "Module" / "util", modulesPath / "util"},
+                {fs::current_path() / "Templates", targetPath / "Templates"},
+            };
+
+            int totalPairs = (int)copyPairs.size();
+            for (int i = 0; i < totalPairs; ++i) {
+                if (fs::exists(copyPairs[i].first)) {
+                    fs::copy(copyPairs[i].first, copyPairs[i].second,
+                            fs::copy_options::recursive | fs::copy_options::overwrite_existing);
+                }
+                installProgress = 10.0f + (float)(i + 1) / totalPairs * 80.0f;
+                installStatus = SString(fmt::format("正在安装模块... ({}/{})", i + 1, totalPairs));
+            }
+
+            installProgress = 95.0f;
+            installStatus = "正在完成安装...";
+
+            SaveSettings();
+            SaveEngineSettings(targetPath / "engine_config.ini");
+
+            installProgress = 100.0f;
+            installStatus = "安装完成！";
+            installSuccess = true;
+
+            return true;
+        } catch (const std::exception& e) {
+            installError = e.what();
+            installSuccess = false;
+            return false;
+        }
+    }
+
+    void LauncherGUI::SaveEngineSettings(const fs::path& configPath)
+    {
+        std::ofstream configFile(configPath);
+        if (!configFile.is_open()) return;
+
+        configFile << "# ShineEngine Installation Config\n";
+        configFile << "enginePath=" << configPath.parent_path().string() << "\n";
+        configFile << "version=1.0.0\n";
+        configFile.close();
+    }
+
+    void LauncherGUI::RenderInstallWizard()
+    {
+        switch (installState) {
+        case InstallState::SelectingLocation:
+            RenderInstallLocationPage();
+            break;
+        case InstallState::Installing:
+            RenderInstallProgressPage();
+            break;
+        case InstallState::Installed:
+        case InstallState::Error:
+            RenderInstallCompletePage();
+            break;
+        default:
+            RenderEngineSelectPage();
+            break;
+        }
+    }
+
+    void LauncherGUI::RenderEngineSelectPage()
+    {
+        ImVec2 windowSize = ImGui::GetIO().DisplaySize;
+        ImVec2 windowPos = ImVec2(0, 0);
+
+        ImGui::SetNextWindowPos(windowPos);
+        ImGui::SetNextWindowSize(windowSize);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+
+        ImGui::Begin("InstallWizard", nullptr,
+                     ImGuiWindowFlags_NoTitleBar |
+                     ImGuiWindowFlags_NoResize |
+                     ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoScrollbar);
+
+        // Left panel - UE5 style blue gradient
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.10f, 0.14f, 1.00f));
+        ImGui::BeginChild("LeftPanel", ImVec2(windowSize.x * 0.45f, windowSize.y), false);
+
+        ImGui::SetCursorPos(ImVec2(windowSize.x * 0.45f * 0.5f - 100, 120));
+
+        // Logo
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.28f, 0.56f, 0.89f, 1.00f));
+        ImGui::SetWindowFontScale(3.0f);
+        ImGui::Text("SHINE");
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopStyleColor();
+
+        ImGui::SetCursorPosY(180);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f, 0.72f, 0.76f, 1.00f));
+        ImGui::TextWrapped("游戏引擎启动器");
+        ImGui::PopStyleColor();
+
+        ImGui::SetCursorPosY(220);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.50f, 0.52f, 0.56f, 1.00f));
+        ImGui::TextWrapped("版本 1.0.0");
+        ImGui::PopStyleColor();
+
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
+        // Right panel - content
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.15f, 0.19f, 1.00f));
+        ImGui::SameLine();
+        ImGui::BeginChild("RightPanel", ImVec2(windowSize.x * 0.55f, windowSize.y), false,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        // Title
+        ImGui::SetCursorPos(ImVec2(40, 60));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
+        ImGui::SetWindowFontScale(1.8f);
+        ImGui::Text("欢迎使用 ShineEngine");
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopStyleColor();
+
+        ImGui::SetCursorPos(ImVec2(40, 120));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.60f, 0.62f, 0.66f, 1.00f));
+        ImGui::TextWrapped("选择引擎安装位置开始使用，或浏览已安装的引擎版本。");
+        ImGui::PopStyleColor();
+
+        // Install location card
+        ImGui::SetCursorPos(ImVec2(40, 200));
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 12.0f);
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.18f, 0.20f, 0.24f, 1.00f));
+        ImGui::BeginChild("InstallCard", ImVec2(450, 180), true);
+
+        ImGui::SetCursorPos(ImVec2(24, 20));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.28f, 0.56f, 0.89f, 1.00f));
+        ImGui::Text("安装引擎");
+        ImGui::PopStyleColor();
+
+        ImGui::SetCursorPos(ImVec2(24, 55));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f, 0.72f, 0.76f, 1.00f));
+        ImGui::TextWrapped("首次使用需要安装引擎组件。");
+        ImGui::PopStyleColor();
+
+        ImGui::SetCursorPos(ImVec2(24, 120));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.28f, 0.56f, 0.89f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.63f, 0.96f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.21f, 0.45f, 0.71f, 1.00f));
+        if (ImGui::Button("安装引擎...", ImVec2(180, 44))) {
+            installState = InstallState::SelectingLocation;
+        }
+        ImGui::PopStyleColor(3);
+
+        ImGui::EndChild();
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor();
+
+        // Existing engine versions
+        ImGui::SetCursorPos(ImVec2(40, 400));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
+        ImGui::Text("已安装的引擎");
+        ImGui::PopStyleColor();
+
+        // Engine version cards
+        float cardWidth = 200.0f;
+        int cardsPerRow = 3;
+
+        if (engineVersions.empty()) {
+            ImGui::SetCursorPos(ImVec2(40, 440));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.50f, 0.52f, 0.56f, 1.00f));
+            ImGui::Text("未检测到已安装的引擎版本");
+            ImGui::PopStyleColor();
+        } else {
+            for (size_t i = 0; i < engineVersions.size(); ++i) {
+                if (i > 0 && i % cardsPerRow == 0) {
+                    ImGui::SetCursorPosX(40);
+                }
+                if (i % cardsPerRow != 0) {
+                    ImGui::SameLine(0, 20);
+                }
+
+                ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+                ImGui::PushStyleColor(ImGuiCol_ChildBg,
+                    selectedEngineVersion == (int)i ?
+                    ImVec4(0.28f, 0.56f, 0.89f, 0.30f) :
+                    ImVec4(0.18f, 0.20f, 0.24f, 1.00f));
+                ImGui::BeginChild(("EngineVer" + std::to_string(i)).c_str(),
+                                  ImVec2(cardWidth, 100), true);
+
+                ImGui::SetCursorPos(ImVec2(16, 16));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
+                ImGui::Text("%s", engineVersions[i].version.c_str());
+                ImGui::PopStyleColor();
+
+                ImGui::SetCursorPos(ImVec2(16, 45));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.50f, 0.52f, 0.56f, 1.00f));
+                ImGui::TextDisabled("%s", engineVersions[i].isInstalled ? "已安装" : "未安装");
+                ImGui::PopStyleColor();
+
+                if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0)) {
+                    selectedEngineVersion = (int)i;
+                }
+
+                ImGui::EndChild();
+                ImGui::PopStyleVar();
+                ImGui::PopStyleColor();
+            }
+        }
+
+        // Bottom buttons
+        float bottomY = windowSize.y - 100;
+        ImGui::SetCursorPos(ImVec2(40, bottomY));
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.28f, 0.56f, 0.89f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.63f, 0.96f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.21f, 0.45f, 0.71f, 1.00f));
+        if (ImGui::Button("启动引擎", ImVec2(160, 44)) && !engineVersions.empty()) {
+            // TODO: Launch selected engine
+        }
+        ImGui::PopStyleColor(3);
+
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
+        ImGui::End();
+        ImGui::PopStyleVar(3);
+    }
+
+    void LauncherGUI::RenderInstallLocationPage()
+    {
+        ImVec2 windowSize = ImGui::GetIO().DisplaySize;
+        ImVec2 windowPos = ImVec2(0, 0);
+
+        ImGui::SetNextWindowPos(windowPos);
+        ImGui::SetNextWindowSize(windowSize);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+
+        ImGui::Begin("InstallLocation", nullptr,
+                     ImGuiWindowFlags_NoTitleBar |
+                     ImGuiWindowFlags_NoResize |
+                     ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoScrollbar);
+
+        // Left panel
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.10f, 0.14f, 1.00f));
+        ImGui::BeginChild("LeftPanel", ImVec2(windowSize.x * 0.45f, windowSize.y), false);
+
+        ImGui::SetCursorPos(ImVec2(windowSize.x * 0.45f * 0.5f - 100, 60));
+
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.28f, 0.56f, 0.89f, 1.00f));
+        ImGui::SetWindowFontScale(2.5f);
+        ImGui::Text("SHINE");
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopStyleColor();
+
+        ImGui::SetCursorPosY(100);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 0.90f, 1.00f));
+        ImGui::Text("选择安装位置");
+        ImGui::PopStyleColor();
+
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
+        // Right panel
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.15f, 0.19f, 1.00f));
+        ImGui::SameLine();
+        ImGui::BeginChild("RightPanel", ImVec2(windowSize.x * 0.55f, windowSize.y), false,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        ImGui::SetCursorPos(ImVec2(40, 60));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
+        ImGui::SetWindowFontScale(1.5f);
+        ImGui::Text("引擎安装位置");
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopStyleColor();
+
+        ImGui::SetCursorPos(ImVec2(40, 120));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.60f, 0.62f, 0.66f, 1.00f));
+        ImGui::TextWrapped("选择引擎组件的安装位置。推荐使用默认位置。");
+        ImGui::PopStyleColor();
+
+        // Location input
+        ImGui::SetCursorPos(ImVec2(40, 200));
+        static char installPathBuffer[512] = "";
+        if (strlen(installPathBuffer) == 0) {
+            strcpy(installPathBuffer, "C:\\Program Files\\ShineEngine\\Engine");
+        }
+
+        ImGui::PushItemWidth(500);
+        ImGui::InputText("##InstallPath", installPathBuffer, IM_ARRAYSIZE(installPathBuffer));
+        ImGui::PopItemWidth();
+
+        ImGui::SameLine();
+        if (ImGui::Button("浏览...", ImVec2(100, 0))) {
+#ifdef SHINE_PLATFORM_WIN64
+            BROWSEINFO bi = { 0 };
+            bi.lpszTitle = "选择引擎安装位置";
+            bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+            LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
+            if (pidl != 0) {
+                char path[MAX_PATH];
+                if (SHGetPathFromIDList(pidl, path)) {
+                    strcpy(installPathBuffer, path);
+                }
+                CoTaskMemFree(pidl);
+            }
+#endif
+        }
+
+        // Space requirements
+        ImGui::SetCursorPos(ImVec2(40, 280));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.50f, 0.52f, 0.56f, 1.00f));
+        ImGui::Text("所需空间: ~100 MB");
+        ImGui::PopStyleColor();
+
+        // Navigation buttons
+        float bottomY = windowSize.y - 100;
+        ImGui::SetCursorPos(ImVec2(40, bottomY));
+
+        if (ImGui::Button("返回", ImVec2(120, 44))) {
+            installState = InstallState::NotInstalled;
+        }
+
+        ImGui::SameLine();
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.28f, 0.56f, 0.89f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.63f, 0.96f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.21f, 0.45f, 0.71f, 1.00f));
+        if (ImGui::Button("安装", ImVec2(120, 44))) {
+            installPath = installPathBuffer;
+            installState = InstallState::Installing;
+            InstallEngine(installPath);
+        }
+        ImGui::PopStyleColor(3);
+
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
+        ImGui::End();
+        ImGui::PopStyleVar(3);
+    }
+
+    void LauncherGUI::RenderInstallProgressPage()
+    {
+        ImVec2 windowSize = ImGui::GetIO().DisplaySize;
+        ImVec2 windowPos = ImVec2(0, 0);
+
+        ImGui::SetNextWindowPos(windowPos);
+        ImGui::SetNextWindowSize(windowSize);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+
+        ImGui::Begin("InstallProgress", nullptr,
+                     ImGuiWindowFlags_NoTitleBar |
+                     ImGuiWindowFlags_NoResize |
+                     ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoScrollbar);
+
+        // Left panel
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.10f, 0.14f, 1.00f));
+        ImGui::BeginChild("LeftPanel", ImVec2(windowSize.x * 0.45f, windowSize.y), false);
+
+        ImGui::SetCursorPos(ImVec2(windowSize.x * 0.45f * 0.5f - 100, 60));
+
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.28f, 0.56f, 0.89f, 1.00f));
+        ImGui::SetWindowFontScale(2.5f);
+        ImGui::Text("SHINE");
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopStyleColor();
+
+        ImGui::SetCursorPosY(100);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 0.90f, 1.00f));
+        ImGui::Text("正在安装...");
+        ImGui::PopStyleColor();
+
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
+        // Right panel
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.15f, 0.19f, 1.00f));
+        ImGui::SameLine();
+        ImGui::BeginChild("RightPanel", ImVec2(windowSize.x * 0.55f, windowSize.y), false,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        ImGui::SetCursorPos(ImVec2(40, 60));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
+        ImGui::SetWindowFontScale(1.5f);
+        ImGui::Text("安装引擎组件");
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopStyleColor();
+
+        // Progress bar
+        ImGui::SetCursorPos(ImVec2(40, 160));
+        ImVec2 progressBarSize = ImVec2(500, 24);
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.18f, 0.20f, 0.24f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.28f, 0.56f, 0.89f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogramHovered, ImVec4(0.35f, 0.63f, 0.96f, 1.00f));
+        ImGui::ProgressBar(installProgress / 100.0f, progressBarSize);
+        ImGui::PopStyleColor(3);
+
+        // Progress text
+        ImGui::SetCursorPos(ImVec2(40, 200));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f, 0.72f, 0.76f, 1.00f));
+        ImGui::Text("%s", installStatus.c_str());
+        ImGui::PopStyleColor();
+
+        // Percentage
+        ImGui::SetCursorPos(ImVec2(560, 160));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 0.90f, 1.00f));
+        ImGui::Text("%.0f%%", installProgress);
+        ImGui::PopStyleColor();
+
+        // Cancel button
+        float bottomY = windowSize.y - 100;
+        ImGui::SetCursorPos(ImVec2(40, bottomY));
+
+        if (ImGui::Button("取消", ImVec2(120, 44))) {
+            installState = InstallState::SelectingLocation;
+        }
+
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
+        ImGui::End();
+        ImGui::PopStyleVar(3);
+    }
+
+    void LauncherGUI::RenderInstallCompletePage()
+    {
+        ImVec2 windowSize = ImGui::GetIO().DisplaySize;
+        ImVec2 windowPos = ImVec2(0, 0);
+
+        ImGui::SetNextWindowPos(windowPos);
+        ImGui::SetNextWindowSize(windowSize);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+
+        ImGui::Begin("InstallComplete", nullptr,
+                     ImGuiWindowFlags_NoTitleBar |
+                     ImGuiWindowFlags_NoResize |
+                     ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoScrollbar);
+
+        // Left panel
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.10f, 0.14f, 1.00f));
+        ImGui::BeginChild("LeftPanel", ImVec2(windowSize.x * 0.45f, windowSize.y), false);
+
+        ImGui::SetCursorPos(ImVec2(windowSize.x * 0.45f * 0.5f - 100, 60));
+
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.28f, 0.56f, 0.89f, 1.00f));
+        ImGui::SetWindowFontScale(2.5f);
+        ImGui::Text("SHINE");
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopStyleColor();
+
+        ImGui::SetCursorPosY(100);
+
+        if (installSuccess) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.30f, 0.80f, 0.40f, 1.00f));
+            ImGui::Text("✓ 安装成功");
+            ImGui::PopStyleColor();
+        } else {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.30f, 0.30f, 1.00f));
+            ImGui::Text("✗ 安装失败");
+            ImGui::PopStyleColor();
+        }
+
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
+        // Right panel
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.15f, 0.19f, 1.00f));
+        ImGui::SameLine();
+        ImGui::BeginChild("RightPanel", ImVec2(windowSize.x * 0.55f, windowSize.y), false,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        ImGui::SetCursorPos(ImVec2(40, 60));
+
+        if (installSuccess) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.30f, 0.80f, 0.40f, 1.00f));
+            ImGui::SetWindowFontScale(1.5f);
+            ImGui::Text("安装完成！");
+            ImGui::SetWindowFontScale(1.0f);
+            ImGui::PopStyleColor();
+
+            ImGui::SetCursorPos(ImVec2(40, 120));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.60f, 0.62f, 0.66f, 1.00f));
+            ImGui::TextWrapped("ShineEngine 已成功安装到以下位置：");
+            ImGui::PopStyleColor();
+
+            ImGui::SetCursorPos(ImVec2(40, 160));
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.18f, 0.20f, 0.24f, 1.00f));
+            ImGui::BeginChild("PathDisplay", ImVec2(500, 50), true);
+            ImGui::SetCursorPos(ImVec2(16, 17));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 0.90f, 1.00f));
+            ImGui::Text("%s", installPath.c_str());
+            ImGui::PopStyleColor();
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
+        } else {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.30f, 0.30f, 1.00f));
+            ImGui::SetWindowFontScale(1.5f);
+            ImGui::Text("安装失败");
+            ImGui::SetWindowFontScale(1.0f);
+            ImGui::PopStyleColor();
+
+            ImGui::SetCursorPos(ImVec2(40, 120));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.60f, 0.62f, 0.66f, 1.00f));
+            ImGui::TextWrapped("安装过程中发生错误：");
+            ImGui::PopStyleColor();
+
+            ImGui::SetCursorPos(ImVec2(40, 160));
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.30f, 0.15f, 0.15f, 1.00f));
+            ImGui::BeginChild("ErrorDisplay", ImVec2(500, 100), true);
+            ImGui::SetCursorPos(ImVec2(16, 16));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 0.90f, 1.00f));
+            ImGui::TextWrapped("%s", installError.empty() ? "未知错误" : installError.c_str());
+            ImGui::PopStyleColor();
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
+        }
+
+        // Navigation buttons
+        float bottomY = windowSize.y - 100;
+        ImGui::SetCursorPos(ImVec2(40, bottomY));
+
+        if (ImGui::Button("返回", ImVec2(120, 44))) {
+            installState = installSuccess ? InstallState::NotInstalled : InstallState::SelectingLocation;
+        }
+
+        if (installSuccess) {
+            ImGui::SameLine();
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.28f, 0.56f, 0.89f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.63f, 0.96f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.21f, 0.45f, 0.71f, 1.00f));
+            if (ImGui::Button("启动引擎", ImVec2(160, 44))) {
+                // TODO: Launch engine
+            }
+            ImGui::PopStyleColor(3);
+        }
+
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
+        ImGui::End();
+        ImGui::PopStyleVar(3);
     }
 }

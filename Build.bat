@@ -78,6 +78,11 @@ if /i "%~1"=="--release" (
     shift
     goto parse_args
 )
+if /i "%~1"=="--run" (
+    set RUN_AFTER_BUILD=TRUE
+    shift
+    goto parse_args
+)
 
 if defined CMD (
     if /i "%~1"=="release" (
@@ -227,7 +232,7 @@ goto end_script
 
 :cmd_exe
 if "%TARGET_ARG%"=="" call :error_exit "Executable name not specified"
-call :build_generic "%TARGET_ARG%" "Debug" "FALSE"
+call :build_generic "%TARGET_ARG%" "Debug" "%RUN_AFTER_BUILD%"
 goto end_script
 
 :cmd_module
@@ -286,11 +291,16 @@ echo   compile_commands Generate compile_commands.json for clangd
 echo.
 echo Global flags:
 echo   --release        Use Release config (for module/wasm/test)
+echo   --run            Run executable after building (for exe command)
 echo   --no-pause       Do not pause at script end (CI-friendly)
 echo   --no-editor      Disable editor features (removes BUILD_EDITOR macro)
 echo   --editor         Enable editor mode (default, same as without flag)
 echo   --runtime        Build in runtime mode (excludes editor-only modules)
 echo   --enable-module  Enable C++20 modules (adds SHINE_BUILD_MODULE macro)
+echo.
+echo Examples:
+echo   build.bat exe EngineLauncher          - Build EngineLauncher
+echo   build.bat exe EngineLauncher --run    - Build and run EngineLauncher
 echo.
 goto end_script
 
