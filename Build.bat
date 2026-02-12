@@ -2,6 +2,11 @@
 chcp 65001 >nul 2>nul
 setlocal enabledelayedexpansion
 
+:: 自动检测CPU核心数用于并行编译
+for /f "tokens=2 delims==" %%i in ('wmic cpu get NumberOfLogicalProcessors /value ^| findstr "NumberOfLogicalProcessors"') do set PARALLEL_CORES=%%i
+if not defined PARALLEL_CORES set PARALLEL_CORES=4
+
+
 goto main
 
 :error_exit
@@ -232,7 +237,7 @@ goto end_script
 
 :cmd_exe
 if "%TARGET_ARG%"=="" call :error_exit "Executable name not specified"
-call :build_generic "%TARGET_ARG%" "Debug" "%RUN_AFTER_BUILD%"
+call :build_generic "%TARGET_ARG%" "%MODULE_CONFIG%" "%RUN_AFTER_BUILD%"
 goto end_script
 
 :cmd_module

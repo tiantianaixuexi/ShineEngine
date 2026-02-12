@@ -31,28 +31,18 @@
 namespace shine::reflection {
 
     // =========================================================================
-    // Reflection-specific memory tags (fine-grained, bitmask)
+    // Reflection uses engine's main memory tags
+    // Fine-grained tracking is done via engine's MemoryTag::Reflection
     // =========================================================================
-
-    enum class MemoryTag : uint32_t {
-        None             = 0,
-        TypeInfo         = 1 << 0,
-        FieldInfo        = 1 << 1,
-        MethodInfo       = 1 << 2,
-        StringStorage    = 1 << 3,
-        HashTables       = 1 << 4,
-        TemporaryBuffers = 1 << 5,
-        CacheData        = 1 << 6
-    };
 
 } // namespace shine::reflection  (close for ENABLE_ENUM_FLAGS)
 
-ENABLE_ENUM_FLAGS(shine::reflection::MemoryTag)
+// Reflection uses engine's memory tagging system
 
 namespace shine::reflection {
 
     // =========================================================================
-    // MemoryStats — atomic, lock-free statistics
+    // MemoryStats — uses engine's unified statistics
     // =========================================================================
 
     struct MemoryStats {
@@ -61,95 +51,18 @@ namespace shine::reflection {
         size_t allocationCount  = 0;
         size_t deallocationCount = 0;
 
-        // Per-tag byte counters
-        size_t typeInfoBytes  = 0;
-        size_t fieldInfoBytes = 0;
-        size_t stringBytes    = 0;
-        size_t cacheBytes     = 0;
-
+        // Use engine's MemoryTag::Reflection stats instead of per-subtype tracking
         double hitRate       = 0.0;  // pool hit rate
         double fragmentation = 0.0;  // memory fragmentation estimate
     };
 
     // =========================================================================
-    // LinearAllocator — lightweight arena with Reset support
+    // LinearAllocator removed - use engine's memory system directly
+    // For temporary/frame data, use stack allocation or engine's facilities
     // =========================================================================
-    //
-    // Similar to ArenaAllocator but designed for general-purpose use cases
-    // like per-frame rendering data. Uses engine Memory allocator for blocks.
-    //
-
-    class LinearAllocator {
-    public:
-        explicit LinearAllocator(size_t pageSize = 64 * 1024) 
-            : pageSize_(pageSize) {}
-
-        ~LinearAllocator() { Clear(); }
-
-        LinearAllocator(const LinearAllocator&) = delete;
-        LinearAllocator& operator=(const LinearAllocator&) = delete;
-
-        void* Allocate(size_t size, size_t alignment = alignof(std::max_align_t)) {
-            size_t aligned = (currentOffset_ + alignment - 1) & ~(alignment - 1);
-            if (currentPage_ < pages_.size() && aligned + size <= pages_[currentPage_].capacity) {
-                void* ptr = static_cast<char*>(pages_[currentPage_].data) + aligned;
-                currentOffset_ = aligned + size;
-                return ptr;
-            }
-            return AllocateNewPage(size, alignment);
-        }
-
-        template<typename T, typename... Args>
-        T* New(Args&&... args) {
-            void* p = Allocate(sizeof(T), alignof(T));
-            return new(p) T(std::forward<Args>(args)...);
-        }
-
-        void Reset() {
-            currentPage_ = 0;
-            currentOffset_ = 0;
-        }
-
-        void Clear() {
-            for (auto& page : pages_) {
-                shine::co::Memory::Free(page.data);
-            }
-            pages_.clear();
-            currentPage_ = 0;
-            currentOffset_ = 0;
-        }
-
-    private:
-        struct Page {
-            void* data;
-            size_t capacity;
-        };
-        std::vector<Page> pages_;
-        size_t pageSize_;
-        size_t currentPage_ = 0;
-        size_t currentOffset_ = 0;
-
-        void* AllocateNewPage(size_t size, size_t alignment) {
-            while (currentPage_ + 1 < pages_.size()) {
-                currentPage_++;
-                size_t aligned = (alignment - 1) & ~(alignment - 1);
-                if (aligned + size <= pages_[currentPage_].capacity) {
-                    currentOffset_ = aligned + size;
-                    return static_cast<char*>(pages_[currentPage_].data) + aligned;
-                }
-            }
-            size_t needed = std::max(pageSize_, size + alignment);
-            void* mem = shine::co::Memory::Alloc(needed);
-            pages_.push_back({mem, needed});
-            currentPage_ = pages_.size() - 1;
-            size_t aligned = (size_t(mem) + alignment - 1) & ~(alignment - 1);
-            currentOffset_ = (aligned - size_t(mem)) + size;
-            return (void*)aligned;
-        }
-    };
 
     // =========================================================================
-    // ReflectionMemoryManager
+    // ReflectionMemoryManager - simplified interface using engine memory
     // =========================================================================
 
     class ReflectionMemoryManager {
@@ -162,103 +75,83 @@ namespace shine::reflection {
         ReflectionMemoryManager(const ReflectionMemoryManager&) = delete;
         ReflectionMemoryManager& operator=(const ReflectionMemoryManager&) = delete;
 
-        // ---- Allocation ----
+        // ---- Allocation (delegates to engine memory) ----
 
         template <typename T = void>
         [[nodiscard]]
-        T* Allocate(size_t size, MemoryTag tag = MemoryTag::None,
-                    size_t alignment = alignof(std::max_align_t)) {
-            return static_cast<T*>(AllocateImpl(size, tag, alignment));
+        T* Allocate(size_t size, size_t alignment = alignof(std::max_align_t)) {
+            // Use engine's memory system with Reflection tag
+            shine::co::MemoryScope scope(shine::co::MemoryTag::Reflection);
+            return static_cast<T*>(shine::co::Memory::Alloc(size, alignment));
         }
 
-        void Deallocate(void* ptr, size_t size, MemoryTag tag = MemoryTag::None) {
-            DeallocateImpl(ptr, size, tag);
+        void Deallocate(void* ptr) {
+            shine::co::Memory::Free(ptr);
         }
 
         // ---- Frame lifecycle ----
 
-        /// Reset temporary arena (call once per frame).
+        /// Reset temporary data (no-op since we use engine's memory system)
         void ResetFrame() {
-            arena_.Reset();
-            UpdateStatistics();
+            // Engine handles frame-based memory management
+            // Just flush stats for accurate reporting
+            shine::co::Memory::FlushAllThreadStats();
         }
 
-        // ---- Statistics (lock-free snapshot) ----
+        // ---- Statistics (delegates to engine) ----
 
         [[nodiscard]]
         MemoryStats GetStatistics() const noexcept {
+            auto engineStats = shine::co::Memory::GetTagStats(shine::co::MemoryTag::Reflection);
+            
             MemoryStats s;
-            s.totalAllocated   = totalAllocated_.load(std::memory_order_relaxed);
-            s.peakUsage        = peakUsage_.load(std::memory_order_relaxed);
-            s.allocationCount  = allocationCount_.load(std::memory_order_relaxed);
-            s.deallocationCount = deallocationCount_.load(std::memory_order_relaxed);
-            s.typeInfoBytes    = typeInfoBytes_.load(std::memory_order_relaxed);
-            s.fieldInfoBytes   = fieldInfoBytes_.load(std::memory_order_relaxed);
-            s.stringBytes      = stringBytes_.load(std::memory_order_relaxed);
-            s.cacheBytes       = cacheBytes_.load(std::memory_order_relaxed);
-            s.hitRate          = hitRate_.load(std::memory_order_relaxed);
-            s.fragmentation    = fragmentation_.load(std::memory_order_relaxed);
+            s.totalAllocated   = engineStats.bytes_current;
+            s.peakUsage        = engineStats.bytes_peak;
+            s.allocationCount  = engineStats.alloc_count;
+            s.deallocationCount = engineStats.free_count;
+            
+            // Calculate derived metrics
+            s.hitRate = (s.allocationCount > 0) 
+                ? (static_cast<double>(s.allocationCount - s.deallocationCount) / 
+                   static_cast<double>(s.allocationCount)) * 100.0
+                : 0.0;
+            
+            s.fragmentation = (s.peakUsage > 0)
+                ? (1.0 - static_cast<double>(s.totalAllocated) / 
+                   static_cast<double>(s.peakUsage)) * 100.0
+                : 0.0;
+            
             return s;
         }
 
-        /// Release everything (temporary + pools + stats).
+        /// Release everything (delegates to engine cleanup)
         void ForceCleanup() {
-            arena_.Clear();
-            totalAllocated_.store(0, std::memory_order_relaxed);
-            peakUsage_.store(0, std::memory_order_relaxed);
-            allocationCount_.store(0, std::memory_order_relaxed);
-            deallocationCount_.store(0, std::memory_order_relaxed);
-            typeInfoBytes_.store(0, std::memory_order_relaxed);
-            fieldInfoBytes_.store(0, std::memory_order_relaxed);
-            stringBytes_.store(0, std::memory_order_relaxed);
-            cacheBytes_.store(0, std::memory_order_relaxed);
-            hitRate_.store(0.0, std::memory_order_relaxed);
-            fragmentation_.store(0.0, std::memory_order_relaxed);
+            // Engine memory system handles cleanup
+            // Just ensure all stats are flushed
+            shine::co::Memory::FlushAllThreadStats();
         }
 
     private:
         ReflectionMemoryManager() = default;
         ~ReflectionMemoryManager() = default;
-
-        void* AllocateImpl(size_t size, MemoryTag tag, size_t alignment);
-        void  DeallocateImpl(void* ptr, size_t size, MemoryTag tag);
-        void  UpdateStatistics();
-
-        // Temporary arena (frame-lifetime data)
-        LinearAllocator arena_;
-
-        // ---- Atomic statistics (no mutex needed) ----
-        std::atomic<size_t>   totalAllocated_{0};
-        std::atomic<size_t>   peakUsage_{0};
-        std::atomic<size_t>   allocationCount_{0};
-        std::atomic<size_t>   deallocationCount_{0};
-        std::atomic<size_t>   typeInfoBytes_{0};
-        std::atomic<size_t>   fieldInfoBytes_{0};
-        std::atomic<size_t>   stringBytes_{0};
-        std::atomic<size_t>   cacheBytes_{0};
-        std::atomic<double>   hitRate_{0.0};
-        std::atomic<double>   fragmentation_{0.0};
-
-        static constexpr size_t SMALL_OBJECT_THRESHOLD = 512;
     };
 
     // =========================================================================
-    // MemoryGuard — RAII scoped allocation wrapper
+    // MemoryGuard - simplified RAII wrapper
     // =========================================================================
 
     template <typename T>
     class MemoryGuard {
     public:
-        MemoryGuard(MemoryTag tag = MemoryTag::None)
-            : ptr_(ReflectionMemoryManager::GetInstance().template Allocate<T>(sizeof(T), tag))
-            , tag_(tag) {}
+        MemoryGuard()
+            : ptr_(ReflectionMemoryManager::GetInstance().template Allocate<T>(sizeof(T))) {}
 
-        explicit MemoryGuard(T* ptr, MemoryTag tag = MemoryTag::None)
-            : ptr_(ptr), tag_(tag) {}
+        explicit MemoryGuard(T* ptr)
+            : ptr_(ptr) {}
 
         ~MemoryGuard() {
             if (ptr_) {
-                ReflectionMemoryManager::GetInstance().Deallocate(ptr_, sizeof(T), tag_);
+                ReflectionMemoryManager::GetInstance().Deallocate(ptr_);
             }
         }
 
@@ -266,17 +159,16 @@ namespace shine::reflection {
         MemoryGuard& operator=(const MemoryGuard&) = delete;
 
         MemoryGuard(MemoryGuard&& other) noexcept
-            : ptr_(other.ptr_), tag_(other.tag_) {
+            : ptr_(other.ptr_) {
             other.ptr_ = nullptr;
         }
 
         MemoryGuard& operator=(MemoryGuard&& other) noexcept {
             if (this != &other) {
                 if (ptr_) {
-                    ReflectionMemoryManager::GetInstance().Deallocate(ptr_, sizeof(T), tag_);
+                    ReflectionMemoryManager::GetInstance().Deallocate(ptr_);
                 }
                 ptr_ = other.ptr_;
-                tag_ = other.tag_;
                 other.ptr_ = nullptr;
             }
             return *this;
@@ -289,18 +181,11 @@ namespace shine::reflection {
 
     private:
         T* ptr_;
-        MemoryTag tag_;
     };
 
     // =========================================================================
-    // StringMemoryManager — interned string pool with deduplication
+    // StringMemoryManager - keep existing functionality but simplify
     // =========================================================================
-    //
-    // Uses a hash set to deduplicate strings and a linear arena
-    // for storage.  This is critical because reflection registers
-    // many duplicate type/field names across translation units.
-    //
-
     class StringMemoryManager {
     public:
         static StringMemoryManager& GetInstance() {

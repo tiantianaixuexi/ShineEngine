@@ -15,10 +15,13 @@
 #include <cstring>
 #include <string_view>
 #include <type_traits>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
 #include "util/EnumFlags.h"
+#include "constexpr/constexpr_vector.h"
+#include "constexpr/constexpr_str.h"
 
 // =============================================================================
 // Type Identity — hash, names, IDs
@@ -288,21 +291,73 @@ struct TypeInfo {
 
     std::vector<FieldInfo>  fields;
     std::vector<MethodInfo> methods;
+    
+    // Fast lookup maps for performance
+    mutable std::unordered_map<uint32_t, const FieldInfo*> fieldLookupCache_;
+    mutable std::unordered_map<uint32_t, const MethodInfo*> methodLookupCache_;
+    mutable bool lookupCacheBuilt_ = false;
 
     struct EnumEntry { int64_t value; std::string_view name; };
     std::vector<EnumEntry> enumEntries;
 
     const FieldInfo* FindField(std::string_view fieldName) const {
+        // Build cache on first access
+        if (!lookupCacheBuilt_) {
+            BuildLookupCache();
+        }
+        
+        // Fast hash-based lookup
+        uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(fieldName));
+        auto it = fieldLookupCache_.find(hash);
+        if (it != fieldLookupCache_.end() && it->second->name == fieldName) {
+            return it->second;
+        }
+        
+        // Fallback to linear search (should rarely happen)
         for (const auto& f : fields)
             if (f.name == fieldName) return &f;
         return nullptr;
     }
-
+    
     const MethodInfo* FindMethod(std::string_view methodName) const {
+        // Build cache on first access
+        if (!lookupCacheBuilt_) {
+            BuildLookupCache();
+        }
+        
+        // Fast hash-based lookup
+        uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(methodName));
+        auto it = methodLookupCache_.find(hash);
+        if (it != methodLookupCache_.end() && it->second->name == methodName) {
+            return it->second;
+        }
+        
+        // Fallback to linear search (should rarely happen)
         for (const auto& m : methods)
             if (m.name == methodName) return &m;
         return nullptr;
     }
+    
+private:
+    void BuildLookupCache() const {
+        if (lookupCacheBuilt_) return;
+        
+        // Build field lookup cache
+        for (const auto& field : fields) {
+            uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(field.name));
+            fieldLookupCache_[hash] = &field;
+        }
+        
+        // Build method lookup cache
+        for (const auto& method : methods) {
+            uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(method.name));
+            methodLookupCache_[hash] = &method;
+        }
+        
+        lookupCacheBuilt_ = true;
+    }
+    
+public:
 
     std::size_t GetFieldCount()  const { return fields.size(); }
     std::size_t GetMethodCount() const { return methods.size(); }
@@ -337,6 +392,105 @@ struct ListThunks {
             &GetSize, &GetElement, &GetElementConst, &Resize
         };
         return trait;
+    }
+};
+
+// =============================================================================
+// Compile-Time Reflection Structures
+// =============================================================================
+
+// 编译期字段信息
+struct ConstexprFieldInfo {
+    const char* name;
+    uint32_t typeId;
+    size_t offset;
+    size_t size;
+    size_t alignment;
+    bool isPod;
+    
+    // 编译期字段构建助手
+    template<typename T>
+    consteval static ConstexprFieldInfo Create(const char* field_name) {
+        return ConstexprFieldInfo{
+            field_name,
+            GetTypeId<T>(),
+            0,  // offset需要运行时确定
+            sizeof(T),
+            alignof(T),
+            std::is_trivially_copyable_v<T>
+        };
+    }
+};
+
+// 编译期类型信息模板
+template<typename T>
+struct ConstexprTypeInfo {
+    uint32_t id;
+    const char* name;
+    size_t size;
+    size_t alignment;
+    bool isEnum;
+    bool isPod;
+    
+    // 使用原始constexpr容器
+    shine::constexpr_::constexpr_vector<ConstexprFieldInfo, 16> fields;
+    
+    // 编译期类型信息构建
+    consteval static ConstexprTypeInfo Create(const char* type_name = "unknown") {
+        return ConstexprTypeInfo{
+            GetTypeId<T>(),
+            type_name,
+            sizeof(T),
+            alignof(T),
+            std::is_enum_v<T>,
+            std::is_trivially_copyable_v<T>
+        };
+    }
+    
+    // 添加字段
+    template<typename FieldType>
+    consteval ConstexprTypeInfo& AddField(const char* field_name) {
+        if (!fields.full()) {
+            fields.push_back(ConstexprFieldInfo::Create<FieldType>(field_name));
+        }
+        return *this;
+    }
+    
+    // 编译期字段查找（使用简单的字符串比较）
+    constexpr const ConstexprFieldInfo* FindField(const char* field_name) const {
+        for (size_t i = 0; i < fields.size(); ++i) {
+            // 简单的字符串比较，避免使用 strcmp
+            const char* a = fields[i].name;
+            const char* b = field_name;
+            while (*a && *b && *a == *b) {
+                ++a; ++b;
+            }
+            if (*a == *b) {  // both are null terminator
+                return &fields[i];
+            }
+        }
+        return nullptr;
+    }
+    
+    // 获取字段数量
+    constexpr size_t GetFieldCount() const {
+        return fields.size();
+    }
+};
+
+// =============================================================================
+// Automatic Compile-Time Registration System
+// =============================================================================
+
+// 自动编译期注册器 - 将编译期信息自动注册到运行时系统
+template<typename T>
+struct AutoConstexprRegistration {
+    static consteval auto Register() {
+        // 编译期构建类型信息
+        auto ct_info = ConstexprTypeInfo<T>::Create();
+        
+        // 返回编译期信息（运行时注册将在其他地方处理）
+        return ct_info;
     }
 };
 

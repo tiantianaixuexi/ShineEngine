@@ -137,6 +137,4 @@ REFLECTION_STRUCT(EngineSettings) {
     REFLECT_METHOD(InternalReset);
 }
 
-REFLECTION_REGISTER(EngineSettings)
-
 } // namespace shine::editor::settings

@@ -1,0 +1,7 @@
+{
+  "name": "ReflectionPerfBenchmark",
+  "type": "exe",
+  "dirs": ["test/ReflectionPerfBenchmark"],
+  "deps": ["engine_core", "fmt"],
+  "defines": ["SHINE_REFLECTION_PERF_BENCHMARK"]
+}
