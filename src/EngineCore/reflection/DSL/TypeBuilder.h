@@ -14,6 +14,7 @@
 #include "FieldDSL.h"
 #include "MethodDSL.h"
 #include <string_view>
+#include <type_traits>
 
 namespace shine::reflection {
 
@@ -96,7 +97,8 @@ struct TypeBuilder {
         f.alignment = alignof(MType);
         f.isPod     = std::is_trivially_copyable_v<MType>;
 
-        f.getterFn = [](const void* inst, void* out, std::size_t, std::size_t) {
+        // Optimized getter/setter - 零间接调用
+        f.getterFn = [](const void* inst, void* out) {
             const auto& val = static_cast<const CType*>(inst)->*MemberPtr;
             if constexpr (std::is_trivially_copyable_v<MType>)
                 std::memcpy(out, &val, sizeof(MType));
@@ -104,7 +106,7 @@ struct TypeBuilder {
                 *static_cast<MType*>(out) = val;
         };
 
-        f.setterFn = [](void* inst, const void* in, std::size_t, std::size_t) {
+        f.setterFn = [](void* inst, const void* in) {
             if constexpr (std::is_trivially_copyable_v<MType>)
                 std::memcpy(&(static_cast<CType*>(inst)->*MemberPtr), in, sizeof(MType));
             else
@@ -198,6 +200,108 @@ struct TypeBuilder {
         info.isEnum = true;
         for (const auto& e : entries)
             info.enumEntries.push_back({static_cast<int64_t>(e.value), e.name});
+    }
+};
+
+// =============================================================================
+// FastMethodCall — Optimized method invocation with template specialization
+// =============================================================================
+
+namespace detail {
+
+// 辅助模板：移除引用
+template<typename T>
+using RemoveRef = std::remove_reference_t<T>;
+
+// 便捷函数模板 - 使用模板参数传递方法指针，支持 0-4 参数
+// 注意：不支持引用类型的参数，需要使用指针或值类型
+template<auto MethodPtr>
+[[gnu::always_inline]] inline void FastMethodCall(void* inst, void** args, void* ret) {
+    using MP = decltype(MethodPtr);
+    using Traits = MethodTraits<MP>;
+    using ClassType = typename Traits::ClassType;
+    using ReturnType = typename Traits::ReturnType;
+    
+    auto* obj = static_cast<ClassType*>(inst);
+    
+    constexpr size_t Arity = Traits::Arity;
+    
+    if constexpr (Arity == 0) {
+        if constexpr (std::is_void_v<ReturnType>) {
+            (obj->*MethodPtr)();
+        } else {
+            if (ret) *static_cast<ReturnType*>(ret) = (obj->*MethodPtr)();
+        }
+    } else if constexpr (Arity == 1) {
+        using P0 = RemoveRef<std::tuple_element_t<0, typename Traits::ParamTuple>>;
+        auto* p0 = args ? static_cast<P0*>(args[0]) : nullptr;
+        if constexpr (std::is_void_v<ReturnType>) {
+            (obj->*MethodPtr)(*p0);
+        } else {
+            if (ret) *static_cast<ReturnType*>(ret) = (obj->*MethodPtr)(*p0);
+        }
+    } else if constexpr (Arity == 2) {
+        using P0 = RemoveRef<std::tuple_element_t<0, typename Traits::ParamTuple>>;
+        using P1 = RemoveRef<std::tuple_element_t<1, typename Traits::ParamTuple>>;
+        auto* p0 = args ? static_cast<P0*>(args[0]) : nullptr;
+        auto* p1 = args ? static_cast<P1*>(args[1]) : nullptr;
+        if constexpr (std::is_void_v<ReturnType>) {
+            (obj->*MethodPtr)(*p0, *p1);
+        } else {
+            if (ret) *static_cast<ReturnType*>(ret) = (obj->*MethodPtr)(*p0, *p1);
+        }
+    } else if constexpr (Arity == 3) {
+        using P0 = RemoveRef<std::tuple_element_t<0, typename Traits::ParamTuple>>;
+        using P1 = RemoveRef<std::tuple_element_t<1, typename Traits::ParamTuple>>;
+        using P2 = RemoveRef<std::tuple_element_t<2, typename Traits::ParamTuple>>;
+        auto* p0 = args ? static_cast<P0*>(args[0]) : nullptr;
+        auto* p1 = args ? static_cast<P1*>(args[1]) : nullptr;
+        auto* p2 = args ? static_cast<P2*>(args[2]) : nullptr;
+        if constexpr (std::is_void_v<ReturnType>) {
+            (obj->*MethodPtr)(*p0, *p1, *p2);
+        } else {
+            if (ret) *static_cast<ReturnType*>(ret) = (obj->*MethodPtr)(*p0, *p1, *p2);
+        }
+    } else if constexpr (Arity == 4) {
+        using P0 = RemoveRef<std::tuple_element_t<0, typename Traits::ParamTuple>>;
+        using P1 = RemoveRef<std::tuple_element_t<1, typename Traits::ParamTuple>>;
+        using P2 = RemoveRef<std::tuple_element_t<2, typename Traits::ParamTuple>>;
+        using P3 = RemoveRef<std::tuple_element_t<3, typename Traits::ParamTuple>>;
+        auto* p0 = args ? static_cast<P0*>(args[0]) : nullptr;
+        auto* p1 = args ? static_cast<P1*>(args[1]) : nullptr;
+        auto* p2 = args ? static_cast<P2*>(args[2]) : nullptr;
+        auto* p3 = args ? static_cast<P3*>(args[3]) : nullptr;
+        if constexpr (std::is_void_v<ReturnType>) {
+            (obj->*MethodPtr)(*p0, *p1, *p2, *p3);
+        } else {
+            if (ret) *static_cast<ReturnType*>(ret) = (obj->*MethodPtr)(*p0, *p1, *p2, *p3);
+        }
+    }
+}
+
+} // namespace detail
+
+// =============================================================================
+// 注册方法时使用优化的调用器
+// =============================================================================
+
+// 使用示例:
+// builder.RegisterMethodFast< &MyClass::MyMethod >("MyMethod")
+
+template <auto MethodPtr>
+struct FastMethodRegistration {
+    template<typename T>
+    static auto Register(T& builder, std::string_view name) {
+        using MP = decltype(MethodPtr);
+        
+        // 使用 DSL 创建方法节点
+        auto mb = builder.RegisterMethodFromDSL(
+            DSL::MakeMethodDSL<MethodPtr>(name));
+        
+        // 替换为优化的调用器
+        mb.method.invokeFn = &detail::FastMethodCall<MethodPtr>;
+        
+        return mb;  // 返回 MethodBuilder 支持链式调用
     }
 };
 

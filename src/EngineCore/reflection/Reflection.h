@@ -44,6 +44,7 @@
 // Core components
 #include "Core/ReflectionHelpers.h"
 #include "Core/ReflectionMacros.h"
+#include "Core/ConstexprOffset.h"
 
 // =============================================================================
 // Compile-Time Registration Support

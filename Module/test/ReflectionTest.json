@@ -1,0 +1,9 @@
+{
+  "name": "ReflectionTest",
+  "type": "exe",
+  "dirs": ["test/ReflectionTest"],
+  "deps": ["engine_core", "fmt"],
+  "defines": ["TEST_BUILD"],
+  "platform": ["Windows"],
+  "output": "exe/ReflectionTest.exe"
+}

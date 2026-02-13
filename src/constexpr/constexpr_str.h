@@ -151,6 +151,7 @@ struct constexpr_str {
     static constexpr size_t capacity = N;
     static constexpr size_t size_v = N - 1U;
     static constexpr bool empty_v = (N == 1U);
+    static constexpr size_t npos = static_cast<size_t>(-1);
 
     // 提供 size() 和 empty() 函数
     [[nodiscard]] constexpr size_t size() const noexcept { return size_v; }
@@ -158,10 +159,23 @@ struct constexpr_str {
 
     // ==================== 编译期哈希 ====================
 
+    // 辅助函数：递归计算哈希（FNV-1a算法）
+    [[nodiscard]] consteval uint64_t hash_helper(size_t i) const noexcept {
+        if (i >= size_v) return 0;
+        uint64_t hash = hash_helper(i + 1);
+        hash ^= static_cast<uint64_t>(static_cast<unsigned char>(value[i]));
+        hash *= 1099511628211ULL;
+        return hash;
+    }
 
-    // 运行时计算哈希（用于动态字符串比较）
-    [[nodiscard]] constexpr uint64_t hash() const noexcept {
-        return detail::fnv1a_hash<char>::compute(value.data(), size_v);
+    // 编译期哈希
+    [[nodiscard]] consteval uint64_t hash() const noexcept {
+        return hash_helper(0);
+    }
+
+    // 运行时哈希（别名）
+    [[nodiscard]] constexpr uint64_t runtime_hash() const noexcept {
+        return hash();
     }
 
     // ==================== 迭代器 ====================
@@ -381,7 +395,15 @@ struct constexpr_str {
         while (start < size_v && detail::is_space(value[start])) {
             ++start;
         }
-        return substr<start == size_v ? 0 : start, npos>();
+        // 始终返回 constexpr_str<N>，未使用的部分用空字符填充
+        constexpr_str<N> result{};
+        for (size_t i = start; i < size_v; ++i) {
+            result.value[i - start] = value[i];
+        }
+        // 设置实际的结束位置
+        size_t new_size = (start >= size_v) ? 0 : (size_v - start);
+        result.value[new_size] = '\0';
+        return result;
     }
 
     // 去除尾部空白（编译期）
@@ -390,7 +412,13 @@ struct constexpr_str {
         while (end > 0 && detail::is_space(value[end - 1])) {
             --end;
         }
-        return substr<0, end>();
+        // 始终返回 constexpr_str<N>
+        constexpr_str<N> result{};
+        for (size_t i = 0; i < end; ++i) {
+            result.value[i] = value[i];
+        }
+        result.value[end] = '\0';
+        return result;
     }
 
     // 去除两端空白（编译期）
@@ -403,7 +431,14 @@ struct constexpr_str {
         while (end > start && detail::is_space(value[end - 1])) {
             --end;
         }
-        return substr<start == size_v ? 0 : start, end - start>();
+        // 始终返回 constexpr_str<N>
+        size_t trimmed_len = (start >= end) ? 0 : (end - start);
+        constexpr_str<N> result{};
+        for (size_t i = 0; i < trimmed_len; ++i) {
+            result.value[i] = value[start + i];
+        }
+        result.value[trimmed_len] = '\0';
+        return result;
     }
 
     // 转小写（编译期）
@@ -541,7 +576,7 @@ consteval auto split() {
 template <constexpr_str S, constexpr_str Delim>
 consteval auto split_by() {
     constexpr auto pos = S.find(static_cast<std::string_view>(Delim));
-    if constexpr (pos == constexpr_str<S.capacity>::npos) {
+    if constexpr (pos == npos) {
         return std::pair{S, constexpr_str{""}};
     } else {
         constexpr auto suffix_size = S.size_v - pos - Delim.size_v;
@@ -694,21 +729,3 @@ consteval auto type_name() {
 
 } // namespace constexpr_
 } // namespace shine
-
-// ============================================================
-// 标准库特化
-// ============================================================
-
-template <std::size_t N>
-struct std::hash<shine::constexpr_::constexpr_str<N>> {
-    constexpr std::size_t operator()(shine::constexpr_::constexpr_str<N> const& s) const noexcept {
-        return static_cast<std::size_t>(s.runtime_hash());
-    }
-};
-
-template <shine::constexpr_::constexpr_str S>
-struct std::hash<shine::constexpr_::cts_t<S>> {
-    constexpr std::size_t operator()() const noexcept {
-        return static_cast<std::size_t>(shine::constexpr_::cts_t<S>::hash);
-    }
-};

@@ -119,7 +119,7 @@ namespace shine::editor::util {
             }
 
             // --- Enum → Dropdown (Combo) ---
-            const reflection::TypeInfo* fieldTypeInfo = TypeRegistry::Get().Find(field.typeId);
+            const reflection::TypeInfo* fieldTypeInfo = TypeRegistry::Get().FindFast(field.typeId);
             if (fieldTypeInfo && fieldTypeInfo->isEnum) {
                 void* fieldPtr = static_cast<char*>(instance) + field.offset;
                 int64_t currentVal = 0;
@@ -287,7 +287,7 @@ namespace shine::editor::util {
                         bool show = !selector.onlyScriptCallable;
                         
                         if (selector.onlyScriptCallable) {
-                            if (HasFlag(method.flags, FunctionFlags::ScriptCallable)) show = true;
+                            if (reflection::HasFlag(method.flags, FunctionFlags::ScriptCallable)) show = true;
                             
                             const auto* bpMeta = method.GetMeta(MetaKeys::BlueprintFunction);
                             if (bpMeta) show = true;

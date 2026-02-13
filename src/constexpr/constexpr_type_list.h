@@ -27,8 +27,21 @@ struct constexpr_type_list {
     // 访问
     // ========================================================
 
+private:
+    // 辅助结构体：安全地获取 at，避免空列表崩溃
+    template <std::size_t I, bool IsInRange = (I < size)>
+    struct at_impl {
+        using type = std::tuple_element_t<I, as_tuple>;
+    };
+
     template <std::size_t I>
-    using at = std::tuple_element_t<I, as_tuple>;
+    struct at_impl<I, false> {
+        using type = void;  // 越界时返回 void
+    };
+
+public:
+    template <std::size_t I>
+    using at = typename at_impl<I>::type;
 
 private:
     // 修复: 使用辅助结构体实现惰性求值，避免空列表时实例化 at<0>
@@ -208,15 +221,21 @@ private:
     template <typename...>
     struct reverse_impl;
 
+    // 递归终止：空列表
     template <>
     struct reverse_impl<> {
         using type = constexpr_type_list<>;
     };
 
+    // 通用递归：提取头部，递归处理尾部，然后将头部放到结果列表的末尾
     template <typename Head, typename... Tail>
     struct reverse_impl<Head, Tail...> {
-        using type =
-            typename reverse_impl<Tail...>::type ::template push_back<Head>;
+    private:
+        // 递归处理 Tail 部分得到 reversed_tail
+        using reversed_tail = typename reverse_impl<Tail...>::type;
+    public:
+        // 将 Head 添加到 reversed_tail 的末尾
+        using type = typename reversed_tail::template concat<constexpr_type_list<Head>>;
     };
 
 public:

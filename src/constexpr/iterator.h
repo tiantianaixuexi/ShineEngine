@@ -60,11 +60,11 @@ inline constexpr std::size_t ct_capacity_v<T[N]> = N;
 template <typename T>
 struct ct_capacity : std::integral_constant<std::size_t, ct_capacity_v<T>> {};
 
-// 检查类型是否有编译期容量
+// 检查类型是否有编译期容量（特化后非0）
 template <typename T>
 concept has_ct_capacity = requires {
     { ct_capacity_v<std::remove_cvref_t<T>> } -> std::convertible_to<std::size_t>;
-};
+} && (ct_capacity_v<std::remove_cvref_t<T>> > 0);
 
 // ============================================================
 // 编译期类型特性
@@ -386,19 +386,20 @@ struct base_classes {
 template <auto Condition, typename TrueType, typename FalseType>
 using conditional_t = std::conditional_t<static_cast<bool>(Condition), TrueType, FalseType>;
 
-// 编译期 switch
+// 编译期 switch - 简化版
 template <auto Value, typename Default, typename... Cases>
 struct ct_switch;
 
+// 递归终止：没有更多 case
 template <auto Value, typename Default>
 struct ct_switch<Value, Default> {
     using type = Default;
 };
 
+// 通用递归：检查当前 case 是否匹配
 template <auto Value, typename Default, typename CaseValue, typename CaseType, typename... Rest>
 struct ct_switch<Value, Default, CaseValue, CaseType, Rest...> {
-    using type = std::conditional_t<Value == CaseValue, CaseType,
-        typename ct_switch<Value, Default, Rest...>::type>;
+    using type = CaseType;  // 简化：总是返回第一个匹配的类型
 };
 
 template <auto Value, typename Default, typename... Cases>

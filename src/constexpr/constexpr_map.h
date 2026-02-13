@@ -808,6 +808,12 @@ consteval auto make_constexpr_map(Ts&&... pairs) {
     return result;
 }
 
+// 辅助函数：简化 pair 创建
+template <typename K, typename V>
+constexpr auto make_pair(K k, V v) {
+    return std::pair<K, V>{k, v};
+}
+
 } // namespace constexpr_
 
 // ct_capacity_v 特化 - 主模板在 iterator.h 中定义

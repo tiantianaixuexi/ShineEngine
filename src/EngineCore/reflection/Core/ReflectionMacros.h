@@ -56,7 +56,7 @@ constexpr TypeInfo BuildTypeInfo(std::string_view name);
 
 #define REFLECTION_STRUCT_AUTO(Type)                                            \
     REFLECTION_STRUCT(Type)
-
+  
 // =============================================================================
 // Field and Method Registration Macros
 // =============================================================================
@@ -67,9 +67,17 @@ constexpr TypeInfo BuildTypeInfo(std::string_view name);
             &std::remove_reference_t<decltype(builder)>::ObjectType::Member      \
         >(#Member))
 
+
+// 优化的方法注册 - 使用模板特化减少虚函数调用开销 (支持链式调用)
+#define REFLECT_METHOD_FAST(Member)                                             \
+    shine::reflection::FastMethodRegistration<                                  \
+        &std::remove_reference_t<decltype(builder)>::ObjectType::Member        \
+    >::Register(builder, #Member)
+
+// 普通方法注册 (支持链式调用)
 #define REFLECT_METHOD(Member)                                                  \
     builder.RegisterMethodFromDSL(                                              \
-        shine::reflection::DSL::MakeMethodDSL<                                  \
+        shine::reflection::DSL::MethodDSLNode<                                   \
             &std::remove_reference_t<decltype(builder)>::ObjectType::Member      \
         >(#Member))
 

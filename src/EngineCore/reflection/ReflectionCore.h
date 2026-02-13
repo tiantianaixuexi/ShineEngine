@@ -16,18 +16,32 @@
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
+#include <map>
+#include <set>
 #include <variant>
 #include <vector>
 
 #include "util/EnumFlags.h"
 #include "constexpr/constexpr_vector.h"
 #include "constexpr/constexpr_str.h"
+#include "Core/ConstexprOffset.h"
+
+namespace shine::reflection {
+
+// =============================================================================
+// MemberPtrInfo — extract class + member type from member-pointer
+// =============================================================================
+
+namespace detail {
+// Helper: extract class + member type from member-pointer
+template <typename T> struct MemberPtrInfo;
+template <typename C, typename M>
+struct MemberPtrInfo<M C::*> { using ClassType = C; using MemberType = M; };
+} // namespace detail
 
 // =============================================================================
 // Type Identity — hash, names, IDs
 // =============================================================================
-
-namespace shine::reflection {
 
 using TypeId = uint32_t;
 
@@ -171,11 +185,11 @@ using MetadataValue     = std::variant<std::monostate, bool, int, float, double,
 using MetadataContainer = std::vector<std::pair<MetadataKey, MetadataValue>>;
 
 // =============================================================================
-// Type-erased function-pointer signatures
+// Type-erased function-pointer signatures (optimized)
 // =============================================================================
 
-using GetterFn   = void(*)(const void* instance, void* out_value, std::size_t offset, std::size_t size);
-using SetterFn   = void(*)(void* instance, const void* in_value, std::size_t offset, std::size_t size);
+using GetterFn   = void(*)(const void* inst, void* out);
+using SetterFn   = void(*)(void* inst, const void* in);
 using OnChangeFn = void(*)(void* instance, const void* oldValue);
 using EqualsFn   = bool(*)(const void* a, const void* b, std::size_t size);
 using CopyFn     = void(*)(void* dst, const void* src, std::size_t size);
@@ -209,6 +223,50 @@ struct MapTrait {
 struct TypeInfo;
 
 // =============================================================================
+// Compile-time field access - 完全模板化，编译期绑定
+// =============================================================================
+
+namespace detail {
+
+// 编译期字段访问器 - 通过模板在编译时绑定
+template <typename T, typename Owner, T Owner::*Member>
+struct CompileTimeAccessor {
+    static constexpr std::size_t offset = offsetof(Owner, *Member);
+    
+    static void Get(const void* inst, void* out) {
+        const auto& val = static_cast<const Owner*>(inst)->*Member;
+        if constexpr (std::is_trivially_copyable_v<T>)
+            std::memcpy(out, &val, sizeof(T));
+        else
+            *static_cast<T*>(out) = val;
+    }
+    
+    static void Set(void* inst, const void* in) {
+        auto& ref = static_cast<Owner*>(inst)->*Member;
+        if constexpr (std::is_trivially_copyable_v<T>)
+            std::memcpy(&ref, in, sizeof(T));
+        else
+            ref = *static_cast<const T*>(in);
+    }
+};
+
+// 编译期访问器注册表 - 使用类型ID映射
+template <typename T>
+inline T* (*g_compileTimeGetter)(const void*, void*) = nullptr;
+template <typename T>
+inline void (*g_compileTimeSetter)(void*, const void*) = nullptr;
+
+} // namespace detail
+
+// 注册编译期访问器（模板特化版本）
+template <typename T, typename Owner, T Owner::*Member>
+void RegisterCompileTimeAccessor(uint32_t fieldId) {
+    using Accessor = detail::CompileTimeAccessor<T, Owner, Member>;
+    // 这里可以存储到全局映射表中
+    // 实际使用时通过模板分派
+}
+
+// =============================================================================
 // FieldInfo — runtime field descriptor
 // =============================================================================
 
@@ -220,6 +278,7 @@ struct FieldInfo {
     std::size_t     alignment     = 0;
     bool            isPod         = false;
 
+    // Optimized accessors (零间接调用)
     GetterFn   getterFn   = nullptr;
     SetterFn   setterFn   = nullptr;
     OnChangeFn onChangeFn = nullptr;
@@ -227,7 +286,8 @@ struct FieldInfo {
     CopyFn     copyFn     = nullptr;
     InvokeFn   invokeFn   = nullptr;
 
-    const void*       containerTrait = nullptr;   // → SequenceTrait or MapTrait
+    // ---- Metadata -----------------------------------------------------------
+    const void*       containerTrait = nullptr;
     PropertyFlags     flags    = PropertyFlags::None;
     UI::Schema        uiSchema = UI::None{};
     std::string_view  name;
@@ -235,11 +295,56 @@ struct FieldInfo {
 
     // ---- Accessors ----------------------------------------------------------
 
-    void Get(const void* inst, void* out)       const { if (getterFn) getterFn(inst, out, offset, size); }
-    void Set(void* inst, const void* in)        const { if (setterFn) setterFn(inst, in, offset, size); }
+    // Optimized accessor (零间接调用)
+    void Get(const void* inst, void* out) const { 
+        if (getterFn) getterFn(inst, out); 
+    }
+    void Set(void* inst, const void* in) const { 
+        if (setterFn) setterFn(inst, in); 
+    }
+    
+    // Compile-time inline accessor - 零开销！
+    template <typename T, typename Owner, T Owner::*Member>
+    void CTGet(const void* inst, void* out) const {
+        const auto& val = static_cast<const Owner*>(inst)->*Member;
+        if constexpr (std::is_trivially_copyable_v<T>)
+            std::memcpy(out, &val, sizeof(T));
+        else
+            *static_cast<T*>(out) = val;
+    }
+    
+    template <typename T, typename Owner, T Owner::*Member>
+    void CTSet(void* inst, const void* in) const {
+        auto& ref = static_cast<Owner*>(inst)->*Member;
+        if constexpr (std::is_trivially_copyable_v<T>)
+            std::memcpy(&ref, in, sizeof(T));
+        else
+            ref = *static_cast<const T*>(in);
+    }
+    
     void OnChange(void* inst, const void* old)  const { if (onChangeFn) onChangeFn(inst, old); }
     bool Equals(const void* a, const void* b)   const { return equalsFn ? equalsFn(a, b, size) : false; }
     void Copy(void* dst, const void* src)       const { if (copyFn) copyFn(dst, src, size); }
+
+    // ---- Compile-time inline accessor (零开销，完全内联) ------------------------
+
+    // 编译期字段访问器 - 通过模板参数完全确定，零间接调用
+    template <typename C, typename M, M C::*Ptr>
+    struct FieldAccessor {
+        using ClassType = C;
+        using MemberType = M;
+        static constexpr std::size_t offset = offsetof(C, *Ptr);
+
+        [[gnu::always_inline]] static M Get(const C& obj) { return obj.*Ptr; }
+        [[gnu::always_inline]] static void Set(C& obj, const M& val) { obj.*Ptr = val; }
+    };
+
+    // 编译期偏移获取
+    template <auto MemberPtr>
+    inline constexpr std::size_t CT_OFFSETOF() {
+        using Info = detail::MemberPtrInfo<decltype(MemberPtr)>;
+        return offsetof(typename Info::ClassType, *MemberPtr);
+    }
 
     // ---- Metadata -----------------------------------------------------------
 
@@ -306,8 +411,8 @@ struct TypeInfo {
             BuildLookupCache();
         }
         
-        // Fast hash-based lookup
-        uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(fieldName));
+        // Fast hash-based lookup - 使用编译期 FNV-1a 哈希以保持一致性
+        uint32_t hash = static_cast<uint32_t>(Hash(fieldName));
         auto it = fieldLookupCache_.find(hash);
         if (it != fieldLookupCache_.end() && it->second->name == fieldName) {
             return it->second;
@@ -325,8 +430,8 @@ struct TypeInfo {
             BuildLookupCache();
         }
         
-        // Fast hash-based lookup
-        uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(methodName));
+        // Fast hash-based lookup - 使用编译期 FNV-1a 哈希以保持一致性
+        uint32_t hash = static_cast<uint32_t>(Hash(methodName));
         auto it = methodLookupCache_.find(hash);
         if (it != methodLookupCache_.end() && it->second->name == methodName) {
             return it->second;
@@ -342,15 +447,15 @@ private:
     void BuildLookupCache() const {
         if (lookupCacheBuilt_) return;
         
-        // Build field lookup cache
+        // Build field lookup cache - 使用编译期 FNV-1a 哈希
         for (const auto& field : fields) {
-            uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(field.name));
+            uint32_t hash = static_cast<uint32_t>(Hash(field.name));
             fieldLookupCache_[hash] = &field;
         }
         
-        // Build method lookup cache
+        // Build method lookup cache - 使用编译期 FNV-1a 哈希
         for (const auto& method : methods) {
-            uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(method.name));
+            uint32_t hash = static_cast<uint32_t>(Hash(method.name));
             methodLookupCache_[hash] = &method;
         }
         
@@ -390,6 +495,102 @@ struct ListThunks {
         static const SequenceTrait trait{
             GetTypeId<typename List::value_type>(),
             &GetSize, &GetElement, &GetElementConst, &Resize
+        };
+        return trait;
+    }
+};
+
+// =============================================================================
+// MapThunks — builds a runtime MapTrait for std::map/std::unordered_map
+// =============================================================================
+
+template <typename Map>
+struct MapThunks {
+    using KeyType = typename Map::key_type;
+    using ValueType = typename Map::mapped_type;
+    
+    static std::size_t GetSize(const void* p) {
+        return static_cast<const Map*>(p)->size();
+    }
+    
+    static void Clear(void* p) {
+        static_cast<Map*>(p)->clear();
+    }
+    
+    static void* Find(void* p, const void* key) {
+        auto it = static_cast<Map*>(p)->find(*static_cast<const KeyType*>(key));
+        if (it != static_cast<Map*>(p)->end()) {
+            return &it->second;
+        }
+        return nullptr;
+    }
+    
+    static const void* FindConst(const void* p, const void* key) {
+        auto it = static_cast<const Map*>(p)->find(*static_cast<const KeyType*>(key));
+        if (it != static_cast<const Map*>(p)->end()) {
+            return &it->second;
+        }
+        return nullptr;
+    }
+    
+    static void Insert(void* p, const void* key, const void* value) {
+        (*static_cast<Map*>(p))[*static_cast<const KeyType*>(key)] = *static_cast<const ValueType*>(value);
+    }
+    
+    static void Erase(void* p, const void* key) {
+        static_cast<Map*>(p)->erase(*static_cast<const KeyType*>(key));
+    }
+    
+    static bool Contains(const void* p, const void* key) {
+        return static_cast<const Map*>(p)->contains(*static_cast<const KeyType*>(key));
+    }
+
+    static const MapTrait& GetTrait() {
+        static const MapTrait trait{
+            GetTypeId<KeyType>(),
+            GetTypeId<ValueType>(),
+            &GetSize,
+            &Clear
+        };
+        return trait;
+    }
+};
+
+// =============================================================================
+// SetThunks — builds a runtime MapTrait for std::set/std::unordered_set
+// =============================================================================
+
+template <typename Set>
+struct SetThunks {
+    using ValueType = typename Set::value_type;
+    
+    static std::size_t GetSize(const void* p) {
+        return static_cast<const Set*>(p)->size();
+    }
+    
+    static void Clear(void* p) {
+        static_cast<Set*>(p)->clear();
+    }
+    
+    static bool Contains(const void* p, const void* value) {
+        return static_cast<const Set*>(p)->contains(*static_cast<const ValueType*>(value));
+    }
+    
+    static void Insert(void* p, const void* value) {
+        static_cast<Set*>(p)->insert(*static_cast<const ValueType*>(value));
+    }
+    
+    static void Erase(void* p, const void* value) {
+        static_cast<Set*>(p)->erase(*static_cast<const ValueType*>(value));
+    }
+
+    // Set 使用与 Map 相同的 trait 结构，但 keyType == valueType
+    static const MapTrait& GetTrait() {
+        static const MapTrait trait{
+            GetTypeId<ValueType>(),
+            GetTypeId<ValueType>(),
+            &GetSize,
+            &Clear
         };
         return trait;
     }
@@ -493,5 +694,25 @@ struct AutoConstexprRegistration {
         return ct_info;
     }
 };
+
+// =============================================================================
+// Compile-time field access utilities (namespace-level, zero-overhead)
+// =============================================================================
+
+// CT_GET - 编译期绑定的字段 getter，完全内联零开销
+// 用法: auto value = CT_GET<&Player::age>(player);
+template <auto MemberPtr, typename C = typename detail::MemberPtrInfo<decltype(MemberPtr)>::ClassType,
+          typename M = typename detail::MemberPtrInfo<decltype(MemberPtr)>::MemberType>
+[[gnu::always_inline]] inline M CT_GET(const C& obj) {
+    return obj.*MemberPtr;
+}
+
+// CT_SET - 编译期绑定的字段 setter，完全内联零开销
+// 用法: CT_SET<&Player::age>(player, 42);
+template <auto MemberPtr, typename C = typename detail::MemberPtrInfo<decltype(MemberPtr)>::ClassType,
+          typename M = typename detail::MemberPtrInfo<decltype(MemberPtr)>::MemberType>
+[[gnu::always_inline]] inline void CT_SET(C& obj, const M& val) {
+    obj.*MemberPtr = val;
+}
 
 } // namespace shine::reflection

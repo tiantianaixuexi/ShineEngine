@@ -96,10 +96,10 @@ public:
     }
 
     // 填充构造函数
-    constexpr explicit constexpr_vector(size_type count, T const& value = T{}) {
-        count = (std::min)(count, N);
-        for (size_type i = 0; i < count; ++i) {
-            storage_[current_size_++] = value;
+    constexpr explicit constexpr_vector(size_type count, T const& value = T{}) 
+        : current_size_{(std::min)(count, N)} {
+        for (size_type i = 0; i < current_size_; ++i) {
+            storage_[i] = value;
         }
     }
 
