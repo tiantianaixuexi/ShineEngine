@@ -113,6 +113,13 @@ namespace shine::render::backend::gl
             if (cmd.location >= 0) glUniform3f(cmd.location, cmd.x, cmd.y, cmd.z);
         }
 
+        void operator()(const CmdSetUniformMatrix4fv& cmd)
+        {
+            if (cmd.location >= 0 && !cmd.data.empty()) {
+                glUniformMatrix4fv(cmd.location, 1, cmd.transpose ? GL_TRUE : GL_FALSE, cmd.data.data());
+            }
+        }
+
         // UI
         void operator()(const CmdImguiRender& cmd)
         {

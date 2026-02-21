@@ -1,21 +1,24 @@
 ﻿#include <iostream>
+#define NOMINMAX
 #include <Windows.h>
-#include <string>
+#include "string/shine_string.h"
 
 #ifdef LAUNCHER_BUILD
 #include <filesystem>
 namespace fs = std::filesystem;
 
 // ImGui includes
-#include "imgui.h"
-#include "imgui_impl_win32.h"
-#include "imgui_impl_opengl3.h"
+#include "imgui/imgui.h"
+#include "imgui/backends/imgui_impl_win32.h"
+#include "imgui/backends/imgui_impl_opengl3.h"
 
 // OpenGL includes
 #include <GL/glew.h>
 
 // Launcher GUI
 #include "launcher_gui.h"
+
+using shine::SString;
 
 namespace shine::launcher
 {
@@ -54,10 +57,10 @@ int main(int argc, char* argv[])
 
     // Check if we should skip GUI and launch directly
     bool skipGUI = false;
-    std::string directProjectPath;
+    SString directProjectPath;
 
     for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
+        SString arg = argv[i];
         if (arg == "--no-gui" || arg == "--launch") {
             skipGUI = true;
         } else if (arg == "--project" && i + 1 < argc) {
@@ -85,12 +88,14 @@ int main(int argc, char* argv[])
         STARTUPINFO si = { sizeof(si) };
         PROCESS_INFORMATION pi;
 
-        std::string command = "\"" + exePath.string() + "\"";
+        SString command = SString("\"") + exePath.string().c_str() + "\"";
         if (!directProjectPath.empty()) {
-            command += " --project \"" + directProjectPath + "\"";
+            command += " --project \"";
+            command += directProjectPath;
+            command += "\"";
         }
 
-        if (CreateProcess(NULL, const_cast<char*>(command.c_str()), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+        if (CreateProcess(NULL, command.data(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
             WaitForSingleObject(pi.hProcess, INFINITE);
             CloseHandle(pi.hProcess);
             CloseHandle(pi.hThread);

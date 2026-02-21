@@ -194,7 +194,7 @@ namespace shine::editor::util {
                          using namespace shine::reflection;
                          // We need to look up TypeInfo via TypeId, not compile-time template if possible
                          // But StaticInspectorBuilder knows MemberType at compile time.
-                         const TypeInfo* typeInfo = TypeRegistry::Get().Find<MemberType>();
+                         const TypeInfo* typeInfo = TypeRegistry::Get().FindFast(GetTypeId<MemberType>());
                          
                          // Fallback: If not found, try to register it on the fly?
                          // We can force a temporary TypeBuilder if we know the type name, but we only have TypeId.
@@ -319,12 +319,12 @@ namespace shine::editor::util {
                         
                         // Current object type is ObjectType (T)
                         using namespace shine::reflection;
-                        const TypeInfo* typeInfo = TypeRegistry::Get().Find<ObjectType>();
+                        const TypeInfo* typeInfo = TypeRegistry::Get().FindFast(GetTypeId<ObjectType>());
 
                         if (!typeInfo) {
                             auto tempInfo = shine::reflection::BuildTypeInfo<ObjectType>("Temp");
-                            TypeRegistry::Get().Register(std::move(tempInfo));
-                            typeInfo = TypeRegistry::Get().Find<ObjectType>();
+                            (void)TypeRegistry::Get().Register(std::move(tempInfo));
+                            typeInfo = TypeRegistry::Get().FindFast(GetTypeId<ObjectType>());
                         }
                         
                         if (typeInfo) {
@@ -332,7 +332,7 @@ namespace shine::editor::util {
                                 for (const auto& method : typeInfo->methods) {
                                     bool show = !onlyScriptCallable;
                                     if (onlyScriptCallable) {
-                                        if (HasFlag(method.flags, FunctionFlags::ScriptCallable)) show = true;
+                                        if (reflection::HasFlag(method.flags, FunctionFlags::ScriptCallable)) show = true;
                                         // Check metadata "BlueprintFunction"
                                         TypeId bpKey = MetaKeys::BlueprintFunction;
                                         auto it = std::lower_bound(method.metadata.begin(), method.metadata.end(), bpKey, 

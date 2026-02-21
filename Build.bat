@@ -2,6 +2,11 @@
 chcp 65001 >nul 2>nul
 setlocal enabledelayedexpansion
 
+:: 自动检测CPU核心数用于并行编译
+for /f "tokens=2 delims==" %%i in ('wmic cpu get NumberOfLogicalProcessors /value ^| findstr "NumberOfLogicalProcessors"') do set PARALLEL_CORES=%%i
+if not defined PARALLEL_CORES set PARALLEL_CORES=4
+
+
 goto main
 
 :error_exit
@@ -126,6 +131,11 @@ if /i "%~1"=="--clang" (
 )
 if /i "%~1"=="--gcc" (
     set COMPILER=gcc
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--run" (
+    set RUN_AFTER_BUILD=TRUE
     shift
     goto parse_args
 )
@@ -281,7 +291,7 @@ goto end_script
 
 :cmd_exe
 if "%TARGET_ARG%"=="" call :error_exit "Executable name not specified"
-call :build_generic "%TARGET_ARG%" "Debug" "FALSE"
+call :build_generic "%TARGET_ARG%" "%MODULE_CONFIG%" "%RUN_AFTER_BUILD%"
 goto end_script
 
 :cmd_module
@@ -340,6 +350,7 @@ echo   compile_commands Generate compile_commands.json for clangd
 echo.
 echo Global flags:
 echo   --release        Use Release config (for module/wasm/test)
+echo   --run            Run executable after building (for exe command)
 echo   --no-pause       Do not pause at script end (CI-friendly)
 echo   --no-editor      Disable editor features (removes BUILD_EDITOR macro)
 echo   --editor         Enable editor mode (default, same as without flag)
@@ -357,6 +368,10 @@ echo   build.bat run                    Build and run with MSVC (default)
 echo   build.bat run --clang            Build and run with Clang
 echo   build.bat module MyMod --gcc     Build module with GCC
 echo   build.bat release --clang        Build release with Clang
+echo.
+echo Examples:
+echo   build.bat exe EngineLauncher          - Build EngineLauncher
+echo   build.bat exe EngineLauncher --run    - Build and run EngineLauncher
 echo.
 goto end_script
 

@@ -1,22 +1,9 @@
 {
   "name": "ReflectionTest",
-  "files": [
-    "test/ReflectionTest/minimal_test.cpp"
-  ],
-  "deps": [
-    "fmt"
-  ],
-  "defines": [
-    "REFLECTION_TEST"
-  ],
-  "type": [
-    "exe"
-  ],
-  "platform": [
-    "Windows"
-  ],
-  "buildMode": [
-    "both"
-  ],
+  "type": "exe",
+  "dirs": ["test/ReflectionTest"],
+  "deps": ["engine_core", "fmt"],
+  "defines": ["TEST_BUILD"],
+  "platform": ["Windows"],
   "output": "exe/ReflectionTest.exe"
 }

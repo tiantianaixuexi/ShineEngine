@@ -3,11 +3,16 @@
 #include "gameplay/camera.h"
 #include "imgui/imgui.h"
 #include "manager/CameraManager.h"
+#include "render/demo/EngineDemoScene.h"
 
 namespace shine::editor::EditorView {
 
 static manager::CameraManager  *cameraManager    = nullptr;
 static render::RendererService *renderer         = nullptr;
+
+EditView::EditView(shine::EngineContext& context) : m_Context(context) {}
+
+EditView::~EditView() = default;
 
 void EditView::Init() {
 
@@ -17,9 +22,13 @@ void EditView::Init() {
 
         // 创建一个与窗口大小类似的视口（这里写死，后面可以在WM_SIZE中更新）
     Viewport        = renderer->createViewport(1280, 720);
+
+    // Initialize Demo Scene
+    m_DemoScene = std::make_unique<shine::render::demo::EngineDemoScene>(m_Context);
+    m_DemoScene->Init();
 }
 
-void EditView::Render() const {
+void EditView::Render() {
 
     // 编辑器视图
     ImGui::Begin("编辑器视图");
@@ -51,6 +60,12 @@ void EditView::Render() const {
                 lastH = h;
             }
 
+            // Update Scene
+            if (m_DemoScene) {
+                m_DemoScene->Tick(ImGui::GetIO().DeltaTime);
+            }
+            
+            // Render View
             renderer->renderView(Viewport, cam);
 
             ImGui::Image(renderer->getViewportTexture(Viewport), rightSize);
@@ -60,15 +75,25 @@ void EditView::Render() const {
         }
 
         const bool is_hovered = ImGui::IsItemHovered();
-        const bool is_focused = ImGui::IsItemActive();
+        
+        // 当鼠标悬停在视口上，或者正在进行右键操作时（即使鼠标移出了视口范围），都应响应控制
+        // 使用 static 变量保持“正在操作”的状态，直到右键松开
+        static bool is_operating = false;
+        if (is_hovered && ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+            is_operating = true;
+        }
+        if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+            is_operating = false;
+        }
 
-        // 相机控制逻辑视口悬停和聚焦时响应
-        if (is_hovered && is_focused) {
+        // 相机控制逻辑
+        if (is_hovered || is_operating) {
 
             const ImGuiIO &io = ImGui::GetIO();
+            float deltaTime = io.DeltaTime;
 
-            // 鼠标右键拖拽旋转，使用MouseDelta精确计算
-            if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) 
+            // 鼠标右键拖拽旋转
+            if (is_operating) 
             {
                 // 检查是否有鼠标移动（拖拽）
                 if (io.MouseDelta.x != 0.0f || io.MouseDelta.y != 0.0f) {
@@ -76,6 +101,14 @@ void EditView::Render() const {
                     const float dy = io.MouseDelta.y;
                     cam->ProcessMouseMovement(-dx, -dy, true);
                 }
+
+                // WSAD 漫游控制 (仅当按住右键时生效，模仿 UE5/Unity 操作习惯)
+                if (ImGui::IsKeyDown(ImGuiKey_W)) cam->ProcessKeyboard(gameplay::CameraMovement::FORWARD, deltaTime);
+                if (ImGui::IsKeyDown(ImGuiKey_S)) cam->ProcessKeyboard(gameplay::CameraMovement::BACKWARD, deltaTime);
+                if (ImGui::IsKeyDown(ImGuiKey_A)) cam->ProcessKeyboard(gameplay::CameraMovement::LEFT, deltaTime);
+                if (ImGui::IsKeyDown(ImGuiKey_D)) cam->ProcessKeyboard(gameplay::CameraMovement::RIGHT, deltaTime);
+                if (ImGui::IsKeyDown(ImGuiKey_Q)) cam->ProcessKeyboard(gameplay::CameraMovement::DOWN, deltaTime);
+                if (ImGui::IsKeyDown(ImGuiKey_E)) cam->ProcessKeyboard(gameplay::CameraMovement::UP, deltaTime);
             }
 
             // 鼠标滚轮缩放

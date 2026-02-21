@@ -78,6 +78,11 @@ namespace shine::render
         m_Commands.push_back(command::CmdSetUniform3f{ location, x, y, z });
     }
 
+    void CommandBuffer::SetUniformMatrix4fv(s32 location, const std::vector<float>& data, bool transpose)
+    {
+        m_Commands.push_back(command::CmdSetUniformMatrix4fv{ location, data, transpose });
+    }
+
     void CommandBuffer::RenderImGui(void* drawData)
     {
         m_Commands.push_back(command::CmdImguiRender{ drawData });

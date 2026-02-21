@@ -1171,9 +1171,14 @@ foreach(module_name ${MODULE_LIST})
 
             # 检查依赖是否是 exe 类型，exe 类型不应该被当作库来链接
             check_module_type("${dep_types}" "exe" dep_is_executable)
+            check_module_type("${dep_types}" "third" dep_is_third)
+            check_module_type("${dep_types}" "static" dep_is_static)
 
             set(needs_link FALSE)
-            if(NOT dep_is_executable AND (dep STREQUAL "fmt" OR "${dep_files}" MATCHES "\\.(cpp|ixx|cppm)$"))
+            # third 或 static 类型的模块总是需要链接（即使只有头文件也能生成 .lib）
+            if(dep_is_third OR dep_is_static)
+                set(needs_link TRUE)
+            elseif(NOT dep_is_executable AND (dep STREQUAL "fmt" OR "${dep_files}" MATCHES "\\.(cpp|ixx|cppm)$"))
                 set(needs_link TRUE)
             endif()
 
@@ -1343,39 +1348,39 @@ if(MSVC)
     endforeach()
 endif()
 
-# 链接所有模块（排除可执行文件类型）和第三方库
-foreach(module_name ${MODULE_LIST})
-    get_property(name GLOBAL PROPERTY "MODULE_${module_name}_NAME")
-    get_property(types GLOBAL PROPERTY "MODULE_${module_name}_TYPES")
-    
-    check_module_type("${types}" "exe" is_executable)
-    check_module_type("${types}" "subcmake" is_subcmake)
-    check_module_type("${types}" "third" is_third_party)
-    
-    if(NOT is_executable AND NOT is_subcmake AND TARGET ${name})
-        add_dependencies(MainEngine ${name})
-        get_property(is_interface GLOBAL PROPERTY "MODULE_${module_name}_IS_INTERFACE")
-        if(is_third_party OR is_interface)
-            target_link_libraries(MainEngine PUBLIC ${name})
-        else()
-            target_link_libraries(MainEngine PRIVATE ${name})
+    # 链接所有模块（排除可执行文件类型）和第三方库
+    foreach(module_name ${MODULE_LIST})
+        get_property(name GLOBAL PROPERTY "MODULE_${module_name}_NAME")
+        get_property(types GLOBAL PROPERTY "MODULE_${module_name}_TYPES")
+        
+        check_module_type("${types}" "exe" is_executable)
+        check_module_type("${types}" "subcmake" is_subcmake)
+        check_module_type("${types}" "third" is_third_party)
+        
+        if(NOT is_executable AND NOT is_subcmake AND TARGET ${name})
+            add_dependencies(MainEngine ${name})
+            get_property(is_interface GLOBAL PROPERTY "MODULE_${module_name}_IS_INTERFACE")
+            if(is_third_party OR is_interface)
+                target_link_libraries(MainEngine PUBLIC ${name})
+            else()
+                target_link_libraries(MainEngine PRIVATE ${name})
+            endif()
         endif()
-    endif()
-    
-    # 链接第三方库的静态库文件
-    if(is_third_party)
-        get_property(third_libs_debug GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_DEBUG")
-        get_property(third_libs_release GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_RELEASE")
-        foreach(lib ${third_libs_debug})
-            target_link_libraries(MainEngine PRIVATE 
-                $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
-        endforeach()
-        foreach(lib ${third_libs_release})
-            target_link_libraries(MainEngine PRIVATE 
-                $<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
-        endforeach()
-    endif()
-endforeach()
+        
+        # 链接第三方库的静态库文件
+        if(is_third_party)
+            get_property(third_libs_debug GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_DEBUG")
+            get_property(third_libs_release GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_RELEASE")
+            foreach(lib ${third_libs_debug})
+                target_link_libraries(MainEngine PRIVATE 
+                    $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
+            endforeach()
+            foreach(lib ${third_libs_release})
+                target_link_libraries(MainEngine PRIVATE 
+                    $<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/src/third/lib/${lib}>)
+            endforeach()
+        endif()
+    endforeach()
 
 target_link_libraries(MainEngine PRIVATE
     $<$<CONFIG:Debug>:glew32d>
@@ -1392,7 +1397,7 @@ endif()
 
 # ================================
 # 复制第三方库 DLL 文件到输出目录
-if(WIN32 AND TARGET MainEngine)
+if(WIN32 AND (TARGET MainEngine OR TARGET EngineLauncher))
     add_custom_command(TARGET MainEngine POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_SOURCE_DIR}/src/third/lib/glew32.dll"

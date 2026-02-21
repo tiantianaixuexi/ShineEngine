@@ -39,9 +39,21 @@ namespace shine::math
     class Matrix4
     {
     public:
-        Matrix4();
-        explicit Matrix4(T diag);
-        Matrix4(const std::array<T, 16>& values);
+        constexpr Matrix4() noexcept
+        {
+            m_data.fill(T(0));
+            m_data[0] = m_data[5] = m_data[10] = m_data[15] = T(1);
+        }
+
+        constexpr explicit Matrix4(T diag) noexcept 
+        {
+            m_data.fill(T(0));
+            m_data[0] = m_data[5] = m_data[10] = m_data[15] = diag;
+        }
+
+        constexpr Matrix4(const std::array<T, 16>& values) noexcept
+            : m_data(values)
+        {}
 
 
         const T* data() const noexcept { return m_data.data(); }
@@ -74,8 +86,17 @@ namespace shine::math
         T determinant() const noexcept;
 
         // 静态工厂方法
-        static constexpr Matrix4 identity() noexcept;
-        static constexpr Matrix4 zero() noexcept;
+        static constexpr Matrix4 identity() noexcept
+        {
+            return Matrix4();
+        }
+
+        static constexpr Matrix4 zero() noexcept
+        {
+            Matrix4 m;
+            m.m_data.fill(T(0));
+            return m;
+        }
         static Matrix4 translate(const TVector<T>& translation) noexcept;
         static Matrix4 rotate(const TQuat<T>& rotation) noexcept;
         static Matrix4 rotateX(T angleRad) noexcept;
@@ -93,7 +114,7 @@ namespace shine::math
         std::array<T, 16> m_data{};
     };
 
-	using FMatrix4f = Matrix4<float>;
-	using FMatrix4d = Matrix4<double>;
+	SHINE_MODULE_EXPORT using FMatrix4f = Matrix4<float>;
+	SHINE_MODULE_EXPORT using FMatrix4d = Matrix4<double>;
 }
 

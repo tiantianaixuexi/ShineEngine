@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 
 #include <string>
@@ -100,6 +100,19 @@ namespace shine::gameplay
         }
 
         const std::vector<std::unique_ptr<component::UComponent>>& getComponents() const noexcept { return m_Components; }
+
+        template <typename T>
+        T* getComponent() const
+        {
+            for (const auto& comp : m_Components)
+            {
+                if (auto ptr = dynamic_cast<T*>(comp.get()))
+                {
+                    return ptr;
+                }
+            }
+            return nullptr;
+        }
 
     private:
 

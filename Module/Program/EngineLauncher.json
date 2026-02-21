@@ -6,7 +6,10 @@
   "deps": [
     "fmt",
     "shine_define",
-    "imgui"
+    "imgui",
+    "engine_log",
+    "log_ui",
+    "file_util"
   ],
   "defines": [
     "LAUNCHER_BUILD",

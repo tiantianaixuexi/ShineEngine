@@ -132,11 +132,10 @@ REFLECTION_STRUCT(EngineSettings) {
         .DisplayName("游戏难度")
         .Meta("Category", std::string_view{"GamePlay"});
 
+    // 方法注册 - 支持链式调用
     REFLECT_METHOD(PlaySound).ScriptCallable();
     REFLECT_METHOD(SpawnPlayer).Meta("BlueprintFunction", true);
     REFLECT_METHOD(InternalReset);
 }
-
-REFLECTION_REGISTER(EngineSettings)
 
 } // namespace shine::editor::settings

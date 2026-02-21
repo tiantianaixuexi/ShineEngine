@@ -72,6 +72,12 @@ namespace shine::render::command
         float x, y, z;
     };
 
+    struct CmdSetUniformMatrix4fv {
+        s32 location;
+        std::vector<float> data; // 16 floats per matrix
+        bool transpose;
+    };
+
     // UI
     struct CmdImguiRender {
         void* drawData;
@@ -99,6 +105,7 @@ namespace shine::render::command
         CmdDrawIndexedTriangles,
         CmdSetUniform1f,
         CmdSetUniform3f,
+        CmdSetUniformMatrix4fv,
         CmdImguiRender,
         CmdSwapBuffers
     >;

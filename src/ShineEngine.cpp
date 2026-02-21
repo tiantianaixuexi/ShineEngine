@@ -160,12 +160,12 @@ int main(int argc, char** argv) {
                 if (msg.message == WM_QUIT)
                     done = true;
             }
-        }
+    //    }
 
 		if (done)
 			break;
 
-        // 渲染服务，帧开始
+
         {
              shine::co::MemoryScope renderScope(shine::co::MemoryTag::Render);
 		     RenderService->beginFrame();
@@ -180,17 +180,11 @@ int main(int argc, char** argv) {
 		     Camera->getMainCamera()->Apply();
         }
 
-        // 统一用渲染服务提供帧缓冲渲染/显示
-        {
-             shine::co::MemoryScope renderScope(shine::co::MemoryTag::Render);
-		     RenderService->endFrame(clear_color);
+			RenderService->endFrame(clear_color);
         }
 
-		// FPS控制 - 帧结束
-        {
-             shine::co::MemoryScope scope(shine::co::MemoryTag::Physics);
-		     g_FPSManager.EndFrame();
-        }
+
+		g_FPSManager.EndFrame();
 
 	}
 

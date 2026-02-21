@@ -26,15 +26,22 @@ namespace shine::editor::views
     {
         if (!isOpen_) return;
 
-        ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Memory Profiler", &isOpen_))
         {
+            // Toolbar
+            ImGui::Checkbox("Pause", &m_PauseProfiling);
+            ImGui::Separator();
+
+            if (!m_PauseProfiling) {
+                // Gather data logic...
+            }
+
             // Summary
             size_t totalBytes = 0;
             size_t totalAlloc = 0;
             size_t totalFree = 0;
 
-            // Gather data first to calculate totals
             struct TagData {
                 const char* name;
                 shine::co::MemoryTagStats stats;
@@ -45,9 +52,7 @@ namespace shine::editor::views
                 auto tag = (shine::co::MemoryTag)i;
                 auto stats = shine::co::Memory::GetTagStats(tag);
                 
-                // Skip empty tags if desired, or show all
-                // if (stats.alloc_count == 0 && stats.bytes_current == 0) continue;
-
+                // Show all tags
                 totalBytes += stats.bytes_current;
                 totalAlloc += stats.alloc_count;
                 totalFree += stats.free_count;
@@ -94,17 +99,18 @@ namespace shine::editor::views
                 ImGui::EndTable();
             }
             
-            // Visual Bars (Optional)
+            // Visual Bars
             ImGui::Separator();
             ImGui::Text("Memory Distribution");
             for (const auto& data : allStats)
             {
                 if (totalBytes > 0 && data.stats.bytes_current > 0) {
                     float fraction = (float)data.stats.bytes_current / (float)totalBytes;
-                    ImGui::ProgressBar(fraction, ImVec2(0.0f, 0.0f), fmt::format("{}: {:.1f}%", data.name, fraction * 100.0f).c_str());
+                    if (fraction > 0.001f) {
+                         ImGui::ProgressBar(fraction, ImVec2(0.0f, 0.0f), fmt::format("{}: {:.1f}%", data.name, fraction * 100.0f).c_str());
+                    }
                 }
             }
-
         }
         ImGui::End();
     }

@@ -10,7 +10,7 @@ x64
 # MacOS Cache
 .DS_Store
 
-
+Output/
 exe/
 cache/
 compiler=msvc/

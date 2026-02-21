@@ -6,12 +6,14 @@
 #include "fmt/format.h"
 #include "imgui/imgui.h"
 
+#include "editor/views/EditorView.h"
 #include "editor/views/SceneHierarchyView.h"
 #include "editor/views/PropertiesView.h"
 #include "editor/views/ImageViewerView.h"
 #include "editor/views/SettingsView.h"
 #include "editor/views/Profiler/MemoryProfiler.h"
 #include "views/MainEditor/MainEditorToolbar.h"
+#include "render/demo/EngineDemoScene.h"
 
 namespace shine::editor::main_editor {
 
@@ -29,6 +31,7 @@ namespace shine::editor::main_editor {
 		delete imageViewerView;
         delete settingsView;
         delete memoryProfiler;
+        delete logUI;
 	}
 
 	void MainEditor::Init() {
@@ -76,6 +79,10 @@ namespace shine::editor::main_editor {
 
         // 初始化引擎设置视图
         settingsView = new views::SettingsView();
+
+        // 初始化日志 UI
+        logUI = new views::LogUI();
+        SHINE_LOG_INFO("Editor Log System Initialized");
 	}
 
 
@@ -142,6 +149,12 @@ namespace shine::editor::main_editor {
         if (memoryProfiler)
         {
             memoryProfiler->Render();
+        }
+
+        // 渲染日志
+        if (logUI)
+        {
+            logUI->Render();
         }
 
 		// 渲染ImGui界面

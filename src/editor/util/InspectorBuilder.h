@@ -11,7 +11,9 @@ namespace shine::editor::util {
         // Helper template for ease of use
         template<typename T>
         static void DrawInspector(T* instance) {
-            DrawInspector(instance, reflection::TypeRegistry::Get().Find<T>());
+            auto result = reflection::TypeRegistry::Get().Find<T>();
+            const reflection::TypeInfo* typeInfo = result ? *result : nullptr;
+            DrawInspector(instance, typeInfo);
         }
     };
 

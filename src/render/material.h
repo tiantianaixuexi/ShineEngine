@@ -194,6 +194,7 @@ namespace shine::render
             if (m_LocationMetallic  >= 0) cmdBuffer.SetUniform1f(m_LocationMetallic,  m_Metallic);
             if (m_LocationRoughness >= 0) cmdBuffer.SetUniform1f(m_LocationRoughness, m_Roughness);
             if (m_LocationAo        >= 0) cmdBuffer.SetUniform1f(m_LocationAo,        m_Ao);
+            if (m_LocationLightDir  >= 0) cmdBuffer.SetUniform3f(m_LocationLightDir,  m_LightDir[0], m_LightDir[1], m_LightDir[2]);
         }
 
         // ---- 参数设置 ----
@@ -308,10 +309,12 @@ namespace shine::render
             out vec3 vNormal;
             out vec3 vWorldPos;
             uniform CameraUBO { mat4 u_VP; vec4 u_ViewPos; };
+            uniform mat4 u_Model;
             void main(){
                 vNormal = aNormal;
-                vWorldPos = aPos;
-                gl_Position = u_VP * vec4(aPos, 1.0);
+                vec4 worldPos = u_Model * vec4(aPos, 1.0);
+                vWorldPos = worldPos.xyz;
+                gl_Position = u_VP * worldPos;
             }
             )";
                 static constexpr const char* kFS = R"(
@@ -355,7 +358,12 @@ namespace shine::render
             m_LocationMetallic  = sm.getUniformLocation(m_Program, "u_Metallic");
             m_LocationRoughness = sm.getUniformLocation(m_Program, "u_Roughness");
             m_LocationAo        = sm.getUniformLocation(m_Program, "u_Ao");
+            m_LocationLightDir  = sm.getUniformLocation(m_Program, "u_LightDir");
+            m_LocationModel     = sm.getUniformLocation(m_Program, "u_Model");
         }
+
+    public:
+        [[nodiscard]] int32_t getLocationModel() const { return m_LocationModel; }
 
     private:
         // API-agnostic types (no GLuint / GLint)
@@ -366,6 +374,8 @@ namespace shine::render
         int32_t  m_LocationMetallic { -1 };
         int32_t  m_LocationRoughness{ -1 };
         int32_t  m_LocationAo       { -1 };
+        int32_t  m_LocationLightDir { -1 };
+        int32_t  m_LocationModel    { -1 };
 
         std::string m_ShaderKey;
         std::string m_VS;

@@ -5,12 +5,16 @@
 #include "math/mathDef.h"
 #include "math/vector.ixx"
 #include "math/matrix.ixx"
+#include "math/rotator.h"
 
 
 namespace shine::math
 {
     template<FloatingPoint T>
     class Matrix4;
+
+    template<FloatingPoint T>
+    struct TRotator;
 
     // Basic math functions moved to mathDef.h to avoid circular dependency
 
@@ -79,6 +83,17 @@ namespace shine::math
         m.m_data[14] =  (f.X * eye.X + f.Y * eye.Y + f.Z * eye.Z);
         m.m_data[15] = 1.0f;
         return m;
+    }
+
+    template<FloatingPoint T>
+    constexpr Matrix4<T> MakeTransform(const TVector<T>& position, const TRotator<T>& rotation, const TVector<T>& scale) noexcept
+    {
+        Matrix4<T> t = Matrix4<T>::translate(position);
+        Matrix4<T> r = Matrix4<T>::rotateY(math::radians(rotation.Yaw)) * 
+                       Matrix4<T>::rotateX(math::radians(rotation.Pitch)) * 
+                       Matrix4<T>::rotateZ(math::radians(rotation.Roll));
+        Matrix4<T> s = Matrix4<T>::scale(scale);
+        return t * r * s;
     }
 
 }

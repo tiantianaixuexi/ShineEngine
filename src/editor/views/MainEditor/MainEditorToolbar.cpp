@@ -2,7 +2,7 @@
 
 #include "imgui/imgui.h"
 #include "editor/mainEditor.h"
-
+#include "render/demo/EngineDemoScene.h"
 
 namespace shine::editor::views
 {

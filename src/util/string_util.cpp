@@ -8,7 +8,6 @@ module;
 #endif
 
 #include "fmt/format.h"
-#include "fast_float/fast_float.h"
 
 module shine.util.string_util;
 
@@ -23,11 +22,9 @@ module shine.util.string_util;
 #endif
 
 #include "fmt/format.h"
-#include "fast_float/fast_float.h"
 
 #include <string>
 #include <string_view>
-#include <system_error>
 #include <span>
 #include <algorithm>
 
@@ -53,7 +50,7 @@ namespace shine::util
         if (str.length() < suffix.length()) {
             return false;
         }
-        if (IgnoreCase) {
+        if (!IgnoreCase) {
             return str.ends_with(suffix);
         }
         auto str_suffix = str.substr(str.length() - suffix.length());
@@ -70,7 +67,7 @@ namespace shine::util
         if (str.length() < prefix.length()) {
             return false;
         }
-        if (IgnoreCase) {
+        if (!IgnoreCase) {
             return str.starts_with(prefix);
         }
         auto str_prefix = str.substr(0, prefix.length());
@@ -157,20 +154,16 @@ namespace shine::util
 
     std::string StringUtil::ToStandardPath(std::string_view path) {
         std::string result(path);
-        size_t pos = 0;
-        while ((pos = result.find('\\', pos)) != std::string::npos) {
-            result.replace(pos, 1, "/");
-            pos += 1;
+        for (auto& c : result) {
+            if (c == '\\') c = '/';
         }
         return result;
     }
 
     std::string StringUtil::ToWindowsPath(std::string_view path) {
         std::string result(path);
-        size_t pos = 0;
-        while ((pos = result.find('/', pos)) != std::string::npos) {
-            result.replace(pos, 1, "\\");
-            pos += 1;
+        for (auto& c : result) {
+            if (c == '/') c = '\\';
         }
         return result;
     }
@@ -244,16 +237,13 @@ namespace shine::util
 
         while (current < end) {
             if (*current == '%') {
-                if (current + 2 < end) {
-                    int value = 0;
-                    auto result = fast_float::from_chars(current + 1, current + 3, value);
-                    if (result.ec == std::errc{} && result.ptr == current + 3) {
-                        decoded += static_cast<char>(value);
-                        current += 3;
-                    } else {
-                        decoded += '%';
-                        current++;
-                    }
+                if (current + 2 < end &&
+                    isAlphaNumericHex(static_cast<unsigned char>(current[1])) &&
+                    isAlphaNumericHex(static_cast<unsigned char>(current[2]))) {
+                    unsigned char hi = fromHex(static_cast<unsigned char>(current[1]));
+                    unsigned char lo = fromHex(static_cast<unsigned char>(current[2]));
+                    decoded += static_cast<char>((hi << 4) | lo);
+                    current += 3;
                 } else {
                     decoded += '%';
                     current++;
@@ -323,7 +313,7 @@ namespace shine::util
     std::string StringUtil::ToLower(std::string_view str) {
         std::string out(str);
         for (auto& c : out) {
-            c = static_cast<unsigned char>(std::tolower(c));
+            c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
         }
         return out;
     }
@@ -331,7 +321,7 @@ namespace shine::util
     std::string StringUtil::ToUpper(std::string_view str) {
         std::string out(str);
         for (auto& c : out) {
-            c = static_cast<unsigned char>(std::toupper(c));
+            c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
         }
         return out;
     }
@@ -429,7 +419,7 @@ namespace shine::util
         return ReplaceAll(str, pattern, replacement);
     }
 
-    bool StringUtil::HasUTF8BOM(std::span<unsigned char> data) {
+    bool StringUtil::HasUTF8BOM(std::span<const unsigned char> data) {
         constexpr unsigned char bom[] = { 0xEF, 0xBB, 0xBF };
         if (data.size() < 3) return false;
         return data[0] == bom[0] && data[1] == bom[1] && data[2] == bom[2];
