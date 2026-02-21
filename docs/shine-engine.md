@@ -14,6 +14,9 @@ description: ShineEngine 开发综合指南，涵盖项目结构、构建命令�
 - 当需要了解项目目录结构与配置文件格式时
 - 当进行测试或跨平台开发调试时
 
+## 新建分支
+- git checkout -b support-clang-21.1.7
+
 ## 详情
 
 ### 1. 项目概览 (Project Overview)

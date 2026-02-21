@@ -23,7 +23,7 @@ description: ShineEngine 编译期动态数组容器，提供固定容量的编�
 **技术要点**:
 - 模板参数 `<T, N>` 确定元素类型和固定容量
 - C++23 特性支持：deducing this、三向比较、概念约束
-- MSVC 优化：`[[msvc::forceinline]]` 和 `__assume` 提示
+- MSVC 优化：`FORCEINLINE` 和 `FORCEINLINE` 提示
 - 编译期/运行期双模式：`if consteval` 分支优化
 
 **核心接口**:
@@ -40,7 +40,7 @@ description: ShineEngine 编译期动态数组容器，提供固定容量的编�
 #### 元素访问
 | 接口 | 说明 |
 |------|------|
-| `operator[]` | 索引访问（带 `__assume` 优化） |
+| `operator[]` | 索引访问（带 `FORCEINLINE` 优化） |
 | `at(index)` | 带边界检查访问 |
 | `front()/back()` | 首尾元素访问 |
 | `data()` | 原始数据指针 |

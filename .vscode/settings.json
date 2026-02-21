@@ -80,5 +80,6 @@
     "**/exe/**": true,
     "**/.git/**": true,
     "**/node_modules/**": true
-  }
+  },
+  "commentTranslate.hover.enabled": true
 }

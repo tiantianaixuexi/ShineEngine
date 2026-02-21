@@ -352,7 +352,7 @@ public:
     // 按迭代器删除
     constexpr iterator erase(const_iterator pos) noexcept {
         size_type index = pos - cbegin();
-        __assume(index < current_size_);
+        FORCEINLINE(index < current_size_);
         if (index != current_size_ - 1) {
             storage_[index] = std::move(storage_[current_size_ - 1]);
             sorted_ = false;
