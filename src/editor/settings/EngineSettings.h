@@ -77,7 +77,7 @@ REFLECTION_STRUCT(EngineSettings) {
     REFLECT_FIELD(masterVolume)
         .Range(0.0f, 100.0f)
         .EditAnywhere()
-        .OnChange<&ES::OnVolumeChanged>()
+        .template OnChange<&ES::OnVolumeChanged>()
         .DisplayName("主音量")
         .Meta("Category", std::string_view{"Audio"});
 
@@ -128,7 +128,7 @@ REFLECTION_STRUCT(EngineSettings) {
 
     REFLECT_FIELD(difficulty)
         .EditAnywhere()
-        .OnChange<&ES::OnDifficultyChanged>()
+        .template OnChange<&ES::OnDifficultyChanged>()
         .DisplayName("游戏难度")
         .Meta("Category", std::string_view{"GamePlay"});
 

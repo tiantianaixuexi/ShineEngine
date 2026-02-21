@@ -28,8 +28,8 @@ namespace shine::editor::util {
 
         StaticInspectorBuilder(T* inst) : instance(inst) {}
 
-        template<typename T>
-        static void Draw(T* instance) {
+        template<typename U>
+        static void Draw(U* instance) {
             if (!instance) return;
             
             if (ImGui::BeginTable("Inspector", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_RowBg)) {

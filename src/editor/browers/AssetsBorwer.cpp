@@ -55,7 +55,7 @@ void AssetsBrower::Render() {
 
             ms_flags |= ImGuiMultiSelectFlags_BoxSelect2d;
 
-            // ImGuiMultiSelectIO* ms_io = ImGui::BeginMultiSelect(ms_flags,)
+            //ImGuiMultiSelectIO* ms_io = ImGui::BeginMultiSelect(ms_flags,)
         }
 
 

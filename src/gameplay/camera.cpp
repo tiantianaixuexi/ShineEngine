@@ -1,4 +1,4 @@
-﻿#include "Camera.h"
+﻿#include "camera.h"
 
 #include <GL/glew.h>
 #include <cmath>

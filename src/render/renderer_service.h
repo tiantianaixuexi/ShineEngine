@@ -8,7 +8,7 @@
 #include "shine_define.h"
 #include "EngineCore/subsystem.h"
 #include "render/backend/render_backend.h"
-#include "render/pipeline/rendering_data.h"
+#include "render/pipeline/render_data.h"
 #include "render/pipeline/scriptable_render_context.h"
 #include "render/pipeline/render_pipeline_asset.h"
 #include "render/pipeline/render_pipeline.h"

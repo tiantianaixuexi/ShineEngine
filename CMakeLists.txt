@@ -44,8 +44,25 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/exe)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/exe)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build)
 
+# 编译器检测
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_ID STREQUAL "Microsoft")
+    set(SHINE_COMPILER_MSVC ON)
+    set(SHINE_COMPILER_NAME "MSVC")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    set(SHINE_COMPILER_CLANG ON)
+    set(SHINE_COMPILER_NAME "Clang")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(SHINE_COMPILER_GCC ON)
+    set(SHINE_COMPILER_NAME "GCC")
+else()
+    message(WARNING "Unknown compiler: ${CMAKE_CXX_COMPILER_ID}")
+    set(SHINE_COMPILER_NAME "Unknown")
+endif()
+
+message(STATUS "Detected compiler: ${SHINE_COMPILER_NAME} (${CMAKE_CXX_COMPILER_ID})")
+
 # 平台特定配置
-if(MSVC)
+if(SHINE_COMPILER_MSVC)
     add_compile_options(/utf-8 /MP /bigobj /Zc:__cplusplus)
     set(CMAKE_CXX_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/modules)
     
@@ -66,8 +83,56 @@ if(MSVC)
         $<$<CONFIG:Release>:/LTCG>
     )
 
-    # 是否扫描 C++ 源文件以查找模块依赖关系
     if(SHINE_BUILD_MODULE)
+        set(CMAKE_CXX_SCAN_FOR_MODULES ON)
+    else()
+        set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+    endif()
+    
+elseif(SHINE_COMPILER_CLANG)
+    add_compile_options(-Wall -Wextra -Wno-unused-parameter)
+    
+    if(WIN32)
+        add_compile_options(-fms-extensions -fms-compatibility)
+    endif()
+    
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -DDEBUG")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
+    
+    option(SHINE_ENABLE_AVX2 "Enable AVX2 for Clang builds" OFF)
+    if(SHINE_ENABLE_AVX2)
+        add_compile_options(-mavx2 -mfma)
+    endif()
+    
+    option(SHINE_ENABLE_LTO "Enable Link Time Optimization for Clang Release builds" ON)
+    if(SHINE_ENABLE_LTO)
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -flto")
+    endif()
+    
+    if(SHINE_BUILD_MODULE)
+        set(CMAKE_CXX_SCAN_FOR_MODULES ON)
+    else()
+        set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+    endif()
+    
+elseif(SHINE_COMPILER_GCC)
+    add_compile_options(-Wall -Wextra -Wno-unused-parameter -fPIC)
+    
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -DDEBUG")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
+    
+    option(SHINE_ENABLE_AVX2 "Enable AVX2 for GCC builds" OFF)
+    if(SHINE_ENABLE_AVX2)
+        add_compile_options(-mavx2 -mfma)
+    endif()
+    
+    option(SHINE_ENABLE_LTO "Enable Link Time Optimization for GCC Release builds" ON)
+    if(SHINE_ENABLE_LTO)
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -flto")
+    endif()
+    
+    if(SHINE_BUILD_MODULE)
+        message(WARNING "C++20 modules support for GCC is experimental")
         set(CMAKE_CXX_SCAN_FOR_MODULES ON)
     else()
         set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
@@ -302,10 +367,15 @@ function(parse_and_cache_modules)
                     file(GLOB_RECURSE dir_found_files
                         "${CMAKE_SOURCE_DIR}/${dir}/*.h"
                         "${CMAKE_SOURCE_DIR}/${dir}/*.hpp"
-                        "${CMAKE_SOURCE_DIR}/${dir}/*.ixx"
                         "${CMAKE_SOURCE_DIR}/${dir}/*.cpp"
                         "${CMAKE_SOURCE_DIR}/${dir}/*.cppm"
                     )
+                    if(SHINE_BUILD_MODULE OR SHINE_COMPILER_MSVC)
+                        file(GLOB_RECURSE dir_module_files
+                            "${CMAKE_SOURCE_DIR}/${dir}/*.ixx"
+                        )
+                        list(APPEND dir_found_files ${dir_module_files})
+                    endif()
                     foreach(abs_path ${dir_found_files})
                         file(RELATIVE_PATH rel_path "${CMAKE_SOURCE_DIR}" "${abs_path}")
                         list(APPEND files_list ${rel_path})
@@ -703,11 +773,10 @@ foreach(module_name ${MODULE_LIST})
         if(file MATCHES "\\.(h|hpp)$")
             list(APPEND header_files ${file})
         elseif(file MATCHES "\\.ixx$")
-            # 在非模块模式下，.ixx 文件作为普通头文件
-            if(NOT SHINE_BUILD_MODULE)
-                list(APPEND header_files ${file})
-            else()
+            if(SHINE_BUILD_MODULE)
                 list(APPEND source_files ${file})
+            elseif(SHINE_COMPILER_MSVC)
+                list(APPEND header_files ${file})
             endif()
         else()
             list(APPEND source_files ${file})
@@ -891,23 +960,14 @@ foreach(module_name ${MODULE_LIST})
         endif()
     endif()
 
-
-
-    # 在非模块模式下，将 .ixx 文件设置为普通头文件，不作为模块接口单元
-    if(NOT SHINE_BUILD_MODULE AND header_files)
+    # 在非模块模式下，MSVC 需要将 .ixx 文件设置为普通头文件
+    if(NOT SHINE_BUILD_MODULE AND SHINE_COMPILER_MSVC AND header_files)
         foreach(file ${header_files})
             if(file MATCHES "\\.ixx$")
                 set_source_files_properties(${CMAKE_SOURCE_DIR}/${file} PROPERTIES
                     CXX_MODULE OFF
-                    CXX_MODULE_TYPE "None"
                     HEADER_FILE_ONLY TRUE
                 )
-                # 在非模块模式下，为 .ixx 文件添加禁用模块的编译选项
-                if(MSVC)
-                    set_source_files_properties(${CMAKE_SOURCE_DIR}/${file} PROPERTIES
-                        COMPILE_FLAGS "/Zc:twoPhase-"
-                    )
-                endif()
             endif()
         endforeach()
     endif()
@@ -1175,10 +1235,16 @@ file(GLOB_RECURSE ENGINE_SOURCES
     "src/**/*.h"
     "src/**/*.hpp"
     "src/**/*.inl"
-    "src/**/*.ixx"
     "src/**/*.cppm"
     "src/ShineEngine.cpp"
 )
+
+if(SHINE_BUILD_MODULE OR SHINE_COMPILER_MSVC)
+    file(GLOB_RECURSE ENGINE_MODULE_SOURCES
+        "src/**/*.ixx"
+    )
+    list(APPEND ENGINE_SOURCES ${ENGINE_MODULE_SOURCES})
+endif()
 
 # 排除第三方库和已编译到模块中的源文件
 list(FILTER ENGINE_SOURCES EXCLUDE REGEX "src/third/.*")

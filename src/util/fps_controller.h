@@ -18,7 +18,6 @@ namespace shine::util {
     private:
         double m_targetFPS;
         double m_targetFrameTime; // 目标帧时间（毫秒）
-        double m_lastFrameTime;
         double m_deltaTime;
         double m_frameTimeAccumulator;
         int m_frameCount;
@@ -42,7 +41,6 @@ namespace shine::util {
         FPSController(double targetFPS = 60.0)
             : m_targetFPS(targetFPS)
             , m_targetFrameTime(1000.0 / targetFPS)
-            , m_lastFrameTime(0.0)
             , m_deltaTime(0.0)
             , m_frameTimeAccumulator(0.0)
             , m_frameCount(0)

@@ -129,19 +129,19 @@ namespace shine::image
 		 * @brief 获取文件名
 		 * @return 文件名视图
 		 */
-		std::string_view getFileName() const noexcept;
+		std::string_view getFileName() const noexcept override;
 
 		/**
 		 * @brief 获取图像宽度
 		 * @return 宽度（像素）
 		 */
-		constexpr uint32_t getWidth() const noexcept { return _width; }
+		constexpr uint32_t getWidth() const noexcept override { return _width; }
 
 		/**
 		 * @brief 获取图像高度
 		 * @return 高度（像素）
 		 */
-		constexpr uint32_t getHeight() const noexcept { return _height; }
+		constexpr uint32_t getHeight() const noexcept override { return _height; }
 
 		/**
 		 * @brief 获取颜色分量数量
@@ -151,9 +151,9 @@ namespace shine::image
 
 		/**
 		 * @brief 检查是否已加载
-		 * @return true 如果已加载
+		 * @return true 如果已加载，false 否则
 		 */
-		bool isLoaded() const noexcept { return _loaded; }
+		bool isLoaded() const noexcept override { return _loaded; }
 
 		// ========================================================================
 		// 公共接口：JPEG 文件解析
@@ -185,7 +185,7 @@ namespace shine::image
 		 * 
 		 * @return 成功返回 void，失败返回错误信息
 		 */
-		std::expected<void, std::string> decode();
+		std::expected<void, std::string> decode() override;
 
 		/**
 		 * @brief 解码 JPEG 图像数据为 RGB 格式
@@ -195,19 +195,19 @@ namespace shine::image
 		 * 
 		 * @return 成功返回 RGB 数据向量，失败返回错误信息
 		 */
-		std::expected<std::vector<uint8_t>, std::string> decodeRGB();
+		std::expected<std::vector<uint8_t>, std::string> decodeRGB() override;
 
 		/**
 		 * @brief 获取解码后的图像数据（RGBA 格式）
 		 * @return RGBA 图像数据向量引用（每像素 4 字节）
 		 */
-		const std::vector<uint8_t>& getImageData() const noexcept { return imageData; }
+		const std::vector<uint8_t>& getImageData() const noexcept override { return imageData; }
 
 		/**
 		 * @brief 检查是否已解码
 		 * @return true 如果图像已解码
 		 */
-		bool isDecoded() const noexcept { return !imageData.empty(); }
+		bool isDecoded() const noexcept override { return !imageData.empty(); }
 
 	private:
 		// ========================================================================

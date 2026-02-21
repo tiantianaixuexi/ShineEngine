@@ -22,6 +22,35 @@ goto :eof
 echo Warning: %~1
 goto :eof
 
+:setup_compiler
+call :log_info "Setting up compiler: %COMPILER%"
+if /i "%COMPILER%"=="msvc" (
+    set GENERATOR_NAME=Visual Studio 18 2026
+    set ARCH_ARGS=-A x64
+    set BUILD_DIR=build_msvc
+    call :log_info "Using MSVC (Visual Studio 2026) generator"
+) else if /i "%COMPILER%"=="clang" (
+    set GENERATOR_NAME=Ninja
+    set ARCH_ARGS=
+    set BUILD_DIR=build_clang
+    set CMAKE_COMMON_FLAGS=%CMAKE_COMMON_FLAGS% -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+    clang --version > nul 2>&1 || call :error_exit "Clang not found, please ensure clang is installed and added to PATH"
+    call :log_info "Using Clang compiler with Ninja generator"
+) else if /i "%COMPILER%"=="gcc" (
+    set GENERATOR_NAME=Ninja
+    set ARCH_ARGS=
+    set BUILD_DIR=build_gcc
+    set CMAKE_COMMON_FLAGS=%CMAKE_COMMON_FLAGS% -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+    g++ --version > nul 2>&1 || call :error_exit "GCC not found, please ensure g++ is installed and added to PATH"
+    call :log_info "Using GCC compiler with Ninja generator"
+) else (
+    call :log_warning "Unknown compiler '%COMPILER%', defaulting to MSVC"
+    set GENERATOR_NAME=Visual Studio 18 2026
+    set ARCH_ARGS=-A x64
+    set BUILD_DIR=build_msvc
+)
+goto :eof
+
 :main
 set GENERATOR_NAME=Visual Studio 18 2026
 set BUILD_DIR=build
@@ -35,6 +64,7 @@ set NO_PAUSE=1
 set SHINE_BUILD_EDITOR=ON
 set SHINE_BUILD_MODULE=OFF
 set BUILD_MODE=editor
+set COMPILER=msvc
 
 :parse_args
 if "%~1"=="" goto args_done
@@ -78,6 +108,27 @@ if /i "%~1"=="--release" (
     shift
     goto parse_args
 )
+if /i "%~1"=="--compiler" (
+    set COMPILER=%~2
+    shift
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--msvc" (
+    set COMPILER=msvc
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--clang" (
+    set COMPILER=clang
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--gcc" (
+    set COMPILER=gcc
+    shift
+    goto parse_args
+)
 
 if defined CMD (
     if /i "%~1"=="release" (
@@ -108,6 +159,9 @@ goto parse_args
 :args_done
 set CMAKE_COMMON_FLAGS=%CMAKE_COMMON_FLAGS% -DSHINE_BUILD_EDITOR=%SHINE_BUILD_EDITOR%
 set CMAKE_COMMON_FLAGS=%CMAKE_COMMON_FLAGS% -DSHINE_BUILD_MODULE=%SHINE_BUILD_MODULE%
+
+call :setup_compiler
+
 call :log_info "Checking build tools..."
 cmake --version > nul 2>&1 || call :error_exit "CMake not found, please ensure CMake is installed and added to PATH"
 
@@ -291,6 +345,18 @@ echo   --no-editor      Disable editor features (removes BUILD_EDITOR macro)
 echo   --editor         Enable editor mode (default, same as without flag)
 echo   --runtime        Build in runtime mode (excludes editor-only modules)
 echo   --enable-module  Enable C++20 modules (adds SHINE_BUILD_MODULE macro)
+echo.
+echo Compiler selection:
+echo   --msvc           Use MSVC compiler (default)
+echo   --clang          Use Clang compiler (requires Ninja and clang in PATH)
+echo   --gcc            Use GCC compiler (requires Ninja and g++ in PATH)
+echo   --compiler NAME  Specify compiler: msvc, clang, or gcc
+echo.
+echo Examples:
+echo   build.bat run                    Build and run with MSVC (default)
+echo   build.bat run --clang            Build and run with Clang
+echo   build.bat module MyMod --gcc     Build module with GCC
+echo   build.bat release --clang        Build release with Clang
 echo.
 goto end_script
 

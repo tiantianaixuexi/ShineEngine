@@ -64,7 +64,7 @@ namespace shine::manager
         /**
          * @brief 关闭资源管理器，释放所有资源
          */
-        void Shutdown();
+        void ShutdownEvent();
 
         // ========================================================================
         // 图片资源管理

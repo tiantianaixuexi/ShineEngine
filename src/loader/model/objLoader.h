@@ -21,9 +21,9 @@ namespace shine::loader
         }
     
         virtual ~objLoader() = default; 
-        virtual bool loadFromMemory(const void* data, size_t size);
-        virtual bool loadFromFile(const char* filePath);
-        void unload();
+        virtual bool loadFromMemory(const void* data, size_t size) override;
+        virtual bool loadFromFile(const char* filePath) override;
+        void unload() override;
 
         // 实现基类方法
         virtual const char* getName() const override { return "objLoader"; }

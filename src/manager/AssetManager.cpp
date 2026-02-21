@@ -1,7 +1,6 @@
 #include "AssetManager.h"
 #include "image/png.h"
 #include "image/jpeg.h"
-#include "image/webp.h"
 #include "image/Texture.h"
 #include "loader/model/gltfLoader.h"
 #include "loader/model/objLoader.h"
@@ -19,7 +18,7 @@ namespace shine::manager
 
     AssetManager::~AssetManager()
     {
-        Shutdown();
+        ShutdownEvent();
     }
 
     void AssetManager::Initialize()
@@ -27,7 +26,7 @@ namespace shine::manager
         // 初始化资源管理器
     }
 
-    void AssetManager::Shutdown()
+    void AssetManager::ShutdownEvent()
     {
         UnloadAllAssets();
     }
@@ -348,7 +347,7 @@ namespace shine::manager
 
     std::vector<std::string> AssetManager::GetSupportedImageFormats()
     {
-        return {"png", "jpeg", "jpg", "webp"};
+        return {"png", "jpeg", "jpg"};
     }
 
     std::vector<std::string> AssetManager::GetSupportedModelFormats()
@@ -363,7 +362,7 @@ namespace shine::manager
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
         // 图片格式
-        if (ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "webp")
+        if (ext == "png" || ext == "jpg" || ext == "jpeg")
         {
             return EAssetType::Image;
         }
@@ -389,10 +388,6 @@ namespace shine::manager
         else if (fmt == "jpeg" || fmt == "jpg")
         {
             return std::make_unique<shine::image::jpeg>();
-        }
-        else if (fmt == "webp")
-        {
-            return std::make_unique<shine::image::webp>();
         }
 
         return nullptr;
@@ -438,12 +433,12 @@ namespace shine::manager
         }
 
         // 检测WebP: RIFF ... WEBP
-        if (size >= 12 && 
-            bytes[0] == 'R' && bytes[1] == 'I' && bytes[2] == 'F' && bytes[3] == 'F' &&
-            bytes[8] == 'W' && bytes[9] == 'E' && bytes[10] == 'B' && bytes[11] == 'P')
-        {
-            return "webp";
-        }
+        // if (size >= 12 && 
+        //     bytes[0] == 'R' && bytes[1] == 'I' && bytes[2] == 'F' && bytes[3] == 'F' &&
+        //     bytes[8] == 'W' && bytes[9] == 'E' && bytes[10] == 'B' && bytes[11] == 'P')
+        // {
+        //     return "webp";
+        // }
 
         return "";
     }

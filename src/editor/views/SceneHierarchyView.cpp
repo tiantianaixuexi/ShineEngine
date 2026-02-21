@@ -28,7 +28,7 @@ namespace shine::editor::views
         if (ImGui::TreeNodeEx("Root", ImGuiTreeNodeFlags_DefaultOpen))
         {
             // 示例：显示一个测试对象
-            bool isSelected = (selectedObject_ != nullptr);
+            const bool isSelected = (selectedObject_ != nullptr);
 
             for (auto& c : testData)
             {

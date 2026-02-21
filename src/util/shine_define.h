@@ -1,5 +1,7 @@
 #pragma once
 
+
+
 // 平台检测（确保定义已设置）
 #if defined(_WIN32) && !defined(_WIN64)
     #ifndef SHINE_PLATFORM_WIN32

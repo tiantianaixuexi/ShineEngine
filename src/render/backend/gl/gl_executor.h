@@ -8,7 +8,8 @@
 #endif
 
 #include <GL/glew.h>
-#include "imgui/imgui.h" 
+#include "imgui/imgui.h"
+#include "imgui/backends/imgui_impl_opengl3.h" 
 
 namespace shine::render::backend::gl
 {
@@ -115,7 +116,6 @@ namespace shine::render::backend::gl
         // UI
         void operator()(const CmdImguiRender& cmd)
         {
-            extern void ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data);
             ImGui_ImplOpenGL3_RenderDrawData(static_cast<ImDrawData*>(cmd.drawData));
         }
 

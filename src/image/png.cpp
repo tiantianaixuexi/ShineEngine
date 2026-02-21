@@ -1554,7 +1554,7 @@ namespace shine::image
 		constexpr uint32_t NUM_DEFLATE_CODE_SYMBOLS = 288; // 256 literals + end code + length codes
 		constexpr uint32_t NUM_DISTANCE_SYMBOLS = 32;
 		constexpr uint32_t NUM_CODE_LENGTH_CODES = 19;
-		constexpr uint32_t FIRSTBITS = 9; // 用于 Huffman 查找表的根位数
+		//constexpr uint32_t FIRSTBITS = 9; // 用于 Huffman 查找表的根位数
 		constexpr uint32_t INVALIDSYMBOL = 65535;
 		
 		// 长度码的基础值（代码 257-285）
@@ -2930,13 +2930,13 @@ namespace shine::image
 		else if (bitDepth == 1 || bitDepth == 2 || bitDepth == 4)
 		{
 			// 低位深度处理：需要按位读取
-			size_t bitsPerPixel = 0;
+			//size_t bitsPerPixel = 0;
 			size_t pixelsPerByte = 8 / bitDepth;
 			
 			switch (colorType)
 			{
 			case PngColorType::GERY:
-				bitsPerPixel = bitDepth;
+				//bitsPerPixel = bitDepth;
 				{
 					size_t outIdx = 0;
 					for (size_t byteIdx = 0; byteIdx < rawData.size(); ++byteIdx)
@@ -2967,7 +2967,7 @@ namespace shine::image
 				break;
 				
 			case PngColorType::PALETTE:
-				bitsPerPixel = bitDepth;
+				//bitsPerPixel = bitDepth;
 				{
 					size_t bitPos = 0;
 					size_t totalBits = rawData.size() * 8;

@@ -77,7 +77,6 @@ namespace shine::image
 	};
 
 	/// JPEG 段标记
-	static constexpr uint8_t MARKER_SOI = 0xD8;      ///< Start of Image
 	static constexpr uint8_t MARKER_EOI = 0xD9;      ///< End of Image
 	static constexpr uint8_t MARKER_SOF0 = 0xC0;     ///< Start of Frame (Baseline DCT)
 	static constexpr uint8_t MARKER_SOF1 = 0xC1;     ///< Start of Frame (Extended DCT)
@@ -248,7 +247,7 @@ namespace shine::image
 		}
 
 		// 验证 JPEG 文件头签名（SOI: 0xFF 0xD8）
-		return content[0] == std::byte{0xFF} && content[1] == std::byte{0xD8};
+		return content[0] == jpeg_header[0] && content[1] == jpeg_header[1];
 	}
 
 	// ============================================================================
@@ -1242,7 +1241,6 @@ namespace shine::image
 				int32_t xb = x3 + x5; \
 				int32_t xc = x0 - x4; \
 				int32_t xd = x0 + x4; \
-				int32_t xe = (x8 + xa) * 181; \
 				x8 = (x8 - xa) * 181; \
 				xa = x9 - xb; \
 				xb = x9 + xb; \

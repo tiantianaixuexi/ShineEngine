@@ -23,6 +23,7 @@
 #include <utility>
 #include <variant>
 #include <vector>
+#include <functional>
 
 // =============================================================================
 // Runtime Type Registry
@@ -403,6 +404,7 @@ struct FieldDSLNode {
         };
         return c;
     }
+
 };
 
 // ---- MethodDSLNode (created by REFLECT_METHOD macro) ------------------------

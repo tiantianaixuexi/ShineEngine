@@ -30,10 +30,10 @@ namespace shine::util
 		 * @param data 数据指针
 		 * @param size 数据大小（字节）
 		 */
-		explicit BitReader(const u8* data, u8 size) noexcept
+		constexpr explicit BitReader(const u8* data, u8 size) noexcept
 			: data_(data), size_(size), bitPos_(0), buffer_(0)
 		{
-			bitsize_ = (size < (S64_MAX / 8)) ? size * 8 : S64_MAX;
+			bitsize_ = size * 8;
 		}
 
 

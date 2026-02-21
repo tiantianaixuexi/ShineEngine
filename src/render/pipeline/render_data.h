@@ -22,8 +22,10 @@ namespace shine::render
      * @brief 渲染数据（类似 Unity RenderingData）
      * 包含渲染所需的所有数据：相机、光源、场景对象等
      */
-    struct RenderingData
+    class RenderingData
     {
+
+        public:
         // 相机列表（支持多相机）
         std::vector<shine::gameplay::Camera*> cameras;
 

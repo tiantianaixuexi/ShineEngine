@@ -6,11 +6,31 @@
 #include <memory>
 
 #include "util/guid.h"
+#include "util/EnumFlags.h"
 #include "gameplay/component/component.h"
+
+
 
 
 namespace shine::gameplay
 {
+    enum class EObjectFlags : uint64_t {
+        OF_Active      = 1u << 0,
+        OF_Visible     = 1u << 1,
+        OF_Tick        = 1u << 2,
+        OF_Render      = 1u << 3,
+        OF_Pointer     = 1u << 4,
+        OF_PendingKill = 1u << 5,
+        OF_GCMark      = 1u << 6,
+    };
+}
+
+ENABLE_ENUM_FLAGS(shine::gameplay::EObjectFlags)
+
+namespace shine::gameplay
+{
+
+
 	namespace component
 	{
 		class UComponent;
@@ -39,6 +59,18 @@ namespace shine::gameplay
         void setRender(bool render) noexcept { m_isRender = render; }
         void setTickable(bool tickable) noexcept { m_isTickable = tickable; }
 
+        void setFlag(EObjectFlags flag, bool value) noexcept
+        {
+            if (value)
+            {
+                m_Flags |= flag;
+            }
+            else
+            {
+                m_Flags &= ~flag;
+            }
+        }
+
    
         // 名字管理
         [[nodiscard]] const std::string& getName() const noexcept { return _name; }
@@ -46,7 +78,7 @@ namespace shine::gameplay
 
     private:
         // 事件 Flag
-        unsigned int m_Flags;
+        EObjectFlags m_Flags;
 
         // 用 m_ 前缀标记成员变量，避免与函数名冲突
         unsigned int m_isTickable:1 = true;
@@ -78,4 +110,3 @@ namespace shine::gameplay
 
     };
 }
-

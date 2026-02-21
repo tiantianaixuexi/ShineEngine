@@ -2,7 +2,9 @@
 
 #include <cmath>
 #include <array>
-
+#include <utility>
+#include <numbers>
+#include <limits>
 #include "shine_define.h"
 #include "rotator.h"
 #include "mathDef.h"
@@ -71,7 +73,17 @@ namespace shine::math
         }
 
         // 归一化
-        constexpr TQuat<T> normalized() const noexcept;
+        constexpr TQuat<T> normalized() const noexcept
+        { 
+            T n = norm();
+            if  (n == T(0)) {
+                return *this;
+            }
+            else{
+                return *this / n;
+            }
+            std::unreachable();
+        }
 
         // 取反
         constexpr TQuat operator-() const noexcept {
@@ -82,12 +94,47 @@ namespace shine::math
         constexpr bool operator==(const TQuat& rhs) const = default;
 
         // 四元数转欧拉角（roll, pitch, yaw），单位：弧度
-        constexpr TRotator<T> eulerAngles() const noexcept;
+        constexpr TRotator<T> eulerAngles() const noexcept
+        {
+                   
+            const T x2 = x * x;
+            const T y2 = y * y;
+            const T z2 = z * z;
+            
+            // Roll (X-axis rotation)
+            const T sinr_cosp = 2 * (w * x + y * z);
+            const T cosr_cosp = 1 - 2 * (x2 + y2);
+            const T epsilon = std::numeric_limits<T>::epsilon();
+            T roll = std::atan2(sinr_cosp, Max(cosr_cosp, epsilon));
+
+            // Pitch (Y-axis rotation)
+            const T sinp = 2 * (w * y - z * x);
+            T pitch;
+            if (std::abs(sinp) >= 1 - epsilon)
+                pitch = std::copysign(std::numbers::pi_v<T> / 2, sinp);
+            else
+                pitch = std::asin(sinp);
+
+            // Yaw (Z-axis rotation)
+            const T siny_cosp = 2 * (w * z + x * y);
+            const T cosy_cosp = 1 - 2 * (y2 + z2);
+            T yaw = std::atan2(siny_cosp, Max(cosy_cosp, epsilon));
+
+            return { pitch, yaw, roll };
+        }
 
         // 用Rotator(角度为单位) 构造四元数
         static constexpr TQuat fromRotatorDegrees(const TRotator<T>& rotDeg) noexcept;
         // 从四元数生成 Rotator(角度为单位)
-        constexpr TRotator<T> toRotatorDegrees() const noexcept;
+        constexpr TRotator<T> toRotatorDegrees() const noexcept
+        {
+            auto r = eulerAngles(); // 寮у害
+            const T k = T(57.295779513082320876); // 180/PI
+            r.Roll  *= k;
+            r.Pitch *= k;
+            r.Yaw   *= k;
+            return r;
+        }
 
         // 单位四元数
         static consteval TQuat identity() noexcept {

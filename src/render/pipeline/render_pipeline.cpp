@@ -1,7 +1,7 @@
 #include "render_pipeline.h"
 #include "render_pipeline_asset.h"
 #include "scriptable_render_context.h"
-#include "rendering_data.h"
+#include "render_data.h"
 #include "command_buffer.h"
 #include "gameplay/camera.h"
 #include "gameplay/object.h"

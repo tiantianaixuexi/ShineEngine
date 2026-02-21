@@ -5,6 +5,7 @@
 
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_win32.h"
+#include "imgui/backends/imgui_impl_opengl3.h"
 
 #include "manager/CameraManager.h"
 #include "manager/light_manager.h"
@@ -225,7 +226,6 @@ namespace shine::render::webgl2
         glClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        extern void ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         ::SwapBuffers(g_hdc);

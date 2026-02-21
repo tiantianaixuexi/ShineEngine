@@ -146,7 +146,6 @@ int main(int argc, char** argv) {
 		
 		// FPS控制 - 帧开始
         {
-             shine::co::MemoryScope scope(shine::co::MemoryTag::Physics);
 		     g_FPSManager.BeginFrame();
 		     const double dt_d = g_FPSManager.GetDeltaTime();
 		     const float dt = static_cast<float>(dt_d);
@@ -154,7 +153,6 @@ int main(int argc, char** argv) {
 
 		// Poll and handle messages (inputs, window resize, etc.)
         {
-            shine::co::MemoryScope scope(shine::co::MemoryTag::AI);
             MSG msg;
             while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) {
                 ::TranslateMessage(&msg);
@@ -171,12 +169,8 @@ int main(int argc, char** argv) {
         {
              shine::co::MemoryScope renderScope(shine::co::MemoryTag::Render);
 		     RenderService->beginFrame();
-        }
-
-
+			 
         // 编辑器UI渲染
-        {
-             shine::co::MemoryScope editorScope(shine::co::MemoryTag::Render);
              mainEditor->Render();
         }
 		
