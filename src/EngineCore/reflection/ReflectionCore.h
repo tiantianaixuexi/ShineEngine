@@ -20,7 +20,7 @@
 #include <set>
 #include <variant>
 #include <vector>
-
+#include <source_location>
 #include "util/EnumFlags.h"
 #include "constexpr/constexpr_vector.h"
 #include "constexpr/constexpr_str.h"
@@ -70,7 +70,8 @@ consteval TypeId Hash(const char (&str)[N]) noexcept {
 /// Extract a clean type name from __FUNCSIG__ (MSVC) at compile time.
 template <typename T>
 consteval std::string_view GetTypeName() noexcept {
-    std::string_view sig = __FUNCSIG__;
+    constexpr std::source_location loc = std::source_location::current();
+    std::string_view sig = loc.function_name();
     auto start = sig.find("GetTypeName<") + 12;
     auto end   = sig.find_last_of('>');
     auto name  = sig.substr(start, end - start);

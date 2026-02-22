@@ -68,7 +68,7 @@ void AssetsBrower::Render() {
 
 bool AssetsBrower::SetShow() noexcept
 {
-	return (isOpen == true ? isOpen = false : isOpen = true);
+	return (isOpen? (isOpen = false) : (isOpen = true));
 }
 
 void AssetsBrower::AddItem() {

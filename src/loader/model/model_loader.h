@@ -1,8 +1,10 @@
 #pragma once
 
-#include "loader/core/loader.h"
 #include <vector>
 #include <string>
+#include <cstdint>
+
+#include "loader/core/loader.h"
 #include "math/vector.ixx"
 #include "math/vector2.h"
 #include "math/rotator.h"
@@ -32,7 +34,7 @@ namespace shine::loader
         std::vector<math::FVector3f> normals;
         std::vector<math::FVector2f> texcoords;
         std::vector<VertexColor> colors;  // 顶点颜色（如果存在）
-        std::vector<uint32_t> indices;
+        std::vector<std::uint32_t> indices;
         math::FVector3f translation{0.0f};
         math::FRotator3f rotation{0.0f, 0.0f, 0.0f};
         math::FVector3f scale{1.0f};

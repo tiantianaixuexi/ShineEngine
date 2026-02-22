@@ -1,11 +1,12 @@
 ﻿#pragma once
 
-#include "shine_define.h"
 #include <compare>
 #include <array>
 #include <random>
 #include <string>
 #include <expected>
+#include <atomic>
+#include "shine_define.h"
 
 #include "timer/timer_util.h"
 
