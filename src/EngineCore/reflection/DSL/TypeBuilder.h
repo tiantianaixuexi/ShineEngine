@@ -292,7 +292,7 @@ template <auto MethodPtr>
 struct FastMethodRegistration {
     template<typename T>
     static auto Register(T& builder, std::string_view name) {
-        using MP = decltype(MethodPtr);
+        //using MP = decltype(MethodPtr);
         
         // 使用 DSL 创建方法节点
         auto mb = builder.RegisterMethodFromDSL(

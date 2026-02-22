@@ -106,4 +106,6 @@ inline std::size_t compute_offset(M C::* ptr) {
     return reinterpret_cast<char*>(addr) - reinterpret_cast<char*>(fake);
 }
 
+
+
 } // namespace shine::reflection

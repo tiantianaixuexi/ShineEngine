@@ -8,6 +8,8 @@
 #include <cstdint>
 #include <concepts>
 
+#include "compiler_hints.h"
+
 namespace shine {
 namespace constexpr_ {
 
@@ -195,15 +197,15 @@ struct constexpr_str {
 
     // ==================== 元素访问 ====================
 
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr char& operator[](size_t index) noexcept {
-        __assume(index < size_v);
+        ASSUME(index < size_v);
         return value[index];
     }
 
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr char const& operator[](size_t index) const noexcept {
-        __assume(index < size_v);
+        ASSUME(index < size_v);
         return value[index];
     }
 
@@ -221,27 +223,27 @@ struct constexpr_str {
         return value[index];
     }
 
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr char& front() noexcept {
-        __assume(size_v > 0);
+        ASSUME(size_v > 0);
         return value[0];
     }
 
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr char const& front() const noexcept {
-        __assume(size_v > 0);
+        ASSUME(size_v > 0);
         return value[0];
     }
 
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr char& back() noexcept {
-        __assume(size_v > 0);
+        ASSUME(size_v > 0);
         return value[size_v - 1];
     }
 
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr char const& back() const noexcept {
-        __assume(size_v > 0);
+        ASSUME(size_v > 0);
         return value[size_v - 1];
     }
 

@@ -97,7 +97,7 @@ public:
     // ==================== 元素访问 ====================
 
     // 检查指定位是否设置
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr bool test(std::size_t pos) const noexcept {
         if (pos >= N) return false;
         return (data_[unit_index(pos)] >> bit_index(pos)) & 1;

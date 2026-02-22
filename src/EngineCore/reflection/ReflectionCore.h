@@ -25,6 +25,7 @@
 #include "constexpr/constexpr_vector.h"
 #include "constexpr/constexpr_str.h"
 #include "Core/ConstexprOffset.h"
+#include "compiler_hints.h"
 
 namespace shine::reflection {
 
@@ -231,7 +232,9 @@ namespace detail {
 // 编译期字段访问器 - 通过模板在编译时绑定
 template <typename T, typename Owner, T Owner::*Member>
 struct CompileTimeAccessor {
-    static constexpr std::size_t offset = offsetof(Owner, *Member);
+    static constexpr std::size_t offset = reinterpret_cast<std::uintptr_t>(
+    &(reinterpret_cast<const Owner*>(0)->*Member)
+);
     
     static void Get(const void* inst, void* out) {
         const auto& val = static_cast<const Owner*>(inst)->*Member;
@@ -261,7 +264,7 @@ inline void (*g_compileTimeSetter)(void*, const void*) = nullptr;
 // 注册编译期访问器（模板特化版本）
 template <typename T, typename Owner, T Owner::*Member>
 void RegisterCompileTimeAccessor(uint32_t fieldId) {
-    using Accessor = detail::CompileTimeAccessor<T, Owner, Member>;
+   // using Accessor = detail::CompileTimeAccessor<T, Owner, Member>;
     // 这里可以存储到全局映射表中
     // 实际使用时通过模板分派
 }
@@ -333,7 +336,9 @@ struct FieldInfo {
     struct FieldAccessor {
         using ClassType = C;
         using MemberType = M;
-        static constexpr std::size_t offset = offsetof(C, *Ptr);
+        static constexpr std::size_t offset = reinterpret_cast<std::uintptr_t>(
+    &(reinterpret_cast<const C*>(0)->*Ptr)
+);
 
         [[gnu::always_inline]] static M Get(const C& obj) { return obj.*Ptr; }
         [[gnu::always_inline]] static void Set(C& obj, const M& val) { obj.*Ptr = val; }
@@ -343,7 +348,9 @@ struct FieldInfo {
     template <auto MemberPtr>
     inline constexpr std::size_t CT_OFFSETOF() {
         using Info = detail::MemberPtrInfo<decltype(MemberPtr)>;
-        return offsetof(typename Info::ClassType, *MemberPtr);
+        return reinterpret_cast<std::uintptr_t>(
+    &(reinterpret_cast<const typename Info::ClassType*>(0)->*MemberPtr)
+);
     }
 
     // ---- Metadata -----------------------------------------------------------

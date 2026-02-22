@@ -12,6 +12,7 @@
 #include <ranges>
 
 #include "iterator.h"
+#include "compiler_hints.h"
 
 namespace shine {
 namespace constexpr_ {
@@ -130,38 +131,24 @@ public:
 
     // ==================== 元素访问 ====================
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto data() noexcept -> pointer {
         return std::data(storage_);
     }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto data() const noexcept -> const_pointer {
         return std::data(storage_);
     }
 
-#if _MSVC_LANG >= 202302L
     // C++23 deducing this
     template <typename Self>
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto operator[](this Self&& self, size_type index) noexcept
         -> decltype(auto) {
-        __assume(index < self.current_size_);
+        ASSUME(index < self.current_size_);
         return std::forward<Self>(self).storage_[index];
     }
-#else
-    [[msvc::forceinline]]
-    constexpr auto operator[](size_type index) noexcept -> reference {
-        __assume(index < current_size_);
-        return storage_[index];
-    }
-
-    [[msvc::forceinline]]
-    constexpr auto operator[](size_type index) const noexcept -> const_reference {
-        __assume(index < current_size_);
-        return storage_[index];
-    }
-#endif
 
     // 带边界检查的访问
     constexpr auto at(size_type index) -> reference {
@@ -178,40 +165,40 @@ public:
         return storage_[index];
     }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto front() noexcept -> reference {
-        __assume(current_size_ > 0);
+        ASSUME(current_size_ > 0);
         return storage_[0];
     }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto front() const noexcept -> const_reference {
-        __assume(current_size_ > 0);
+        ASSUME(current_size_ > 0);
         return storage_[0];
     }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto back() noexcept -> reference {
-        __assume(current_size_ > 0);
+        ASSUME(current_size_ > 0);
         return storage_[current_size_ - 1];
     }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto back() const noexcept -> const_reference {
-        __assume(current_size_ > 0);
+        ASSUME(current_size_ > 0);
         return storage_[current_size_ - 1];
     }
 
     // 编译期索引访问
     template <size_type Index>
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto get() noexcept -> reference {
         static_assert(Index < N, "Index out of bounds");
         return std::get<Index>(storage_);
     }
 
     template <size_type Index>
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto get() const noexcept -> const_reference {
         static_assert(Index < N, "Index out of bounds");
         return std::get<Index>(storage_);
@@ -219,69 +206,69 @@ public:
 
     // ==================== 迭代器 ====================
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto begin() noexcept -> iterator { return data(); }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto begin() const noexcept -> const_iterator { return data(); }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto cbegin() const noexcept -> const_iterator { return data(); }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto end() noexcept -> iterator { return data() + current_size_; }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto end() const noexcept -> const_iterator { return data() + current_size_; }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto cend() const noexcept -> const_iterator { return data() + current_size_; }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto rbegin() noexcept -> reverse_iterator { return reverse_iterator(end()); }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto rbegin() const noexcept -> const_reverse_iterator {
         return const_reverse_iterator(end());
     }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto crbegin() const noexcept -> const_reverse_iterator {
         return const_reverse_iterator(cend());
     }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto rend() noexcept -> reverse_iterator { return reverse_iterator(begin()); }
 
-    [[msvc::forceinline]]
+    FORCEINLINE
     constexpr auto rend() const noexcept -> const_reverse_iterator {
         return const_reverse_iterator(begin());
     }
 
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr auto crend() const noexcept -> const_reverse_iterator {
         return const_reverse_iterator(cbegin());
     }
 
     // ==================== 容量 ====================
 
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr auto size() const noexcept -> size_type { return current_size_; }
 
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr auto empty() const noexcept -> bool { return current_size_ == 0; }
 
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr auto full() const noexcept -> bool { return current_size_ == N; }
 
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr auto capacity() const noexcept -> size_type { return N; }
 
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr auto max_size() const noexcept -> size_type { return N; }
 
     // 剩余容量
-    [[msvc::forceinline]]
+   FORCEINLINE
     constexpr auto available() const noexcept -> size_type { return N - current_size_; }
 
     // ==================== 修改器 ====================
@@ -291,7 +278,7 @@ public:
         if (current_size_ >= N) [[unlikely]] {
             throw std::out_of_range("constexpr_vector is full");
         }
-        __assume(current_size_ < N);
+        ASSUME(current_size_ < N);
         return storage_[current_size_++] = value;
     }
 
@@ -300,7 +287,7 @@ public:
         if (current_size_ >= N) [[unlikely]] {
             throw std::out_of_range("constexpr_vector is full");
         }
-        __assume(current_size_ < N);
+        ASSUME(current_size_ < N);
         return storage_[current_size_++] = std::move(value);
     }
 
@@ -324,7 +311,7 @@ public:
         if (current_size_ >= N) [[unlikely]] {
             throw std::out_of_range("constexpr_vector is full");
         }
-        __assume(current_size_ < N);
+        ASSUME(current_size_ < N);
         if consteval {
             std::construct_at(std::addressof(storage_[current_size_]), std::forward<Args>(args)...);
         } else {
@@ -352,7 +339,7 @@ public:
         if (current_size_ == 0) [[unlikely]] {
             throw std::out_of_range("constexpr_vector is empty");
         }
-        __assume(current_size_ > 0);
+        ASSUME(current_size_ > 0);
         return std::move(storage_[--current_size_]);
     }
 
@@ -367,7 +354,7 @@ public:
         if (current_size_ == 0) [[unlikely]] {
             throw std::out_of_range("constexpr_vector is empty");
         }
-        __assume(current_size_ > 0);
+        ASSUME(current_size_ > 0);
         --current_size_;
         if constexpr (!std::is_trivially_destructible_v<T>) {
             std::destroy_at(std::addressof(storage_[current_size_]));
@@ -466,7 +453,7 @@ public:
     // insert
     constexpr iterator insert(const_iterator pos, T const& value) {
         size_type const index = pos - cbegin();
-        __assume(index <= current_size_);
+        ASSUME(index <= current_size_);
 
         if (full()) [[unlikely]] {
             return begin() + index;
@@ -483,7 +470,7 @@ public:
 
     constexpr iterator insert(const_iterator pos, T&& value) {
         size_type const index = pos - cbegin();
-        __assume(index <= current_size_);
+        ASSUME(index <= current_size_);
 
         if (full()) [[unlikely]] {
             return begin() + index;
@@ -501,7 +488,7 @@ public:
     // 批量插入
     constexpr iterator insert(const_iterator pos, size_type count, T const& value) {
         size_type const index = pos - cbegin();
-        __assume(index <= current_size_);
+        ASSUME(index <= current_size_);
 
         count = (std::min)(count, N - current_size_);
         if (count == 0) return begin() + index;
@@ -523,7 +510,7 @@ public:
     // erase
     constexpr iterator erase(const_iterator pos) {
         size_type const index = pos - cbegin();
-        __assume(index < current_size_);
+        ASSUME(index < current_size_);
 
         for (size_type i = index; i < current_size_ - 1; ++i) {
             storage_[i] = std::move(storage_[i + 1]);
@@ -536,7 +523,7 @@ public:
     constexpr iterator erase(const_iterator first, const_iterator last) {
         size_type const first_index = first - cbegin();
         size_type const last_index = last - cbegin();
-        __assume(first_index <= last_index && last_index <= current_size_);
+        ASSUME(first_index <= last_index && last_index <= current_size_);
 
         size_type const range_size = last_index - first_index;
 
@@ -550,7 +537,7 @@ public:
 
     // 快速删除（与末尾交换，不保持顺序）
     constexpr void erase_unordered(size_type index) {
-        __assume(index < current_size_);
+        ASSUME(index < current_size_);
         if (index != current_size_ - 1) {
             storage_[index] = std::move(storage_[current_size_ - 1]);
         }
@@ -801,14 +788,14 @@ constexpr_vector(R&&) -> constexpr_vector<std::ranges::range_value_t<R>, 256>;
 
 // get 函数 - 编译期索引访问
 template <std::size_t I, typename T, std::size_t N>
-[[msvc::forceinline]]
+FORCEINLINE
 constexpr auto get(constexpr_vector<T, N>& v) -> decltype(auto) {
     static_assert(I < N, "Index out of bounds");
     return v.template get<I>();
 }
 
 template <std::size_t I, typename T, std::size_t N>
-[[msvc::forceinline]]
+FORCEINLINE
 constexpr auto get(constexpr_vector<T, N> const& v) -> decltype(auto) {
     static_assert(I < N, "Index out of bounds");
     return v.template get<I>();
