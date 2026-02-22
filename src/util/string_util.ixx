@@ -9,6 +9,7 @@ import <span>;
 import <unordered_map>;
 import <vector>;
 import <functional>;
+import <cstdint>;
 
 #else
 
@@ -19,6 +20,7 @@ import <functional>;
 #include <unordered_map>
 #include <vector>
 #include <functional>
+#include <cstdint>
 
 #endif
 

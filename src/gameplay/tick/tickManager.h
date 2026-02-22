@@ -125,7 +125,7 @@ namespace shine::gameplay::tick
             auto& pool = util::ThreadPool::Get();
             
             std::vector<std::vector<TickFunction*>> parallelGroups;
-            std::vector<u32> indegree(order.size(), 0);
+            std::vector<int> indegree(order.size(), 0);
 
             for (size_t i = 0; i < order.size(); ++i) {
                 for (const auto* dep : order[i]->dependencies) {

@@ -1,21 +1,16 @@
 {
   "name": "mimalloc",
+  "files": [
+    "src/third/mimalloc/src/static.c"
+  ],
   "dirs": [
     "src/third/mimalloc"
   ],
-  "defines": [ "MI_SHARED_LIB" ],
-  "type": "third",
-  "link": {
-    "release": {
-      "lib": [
-        "mimalloc.lib"
-      ]
-    },
-    "debug": {
-      "lib": [
-        "mimallocd.lib"
-      ]
-    }
-  },
+  "defines": [ "MI_STATIC_LIB" ],
+  "type": "static",
+  "include_dirs": [
+    "src/third/mimalloc",
+    "src/third/mimalloc/src"
+  ],
   "comment": "第三方库，内存池, https://github.com/microsoft/mimalloc"
 }

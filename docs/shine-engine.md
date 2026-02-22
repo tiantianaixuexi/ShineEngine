@@ -51,6 +51,7 @@ ShineEngine 是一个现代 C++ 游戏引擎（C++23/C17），支持 Windows 和
 - `--no-editor`: 禁用编辑器功能（构建 Runtime 模式）。
 - `--release`: 强制使用 Release 配置（适用于 module/wasm/test）。
 - `--no-pause`: 脚本结束后不暂停（适合 CI 环境）。
+- `--msvc` / `--clang` / `--gcc`: 选择编译器（默认 MSVC）。
 
 ### 3. 模块管理 (Module Management)
 
@@ -64,41 +65,132 @@ ShineEngine 的模块化是通过 JSON 配置实现的。要添加新功能，�
 ```json
 {
   "name": "physics",
-  "type": "static",           // static, shared, lib, exe, third
-  "dirs": ["src/physics"],    // 自动扫描该目录下的源码
-  "deps": ["shine_define", "math"], // 依赖模块
-  "defines": ["ENABLE_PHYSICS"]     // 预处理器定义
+  "type": "static",
+  "dirs": ["src/physics"],
+  "deps": ["shine_define", "math"],
+  "defines": ["ENABLE_PHYSICS"]
 }
 ```
 
 #### 3.2 关键字段说明 (Schema Reference)
 参考 `.vscode/module.schema.json`：
+
+##### 基础字段
 - **`name`** (Required): 模块名，必须与文件名一致。
-- **`type`**: 构建类型。
+- **`type`**: 构建类型，默认 `"lib"`。
     - `static`/`lib`: 静态库 (.lib/.a)。
     - `shared`: 动态库 (.dll/.so)。
     - `exe`: 可执行文件。
-    - `third`: 第三方库引用（不编译源码，只链接）。
+    - `third`: 第三方库引用（不编译源码，只链接预编译库）。
+    - `interface`: 接口库（仅头文件，无编译输出）。
+    - `subcmake`: 独立子 CMake 工程（如 WASM 模块）。
 - **`dirs`**: 递归扫描源码的目录列表。
 - **`files`**: 显式指定源文件列表（当不想扫描整个目录时使用）。
 - **`deps`**: 依赖的其他模块名称。
-- **`platform`**: 平台限制，例如 `["Windows"]` 或 `["Wasm"]`。
-- **`files_wasm` / `files_windows`**: 特定平台的源文件。
+- **`defines`**: 预处理器宏定义列表。
+- **`comment`**: 模块注释说明。
+
+##### 源文件字段
+- **`files_module`**: 启用 C++20 模块时使用的文件（`.ixx`）。
+- **`files_header`**: 不使用模块时使用的头文件（`.h`）。
+- **`files_windows` / `files_wasm` / `files_android`**: 特定平台的源文件。
+
+##### 包含目录
+- **`include_dirs`**: 额外的头文件包含目录列表。用于第三方库或特殊目录结构，编译时会添加 `-I` 或 `/I` 选项。
+  
+  **示例**（mimalloc 使用 Single Source 方式编译）:
+  ```json
+  {
+    "name": "mimalloc",
+    "files": ["src/third/mimalloc/src/static.c"],
+    "dirs": ["src/third/mimalloc"],
+    "defines": ["MI_STATIC_LIB"],
+    "type": "static",
+    "include_dirs": [
+      "src/third/mimalloc",
+      "src/third/mimalloc/src"
+    ],
+    "comment": "第三方库，使用 Single Source 方式编译"
+  }
+  ```
+
+##### 构建模式
+- **`buildMode`**: 控制模块在 Editor 或 Runtime 模式下是否构建。
+    - `editor`: 仅 Editor 模式构建。
+    - `runtime`: 仅 Runtime 模式构建。
+    - `both`: 两种模式都构建（默认）。
+  
+  **示例**:
+  ```json
+  {
+    "name": "editor_ui",
+    "dirs": ["src/editor/ui"],
+    "type": "lib",
+    "buildMode": "editor",
+    "comment": "仅 Editor 模式构建的模块"
+  }
+  ```
+
+##### 平台限制
+- **`platform`**: 平台限制，例如 `["Windows"]` 或 `["Wasm", "Linux"]`。
+
+##### 第三方库链接
+- **`link`**: 第三方库链接配置，仅对 `type: "third"` 的模块有效。
+    - `debug.lib`: Debug 配置要链接的库文件。
+    - `release.lib`: Release 配置要链接的库文件。
+    - `debug.dll` / `release.dll`: 要复制的动态库文件。
+
+  **示例**:
+  ```json
+  {
+    "name": "fmt",
+    "type": "third",
+    "files": ["src/third/fmt/format.h"],
+    "link": {
+      "debug": { "lib": ["fmtd.lib"] },
+      "release": { "lib": ["fmt.lib"] }
+    }
+  }
+  ```
+
+##### 子 CMake 工程
+- **`subcmake`**: 独立子 CMake 工程配置，用于构建独立的子项目（如 WASM 模块）。
+    - `source`: 子工程源码目录，默认 `Program/{模块名}`。
+    - `build`: 子工程构建目录，默认 `Program/{模块名}/build`。
+    - `generator`: CMake 生成器，默认 `Ninja`。
+    - `target`: 要构建的目标名称，默认 `all`。
+    - `configure`: 传递给 CMake configure 阶段的额外参数。
+
+  **示例**:
+  ```json
+  {
+    "name": "smallwasm",
+    "type": "subcmake",
+    "dirs": ["Program/smallwasm/src"],
+    "subcmake": {
+      "source": "Program/smallwasm",
+      "build": "Program/smallwasm/build",
+      "generator": "Ninja",
+      "target": "all",
+      "configure": ["-DSMALLWASM_DEBUG=ON"]
+    },
+    "comment": "独立的 WASM 子工程"
+  }
+  ```
 
 #### 3.3 添加第三方库
-将库文件放入 `src/third/`，并在 `Module/third/` 创建配置。
-示例 (`Module/third/fmt.json`):
-```json
-{
-  "name": "fmt",
-  "type": "third",
-  "files": ["src/third/fmt/format.h"],
-  "link": {
-    "debug": { "lib": ["fmtd.lib"] },
-    "release": { "lib": ["fmt.lib"] }
-  }
-}
-```
+
+##### 方式一：链接预编译库
+将库文件放入 `src/third/lib/`，并在 `Module/third/` 创建配置。适用于 MSVC/Clang 预编译的库。
+
+**注意**: MSVC 和 GCC 的 C++ ABI 不兼容，预编译库不能混用。
+
+##### 方式二：从源码编译（推荐）
+对于需要跨编译器兼容的第三方库，推荐从源码编译。许多库支持 Single Source 方式：
+
+- **mimalloc**: 使用 `src/static.c` 单文件编译
+- **fmt**: 可以从源码编译
+- **stb**: 单头文件库，直接包含即可
 
 ### 4. 开发工作流 (Development Workflow)
 
@@ -118,3 +210,18 @@ ShineEngine 的模块化是通过 JSON 配置实现的。要添加新功能，�
 1.  在 `test/` 目录下添加测试代码。
 2.  确保 `Module/test/` 下有对应的测试模块配置。
 3.  运行 `Build.bat test`。
+
+### 5. 编译器兼容性说明
+
+不同编译器的 C++ ABI 不兼容，以下情况需要注意：
+
+| 编译器 | 预编译库兼容性 |
+| :--- | :--- |
+| MSVC | 仅兼容 MSVC 编译的库 |
+| Clang (Windows) | 可兼容 MSVC 库（使用 `-fms-compatibility`） |
+| GCC (MinGW) | **不兼容** MSVC 库，需从源码编译 |
+
+**解决方案**:
+1. 对于 GCC 编译，使用 `include_dirs` 和源码编译方式。
+2. 使用 Single Source 方式编译第三方库（如 mimalloc 的 `static.c`）。
+3. 或者为不同编译器准备不同的预编译库。

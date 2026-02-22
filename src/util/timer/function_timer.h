@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-
+#include <cstdint>
 #include <string>
 #include <source_location>
 
@@ -41,7 +41,7 @@ private:
     std::string name_; // 定时器名称
     std::string func_; // 函数名称
     float start_ms_; // 开始时间（毫秒，平台相关）
-    uint64_t start_ns_; // 开始时间（纳秒，平台相关）
+    std::uint64_t start_ns_; // 开始时间（纳秒，平台相关）
     TimerPrecision precision_; // 精度选择
 };
 

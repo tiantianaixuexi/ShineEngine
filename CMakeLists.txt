@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.1.0)
-project(ShineEngine VERSION 1.0.0 LANGUAGES CXX)
+project(ShineEngine VERSION 1.0.0 LANGUAGES C CXX)
 
 # --------------------------------
 # Special configure modes
@@ -63,7 +63,7 @@ message(STATUS "Detected compiler: ${SHINE_COMPILER_NAME} (${CMAKE_CXX_COMPILER_
 
 # 平台特定配置
 if(SHINE_COMPILER_MSVC)
-    add_compile_options(/utf-8 /MP /bigobj /Zc:__cplusplus)
+    add_compile_options(/utf-8 /MP /bigobj /Zc:__cplusplus /std:c++latest)
     set(CMAKE_CXX_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/modules)
     
     option(SHINE_ENABLE_AVX2 "Enable /arch:AVX2 for MSVC builds" OFF)
@@ -340,6 +340,7 @@ function(parse_and_cache_modules)
         parse_json_array(${json_content} "defines" defines_list)
         parse_json_array(${json_content} "dirs" dirs_list)
         parse_json_array(${json_content} "platform" platform_list)
+        parse_json_array(${json_content} "include_dirs" include_dirs_list)
 
         # 处理条件文件选择：根据 SHINE_BUILD_MODULE 选择 files_module 或 files_header
         if(files_module_list OR files_header_list)
@@ -423,6 +424,7 @@ function(parse_and_cache_modules)
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_FILES" "${files_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_DEPS" "${deps_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_DEFINES" "${defines_list}")
+        set_property(GLOBAL PROPERTY "MODULE_${module_name}_INCLUDE_DIRS" "${include_dirs_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_DEBUG" "${third_lib_debug_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_RELEASE" "${third_lib_release_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_PLATFORMS" "${platform_list}")
@@ -723,6 +725,7 @@ foreach(module_name ${MODULE_LIST})
         list(FILTER files EXCLUDE REGEX "CMakeLists.txt")
     endif()
     get_property(defines GLOBAL PROPERTY "MODULE_${module_name}_DEFINES")
+    get_property(include_dirs GLOBAL PROPERTY "MODULE_${module_name}_INCLUDE_DIRS")
     get_property(third_libs_debug GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_DEBUG")
     get_property(third_libs_release GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_RELEASE")
     get_property(platforms GLOBAL PROPERTY "MODULE_${module_name}_PLATFORMS")
@@ -918,6 +921,7 @@ foreach(module_name ${MODULE_LIST})
         endif()
     elseif(is_static)
         add_library(${name} STATIC)
+        set_target_properties(${name} PROPERTIES LINKER_LANGUAGE C)
         should_show_module(${name})
         if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "  ${name} -> STATIC")
@@ -975,11 +979,20 @@ foreach(module_name ${MODULE_LIST})
     # 配置目标属性
     if(is_interface)
         target_include_directories(${name} INTERFACE ${COMMON_INCLUDE_DIRS})
-        # INTERFACE 库也需要设置链接目录，以便第三方库文件能被找到
+        if(include_dirs)
+            foreach(inc_dir ${include_dirs})
+                target_include_directories(${name} INTERFACE ${CMAKE_SOURCE_DIR}/${inc_dir})
+            endforeach()
+        endif()
         target_link_directories(${name} INTERFACE ${CMAKE_SOURCE_DIR}/exe ${CMAKE_SOURCE_DIR}/src/third/lib)
     else()
         set_module_properties(${name})
         target_include_directories(${name} PRIVATE ${COMMON_INCLUDE_DIRS})
+        if(include_dirs)
+            foreach(inc_dir ${include_dirs})
+                target_include_directories(${name} PRIVATE ${CMAKE_SOURCE_DIR}/${inc_dir})
+            endforeach()
+        endif()
         target_link_directories(${name} PRIVATE ${CMAKE_SOURCE_DIR}/exe ${CMAKE_SOURCE_DIR}/src/third/lib)
     endif()
 
@@ -1385,7 +1398,7 @@ endif()
 target_link_libraries(MainEngine PRIVATE
     $<$<CONFIG:Debug>:glew32d>
     $<$<CONFIG:Release>:glew32>
-    $<$<PLATFORM_ID:Windows>:opengl32;glu32;dxgi>
+    $<$<PLATFORM_ID:Windows>:opengl32;glu32;dxgi;dwmapi>
 )
 
 # 设置运行时环境变量

@@ -92,7 +92,7 @@ consteval auto MakeConstexprField(const char* name, uint32_t type_id) {
 template<typename T>
 consteval auto BuildConstexprTypeInfo(const char* name) {
     return ::shine::reflection::ConstexprTypeInfo<T>{
-        GetTypeId<T>(),
+        ::shine::reflection::GetTypeId<T>(),
         name,
         sizeof(T),
         alignof(T),

@@ -6,7 +6,7 @@
 #include <vector>
 #include <functional>
 #include <unordered_map>
-
+#include <cstdint>
 
 #include "shine_define.h"
 #include "EngineCore/engine_context.h"
@@ -268,7 +268,7 @@ namespace shine::input
         bool isForce = true;
 
     private:
-        struct CallbackRecord { uint64_t id; InputCallback callback; };
+        struct CallbackRecord { std::uint64_t id; InputCallback callback; };
 
         // 按类型存储回调
         std::unordered_map<int, std::vector<CallbackRecord>> keyDownCallbacks;  // VK -> cbs
@@ -289,7 +289,7 @@ namespace shine::input
             int keyOrButton { -1 };
         };
 
-        std::unordered_map<uint64_t, Registration> registrations;
+        std::unordered_map<std::uint64_t, Registration> registrations;
         u64 nextId { 1 };
     };
 

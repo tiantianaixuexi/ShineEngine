@@ -37,7 +37,7 @@ namespace shine::editor::assets_item
             for (int n = 0; n < s_current_sort_specs->SpecsCount; n++)
             {
                 const ImGuiTableColumnSortSpecs* sort_spec = &s_current_sort_specs->Specs[n];
-                unsigned int  delta = 0;
+                int  delta = 0;
                 if (sort_spec->ColumnIndex == 0)
                     delta = a->ID - b->ID;
                 else if (sort_spec->ColumnIndex == 1)

@@ -1149,13 +1149,13 @@ namespace shine::loader
                 // 提取索引
                 if (primitive.indices >= 0 && static_cast<size_t>(primitive.indices) < _model.accessors.size()) {
                     const Accessor& accessor = _model.accessors[primitive.indices];
-                    meshData.indices = readAccessorAs<uint32_t>(accessor);
+                    meshData.indices = readAccessorAs<std::uint32_t>(accessor);
                 } else {
                     // 如果没有索引，生成顺序索引
                     if (!meshData.vertices.empty()) {
                         meshData.indices.reserve(meshData.vertices.size());
                         for (size_t i = 0; i < meshData.vertices.size(); ++i) {
-                            meshData.indices.push_back(static_cast<uint32_t>(i));
+                            meshData.indices.push_back(static_cast<std::uint32_t>(i));
                         }
                     }
                 }

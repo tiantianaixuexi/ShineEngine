@@ -5,6 +5,7 @@
 #include <string>
 #include <expected>
 #include <string_view>
+#include <cstdint>
 
 namespace shine::util {
 
@@ -41,10 +42,10 @@ namespace shine::util {
 	std::string urlEncode(std::string_view str);
 
 	// 将数据URI解码为二进制数据
-	std::expected<std::vector<uint8_t>, UriError> decodeDataURIWithMimeType(std::string_view uri,std::string& mimeType,size_t reqBytes = 0);
+	std::expected<std::vector<std::uint8_t>, UriError> decodeDataURIWithMimeType(std::string_view uri,std::string& mimeType,size_t reqBytes = 0);
 
 	// 创建数据URI
-	std::string createDataURI(const std::vector<uint8_t>& data, std::string_view mimeType, bool useBase64 = true);
+	std::string createDataURI(const std::vector<std::uint8_t>& data, std::string_view mimeType, bool useBase64 = true);
 
 
 	// 解析URI字符串为URI结构体

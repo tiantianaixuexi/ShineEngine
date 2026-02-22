@@ -8,13 +8,15 @@
     #define FORCEINLINE inline
 #endif
 
-#if defined(__clang__) || defined(__GNUC__)
-    #define ASSUME(condition) __builtin_assume(condition)
-#elif defined(_MSC_VER)
-    #define ASSUME(condition) __assume(condition)
-#else
-    #define ASSUME(condition) ((void)0)
-#endif
+// #if defined(__clang__) || defined(__GNUC__)
+//     #define ASSUME(condition) __builtin_assume(condition)
+// #elif defined(_MSC_VER)
+//     #define ASSUME(condition) __assume(condition)
+// #else
+//     #define ASSUME(condition) ((void)0)
+// #endif
+
+#define ASSUME(...) [[assume(__VA_ARGS__)]]
 
 #if defined(__clang__) || defined(__GNUC__)
     #define OFFSETOF(s,m) __builtin_offsetof(s,m)
