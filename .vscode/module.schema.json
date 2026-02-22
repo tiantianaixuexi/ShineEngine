@@ -13,10 +13,10 @@
     },
     "files": {
       "type": "array",
-      "description": "该模块包含的源文件列表。支持 .cpp、.ixx、.cppm、.h、.hpp 等",
+      "description": "该模块包含的源文件列表。支持 .cpp、.ixx、.cppm、.h、.hpp、.c 等",
       "items": {
         "type": "string",
-        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl)$"
+        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl|c)$"
       },
       "minItems": 0
     },
@@ -43,7 +43,7 @@
       "description": "仅在 Windows 平台使用的文件列表",
       "items": {
         "type": "string",
-        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl)$"
+        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl|c)$"
       },
       "minItems": 0
     },
@@ -52,7 +52,7 @@
       "description": "仅在 WebAssembly (Emscripten) 平台使用的文件列表",
       "items": {
         "type": "string",
-        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl)$"
+        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl|c)$"
       },
       "minItems": 0
     },
@@ -61,13 +61,22 @@
       "description": "仅在 Android 平台使用的文件列表",
       "items": {
         "type": "string",
-        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl)$"
+        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl|c)$"
       },
       "minItems": 0
     },
     "dirs": {
       "type": "array",
       "description": "自动收集指定目录下所有相关文件的目录列表。递归搜索目录及其子目录",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*"
+      },
+      "minItems": 0
+    },
+    "include_dirs": {
+      "type": "array",
+      "description": "额外的头文件包含目录列表。用于第三方库或特殊目录结构，编译时会添加 -I 或 /I 选项",
       "items": {
         "type": "string",
         "pattern": "^src/.*"
@@ -97,14 +106,33 @@
       "oneOf": [
         {
           "type": "string",
-          "enum": ["lib", "static", "shared", "exe", "third"],
+          "enum": ["lib", "static", "shared", "exe", "third", "interface", "subcmake"],
           "default": "lib"
         },
         {
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["lib", "static", "shared", "exe", "third"]
+            "enum": ["lib", "static", "shared", "exe", "third", "interface", "subcmake"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      ]
+    },
+    "buildMode": {
+      "description": "构建模式限制，控制模块在 Editor 或 Runtime 模式下是否构建",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": ["editor", "runtime", "both"],
+          "default": "both"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["editor", "runtime", "both"]
           },
           "minItems": 1,
           "uniqueItems": true
@@ -174,6 +202,39 @@
       },
       "additionalProperties": false
     },
+    "subcmake": {
+      "type": "object",
+      "description": "子 CMake 工程配置，用于构建独立的子项目（如 WASM 模块）",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "子工程源码目录，相对于项目根目录。默认为 Program/{模块名}"
+        },
+        "build": {
+          "type": "string",
+          "description": "子工程构建目录，相对于项目根目录。默认为 Program/{模块名}/build"
+        },
+        "generator": {
+          "type": "string",
+          "description": "CMake 生成器，默认为 Ninja",
+          "default": "Ninja"
+        },
+        "target": {
+          "type": "string",
+          "description": "要构建的目标名称，默认为 all",
+          "default": "all"
+        },
+        "configure": {
+          "type": "array",
+          "description": "传递给 CMake configure 阶段的额外参数",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0
+        }
+      },
+      "additionalProperties": false
+    },
     "comment": {
       "type": "string",
       "description": "模块注释说明（可选）"
@@ -226,7 +287,35 @@
       "files": ["src/launcher.cpp"],
       "type": "exe",
       "deps": ["fmt", "imgui"]
+    },
+    {
+      "name": "mimalloc",
+      "files": ["src/third/mimalloc/src/static.c"],
+      "dirs": ["src/third/mimalloc"],
+      "defines": ["MI_STATIC_LIB"],
+      "type": "static",
+      "include_dirs": ["src/third/mimalloc", "src/third/mimalloc/src"],
+      "comment": "第三方库，使用 Single Source 方式编译"
+    },
+    {
+      "name": "editor_ui",
+      "dirs": ["src/editor/ui"],
+      "type": "lib",
+      "buildMode": "editor",
+      "comment": "仅 Editor 模式构建的模块"
+    },
+    {
+      "name": "smallwasm",
+      "type": "subcmake",
+      "dirs": ["Program/smallwasm/src"],
+      "subcmake": {
+        "source": "Program/smallwasm",
+        "build": "Program/smallwasm/build",
+        "generator": "Ninja",
+        "target": "all",
+        "configure": ["-DSMALLWASM_DEBUG=ON"]
+      },
+      "comment": "独立的 WASM 子工程"
     }
   ]
 }
-

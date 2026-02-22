@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "fmt",
   "files": [
     "src/third/fmt/args.h",
@@ -16,18 +16,9 @@
     "src/third/fmt/std.h",
     "src/third/fmt/xchar.h"
   ],
-  "type": "third",
-  "link": {
-    "release": {
-      "lib": ["fmt.lib"]
-    },
-    "debug": {
-      "lib": ["fmtd.lib"]
-    }
-  },
+  "type": "interface",
   "defines": [
-    "FMT_SHARED",
-    "FMT_LIB_EXPORT"
+    "FMT_HEADER_ONLY"
   ],
-  "comment": "第三方库，格式化输出, https://github.com/fmtlib/fmt"
+  "comment": "第三方库，格式化输出 (header-only 模式), https://github.com/fmtlib/fmt"
 }
