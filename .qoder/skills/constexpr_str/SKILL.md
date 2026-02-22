@@ -23,14 +23,14 @@ description: ShineEngine 编译期容器与字符串操作工具集，提供 con
 **技术要点**: 
 - 固定容量模板参数 `<T, N>`，编译期确定最大容量
 - 支持 C++23 特性：deducing this、三向比较运算符
-- MSVC 优化：`FORCEINLINE` 和 `FORCEINLINE` 提示
+- MSVC 优化：`FORCEINLINE` 和 `ASSUME` 提示
 
 **核心接口**:
 | 接口 | 说明 |
 |------|------|
 | `push_back(T)` | 添加元素（编译期/运行期均可） |
 | `emplace_back(Args...)` | 就地构造，编译期使用 `std::construct_at` |
-| `operator[]` | 索引访问，带 `FORCEINLINE` 边界优化 |
+| `operator[]` | 索引访问，带 `ASSUME` 边界优化 |
 | `size()/capacity()` | 返回当前大小/固定容量 |
 | `find(T)` | 线性查找 |
 | `contains(T)` | 包含检查 |
