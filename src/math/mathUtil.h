@@ -6,6 +6,7 @@
 #include "math/vector.ixx"
 #include "math/matrix.ixx"
 #include "math/rotator.h"
+#include "math/transform.h" 
 
 
 namespace shine::math
@@ -86,7 +87,7 @@ namespace shine::math
     }
 
     template<FloatingPoint T>
-    constexpr Matrix4<T> MakeTransform(const TVector<T>& position, const TRotator<T>& rotation, const TVector<T>& scale) noexcept
+    constexpr Matrix4<T> MakeMatrix4(const TVector<T>& position, const TRotator<T>& rotation, const TVector<T>& scale) noexcept
     {
         Matrix4<T> t = Matrix4<T>::translate(position);
         Matrix4<T> r = Matrix4<T>::rotateY(math::radians(rotation.Yaw)) * 
@@ -95,6 +96,7 @@ namespace shine::math
         Matrix4<T> s = Matrix4<T>::scale(scale);
         return t * r * s;
     }
+
 
 }
 

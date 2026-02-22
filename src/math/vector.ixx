@@ -13,7 +13,6 @@ export module shine.math.vector3;
 
 #endif
 
-
 namespace shine::math
 {
 

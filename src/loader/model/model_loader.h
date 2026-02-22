@@ -9,6 +9,8 @@
 #include "math/vector2.h"
 #include "math/rotator.h"
 
+#include "math/mathFwd.h"
+
 namespace shine::loader
 {
     /**

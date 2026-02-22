@@ -82,7 +82,7 @@ description: ShineEngine 项目的核心技术架构、模块划分及开发验�
   - `quat.h`: 四元数实现 (TQuat)
   - `rotator.h`: 欧拉角旋转器 (TRotator)
   - `transform.h`: 变换定义 (TTransform - Position, Rotation, Scale)
-  - `mathUtil.h`: 通用数学工具函数 (MakeTransform, Perspective, LookAt)
+  - `mathUtil.h`: 通用数学工具函数 (MakeMatrix4, Perspective, LookAt)
 
 ### 2. 渲染管线 (Render Pipeline)
 
