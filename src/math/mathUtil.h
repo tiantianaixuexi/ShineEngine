@@ -6,7 +6,6 @@
 #include "math/vector.ixx"
 #include "math/matrix.ixx"
 #include "math/rotator.h"
-#include "math/transform.h" 
 
 
 namespace shine::math
