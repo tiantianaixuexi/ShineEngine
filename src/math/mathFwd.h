@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "math/vector.h"
+#include "math/vector.ixx"
 #include "math/quat.h"
 #include "math/vector2.h"
 

@@ -3,7 +3,7 @@
 #include "shine_define.h"
 #include <type_traits>
 #include <cmath>
-
+#include <numbers>
 
 
 // 数学模块专用的浮点数概念（只接受float和double）
@@ -224,7 +224,7 @@ namespace shine::math
 {
     // 快速平方根倒数（Fast Inverse Square Root）
     // 使用 Quake III 算法优化，但在编译时常量时使用标准库
-    [[nodiscard]] inline  float FastInvSqrt(float x) noexcept
+    [[nodiscard]] inline  constexpr float FastInvSqrt(float x) noexcept
     {
 
 #ifdef SHINE_PLATFORM_WASM
@@ -244,7 +244,7 @@ namespace shine::math
         #endif
     }
 
-    [[nodiscard]] inline  double FastInvSqrt(double x) noexcept
+    [[nodiscard]] inline  constexpr double FastInvSqrt(double x) noexcept
     {
         
 #ifdef SHINE_PLATFORM_WASM
@@ -262,27 +262,27 @@ namespace shine::math
         #endif
     }
 
-    [[nodiscard]] inline float Sqrt(float x) noexcept
+    [[nodiscard]] inline  float Sqrt(float x) noexcept
     {
         return std::sqrtf(x);
     }
 
-    [[nodiscard]] inline double Sqrt(double x) noexcept
+    [[nodiscard]] inline  double Sqrt(double x) noexcept
     {
         return std::sqrt(x);
     }
 
-    [[nodiscard]] inline float InvSqrt(float x) noexcept
+    [[nodiscard]] inline constexpr float InvSqrt(float x) noexcept
     {
         return FastInvSqrt(x);
     }
 
-    [[nodiscard]] inline double InvSqrt(double x) noexcept
+    [[nodiscard]] inline constexpr double InvSqrt(double x) noexcept
     {
         return FastInvSqrt(x);
     }
 
-	[[nodiscard]] inline float wrap_pi(float a) noexcept
+	[[nodiscard]] inline constexpr float wrap_pi(float a) noexcept
     {
 	    if (a > PI_F)
 			a -= TWO_PI_F;
@@ -293,38 +293,38 @@ namespace shine::math
 		return a;
     }
 
-    [[nodiscard]] inline float f_abs(float x) noexcept {
+    [[nodiscard]] inline constexpr float f_abs(float x) noexcept {
         return x < 0.0f ? -x : x;
     }
 
-	[[nodiscard]] inline float sin(float x) noexcept {
+	[[nodiscard]] inline constexpr float sin(float x) noexcept {
         // sin(x) ~ x - x^3/6 + x^5/120
         x = wrap_pi(x);
         const float x2 = x * x;
         return x * (1.0f - x2 * (1.0f / 6.0f) + x2 * x2 * (1.0f / 120.0f));
 	}
 
-	[[nodiscard]] inline float cos(float x) noexcept {
+	[[nodiscard]] inline constexpr float cos(float x) noexcept {
         // cos(x) ~ 1 - x^2/2 + x^4/24 - x^6/720
         x = wrap_pi(x);
         const float x2 = x * x;
         return 1.0f - x2 * 0.5f + x2 * x2 * (1.0f / 24.0f) - x2 * x2 * x2 * (1.0f / 720.0f);
 	}
 
-	[[nodiscard]] inline float frac(float x) noexcept {
+	[[nodiscard]] inline constexpr float frac(float x) noexcept {
         int i = static_cast<int>(x);
         float f = x - static_cast<float>(i);
         if (f < 0.0f) f += 1.0f;
         return f;
 	}
 
-    [[nodiscard]] inline float tri_wave(float x) noexcept {
+    [[nodiscard]] inline constexpr float tri_wave(float x) noexcept {
         float f = frac(x);
         float t = (f < 0.5f) ? (f * 2.0f) : ((1.0f - f) * 2.0f);
         return t * 2.0f - 1.0f;
 	}
 
-    [[nodiscard]] inline float tri01(float x) noexcept {
+    [[nodiscard]] inline  constexpr float tri01(float x) noexcept {
         // map tri_wave [-1..1] to [0..1]
         return tri_wave(x) * 0.5f + 0.5f;
 	}

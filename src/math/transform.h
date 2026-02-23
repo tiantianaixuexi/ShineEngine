@@ -8,6 +8,12 @@
 namespace shine::math
 {
     template<FloatingPoint T>
+    struct TRotator;
+
+    template<FloatingPoint T>
+    class Matrix4;
+
+    template<FloatingPoint T>
     struct TTransform
     {
         TVector<T> Position;
@@ -26,7 +32,7 @@ namespace shine::math
 
         [[nodiscard]] Matrix4<T> ToMatrixWithScale() const
         {
-            return MakeTransform(Position, Rotation, Scale);
+            return MakeMatrix4(Position, Rotation, Scale);
         }
 
         [[nodiscard]] static TTransform<T> Identity()
