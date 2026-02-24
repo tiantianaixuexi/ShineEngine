@@ -1,4 +1,4 @@
-#ifdef SHINE_USE_MODULE
+﻿#ifdef SHINE_USE_MODULE
 
 export module shine.util.file_util;
 

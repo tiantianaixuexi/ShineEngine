@@ -263,13 +263,13 @@ struct constexpr_str {
         for (size_t i = pos; i < size_v; ++i) {
             if (value[i] == c) return i;
         }
-        return npos;
+        return constexpr_str::npos;
     }
 
     // 查找子字符串
     [[nodiscard]] constexpr size_t find(std::string_view sv, size_t pos = 0) const noexcept {
         if (sv.empty()) return pos;
-        if (sv.size() > size_v) return npos;
+        if (sv.size() > size_v) return constexpr_str::npos;
 
         for (size_t i = pos; i <= size_v - sv.size(); ++i) {
             bool found = true;
@@ -281,18 +281,18 @@ struct constexpr_str {
             }
             if (found) return i;
         }
-        return npos;
+        return constexpr_str::npos;
     }
 
     // 反向查找
-    [[nodiscard]] constexpr size_t rfind(char c, size_t pos = npos) const noexcept {
-        if (empty_v) return npos;
-        size_t start = (pos == npos || pos >= size_v) ? size_v - 1 : pos;
-        for (size_t i = start; i != npos; --i) {
+    [[nodiscard]] constexpr size_t rfind(char c, size_t pos = constexpr_str::npos) const noexcept {
+        if (empty_v) return constexpr_str::npos;
+        size_t start = (pos == constexpr_str::npos || pos >= size_v) ? size_v - 1 : pos;
+        for (size_t i = start; i != constexpr_str::npos; --i) {
             if (value[i] == c) return i;
             if (i == 0) break;
         }
-        return npos;
+        return constexpr_str::npos;
     }
 
     // 查找任意字符
@@ -302,7 +302,7 @@ struct constexpr_str {
                 if (value[i] == c) return i;
             }
         }
-        return npos;
+        return constexpr_str::npos;
     }
 
     [[nodiscard]] constexpr size_t find_first_not_of(std::string_view chars, size_t pos = 0) const noexcept {
@@ -316,19 +316,19 @@ struct constexpr_str {
             }
             if (!found) return i;
         }
-        return npos;
+        return constexpr_str::npos;
     }
 
-    [[nodiscard]] constexpr size_t find_last_of(std::string_view chars, size_t pos = npos) const noexcept {
-        if (empty_v) return npos;
-        size_t start = (pos == npos || pos >= size_v) ? size_v - 1 : pos;
-        for (size_t i = start; i != npos; --i) {
+    [[nodiscard]] constexpr size_t find_last_of(std::string_view chars, size_t pos = constexpr_str::npos) const noexcept {
+        if (empty_v) return constexpr_str::npos;
+        size_t start = (pos == constexpr_str::npos || pos >= size_v) ? size_v - 1 : pos;
+        for (size_t i = start; i != constexpr_str::npos; --i) {
             for (char c : chars) {
                 if (value[i] == c) return i;
             }
             if (i == 0) break;
         }
-        return npos;
+        return constexpr_str::npos;
     }
 
     // 前缀/后缀检查
@@ -359,19 +359,19 @@ struct constexpr_str {
 
     // 包含检查
     [[nodiscard]] constexpr bool contains_char(char c) const noexcept {
-        return find(c) != npos;
+        return find(c) != constexpr_str::npos;
     }
 
     [[nodiscard]] constexpr bool contains_str(std::string_view sv) const noexcept {
-        return find(sv) != npos;
+        return find(sv) != constexpr_str::npos;
     }
 
     // ==================== 子字符串 ====================
 
     // 编译期子字符串
-    template <size_t Pos, size_t Count = npos>
+    template <size_t Pos, size_t Count = constexpr_str::npos>
     [[nodiscard]] consteval auto substr() const noexcept {
-        constexpr size_t actual_count = (Count == npos || Pos + Count > size_v)
+        constexpr size_t actual_count = (Count == constexpr_str::npos || Pos + Count > size_v)
             ? (Pos < size_v ? size_v - Pos : 0)
             : Count;
         constexpr_str<actual_count + 1> result{};
@@ -383,9 +383,9 @@ struct constexpr_str {
     }
 
     // 运行时子字符串（返回 string_view）
-    [[nodiscard]] constexpr std::string_view substr_view(size_t pos, size_t count = npos) const noexcept {
+    [[nodiscard]] constexpr std::string_view substr_view(size_t pos, size_t count = constexpr_str::npos) const noexcept {
         if (pos >= size_v) return {};
-        size_t actual_count = (count == npos || pos + count > size_v) ? size_v - pos : count;
+        size_t actual_count = (count == constexpr_str::npos || pos + count > size_v) ? size_v - pos : count;
         return std::string_view(value.data() + pos, actual_count);
     }
 
@@ -477,7 +477,7 @@ struct constexpr_str {
 
     // ==================== 静态常量 ====================
 
-    // npos moved above
+    // constexpr_str::npos moved above
 
 private:
     // 友元声明
@@ -578,7 +578,7 @@ consteval auto split() {
 template <constexpr_str S, constexpr_str Delim>
 consteval auto split_by() {
     constexpr auto pos = S.find(static_cast<std::string_view>(Delim));
-    if constexpr (pos == npos) {
+    if constexpr (pos == constexpr_str::npos) {
         return std::pair{S, constexpr_str{""}};
     } else {
         constexpr auto suffix_size = S.size_v - pos - Delim.size_v;

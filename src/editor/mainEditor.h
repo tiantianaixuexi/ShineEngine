@@ -1,9 +1,12 @@
 #pragma once
 
+#include "EngineCore/log/LogSystem.h"
+
 #include "widget/shineButton.h"
 #include "editor/browers/AssetsBrower.h"
 #include "editor/views/EditorView.h"
 #include "editor/log/LogUI.h"
+
 
 // 前向声明
 namespace shine::editor::views
@@ -16,8 +19,13 @@ namespace shine::editor::views
 	class SMainEditorToolbar;
 }
 
+
+
 namespace shine::editor::main_editor
 {
+
+	REGISTER_LOG_GROUP(EditorLog)
+
 	using namespace widget;
 
 	 class MainEditor{

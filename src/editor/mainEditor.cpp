@@ -17,8 +17,13 @@
 
 namespace shine::editor::main_editor {
 
+	REGISTER_LOG_GROUP_END(EditorLog)
+
 	MainEditor::MainEditor(shine::EngineContext& context) : m_Context(context)
 	{
+		ADD_LOG_CATEGORYS(EditorLog, "Initialization", "Rendering", "Input", "Assets", "Memory")
+
+		SHINE_LOG_INFO(EditorLog, "Initialization", "MainEditor constructor called");
 	}
 
 	MainEditor::~MainEditor()
@@ -82,7 +87,7 @@ namespace shine::editor::main_editor {
 
         // 初始化日志 UI
         logUI = new views::LogUI();
-        SHINE_LOG_INFO("Editor Log System Initialized");
+		logUI->Init();
 	}
 
 

@@ -10,44 +10,28 @@ import shine.memory;
 
 namespace shine {
 
-    LogSystem& LogSystem::Get() {
-        static LogSystem instance;
+    ShineLogManager& ShineLogManager::Get() {
+        static ShineLogManager instance;
         return instance;
     }
 
-    LogSystem::LogSystem() {}
-    LogSystem::~LogSystem() {}
 
-    void LogSystem::AddLog(const std::string& category, LogLevel level, const std::string& message) {
-        std::lock_guard<std::mutex> lock(m_Mutex);
-        
-        // Tag log allocations as Core
-        shine::co::MemoryScope scope(shine::co::MemoryTag::Core);
+
+    void ILogImple::AddLog(const std::string& category, ShineLogLevel level, const std::string& message) {
 
         auto now = std::chrono::system_clock::now();
-        std::string timeStr;
-        try {
-             timeStr = fmt::format("{:%H:%M:%S}", now);
-        } catch(...) {
-             timeStr = "00:00:00";
-        }
+        // 去掉毫秒，截断到秒再格式化，避免输出小数秒
+        auto now_s = std::chrono::time_point_cast<std::chrono::seconds>(now);
+        std::time_t tt = std::chrono::system_clock::to_time_t(now_s);
+        std::tm local_tm{};
+    #if defined(_WIN32) || defined(_WIN64)
+        localtime_s(&local_tm, &tt);
+    #else
+        localtime_r(&tt, &local_tm);
+    #endif
+        std::string timeStr = fmt::format("{:%Y-%m-%d %H:%M:%S}", local_tm);
 
-        m_Logs.push_back({ level, category, message, timeStr });
-
-        // Console fallback
-        const char* levelStr = "";
-        switch (level) {
-            case LogLevel::Info:  levelStr = "INFO"; break;
-            case LogLevel::Warn:  levelStr = "WARN"; break;
-            case LogLevel::Error: levelStr = "ERROR"; break;
-            case LogLevel::Debug: levelStr = "DEBUG"; break;
-        }
-
-        std::cout << fmt::format("[{}] [{}/{}] {}", timeStr, category, levelStr, message) << std::endl;
+        m_Logs.push_back({level,fmt::format("[{}] [{}] [{}]  {}", category, ShineLogLevelToString(level),timeStr, message)});
     }
 
-    void LogSystem::Clear() {
-        std::lock_guard<std::mutex> lock(m_Mutex);
-        m_Logs.clear();
-    }
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 
+#define SHINE_EXTERN extern "C" {
+#define SHINE_EXTERN_END }
 
 // 平台检测（确保定义已设置）
 #if defined(_WIN32) && !defined(_WIN64)
@@ -31,14 +33,7 @@
     #endif
 #endif
 
-// 编译器特定属性
-#ifdef __has_cpp_attribute
-    #if __has_cpp_attribute(assume)
-        #define SHINE_ASSUME(expr) [[assume(expr)]]
-    #else
-        #define SHINE_ASSUME(expr)
-    #endif
-#endif
+
 
 // CPU架构宏
 #if defined(_M_ARM) || defined(_M_ARM64) || defined(_M_ARM64EC)

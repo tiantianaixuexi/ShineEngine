@@ -3,7 +3,7 @@
 #if defined(__clang__) || defined(__GNUC__)
     #define FORCEINLINE __attribute__((always_inline)) inline
 #elif defined(_MSC_VER)
-    #define FORCEINLINE  [[msvc::forceinline]]
+    #define FORCEINLINE  __forceinline
 #else
     #define FORCEINLINE inline
 #endif

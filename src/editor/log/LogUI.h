@@ -5,6 +5,8 @@ namespace shine::editor::views {
     class LogUI {
     public:
         LogUI();
+
+        void Init();
         void Render();
         void Clear();
     private:

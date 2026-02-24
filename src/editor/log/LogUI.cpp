@@ -3,10 +3,16 @@
 
 namespace shine::editor::views {
 
+
+    ShineLogManager* _logManager = nullptr;
     LogUI::LogUI() {}
 
+    void LogUI::Init() {
+        _logManager = &ShineLogManager::Get();
+    }
+
     void LogUI::Clear() {
-        shine::LogSystem::Get().Clear();
+        
     }
 
     void LogUI::Render() {
@@ -27,34 +33,37 @@ namespace shine::editor::views {
         // Reserve space for footer if needed, though we don't have one right now
         ImGui::BeginChild("ScrollingRegion", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
         
-        std::mutex& mutex = shine::LogSystem::Get().GetMutex();
-        {
-            std::lock_guard<std::mutex> lock(mutex);
-            const auto& logs = shine::LogSystem::Get().GetLogs();
 
-            for (const auto& log : logs) {
-                // Filter logic matches category or message
-                if (!filter.PassFilter(log.message.c_str()) && !filter.PassFilter(log.category.c_str())) continue;
+        const auto& Groups = _logManager->GetLogGroups();
+
+        for (const auto& group : Groups) {
+            // Filter logic matches category or message
+            if (!filter.PassFilter(group.first.c_str())) continue;
+
+            for(const auto& log : group.second->m_Logs) {
+                if (!filter.PassFilter(log.message.c_str())) continue;
 
                 ImVec4 color;
+                // ImVec4 color;
                 switch (log.level) {
-                    case LogLevel::Info:  color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); break; 
-                    case LogLevel::Warn:  color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f); break; 
-                    case LogLevel::Error: color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f); break; 
-                    case LogLevel::Debug: color = ImVec4(0.7f, 0.7f, 0.7f, 1.0f); break; 
+                    case ShineLogLevel::Info:  color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); break; 
+                    case ShineLogLevel::Warn:  color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f); break; 
+                    case ShineLogLevel::Error: color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f); break; 
+                    case ShineLogLevel::Debug: color = ImVec4(0.7f, 0.7f, 0.7f, 1.0f); break; 
                 }
 
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-                ImGui::Text("[%s]", log.timestamp.c_str());
-                ImGui::SameLine();
-                ImGui::Text("[%s]", log.category.c_str());
-                ImGui::PopStyleColor();
+                // ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+                // ImGui::Text("[%s]", log.timestamp.c_str());
+                // ImGui::SameLine();
+                // ImGui::Text("[%s]", log.category.c_str());
+                // ImGui::PopStyleColor();
 
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, color);
                 ImGui::TextUnformatted(log.message.c_str());
                 ImGui::PopStyleColor();
             }
+   
         }
 
         if (m_AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
