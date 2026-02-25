@@ -2,23 +2,27 @@
 
 #include <vector>
 
+#include "editor/views/BaseView.h"
+
 namespace shine::editor::views
 {
     /**
      * @brief 内存监控面板 - 显示各系统的内存使用情况
      */
-    class MemoryProfiler
+    class MemoryProfiler : public BaseView
     {
     public:
-        MemoryProfiler();
-        ~MemoryProfiler();
-
-        void Render();
         
-        bool& IsOpen() { return isOpen_; }
+        virtual ~MemoryProfiler(){};
+
+        void onInit()  override;
+        void onShutDown() override;
+        void onRender() override;
+        
+
 
     private:
-        bool isOpen_ = true;
+
         bool m_PauseProfiling = false;
     };
 }

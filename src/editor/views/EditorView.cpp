@@ -5,30 +5,35 @@
 #include "manager/CameraManager.h"
 #include "render/demo/EngineDemoScene.h"
 
-namespace shine::editor::EditorView {
+namespace shine::editor::views 
+{
 
 static manager::CameraManager  *cameraManager    = nullptr;
 static render::RendererService *renderer         = nullptr;
 
-EditView::EditView(shine::EngineContext& context) : m_Context(context) {}
 
 EditView::~EditView() = default;
 
-void EditView::Init() {
+void EditView::onInit() {
 
-
-    renderer        = m_Context.GetSystem<render::RendererService>();
-    cameraManager   = m_Context.GetSystem<manager::CameraManager>();
+    SetName("编辑器视图");
+    renderer        = EngineContext::Get().GetSystem<render::RendererService>();
+    cameraManager   = EngineContext::Get().GetSystem<manager::CameraManager>();
 
         // 创建一个与窗口大小类似的视口（这里写死，后面可以在WM_SIZE中更新）
     Viewport        = renderer->createViewport(1280, 720);
 
     // Initialize Demo Scene
-    m_DemoScene = std::make_unique<shine::render::demo::EngineDemoScene>(m_Context);
+    m_DemoScene = std::make_unique<shine::render::demo::EngineDemoScene>(EngineContext::Get());
     m_DemoScene->Init();
 }
 
-void EditView::Render() {
+void EditView::onShutDown() {
+    // 视口资源由渲染服务管理，无需手动销毁
+    m_DemoScene.reset();
+}
+
+void EditView::onRender() {
 
     // 编辑器视图
     ImGui::Begin("编辑器视图");

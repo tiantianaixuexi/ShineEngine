@@ -1,21 +1,25 @@
 #pragma once
 
+#include "BaseView.h"
+
 namespace shine::editor::settings {
-    struct EngineSettings;
+struct EngineSettings;
 }
 
 namespace shine::editor::views {
 
-    class SettingsView {
-    public:
-        SettingsView();
-        ~SettingsView();
+class SettingsView : public BaseView {
+public:
+ 
+    virtual ~SettingsView() = default;
 
-        void Render();
+    void FirstOpen() override;
+    void onRender() override;
+    void onInit() override;
+    void onShutDown() override;
 
-        bool isOpen_ = true;
 
-    private:
-        shine::editor::settings::EngineSettings* settings_;
-    };
-}
+private:
+    shine::editor::settings::EngineSettings *settings_;
+};
+} // namespace shine::editor::views

@@ -1,19 +1,23 @@
 #pragma once
 
 #include "gameplay/object.h"
+#include "BaseView.h"
 
 namespace shine::editor::views
 {
     /**
      * @brief 属性面板 - 显示和编辑选中对象的属性
      */
-    class PropertiesView
+    class PropertiesView : public BaseView
     {
     public:
-        PropertiesView();
-        ~PropertiesView();
 
-        void Render();
+        virtual ~PropertiesView() {};
+
+        void onInit()    override;
+        void onRender()  override; 
+        void onShutDown() override;
+
         void SetSelectedObject(shine::gameplay::SObject* obj);
 
     private:

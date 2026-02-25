@@ -7,27 +7,28 @@
 
 namespace shine::editor::views
 {
-    PropertiesView::PropertiesView()
-    {
+
+    void PropertiesView::onShutDown() {
+        selectedObject_ = nullptr;
     }
-
-    PropertiesView::~PropertiesView()
-    {
+    void PropertiesView::onInit() {
+        SetName("属性编辑器");
     }
-
-    void PropertiesView::Render()
+    void PropertiesView::onRender()
     {
-        ImGui::Begin("属性", &isOpen_);
-
-        if (selectedObject_ == nullptr)
+        if(ImGui::Begin(name.c_str(), &isOpen))
         {
-            ImGui::Text("未选择任何对象");
-        }
-        else
-        {
-            RenderObjectProperties(selectedObject_);
-        }
 
+            if (selectedObject_ == nullptr)
+            {
+                ImGui::Text("未选择任何对象");
+            }
+            else
+            {
+                RenderObjectProperties(selectedObject_);
+            }
+        }
+                    
         ImGui::End();
     }
 

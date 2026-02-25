@@ -1,30 +1,30 @@
 #pragma once
 
-namespace shine::editor::main_editor
-{
-	class MainEditor;
+#include "editor/views/BaseView.h"
+
+
+namespace shine::editor::main_editor {
+class MainEditor;
 }
-namespace shine::editor::views
-{
-	class SMainEditorToolbar
-	{
-	public:
+namespace shine::editor::views {
+class SMainEditorToolbar : public BaseView {
 
-		SMainEditorToolbar(main_editor::MainEditor* _editor);
+public:
+    SMainEditorToolbar(main_editor::MainEditor *_editor);
+    virtual ~SMainEditorToolbar() = default;
 
-		void Init();
-		void Render();
-
-
+    void onInit() override;
+    void onRender() override;
+    void onShutDown() override;
 
 
+	bool                     AssetBorderShow    = false;
+    bool                     MemoryProfilerShow = false;
+    bool                     EngineSettingsShow = false;
 
-	private:
+private:
 
+    main_editor::MainEditor *_mainEditor        = nullptr;
+};
 
-		 main_editor::MainEditor* _mainEditor = nullptr;
-	};
-
-	
-}
-
+} // namespace shine::editor::views

@@ -11,12 +11,17 @@ namespace shine::editor::views
 		_mainEditor = _editor;
 	}
 
-	void SMainEditorToolbar::Init()
+	void SMainEditorToolbar::onInit()
 	{
 	
 	}
 
-	void SMainEditorToolbar::Render()
+	void SMainEditorToolbar::onShutDown()
+	{
+
+	}
+	
+	void SMainEditorToolbar::onRender()
 	{
 		if (ImGui::BeginMainMenuBar()) {
 			if (ImGui::BeginMenu("File")) {
@@ -64,17 +69,21 @@ namespace shine::editor::views
 			
 			if (ImGui::BeginMenu("编辑器UI"))
 			{
-				static bool AssetBorderShow = true;
 				if (ImGui::MenuItem("资源浏览器",nullptr,&AssetBorderShow))
 				{
 					AssetBorderShow = _mainEditor->setAssetBorwerOpen();
 				}
 				
-                static bool MemoryProfilerShow = true;
                 if (ImGui::MenuItem("内存监控 (Memory Profiler)", nullptr, &MemoryProfilerShow))
                 {
-                    MemoryProfilerShow = _mainEditor->setMemoryProfilerOpen(MemoryProfilerShow);
+					
+                    MemoryProfilerShow = _mainEditor->setMemoryProfilerOpen();
                 }
+
+				if(ImGui::MenuItem("引擎设置", nullptr, &EngineSettingsShow))
+				{
+					EngineSettingsShow = _mainEditor->setEngineSettingsOpen();
+				}
 
 				ImGui::EndMenu();
 			}

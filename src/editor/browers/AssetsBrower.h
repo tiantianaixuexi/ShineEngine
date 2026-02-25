@@ -5,28 +5,25 @@
 
 #include "imgui/imgui.h"
 #include "AssetsItem.h"
-
+#include "editor/views/BaseView.h"
 namespace shine::editor::assets_brower 
 {
 
-    class AssetsBrower 
+    class AssetsBrower : public views::BaseView
     {
         public:
 
             
             std::string         title = "Assets border";
-            bool                isOpen = true;
             bool                RequestSort = false;        // Deferred sort request
 
 
 
             ImVector<assets_item::AssetsItem> items;
             
-            void Start();
-            void Render();
-            bool SetShow() noexcept;
-
-  
+            void onInit() override;
+            void onRender() override;
+            void onShutDown() override;
 
         private:
             ImGuiID NextItemId = 0;

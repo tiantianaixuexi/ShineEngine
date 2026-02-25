@@ -1,20 +1,26 @@
 #pragma once
 
-#include "gameplay/object.h"
 #include <vector>
+
+#include "gameplay/object.h"
+#include "BaseView.h"
+
 
 namespace shine::editor::views
 {
     /**
      * @brief 场景层级视图 - 显示场景中的对象层级结构
      */
-    class SceneHierarchyView
+    class SceneHierarchyView : public BaseView
     {
     public:
-        SceneHierarchyView();
-        ~SceneHierarchyView();
+        
+        virtual ~SceneHierarchyView(){};
 
-        void Render();
+        void onInit() override;
+        void onShutDown() override;
+        void onRender() override;
+
         void SetSelectedObject(shine::gameplay::SObject* obj);
         shine::gameplay::SObject* GetSelectedObject() const { return selectedObject_; }
 
@@ -24,7 +30,7 @@ namespace shine::editor::views
 
         std::vector<std::string> testData;
         shine::gameplay::SObject* selectedObject_ = nullptr;
-        bool isOpen_ = true;
+
     };
 }
 

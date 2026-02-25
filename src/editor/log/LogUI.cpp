@@ -3,73 +3,69 @@
 
 namespace shine::editor::views {
 
+ShineLogManager *_logManager = nullptr;
 
-    ShineLogManager* _logManager = nullptr;
-    LogUI::LogUI() {}
+void LogUI::onInit() {
+    _logManager = &ShineLogManager::Get();
+}
 
-    void LogUI::Init() {
-        _logManager = &ShineLogManager::Get();
+void LogUI::onShutDown() {
+}
+
+void LogUI::ClearLog() {
+}
+
+void LogUI::onRender() {
+    if (!ImGui::Begin("Console Log")) {
+        ImGui::End();
+        return;
     }
 
-    void LogUI::Clear() {
-        
-    }
+    if (ImGui::Button("Clear"))
+        ClearLog();
+    ImGui::SameLine();
+    ImGui::Checkbox("Auto-scroll", &m_AutoScroll);
+    ImGui::SameLine();
+    static ImGuiTextFilter filter;
+    filter.Draw("Filter", -100.0f);
 
-    void LogUI::Render() {
-        if (!ImGui::Begin("Console Log")) {
-            ImGui::End();
-            return;
-        }
+    ImGui::Separator();
 
-        if (ImGui::Button("Clear")) Clear();
-        ImGui::SameLine();
-        ImGui::Checkbox("Auto-scroll", &m_AutoScroll);
-        ImGui::SameLine();
-        static ImGuiTextFilter filter;
-        filter.Draw("Filter", -100.0f);
+    // Reserve space for footer if needed, though we don't have one right now
+    if (ImGui::BeginChild("ScrollingRegion", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar)) {
 
-        ImGui::Separator();
-        
-        // Reserve space for footer if needed, though we don't have one right now
-        ImGui::BeginChild("ScrollingRegion", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
-        
-
-        const auto& Groups = _logManager->GetLogGroups();
-
-        for (const auto& group : Groups) {
-            // Filter logic matches category or message
-            if (!filter.PassFilter(group.first.c_str())) continue;
-
-            for(const auto& log : group.second->m_Logs) {
-                if (!filter.PassFilter(log.message.c_str())) continue;
-
-                ImVec4 color;
-                // ImVec4 color;
-                switch (log.level) {
-                    case ShineLogLevel::Info:  color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); break; 
-                    case ShineLogLevel::Warn:  color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f); break; 
-                    case ShineLogLevel::Error: color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f); break; 
-                    case ShineLogLevel::Debug: color = ImVec4(0.7f, 0.7f, 0.7f, 1.0f); break; 
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0)); // Tighten spacing
+        const auto      &Logs = _logManager->GetLogs();
+        ImGuiListClipper clipper;
+        clipper.Begin(static_cast<int>(Logs.size()));
+        while (clipper.Step()) {
+            ImVec4 color;
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
+                const auto &log = Logs[i];
+                if (log.level == ShineLogLevel::Info) {
+                    color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+                } else if (log.level == ShineLogLevel::Warn) {
+                    color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+                } else if (log.level == ShineLogLevel::Error) {
+                    color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f);
+                } else if (log.level == ShineLogLevel::Debug) {
+                    color = ImVec4(0.7f, 0.7f, 0.7f, 1.0f);
+                } else {
+                    color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
                 }
-
-                // ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-                // ImGui::Text("[%s]", log.timestamp.c_str());
-                // ImGui::SameLine();
-                // ImGui::Text("[%s]", log.category.c_str());
-                // ImGui::PopStyleColor();
-
-                ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, color);
                 ImGui::TextUnformatted(log.message.c_str());
                 ImGui::PopStyleColor();
             }
-   
         }
+
+        ImGui::PopStyleVar();
 
         if (m_AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
             ImGui::SetScrollHereY(1.0f);
-
-        ImGui::EndChild();
-        ImGui::End();
     }
+
+    ImGui::EndChild();
+    ImGui::End();
 }
+} // namespace shine::editor::views

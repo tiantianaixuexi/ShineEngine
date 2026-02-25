@@ -7,15 +7,13 @@
 
 namespace shine::editor::assets_brower {
 
-void AssetsBrower::Start()
-{
-    //AddItem();
+void AssetsBrower::onInit() {
+   
 }
 
-void AssetsBrower::Render() {
+void AssetsBrower::onRender() {
 
-    if (!isOpen) return;
-    
+
     if (ImGui::Begin(title.c_str(), &isOpen))
     {
         if (ImGui::BeginMenuBar()) {
@@ -66,9 +64,7 @@ void AssetsBrower::Render() {
     
 }
 
-bool AssetsBrower::SetShow() noexcept
-{
-	return (isOpen? (isOpen = false) : (isOpen = true));
+void AssetsBrower::onShutDown() {
 }
 
 void AssetsBrower::AddItem() {

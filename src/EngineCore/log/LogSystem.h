@@ -110,9 +110,18 @@ public:
         return m_LogGroups;
     }
 
+    const std::vector<LogEntry> &GetLogs() const noexcept {
+        return m_Logs;
+    }
+
+    void PushLog(const LogEntry &log) {
+        m_Logs.push_back(log);
+    }
+
 private:
-    std::unordered_map<std::string, LogImple *> m_LogGroups;
+    std::unordered_map<std::string, LogImple *>  m_LogGroups;
     std::mutex                                   m_RegisterMutex;
+    std::vector<LogEntry>                     m_Logs;
 };
 
 } // namespace shine

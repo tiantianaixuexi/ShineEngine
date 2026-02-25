@@ -37,7 +37,7 @@ namespace shine::editor::util {
                 ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
                 
                 ImGui::PushID(instance);
-                StaticInspectorBuilder<T> builder(instance);
+                static StaticInspectorBuilder<T> builder(instance);
                 _ReflectStaticBuild(builder, static_cast<T*>(nullptr));
                 ImGui::PopID();
                 

@@ -21,9 +21,9 @@ namespace shine::editor::main_editor {
 
 	MainEditor::MainEditor(shine::EngineContext& context) : m_Context(context)
 	{
-		ADD_LOG_CATEGORYS(EditorLog, "Initialization", "Rendering", "Input", "Assets", "Memory")
+		ADD_LOG_CATEGORYS(EditorLog, "init", "Rendering", "Input", "Assets", "Memory")
 
-		SHINE_LOG_INFO(EditorLog, "Initialization", "MainEditor constructor called");
+		SHINE_LOG_INFO(EditorLog, "init", "MainEditor constructor called");
 	}
 
 	MainEditor::~MainEditor()
@@ -40,7 +40,12 @@ namespace shine::editor::main_editor {
 	}
 
 	void MainEditor::Init() {
-        fmt::println("[MainEditor] Init Start");
+		SHINE_LOG_INFO(EditorLog, "init", "[MainEditor] Init Start");
+
+		mainEditorToolbar = new views::SMainEditorToolbar(this);
+		mainEditorToolbar->SetShow();
+
+
 
 		myButton = new widget::button::shineButton("应用编辑");
 
@@ -58,36 +63,45 @@ namespace shine::editor::main_editor {
 
 		myButton->SetOnUnHovered([]() { fmt::println("应用编辑按钮停止"); });
 
+
         // 提前初始化内存监控，以便尽早可用
         memoryProfiler = new views::MemoryProfiler();
-        fmt::println("[MainEditor] MemoryProfiler initialized: {}", (void*)memoryProfiler);
-
-		mainEditorToolbar = new views::SMainEditorToolbar(this);
 
 		
 		assetsBrower = new assets_brower::AssetsBrower();
-		assetsBrower->Start();
+		assetsBrower->onInit();
 
 
         // 初始化渲染服务（单实例封装）
-        editorView = new EditorView::EditView(m_Context);
-        editorView->Init();
+        editorView = new views::EditView();
+        editorView->onInit();
+		editorView->SetShow();
 
 		// 初始化场景层级视图
 		sceneHierarchyView = new views::SceneHierarchyView();
+		sceneHierarchyView->onInit();
 
 		// 初始化属性面板
 		propertiesView = new views::PropertiesView();
+		propertiesView->onInit();
 
 		// 初始化图片查看器（不再需要 Init，直接使用即可）
 		imageViewerView = new views::ImageViewerView();
 
         // 初始化引擎设置视图
         settingsView = new views::SettingsView();
+		settingsView->OnOpenChange.bind([this](bool isOpen) {
+			mainEditorToolbar->EngineSettingsShow = isOpen;
+		});
+		settingsView->onInit();
 
+		
         // 初始化日志 UI
         logUI = new views::LogUI();
-		logUI->Init();
+		logUI->onInit();
+
+
+		SHINE_LOG_INFO(EditorLog, "init", "[MainEditor] Init Finish");
 	}
 
 
@@ -95,6 +109,7 @@ namespace shine::editor::main_editor {
 	static ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
 		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 	static bool isDragging = false;
+
 	void MainEditor::Render() {
 
 		static bool showWindows = true;
@@ -115,54 +130,23 @@ namespace shine::editor::main_editor {
 		ImGui::End();
 
 		
-		mainEditorToolbar->Render();
-		assetsBrower->Render();
+		mainEditorToolbar->RenderBase();
+		assetsBrower->RenderBase();
 
-		// 编辑视图由 EditorView 渲染
-        editorView->Render();
+
+        editorView->RenderBase();
 
 		// 渲染场景层级视图
-		if (sceneHierarchyView)
-		{
-			sceneHierarchyView->Render();
-			// 同步选中对象到属性面板
-			if (propertiesView)
-			{
-				propertiesView->SetSelectedObject(sceneHierarchyView->GetSelectedObject());
-			}
-		}
 
-		// 渲染属性面板
-		if (propertiesView)
-		{
-			propertiesView->Render();
-		}
+		sceneHierarchyView->RenderBase();
+		propertiesView->SetSelectedObject(sceneHierarchyView->GetSelectedObject());
 
-		// 渲染图片查看器
-		if (imageViewerView)
-		{
-			imageViewerView->Render();
-		}
+		propertiesView->RenderBase();
+		imageViewerView->Render();
+        settingsView->RenderBase();
+        memoryProfiler->RenderBase();
+        logUI->RenderBase();
 
-        // 渲染引擎设置
-        if (settingsView)
-        {
-            settingsView->Render();
-        }
-
-        // 渲染内存监控
-        if (memoryProfiler)
-        {
-            memoryProfiler->Render();
-        }
-
-        // 渲染日志
-        if (logUI)
-        {
-            logUI->Render();
-        }
-
-		// 渲染ImGui界面
 		ImGui::Render();
 	}
 
@@ -171,15 +155,15 @@ namespace shine::editor::main_editor {
 		return assetsBrower->SetShow();
 	}
 
-    bool MainEditor::setMemoryProfilerOpen(bool open)
+    bool MainEditor::setMemoryProfilerOpen()
     {
-        if (memoryProfiler)
-        {
-            memoryProfiler->IsOpen() = open;
-            return true;
-        }
-        return false;
+        return memoryProfiler->SetShow();
     }
+
+	bool MainEditor::setEngineSettingsOpen()
+	{
+		return settingsView->SetShow();
+	}
 
     bool MainEditor::getMemoryProfilerOpen() const
     {

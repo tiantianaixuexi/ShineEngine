@@ -109,11 +109,6 @@ struct value_list {
     // 求积
     static constexpr auto product = (Vs * ...);
 
-    // 最小值
-    static constexpr auto min = std::min({Vs...});
-
-    // 最大值
-    static constexpr auto max = std::max({Vs...});
 
     // 转换为数组
     static constexpr auto to_array() {
