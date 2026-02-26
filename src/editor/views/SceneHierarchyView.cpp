@@ -50,6 +50,7 @@ void SceneHierarchyView::onRender() {
     }
 
     ImGui::End();
+    
 }
 
 void SceneHierarchyView::SetSelectedObject(shine::gameplay::SObject *obj) {

@@ -15,6 +15,7 @@ module shine.util.string_util;
 
 #include "string_util.ixx"
 #include "encoding_util.ixx"
+#include "Algorithm/FNV1a.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -271,17 +272,9 @@ namespace shine::util
     }
 
     std::uint32_t StringUtil::HashFNV1a(std::string_view str) {
-        constexpr std::uint32_t fnv_prime = 16777619u;
-        constexpr std::uint32_t fnv_offset_basis = 2166136261u;
 
-        std::uint32_t hash = fnv_offset_basis;
+        return static_cast<std::uint32_t>(algorithm::hash64(str));
 
-        for (auto c : str) {
-            hash ^= static_cast<uint8_t>(c);
-            hash *= fnv_prime;
-        }
-
-        return hash;
     }
 
     std::vector<std::string> StringUtil::Split(std::string_view str, char delim) {

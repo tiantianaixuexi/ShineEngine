@@ -10,8 +10,6 @@
 
 #include "timer/timer_util.h"
 
-// 注意：本项目使用 C++23，所有 C++23 特性默认可用
-// 只需针对 WASM 平台做特殊处理
 
 namespace shine::util
 {
@@ -119,75 +117,6 @@ namespace shine::util
 		}
 
 
-
-#ifdef SHINE_PLATFORM_WASM
-		// WASM 兼容：使用 std::optional + ParseError 输出参数
-		struct ParseResult {
-			std::optional<FGuid> value;
-			ParseError error = ParseError::InvalidLength;
-			bool has_value() const noexcept { return value.has_value(); }
-			FGuid operator*() const { return *value; }
-		};
-
-		static ParseResult Parse(SString text)
-		{
-			ParseResult result;
-
-			size_t startPos = 0;
-			if (text.size() == 38 && text.front() == '{' && text.back() == '}') {
-				startPos = 1;
-			}
-			if (text.size() != 36 + (startPos > 0 ? 2 : 0)) {
-				result.error = ParseError::InvalidLength;
-				return result;
-			}
-			const char* data = text.data() + startPos;
-
-			if (data[8] != '-' || data[13] != '-' || data[18] != '-' || data[23] != '-') {
-				result.error = ParseError::InvalidFormat;
-				return result;
-			}
-
-			std::array<std::uint8_t, 16> b{};
-			int idx = 0;
-
-			auto hexVal = [](const char c) noexcept ->int {
-				if (c >= '0' && c <= '9') return c - '0';
-				if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-				if (c >= 'A' && c <= 'F') return c - 'A' + 10;
-				return -1;
-				};
-
-			for (int i = 0; i < 8; i += 2) {
-				int h = hexVal(data[i]), l = hexVal(data[i + 1]);
-				if (h < 0 || l < 0) { result.error = ParseError::InvalidChar; return result; }
-				b[idx++] = static_cast<std::uint8_t>((h << 4) | l);
-			}
-			for (int i = 9; i < 13; i += 2) {
-				int h = hexVal(data[i]), l = hexVal(data[i + 1]);
-				if (h < 0 || l < 0) { result.error = ParseError::InvalidChar; return result; }
-				b[idx++] = static_cast<std::uint8_t>((h << 4) | l);
-			}
-			for (int i = 14; i < 18; i += 2) {
-				int h = hexVal(data[i]), l = hexVal(data[i + 1]);
-				if (h < 0 || l < 0) { result.error = ParseError::InvalidChar; return result; }
-				b[idx++] = static_cast<std::uint8_t>((h << 4) | l);
-			}
-			for (int i = 19; i < 23; i += 2) {
-				int h = hexVal(data[i]), l = hexVal(data[i + 1]);
-				if (h < 0 || l < 0) { result.error = ParseError::InvalidChar; return result; }
-				b[idx++] = static_cast<std::uint8_t>((h << 4) | l);
-			}
-			for (int i = 24; i < 36; i += 2) {
-				int h = hexVal(data[i]), l = hexVal(data[i + 1]);
-				if (h < 0 || l < 0) { result.error = ParseError::InvalidChar; return result; }
-				b[idx++] = static_cast<std::uint8_t>((h << 4) | l);
-			}
-
-			result.value = FromBytes(b);
-			return result;
-		}
-#else
 		// C++23: 使用 std::expected
 		static std::expected<FGuid, ParseError> Parse(std::string_view text)
 		{
@@ -241,7 +170,6 @@ namespace shine::util
 
 			return FromBytes(b.data());
 		}
-#endif
 
 		// 生成随机 GUID（符合v4/variant 标准）
 		static FGuid NewGuid()
@@ -283,11 +211,8 @@ namespace std
 		size_t operator()(const shine::util::FGuid& g) const noexcept
 		{
 			// 简单地将两个32-bit 合并
-			u64 h1 = (static_cast<u64>(g.A) << 32) | g.B;
-			u64 h2 = (static_cast<u64>(g.C) << 32) | g.D;
-			// 64-bit 合并
-			h1 ^= (h2 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2));
-			return h1 ^ (h1 >> 32);
+			return std::hash<u64>{}((static_cast<u64>(g.A) << 32 | g.B) ^ 
+								(static_cast<u64>(g.C) << 32 | g.D));
 		}
 	};
 }

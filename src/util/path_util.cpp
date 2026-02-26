@@ -10,8 +10,6 @@
 #include <windows.h>
 #include <shlwapi.h>
 #pragma comment(lib, "shlwapi.lib")
-#elif SHINE_PLATFORM_WASM
-#include <emscripten.h>
 #else
 #include <unistd.h>
 #include <limits.h>

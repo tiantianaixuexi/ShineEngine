@@ -12,7 +12,7 @@ enum class   TimerPrecision {
     Nanoseconds
 };
 
-// 高性能函数定时器（不依赖chrono），支持source_location，毫秒精度，平台原生实现
+
 class  FunctionTimer 
 {
 

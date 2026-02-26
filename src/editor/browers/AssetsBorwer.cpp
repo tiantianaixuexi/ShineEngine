@@ -62,6 +62,7 @@ void AssetsBrower::onRender() {
 
     ImGui::End();
     
+    CheckIsOpenChange();
 }
 
 void AssetsBrower::onShutDown() {

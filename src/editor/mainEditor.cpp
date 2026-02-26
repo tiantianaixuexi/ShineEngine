@@ -66,9 +66,16 @@ namespace shine::editor::main_editor {
 
         // 提前初始化内存监控，以便尽早可用
         memoryProfiler = new views::MemoryProfiler();
+		memoryProfiler->OnOpenChange.bind([this](bool isOpen) {
+			mainEditorToolbar->MemoryProfilerShow = isOpen;
+		});
+		memoryProfiler->onInit();
 
 		
 		assetsBrower = new assets_brower::AssetsBrower();
+		assetsBrower->OnOpenChange.bind([this](bool isOpen) {
+			mainEditorToolbar->AssetBorderShow = isOpen;
+		});
 		assetsBrower->onInit();
 
 

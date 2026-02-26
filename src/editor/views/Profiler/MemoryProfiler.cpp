@@ -107,5 +107,7 @@ void MemoryProfiler::onRender() {
         }
     }
     ImGui::End();
+
+    CheckIsOpenChange();
 }
 } // namespace shine::editor::views

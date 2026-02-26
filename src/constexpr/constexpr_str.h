@@ -23,37 +23,6 @@ struct constexpr_str;
 
 namespace detail {
 
-// 编译期哈希算法 (FNV-1a)
-template <typename CharT>
-struct fnv1a_hash;
-
-template <>
-struct fnv1a_hash<char> {
-    static constexpr uint64_t prime = 1099511628211ULL;
-    static constexpr uint64_t offset = 14695981039346656037ULL;
-
-    static consteval uint64_t compute(char const* str, size_t len, uint64_t hash = offset) {
-        for (size_t i = 0; i < len; ++i) {
-            hash ^= static_cast<uint64_t>(static_cast<unsigned char>(str[i]));
-            hash *= prime;
-        }
-        return hash;
-    }
-};
-
-template <>
-struct fnv1a_hash<char16_t> {
-    static constexpr uint64_t prime = 1099511628211ULL;
-    static constexpr uint64_t offset = 14695981039346656037ULL;
-
-    static consteval uint64_t compute(char16_t const* str, size_t len, uint64_t hash = offset) {
-        for (size_t i = 0; i < len; ++i) {
-            hash ^= static_cast<uint64_t>(str[i]);
-            hash *= prime;
-        }
-        return hash;
-    }
-};
 
 // 格式化转换概念
 template <typename T>
