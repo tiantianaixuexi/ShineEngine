@@ -336,6 +336,7 @@ function(parse_and_cache_modules)
         parse_json_array(${json_content} "files" files_list)
         parse_json_array(${json_content} "files_module" files_module_list)
         parse_json_array(${json_content} "files_header" files_header_list)
+        parse_json_array(${json_content} "files_compile" files_compile_list)
         parse_json_array(${json_content} "deps" deps_list)
         parse_json_array(${json_content} "defines" defines_list)
         parse_json_array(${json_content} "dirs" dirs_list)
@@ -422,6 +423,7 @@ function(parse_and_cache_modules)
         # 缓存到全局属性
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_NAME" ${name})
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_FILES" "${files_list}")
+        set_property(GLOBAL PROPERTY "MODULE_${module_name}_FILES_COMPILE" "${files_compile_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_DEPS" "${deps_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_DEFINES" "${defines_list}")
         set_property(GLOBAL PROPERTY "MODULE_${module_name}_INCLUDE_DIRS" "${include_dirs_list}")
@@ -724,6 +726,7 @@ foreach(module_name ${MODULE_LIST})
     if(files)
         list(FILTER files EXCLUDE REGEX "CMakeLists.txt")
     endif()
+    get_property(files_compile GLOBAL PROPERTY "MODULE_${module_name}_FILES_COMPILE")
     get_property(defines GLOBAL PROPERTY "MODULE_${module_name}_DEFINES")
     get_property(include_dirs GLOBAL PROPERTY "MODULE_${module_name}_INCLUDE_DIRS")
     get_property(third_libs_debug GLOBAL PROPERTY "MODULE_${module_name}_THIRD_LIBS_DEBUG")
@@ -785,6 +788,28 @@ foreach(module_name ${MODULE_LIST})
             list(APPEND source_files ${file})
         endif()
     endforeach()
+
+    # 处理 files_compile：将不在白名单中的源文件标记为 HEADER_FILE_ONLY
+    # 这样它们会被当作头文件处理，不会被编译
+    if(files_compile)
+        # 规范化 files_compile 中的路径
+        set(_normalized_compile_list "")
+        foreach(fc ${files_compile})
+            file(TO_CMAKE_PATH "${fc}" _norm_path)
+            list(APPEND _normalized_compile_list "${_norm_path}")
+        endforeach()
+        
+        # 检查每个源文件是否在编译白名单中
+        foreach(f ${source_files})
+            file(TO_CMAKE_PATH "${f}" _norm_f)
+            list(FIND _normalized_compile_list "${_norm_f}" _found_idx)
+            if(_found_idx LESS 0)
+                # 不在白名单中，标记为头文件
+                get_filename_component(_abs_f "${CMAKE_SOURCE_DIR}/${f}" ABSOLUTE)
+                set_source_files_properties("${_abs_f}" PROPERTIES HEADER_FILE_ONLY TRUE)
+            endif()
+        endforeach()
+    endif()
 
     # subcmake：独立子工程构建（UTILITY target），不参与本工程编译/链接
     if(is_subcmake)
@@ -883,22 +908,30 @@ foreach(module_name ${MODULE_LIST})
             file(WRITE "${_dummy_file}" "// Dummy file to force static lib generation for ${name}\n")
         endif()
 
+        # files_compile 已在文件分类阶段处理
+        # 如果没有 files_compile，third 类型模块所有文件都当作头文件
         set(_all_third_files ${header_files} ${source_files})
-        add_library(${name} STATIC ${_all_third_files} "${_dummy_file}")
-        set_target_properties(${name} PROPERTIES LINKER_LANGUAGE CXX)
         
-        # 标记真实文件为只读头文件，防止被编译（避免符号冲突）
-        if(_all_third_files)
+        if(NOT files_compile)
+            # 没有 files_compile，所有文件都标记为头文件（原有行为）
             foreach(f ${_all_third_files})
-                set_source_files_properties(${f} PROPERTIES HEADER_FILE_ONLY TRUE)
+                get_filename_component(_abs_f "${CMAKE_SOURCE_DIR}/${f}" ABSOLUTE)
+                set_source_files_properties("${_abs_f}" PROPERTIES HEADER_FILE_ONLY TRUE)
             endforeach()
         endif()
+        
+        add_library(${name} STATIC ${_all_third_files} "${_dummy_file}")
+        set_target_properties(${name} PROPERTIES LINKER_LANGUAGE CXX)
 
         set(is_interface FALSE)
         set(has_sources FALSE)
         should_show_module(${name})
         if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
-            message(STATUS "  ${name} -> STATIC (third party)")
+            if(files_compile)
+                message(STATUS "  ${name} -> STATIC (third party, compile: ${files_compile})")
+            else()
+                message(STATUS "  ${name} -> STATIC (third party)")
+            endif()
         endif()
     elseif(is_interface_type)
         add_library(${name} INTERFACE)
@@ -1233,6 +1266,9 @@ foreach(module_name ${MODULE_LIST})
                     endif()
                 endif()
                 
+                # 检查依赖是否是 shared 类型
+                check_module_type("${dep_types}" "shared" dep_is_shared)
+                
                 if(TARGET ${dep})
                     if(dep_is_interface)
                         # 如果依赖是 INTERFACE 库，必须使用 INTERFACE 或 PUBLIC
@@ -1252,6 +1288,12 @@ foreach(module_name ${MODULE_LIST})
                             # 当前目标是普通库，使用 PRIVATE
                             target_link_libraries(${name} PRIVATE ${dep})
                         endif()
+                    endif()
+                    
+                    # 如果依赖是 shared 类型，自动添加 {DEP}_IMPORTS 定义
+                    if(dep_is_shared AND NOT current_is_interface)
+                        string(TOUPPER ${dep} dep_upper)
+                        target_compile_definitions(${name} PRIVATE ${dep_upper}_IMPORTS)
                     endif()
                 endif()
             endif()
@@ -1383,6 +1425,7 @@ endif()
         check_module_type("${types}" "exe" is_executable)
         check_module_type("${types}" "subcmake" is_subcmake)
         check_module_type("${types}" "third" is_third_party)
+        check_module_type("${types}" "shared" is_shared_type)
         
         if(NOT is_executable AND NOT is_subcmake AND TARGET ${name})
             add_dependencies(MainEngine ${name})
@@ -1391,6 +1434,12 @@ endif()
                 target_link_libraries(MainEngine PUBLIC ${name})
             else()
                 target_link_libraries(MainEngine PRIVATE ${name})
+            endif()
+            
+            # 如果是 shared 类型，自动添加 IMPORTS 定义
+            if(is_shared_type)
+                string(TOUPPER ${name} name_upper)
+                target_compile_definitions(MainEngine PRIVATE ${name_upper}_IMPORTS)
             endif()
         endif()
         

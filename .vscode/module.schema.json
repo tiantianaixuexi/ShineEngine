@@ -65,6 +65,15 @@
       },
       "minItems": 0
     },
+    "files_compile": {
+      "type": "array",
+      "description": "指定需要被编译的源文件白名单。不在列表中的 .cpp 文件会被标记为 HEADER_FILE_ONLY（当作头文件处理）。适用于第三方库选择性编译",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*\\.cpp$"
+      },
+      "minItems": 0
+    },
     "dirs": {
       "type": "array",
       "description": "自动收集指定目录下所有相关文件的目录列表。递归搜索目录及其子目录",
@@ -316,6 +325,14 @@
         "configure": ["-DSMALLWASM_DEBUG=ON"]
       },
       "comment": "独立的 WASM 子工程"
+    },
+    {
+      "name": "tracy",
+      "dirs": ["src/third/tracy"],
+      "type": "shared",
+      "defines": ["TRACY_ENABLE"],
+      "files_compile": ["src/third/tracy/TracyClient.cpp"],
+      "comment": "第三方库选择性编译：dirs 扫描出多个 .cpp，但只有 TracyClient.cpp 需要编译"
     }
   ]
 }

@@ -69,23 +69,23 @@ public:
         }
 
         if (path.empty()) {
-            fmt::println(L"错误: 路径为空");
+            fmt::println("错误: 路径为空");
             return false;
         }
 
         DWORD attr = GetFileAttributesW(path.c_str());
         if (attr == INVALID_FILE_ATTRIBUTES) {
-            fmt::println(L"错误: 路径不存在: {} (错误码: {})", path, GetLastError());
+            fmt::println("错误: 路径不存在: {} (错误码: {})", util::EncodingUtil::WstringToUTF8(path), GetLastError());
             return false;
         }
 
         if (!(attr & FILE_ATTRIBUTE_DIRECTORY)) {
-            fmt::println(L"错误: 路径不是目录: {}", path);
+            fmt::println("错误: 路径不是目录: {}", util::EncodingUtil::WstringToUTF8(path));
             return false;
         }
 
         if (!PathIsDirectoryW(path.c_str())) {
-            fmt::println(L"错误: 无法访问目录: {}", path);
+            fmt::println("错误: 无法访问目录: {}", util::EncodingUtil::WstringToUTF8(path));
             return false;
         }
 
@@ -101,7 +101,7 @@ public:
 
         if (dir_handle == INVALID_HANDLE_VALUE) {
             DWORD error = GetLastError();
-            fmt::println(L"错误: 无法打开目录: {} (错误码: {})", path, error);
+            fmt::println("错误: 无法打开目录: {} (错误码: {})", util::EncodingUtil::WstringToUTF8(path), error);
             return false;
         }
 
@@ -127,12 +127,12 @@ public:
         }
 
         {
-            std::lock_guard<std::mutex> lock(contexts_mutex);
+            std::lock_guard lock(contexts_mutex);
             contexts.push_back(context);
         }
 
         if (!issue_read(context)) {
-            fmt::println(L"错误: 无法开始监视目录: {}", path);
+            fmt::println("错误: 无法开始监视目录: {}", util::EncodingUtil::WstringToUTF8(path));
             remove_directory_internal(context);
             return false;
         }
@@ -222,12 +222,12 @@ public:
                 
                 if (completion_key != 0 && overlapped) {
                     auto* context = reinterpret_cast<IoContext*>(completion_key);
-                    fmt::println(L"IOCP 错误 (目录: {}): {}", 
-                                context->path, error);
+                    fmt::println("IOCP 错误 (目录: {}): {}", 
+                                util::EncodingUtil::WstringToUTF8(context->path), error);
                     
                     if (running_ && context->dir_handle != INVALID_HANDLE_VALUE) {
                         if (!issue_read(context)) {
-                            fmt::println(L"重新监视失败，移除目录: {}", context->path);
+                            fmt::println("重新监视失败，移除目录: {}", util::EncodingUtil::WstringToUTF8(context->path));
                             std::thread([this, context]() {
                                 remove_directory(context);
                             }).detach();
@@ -260,7 +260,7 @@ public:
 
             if (running_ && context->dir_handle != INVALID_HANDLE_VALUE) {
                 if (!issue_read(context)) {
-                    fmt::println(L"重新监视失败，目录可能已移除: {}", context->path);
+                    fmt::println("重新监视失败，目录可能已移除: {}", util::EncodingUtil::WstringToUTF8(context->path));
                 }
             }
         }
@@ -278,15 +278,14 @@ private:
             context->dir_handle = INVALID_HANDLE_VALUE;
         }
 
-        auto it = std::find(contexts.begin(), contexts.end(), context);
-        if (it != contexts.end()) {
+        if (const auto it = std::ranges::find(contexts, context); it != contexts.end()) {
             contexts.erase(it);
         }
         delete context;
     }
 
     void remove_directory(IoContext* context) {
-        std::lock_guard<std::mutex> lock(contexts_mutex);
+        std::lock_guard lock(contexts_mutex);
         remove_directory_internal(context);
     }
 
@@ -317,8 +316,8 @@ private:
         if (!success) {
             DWORD error = GetLastError();
             if (error != ERROR_IO_PENDING) {
-                fmt::println(L"ReadDirectoryChangesW 失败 (目录: {}): {}", 
-                            context->path, error);
+                fmt::println("ReadDirectoryChangesW 失败 (目录: {}): {}", 
+                            util::EncodingUtil::WstringToUTF8(context->path), error);
                 return false;
             }
         }
@@ -353,8 +352,8 @@ private:
 
             // 构建完整路径
             std::wstring full_path = context->path;
-            if (!full_path.empty() && full_path.back() != L'\\' && full_path.back() != L'/') {
-                full_path += L'\\';
+            if (!full_path.empty() && full_path.back() != '\\' && full_path.back() != '/') {
+                full_path += '\\';
             }
             full_path += filename;
 
