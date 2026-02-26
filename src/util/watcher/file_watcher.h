@@ -7,14 +7,15 @@
 #include <shlwapi.h>
 
 #include <atomic>
-#include <functional>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
 #include <algorithm>
 
+
 #include "util/function/EventHandle.h"
+#include "util/encoding_util.ixx"
 #include "fmt/xchar.h"
 
 #pragma comment(lib, "shlwapi.lib")
@@ -136,7 +137,7 @@ public:
             return false;
         }
 
-        fmt::println(L"成功添加监视: {}", path);
+        fmt::println("成功添加监视: {}",util::EncodingUtil::WstringToUTF8(path));
         return true;
     }
 

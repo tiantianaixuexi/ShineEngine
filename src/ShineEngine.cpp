@@ -38,7 +38,6 @@ int main(int argc, char **argv) {
 #include "manager/AssetManager.h"
 #include "manager/CameraManager.h"
 
-
 #include "platform/InitWindows.h"
 #include "platform/WindowsInfo.h"
 
@@ -46,9 +45,7 @@ int main(int argc, char **argv) {
 
 #include "util/encoding_util.ixx"
 #include "util/fps_controller.h"
-#include "util/timer/function_timer.h"
 #include "util/watcher/file_watcher.h"
-
 
 #include "editor/mainEditor.h"
 
@@ -123,9 +120,9 @@ int main(int argc, char **argv) {
     auto &g_FPSManager  = util::FPSController::get();
 
     util::watcher::DirectoryWatcher fileWatcher;
-    fileWatcher.OnFileChanged.bind([](std::wstring path, std::wstring filename, DWORD action,bool is_dir) {
-		const wchar_t* type = is_dir ? L"[目录]" : L"[文件]";
-    	const wchar_t* act = L"未知";
+    fileWatcher.OnFileChanged.bind([](std::wstring path, std::wstring filename, DWORD action, bool is_dir) {
+        const wchar_t *type = is_dir ? L"[目录]" : L"[文件]";
+        const wchar_t *act  = L"未知";
 
         switch (action) {
         case FILE_ACTION_ADDED:
@@ -147,7 +144,10 @@ int main(int argc, char **argv) {
             act = L"未知";
             break;
         }
-        fmt::println("file chang - Path: {}, Filename: {}, Action: {},{}", util::EncodingUtil::WstringToUTF8(path), util::EncodingUtil::WstringToUTF8(filename), act,type);
+        fmt::println("file chang - Path: {}, Filename: {}, Action: {},{}",
+            util::EncodingUtil::WstringToUTF8(path), 
+            util::EncodingUtil::WstringToUTF8(filename),  
+            util::EncodingUtil::WstringToUTF8(act),util::EncodingUtil::WstringToUTF8(type));
     });
 
     fileWatcher.CreateIocp();
