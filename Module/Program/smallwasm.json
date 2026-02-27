@@ -2,21 +2,21 @@
   "name": "smallwasm",
   "type":"subcmake",
   "dirs": [
-    "Program/smallwasm/src"
+    "dev/Program/smallwasm/src"
   ],
   "files": [
-    "Program/smallwasm/CMakeLists.txt",
-    "Program/smallwasm/build-wasm.bat",
-    "Program/smallwasm/tools/map_report.ps1",
-    "Program/smallwasm/web/index.html",
-    "Program/smallwasm/web/index.js"
+    "dev/Program/smallwasm/CMakeLists.txt",
+    "dev/Program/smallwasm/build-wasm.bat",
+    "dev/Program/smallwasm/tools/map_report.ps1",
+    "dev/Program/smallwasm/web/index.html",
+    "dev/Program/smallwasm/web/index.js"
   ],
   "subcmake": {
-    "source": "Program/smallwasm",
-    "build": "Program/smallwasm/build-wasm",
+    "source": "dev/Program/smallwasm",
+    "build": "dev/Program/smallwasm/build-wasm",
     "generator": "Ninja",
     "target": "smallwasm",
     "configure": []
   },
-  "output": "Program/smallwasm/web/dist/output.gl.wasm"
+  "output": "dev/Program/smallwasm/web/dist/output.gl.wasm"
 }

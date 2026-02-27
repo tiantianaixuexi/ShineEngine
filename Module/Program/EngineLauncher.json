@@ -1,7 +1,7 @@
 {
   "name": "EngineLauncher",
   "dirs": [
-    "Program/launch"
+    "dev/Program/launch"
   ],
   "deps": [
     "fmt",

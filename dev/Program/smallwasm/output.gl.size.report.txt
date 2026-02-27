@@ -1,0 +1,195 @@
+smallwasm size report
+Time: 2026-01-30 17:35:21
+DWARF report: E:\c++\ShineEngine\Program\smallwasm\output.gl.dwarf.report.txt
+Map: E:\c++\ShineEngine\Program\smallwasm\output.gl.map
+WAT: E:\c++\ShineEngine\Program\smallwasm\output.gl.wat
+
+DWARF Top Functions
+===================
+  3.    1035       1.01  KB E:/c++/ShineEngine/Program/smallwasm/src/ui\\ui_manager.cpp  onPointer
+  6.     731       0.71  KB E:/c++/ShineEngine/Program/smallwasm/src/engine\\engine.cpp  frame
+  9.     513       0.50  KB E:/c++/ShineEngine/Program/smallwasm/src/ui\\ui_manager.cpp  rebuildVisible
+ 17.     317       0.31  KB E:/c++/ShineEngine/Program/smallwasm/src/ui\\ui_manager.cpp  addToBins
+ 27.     132       0.13  KB E:/c++/ShineEngine/Program/smallwasm/src/ui\\ui_manager.cpp  applyResize
+ 28.     131       0.13  KB E:/c++/ShineEngine/Program/smallwasm/src/ui\\ui_manager.cpp  erase_first_unordered
+ 67.      48       0.05  KB E:/c++/ShineEngine/Program/smallwasm/src\\gl_ctx.cpp  pointer
+ 78.      39       0.04  KB E:/c++/ShineEngine/Program/smallwasm/src\gl_ctx.cpp:31  pointer
+221.       9       0.01  KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\ui.h:88  operator delete
+
+Map Section Summary
+===================
+CODE                    20871 B   20.38 KB
+.rodata                  3264 B    3.19 KB
+.data                   34032 B   33.23 KB
+.bss                      208 B    0.20 KB
+CUSTOM(name)             7742 B    7.56 KB
+CUSTOM(producers)          66 B    0.06 KB
+CUSTOM(target_features)    151 B    0.15 KB
+TYPE                      199 B    0.19 KB
+IMPORT                    900 B    0.88 KB
+EXPORT                    126 B    0.12 KB
+ELEM                       90 B    0.09 KB
+FUNCTION                  139 B    0.14 KB
+TABLE                       7 B    0.01 KB
+MEMORY                      5 B    0.00 KB
+GLOBAL                     10 B    0.01 KB
+DATA                    37316 B   36.44 KB
+
+Map Top CODE Symbols
+====================
+ 1.  3282 B    3.21 KB  shine::graphics::Renderer2D::flush()
+ 2.  1532 B    1.50 KB  DemoGame::onInit()
+ 3.  1037 B    1.01 KB  shine::ui::UIManager::onPointer(float, float, int)
+ 4.   812 B    0.79 KB  shine::graphics::Renderer2D::drawRoundRect(shine::math::Rect const&, shine::graphics::Renderer2D::RoundRectStyle const&)
+ 5.   750 B    0.73 KB  DemoGame::onUpdate(float)
+ 6.   733 B    0.72 KB  shine::engine::Engine::frame(float)
+ 7.   515 B    0.50 KB  shine::ui::UIManager::rebuildVisible()
+ 8.   499 B    0.49 KB  shine::game::SpriteRenderer::onRender(shine::game::RenderContext&, float)
+ 9.   413 B    0.40 KB  shine::game::Node::~Node()
+10.   384 B    0.38 KB  DemoGame::onPointer(float, float, int)
+11.   381 B    0.37 KB  malloc
+12.   379 B    0.37 KB  shine::game::Transform::worldXYZ(float&, float&, float&) const
+13.   372 B    0.36 KB  shine::graphics::Renderer2D::init(int)
+14.   333 B    0.33 KB  shine::ui::Button::render(int)
+15.   331 B    0.32 KB  shine::ui::Element::onResize(int, int)
+16.   327 B    0.32 KB  shine::graphics::Renderer2D::drawRectColor(float, float, float, float, float, float, float)
+17.   327 B    0.32 KB  shine::graphics::Renderer2D::drawRectColorSorted(float, float, float, float, float, float, float, unsigned int)
+18.   319 B    0.31 KB  shine::ui::UIManager::addToBins(shine::ui::Element*, float, float, float, float)
+19.   317 B    0.31 KB  shine::graphics::Renderer2D::drawRectUV(int, float, float, float, float)
+20.   317 B    0.31 KB  shine::graphics::Renderer2D::drawRectUVSorted(int, float, float, float, float, unsigned int)
+
+Map Top .rodata Symbols
+=======================
+ 1.  1159 B    1.13 KB  shine::graphics::kFS_RR (.llvm.8835717189241661750)
+ 2.   215 B    0.21 KB  kVS_INST
+ 3.   204 B    0.20 KB  shine::graphics::kVS_TEX (.llvm.8835717189241661750)
+ 4.   203 B    0.20 KB  shine::graphics::kVS_COL (.llvm.8835717189241661750)
+ 5.   135 B    0.13 KB  kVS
+ 6.   134 B    0.13 KB  shine::graphics::kFS_TEX (.llvm.8835717189241661750)
+ 7.   124 B    0.12 KB  shine::ui::DefaultButtonStyleInstance
+ 8.   120 B    0.12 KB  shine::graphics::Renderer2D::init(int)::kUniforms (.llvm.8835717189241661750)
+ 9.   120 B    0.12 KB  DemoGame::onInit()::q
+10.   109 B    0.11 KB  shine::graphics::kFS_COL (.llvm.8835717189241661750)
+11.   109 B    0.11 KB  kFS
+12.    64 B    0.06 KB  DemoGame::onRender(float)::kIdentity
+13.    44 B    0.04 KB  vtable for shine::game::Transform
+14.    44 B    0.04 KB  vtable for shine::game::SpriteRenderer
+15.    44 B    0.04 KB  vtable for KillOnClick
+16.    39 B    0.04 KB  .rodata
+17.    36 B    0.04 KB  vtable for DemoGame
+18.    36 B    0.04 KB  vtable for shine::ui::Button
+19.    36 B    0.04 KB  vtable for shine::ui::Element
+20.    36 B    0.04 KB  vtable for shine::ui::Image
+
+Map Top .data Symbols
+=====================
+ 1. 32820 B   32.05 KB  shine::graphics::g_cmd_buffer
+ 2.   836 B    0.82 KB  shine::ui::s_uiMgr (.llvm.6629247843520537986)
+ 3.   324 B    0.32 KB  shine::graphics::s_texMgr (.llvm.4443780657583081176)
+ 4.    48 B    0.05 KB  shine::engine::s_engine_instance (.llvm.3600184461518518859)
+ 5.     4 B    0.00 KB  shine::game::Object::next_id()::s
+
+Map Top .bss Symbols
+====================
+ 1.   136 B    0.13 KB  shine::graphics::s_renderer (.llvm.8835717189241661750)
+ 2.    32 B    0.03 KB  g_free_bins (.llvm.994666323607233261)
+ 3.     4 B    0.00 KB  g_alloc_count (.llvm.994666323607233261)
+ 4.     4 B    0.00 KB  g_heap_ptr (.llvm.994666323607233261)
+ 5.     4 B    0.00 KB  g_alloc_fail_count (.llvm.994666323607233261)
+ 6.     4 B    0.00 KB  g_free_count (.llvm.994666323607233261)
+ 7.     4 B    0.00 KB  shine::game::Object::s_gc_head
+ 8.     4 B    0.00 KB  shine::game::Object::s_pending_kill_count
+ 9.     4 B    0.00 KB  g_demo_game
+10.     4 B    0.00 KB  shine::game::ComponentType<shine::game::Transform>::id()::k
+11.     4 B    0.00 KB  shine::game::ComponentType<shine::game::SpriteRenderer>::id()::k
+12.     4 B    0.00 KB  shine::game::ComponentType<KillOnClick>::id()::k
+
+Map CODE By Object File
+=======================
+ 1.  8464 B    8.27 KB  output.gl.raw.wasm.lto.demo_game.o
+ 2.  6661 B    6.50 KB  output.gl.raw.wasm.lto.renderer_2d.o
+ 3.  2657 B    2.59 KB  output.gl.raw.wasm.lto.ui_manager.o
+ 4.   995 B    0.97 KB  output.gl.raw.wasm.lto.engine.o
+ 5.   911 B    0.89 KB  output.gl.raw.wasm.lto.wasm_runtime.o
+ 6.   598 B    0.58 KB  output.gl.raw.wasm.lto.texture_manager.o
+ 7.   422 B    0.41 KB  output.gl.raw.wasm.lto.wasm_command_buffer.o
+ 8.   102 B    0.10 KB  output.gl.raw.wasm.lto.gl_ctx.o
+ 9.    55 B    0.05 KB  output.gl.raw.wasm.lto.gl_api.o
+
+WAT Summary
+===========
+types    : 59
+imports  : 19
+exports  : 9
+funcs    : 256
+data     : 2
+elem     : 1
+tables   : 1
+memories : 14
+globals  : 52
+
+WAT Snippets (Top Functions)
+============================
+onPointer
+   (func $shine::ui::UIManager::onPointer\28float\2c\20float\2c\20int\29 (param $0 i32) (param $1 f32) (param $2 f32) (param $3 i32)
+    (local $4 i32)
+    (local $5 i32)
+    (local $6 i32)
+    (block $label$1
+     (br_if $label$1
+      (i32.eqz
+       (local.tee $4
+        (i32.load
+         (local.get $0)
+        )
+       )
+
+frame
+   (func $frame (param $0 f32)
+    (call $shine::engine::Engine::frame\28float\29
+     (call $shine::engine::Engine::instance\28\29)
+     (local.get $0)
+    )
+   )
+
+erase_first_unordered
+   (func $shine::wasm::SVector<shine::game::Component*>::erase_first_unordered\28shine::game::Component*\20const&\29 (param $0 i32) (param $1 i32) (result i32)
+    (local $2 i32)
+    (local $3 i32)
+    (local $4 i32)
+    (local $5 i32)
+    (local.set $2
+     (i32.load
+      (local.get $1)
+     )
+    )
+    (local.set $3
+     (i32.load offset=8
+
+pointer
+   (func $pointer (param $0 f32) (param $1 f32) (param $2 i32)
+    (call $shine::engine::Engine::pointer\28float\2c\20float\2c\20int\29
+     (call $shine::engine::Engine::instance\28\29)
+     (local.get $0)
+     (local.get $1)
+     (local.get $2)
+    )
+   )
+
+pointer
+   (func $pointer (param $0 f32) (param $1 f32) (param $2 i32)
+    (call $shine::engine::Engine::pointer\28float\2c\20float\2c\20int\29
+     (call $shine::engine::Engine::instance\28\29)
+     (local.get $0)
+     (local.get $1)
+     (local.get $2)
+    )
+   )
+
+operator delete
+   (func $operator\20delete\28void*\2c\20unsigned\20long\29 (param $0 i32) (param $1 i32)
+    (call $free
+     (local.get $0)
+    )
+   )
+

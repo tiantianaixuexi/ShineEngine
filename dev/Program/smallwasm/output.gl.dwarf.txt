@@ -1,0 +1,4720 @@
+E:\c++\ShineEngine\Program\smallwasm\web\dist\output.gl.wasm:	file format WASM
+
+.debug_info contents:
+0x00000000: Compile Unit: length = 0x00000041, format = DWARF32, version = 0x0004, abbr_offset = 0x0000, addr_size = 0x04 (next unit at 0x00000045)
+
+0x0000000b: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src\\gl_ctx.cpp")
+              DW_AT_stmt_list	(0x00000000)
+              DW_AT_comp_dir	(".")
+              DW_AT_low_pc	(0x00000000)
+              DW_AT_ranges	(0x00000000
+                 [0x00000003, 0x00000013)
+                 [0x00000014, 0x00000026)
+                 [0x00000027, 0x00000037)
+                 [0x00000038, 0x00000068))
+
+0x00000026:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00000038)
+                DW_AT_high_pc	(0x00000068)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("pointer")
+
+0x00000033:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000000000000063 "pointer")
+                  DW_AT_low_pc	(0x0000003f)
+                  DW_AT_high_pc	(0x00000066)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src\gl_ctx.cpp")
+                  DW_AT_call_line	(31)
+                  DW_AT_call_column	(16)
+
+0x00000043:     NULL
+
+0x00000044:   NULL
+0x00000045: Compile Unit: length = 0x00000021, format = DWARF32, version = 0x0004, abbr_offset = 0x0000, addr_size = 0x04 (next unit at 0x0000006a)
+
+0x00000050: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src/engine\\engine.cpp")
+              DW_AT_stmt_list	(0x000000fb)
+              DW_AT_comp_dir	(".")
+
+0x00000063:   DW_TAG_subprogram
+                DW_AT_name	("pointer")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000069:   NULL
+0x0000006a: Compile Unit: length = 0x00000022, format = DWARF32, version = 0x0004, abbr_offset = 0x004b, addr_size = 0x04 (next unit at 0x00000090)
+
+0x00000075: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\\gl_api.cpp")
+              DW_AT_stmt_list	(0x00000119)
+              DW_AT_comp_dir	(".")
+              DW_AT_low_pc	(0x00000069)
+              DW_AT_high_pc	(0x0000009f)
+0x00000090: Compile Unit: length = 0x00000232, format = DWARF32, version = 0x0004, abbr_offset = 0x005f, addr_size = 0x04 (next unit at 0x000002c6)
+
+0x0000009b: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src/util\\wasm_runtime.cpp")
+              DW_AT_stmt_list	(0x0000019d)
+              DW_AT_comp_dir	(".")
+              DW_AT_low_pc	(0x00000000)
+              DW_AT_ranges	(0x00000040
+                 [0x000000a1, 0x0000021c)
+                 [0x000002c9, 0x000002f7)
+                 [0x000002f8, 0x00000373)
+                 [0x00000374, 0x00000388)
+                 [0x00000389, 0x0000038b)
+                 [0x0000038c, 0x000003f1)
+                 [0x000003f2, 0x0000042e)
+                 [0x0000021d, 0x00000256)
+                 [0x00000257, 0x000002c8))
+
+0x000000b6:   DW_TAG_subprogram
+                DW_AT_name	("ensure_heap_inited")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000000bc:   DW_TAG_subprogram
+                DW_AT_name	("align_up")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000000c2:   DW_TAG_subprogram
+                DW_AT_name	("find_suitable_block")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000000c8:   DW_TAG_subprogram
+                DW_AT_name	("block_size")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000000ce:   DW_TAG_subprogram
+                DW_AT_name	("ensure_capacity")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000000d4:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x000000a1)
+                DW_AT_high_pc	(0x0000021c)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("malloc")
+
+0x000000e1:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000000b6 "ensure_heap_inited")
+                  DW_AT_low_pc	(0x000000ae)
+                  DW_AT_high_pc	(0x000000d4)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(118)
+                  DW_AT_call_column	(3)
+
+0x000000f1:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000000bc "align_up")
+                    DW_AT_low_pc	(0x000000bf)
+                    DW_AT_high_pc	(0x000000cb)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                    DW_AT_call_line	(43)
+                    DW_AT_call_column	(19)
+
+0x00000101:       NULL
+
+0x00000102:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000000bc "align_up")
+                  DW_AT_low_pc	(0x000000d9)
+                  DW_AT_high_pc	(0x000000df)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(119)
+                  DW_AT_call_column	(30)
+
+0x00000112:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000000bc "align_up")
+                  DW_AT_low_pc	(0x000000df)
+                  DW_AT_high_pc	(0x000000e3)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(122)
+                  DW_AT_call_column	(30)
+
+0x00000122:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000000c2 "find_suitable_block")
+                  DW_AT_low_pc	(0x000000e3)
+                  DW_AT_high_pc	(0x0000014b)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(125)
+                  DW_AT_call_column	(20)
+
+0x00000132:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000000c8 "block_size")
+                    DW_AT_low_pc	(0x00000120)
+                    DW_AT_high_pc	(0x00000128)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                    DW_AT_call_line	(91)
+                    DW_AT_call_column	(11)
+
+0x00000142:       NULL
+
+0x00000143:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000000c8 "block_size")
+                  DW_AT_low_pc	(0x0000014b)
+                  DW_AT_high_pc	(0x00000155)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(127)
+                  DW_AT_call_column	(21)
+
+0x00000153:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000000bc "align_up")
+                  DW_AT_low_pc	(0x000001a6)
+                  DW_AT_high_pc	(0x000001aa)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(141)
+                  DW_AT_call_column	(26)
+
+0x00000163:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000000ce "ensure_capacity")
+                  DW_AT_low_pc	(0x000001af)
+                  DW_AT_high_pc	(0x000001cd)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(143)
+                  DW_AT_call_column	(7)
+
+0x00000173:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000018f)
+                  DW_AT_low_pc	(0x000000eb)
+
+0x0000017c:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000190 "remove_free")
+                  DW_AT_low_pc	(0x0000014b)
+
+0x00000185:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000001b7 "insert_free")
+                  DW_AT_low_pc	(0x00000178)
+
+0x0000018e:     NULL
+
+0x0000018f:   DW_TAG_subprogram
+
+0x00000190:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00000257)
+                DW_AT_high_pc	(0x000002c8)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("remove_free")
+
+0x0000019d:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000000c8 "block_size")
+                  DW_AT_low_pc	(0x0000025e)
+                  DW_AT_high_pc	(0x00000266)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(68)
+                  DW_AT_call_column	(34)
+
+0x000001ad:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000018f)
+                  DW_AT_low_pc	(0x0000026c)
+
+0x000001b6:     NULL
+
+0x000001b7:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x000002c9)
+                DW_AT_high_pc	(0x000002f7)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("insert_free")
+
+0x000001c4:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000000c8 "block_size")
+                  DW_AT_low_pc	(0x000002c9)
+                  DW_AT_high_pc	(0x000002d6)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(82)
+                  DW_AT_call_column	(34)
+
+0x000001d4:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000018f)
+                  DW_AT_low_pc	(0x000002dc)
+
+0x000001dd:     NULL
+
+0x000001de:   DW_TAG_subprogram
+                DW_AT_name	("coalesce")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000001e4:   DW_TAG_subprogram
+                DW_AT_name	("block_is_free")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000001ea:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x000002f8)
+                DW_AT_high_pc	(0x00000373)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("free")
+
+0x000001f7:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000000c8 "block_size")
+                  DW_AT_ranges	(0x00000028
+                     [0x00000307, 0x00000312)
+                     [0x0000031e, 0x0000031f))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(160)
+                  DW_AT_call_column	(19)
+
+0x00000203:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000001de "coalesce")
+                  DW_AT_low_pc	(0x0000031f)
+                  DW_AT_high_pc	(0x00000353)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(161)
+                  DW_AT_call_column	(7)
+
+0x00000213:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000001e4 "block_is_free")
+                    DW_AT_low_pc	(0x00000330)
+                    DW_AT_high_pc	(0x00000338)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                    DW_AT_call_line	(107)
+                    DW_AT_call_column	(9)
+
+0x00000223:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000000c8 "block_size")
+                    DW_AT_low_pc	(0x00000343)
+                    DW_AT_high_pc	(0x0000034d)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                    DW_AT_call_line	(109)
+                    DW_AT_call_column	(16)
+
+0x00000233:       NULL
+
+0x00000234:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000190 "remove_free")
+                  DW_AT_low_pc	(0x00000343)
+
+0x0000023d:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000001b7 "insert_free")
+                  DW_AT_low_pc	(0x0000035c)
+
+0x00000246:     NULL
+
+0x00000247:   DW_TAG_subprogram
+                DW_AT_name	("raw_malloc")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000024d:   DW_TAG_subprogram
+                DW_AT_name	("raw_free")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000253:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x0000038c)
+                DW_AT_high_pc	(0x000003f1)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("raw_realloc")
+
+0x00000260:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000247 "raw_malloc")
+                  DW_AT_low_pc	(0x00000395)
+                  DW_AT_high_pc	(0x0000039d)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(238)
+                  DW_AT_call_column	(20)
+
+0x00000270:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000024d "raw_free")
+                  DW_AT_low_pc	(0x000003a9)
+                  DW_AT_high_pc	(0x000003b3)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(240)
+                  DW_AT_call_column	(9)
+
+0x00000280:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000247 "raw_malloc")
+                  DW_AT_low_pc	(0x000003b4)
+                  DW_AT_high_pc	(0x000003bc)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(243)
+                  DW_AT_call_column	(16)
+
+0x00000290:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000024d "raw_free")
+                  DW_AT_low_pc	(0x000003e6)
+                  DW_AT_high_pc	(0x000003ee)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp")
+                  DW_AT_call_line	(247)
+                  DW_AT_call_column	(5)
+
+0x000002a0:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000000d4 "malloc")
+                  DW_AT_low_pc	(0x0000039d)
+
+0x000002a9:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000001ea "free")
+                  DW_AT_low_pc	(0x000003b1)
+
+0x000002b2:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000000d4 "malloc")
+                  DW_AT_low_pc	(0x000003bc)
+
+0x000002bb:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000001ea "free")
+                  DW_AT_low_pc	(0x000003ee)
+
+0x000002c4:     NULL
+
+0x000002c5:   NULL
+0x000002c6: Compile Unit: length = 0x00000105, format = DWARF32, version = 0x0004, abbr_offset = 0x00cb, addr_size = 0x04 (next unit at 0x000003cf)
+
+0x000002d1: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\\wasm_command_buffer.cpp")
+              DW_AT_stmt_list	(0x000005dc)
+              DW_AT_comp_dir	(".")
+              DW_AT_low_pc	(0x00000000)
+              DW_AT_ranges	(0x000000a0
+                 [0x0000042f, 0x00000475)
+                 [0x00000477, 0x00000550)
+                 [0x00000551, 0x0000056c)
+                 [0x0000056d, 0x000005a5)
+                 [0x000005a6, 0x000005d4))
+
+0x000002ec:   DW_TAG_subprogram
+                DW_AT_name	("clear")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000002f2:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x0000042f)
+                DW_AT_high_pc	(0x00000475)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("reset")
+
+0x000002ff:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000002ec "clear")
+                  DW_AT_low_pc	(0x0000044f)
+                  DW_AT_high_pc	(0x00000458)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp")
+                  DW_AT_call_line	(22)
+                  DW_AT_call_column	(19)
+
+0x0000030f:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000002ec "clear")
+                  DW_AT_low_pc	(0x00000458)
+                  DW_AT_high_pc	(0x00000465)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp")
+                  DW_AT_call_line	(21)
+                  DW_AT_call_column	(21)
+
+0x0000031f:     NULL
+
+0x00000320:   DW_TAG_subprogram
+                DW_AT_name	("empty")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000326:   DW_TAG_subprogram
+                DW_AT_name	("data")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000032c:   DW_TAG_subprogram
+                DW_AT_name	("capacity")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000332:   DW_TAG_subprogram
+                DW_AT_name	("size")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000338:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00000477)
+                DW_AT_high_pc	(0x00000550)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("getSubmitData")
+
+0x00000345:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000320 "empty")
+                  DW_AT_low_pc	(0x00000483)
+                  DW_AT_high_pc	(0x0000048c)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp")
+                  DW_AT_call_line	(48)
+                  DW_AT_call_column	(9)
+
+0x00000355:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000326 "data")
+                  DW_AT_low_pc	(0x000004af)
+                  DW_AT_high_pc	(0x000004b6)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp")
+                  DW_AT_call_line	(54)
+                  DW_AT_call_column	(32)
+
+0x00000365:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000032c "capacity")
+                  DW_AT_low_pc	(0x000004c1)
+                  DW_AT_high_pc	(0x000004ca)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp")
+                  DW_AT_call_line	(58)
+                  DW_AT_call_column	(23)
+
+0x00000375:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000326 "data")
+                  DW_AT_low_pc	(0x000004ee)
+                  DW_AT_high_pc	(0x000004f7)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp")
+                  DW_AT_call_line	(62)
+                  DW_AT_call_column	(30)
+
+0x00000385:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000332 "size")
+                  DW_AT_low_pc	(0x0000051f)
+                  DW_AT_high_pc	(0x0000052a)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp")
+                  DW_AT_call_line	(67)
+                  DW_AT_call_column	(70)
+
+0x00000395:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000003a8)
+                  DW_AT_low_pc	(0x000004e3)
+
+0x0000039e:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000003a9)
+                  DW_AT_low_pc	(0x000004ee)
+
+0x000003a7:     NULL
+
+0x000003a8:   DW_TAG_subprogram
+
+0x000003a9:   DW_TAG_subprogram
+
+0x000003aa:   DW_TAG_subprogram
+                DW_AT_name	("raw_free")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000003b0:   DW_TAG_subprogram
+                DW_AT_low_pc	(dead code)
+                DW_AT_high_pc	(0x00000029)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~SVector")
+
+0x000003bd:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000003aa "raw_free")
+                  DW_AT_low_pc	(dead code)
+                  DW_AT_high_pc	(0x0000000c)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\../Container\SVector.h")
+                  DW_AT_call_line	(68)
+                  DW_AT_call_column	(5)
+
+0x000003cd:     NULL
+
+0x000003ce:   NULL
+0x000003cf: Compile Unit: length = 0x00000556, format = DWARF32, version = 0x0004, abbr_offset = 0x0117, addr_size = 0x04 (next unit at 0x00000929)
+
+0x000003da: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\\renderer_2d.cpp")
+              DW_AT_stmt_list	(0x000008ad)
+              DW_AT_comp_dir	(".")
+              DW_AT_low_pc	(0x00000000)
+              DW_AT_ranges	(0x00000258
+                 [0x000005d6, 0x00000748)
+                 [0x00000749, 0x00000764)
+                 [0x00000765, 0x000007c0)
+                 [0x000007c1, 0x000007dd)
+                 [0x000007df, 0x000008a5)
+                 [0x000008a6, 0x000008cb)
+                 [0x000008cc, 0x00000929)
+                 [0x000009b3, 0x00001683)
+                 [0x0000092a, 0x00000982)
+                 [0x000016c8, 0x0000173d)
+                 [0x0000173e, 0x00001776)
+                 [0x000017a7, 0x000018ec)
+                 [0x000018ee, 0x00001a29)
+                 [0x00001a2b, 0x00001b70)
+                 [0x00001b72, 0x00001cad)
+                 [0x00001caf, 0x00001fd9)
+                 [0x00000983, 0x000009b1)
+                 [0x00001684, 0x000016c7)
+                 [0x00001777, 0x000017a5))
+
+0x000003f5:   DW_TAG_subprogram
+                DW_AT_name	("clear")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000003fb:   DW_TAG_subprogram
+                DW_AT_name	("clear")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000401:   DW_TAG_subprogram
+                DW_AT_name	("clear")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000407:   DW_TAG_subprogram
+                DW_AT_name	("capacity")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000040d:   DW_TAG_subprogram
+                DW_AT_name	("capacity")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000413:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00000765)
+                DW_AT_high_pc	(0x000007c0)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("begin")
+
+0x00000420:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000003f5 "clear")
+                  DW_AT_low_pc	(0x00000772)
+                  DW_AT_high_pc	(0x00000779)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(127)
+                  DW_AT_call_column	(17)
+
+0x00000430:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000003fb "clear")
+                  DW_AT_low_pc	(0x00000779)
+                  DW_AT_high_pc	(0x00000780)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(126)
+                  DW_AT_call_column	(15)
+
+0x00000440:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000401 "clear")
+                  DW_AT_low_pc	(0x00000780)
+                  DW_AT_high_pc	(0x00000783)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(125)
+                  DW_AT_call_column	(14)
+
+0x00000450:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000407 "capacity")
+                  DW_AT_low_pc	(0x00000783)
+                  DW_AT_high_pc	(0x0000078e)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(130)
+                  DW_AT_call_column	(18)
+
+0x00000460:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000040d "capacity")
+                  DW_AT_low_pc	(0x000007a2)
+                  DW_AT_high_pc	(0x000007ac)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(133)
+                  DW_AT_call_column	(19)
+
+0x00000470:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000483)
+                  DW_AT_low_pc	(0x000007a1)
+
+0x00000479:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000484)
+                  DW_AT_low_pc	(0x000007be)
+
+0x00000482:     NULL
+
+0x00000483:   DW_TAG_subprogram
+
+0x00000484:   DW_TAG_subprogram
+
+0x00000485:   DW_TAG_subprogram
+                DW_AT_name	("empty")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000048b:   DW_TAG_subprogram
+                DW_AT_name	("back")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000491:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x000007df)
+                DW_AT_high_pc	(0x000008a5)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("checkBatch")
+
+0x0000049e:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000485 "empty")
+                  DW_AT_low_pc	(0x000007f4)
+                  DW_AT_high_pc	(0x000007fd)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(141)
+                  DW_AT_call_column	(20)
+
+0x000004ae:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000048b "back")
+                  DW_AT_ranges	(0x000000e0
+                     [0x00000802, 0x00000813)
+                     [0x00000821, 0x00000822))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(142)
+                  DW_AT_call_column	(33)
+
+0x000004ba:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000004cd)
+                  DW_AT_low_pc	(0x00000859)
+
+0x000004c3:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000004ce)
+                  DW_AT_low_pc	(0x0000088a)
+
+0x000004cc:     NULL
+
+0x000004cd:   DW_TAG_subprogram
+
+0x000004ce:   DW_TAG_subprogram
+
+0x000004cf:   DW_TAG_subprogram
+                DW_AT_name	("empty")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000004d5:   DW_TAG_subprogram
+                DW_AT_name	("resize")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000004db:   DW_TAG_subprogram
+                DW_AT_name	("data")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000004e1:   DW_TAG_subprogram
+                DW_AT_name	("operator[]")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000004e7:   DW_TAG_subprogram
+                DW_AT_name	("size")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000004ed:   DW_TAG_subprogram
+                DW_AT_name	("sort_inplace<shine::graphics::Renderer2D::Batch, BatchLess>")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000004f3:   DW_TAG_subprogram
+                DW_AT_name	("begin_pass")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000004f9:   DW_TAG_subprogram
+                DW_AT_name	("push")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000004ff:   DW_TAG_subprogram
+                DW_AT_name	("note_overflow")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000505:   DW_TAG_subprogram
+                DW_AT_name	("size")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000050b:   DW_TAG_subprogram
+                DW_AT_name	("data")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000511:   DW_TAG_subprogram
+                DW_AT_name	("RRUniformState")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000517:   DW_TAG_subprogram
+                DW_AT_name	("commit_pass")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000051d:   DW_TAG_subprogram
+                DW_AT_name	("commit")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000523:   DW_TAG_subprogram
+                DW_AT_name	("~Pass")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000529:   DW_TAG_subprogram
+                DW_AT_name	("updateRRUniforms")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000052f:   DW_TAG_subprogram
+                DW_AT_name	("size")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000535:   DW_TAG_subprogram
+                DW_AT_name	("data")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000053b:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x000009b3)
+                DW_AT_high_pc	(0x00001683)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("flush")
+
+0x00000548:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004cf "empty")
+                  DW_AT_low_pc	(0x000009cc)
+                  DW_AT_high_pc	(0x000009d3)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(187)
+                  DW_AT_call_column	(18)
+
+0x00000558:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000485 "empty")
+                  DW_AT_low_pc	(0x000009de)
+                  DW_AT_high_pc	(0x000009e9)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(189)
+                  DW_AT_call_column	(20)
+
+0x00000568:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004d5 "resize")
+                  DW_AT_ranges	(0x000000f8
+                     [0x00000a13, 0x00000b1a)
+                     [0x00000b70, 0x00000b77))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(202)
+                  DW_AT_call_column	(39)
+
+0x00000574:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000004db "data")
+                    DW_AT_low_pc	(0x00000a5a)
+                    DW_AT_high_pc	(0x00000a64)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\../Container\SVector.h")
+                    DW_AT_call_line	(117)
+                    DW_AT_call_column	(11)
+
+0x00000584:       NULL
+
+0x00000585:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004e1 "operator[]")
+                  DW_AT_low_pc	(0x00000b1c)
+                  DW_AT_high_pc	(0x00000b23)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(193)
+                  DW_AT_call_column	(17)
+
+0x00000595:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004e7 "size")
+                  DW_AT_low_pc	(0x00000b83)
+                  DW_AT_high_pc	(0x00000b8c)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(205)
+                  DW_AT_call_column	(34)
+
+0x000005a5:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004db "data")
+                  DW_AT_low_pc	(0x00000b8f)
+                  DW_AT_high_pc	(0x00000b94)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(213)
+                  DW_AT_call_column	(45)
+
+0x000005b5:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004ed "sort_inplace<shine::graphics::Renderer2D::Batch, BatchLess>")
+                  DW_AT_low_pc	(0x00000b94)
+                  DW_AT_high_pc	(0x00000e00)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(213)
+                  DW_AT_call_column	(9)
+
+0x000005c5:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000003fb "clear")
+                  DW_AT_low_pc	(0x00000e06)
+                  DW_AT_high_pc	(0x00000e0b)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(199)
+                  DW_AT_call_column	(23)
+
+0x000005d5:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004f3 "begin_pass")
+                  DW_AT_ranges	(0x00000110
+                     [0x00000e16, 0x00000e21)
+                     [0x00000e26, 0x00000e2d))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(216)
+                  DW_AT_call_column	(45)
+
+0x000005e1:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004f9 "push")
+                  DW_AT_ranges	(0x00000128
+                     [0x00000e21, 0x00000e26)
+                     [0x00000e2d, 0x00000e4d)
+                     [0x00000e59, 0x00000e8a))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(219)
+                  DW_AT_call_column	(10)
+
+0x000005ed:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000004ff "note_overflow")
+                    DW_AT_low_pc	(0x00000e3a)
+                    DW_AT_high_pc	(0x00000e4b)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x000005fd:       NULL
+
+0x000005fe:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004f9 "push")
+                  DW_AT_ranges	(0x00000148
+                     [0x00000e8f, 0x00000e92)
+                     [0x00000eb0, 0x00000eb7)
+                     [0x00000f0f, 0x00000f18))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(0)
+
+0x00000609:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000505 "size")
+                  DW_AT_low_pc	(0x00000e92)
+                  DW_AT_high_pc	(0x00000e99)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(220)
+                  DW_AT_call_column	(43)
+
+0x00000619:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004f9 "push")
+                  DW_AT_ranges	(0x00000168
+                     [0x00000eb7, 0x00000efa)
+                     [0x00000f01, 0x00000f0e))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(222)
+                  DW_AT_call_column	(14)
+
+0x00000625:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000004ff "note_overflow")
+                    DW_AT_low_pc	(0x00000ebd)
+                    DW_AT_high_pc	(0x00000ece)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x00000635:       NULL
+
+0x00000636:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000050b "data")
+                  DW_AT_low_pc	(0x00000efa)
+                  DW_AT_high_pc	(0x00000f01)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(222)
+                  DW_AT_call_column	(64)
+
+0x00000646:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004f9 "push")
+                  DW_AT_ranges	(0x00000180
+                     [0x00000f18, 0x00000f56)
+                     [0x00000f5d, 0x00000f68))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(224)
+                  DW_AT_call_column	(14)
+
+0x00000652:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000004ff "note_overflow")
+                    DW_AT_low_pc	(0x00000f1e)
+                    DW_AT_high_pc	(0x00000f2f)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x00000662:       NULL
+
+0x00000663:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000050b "data")
+                  DW_AT_low_pc	(0x00000f56)
+                  DW_AT_high_pc	(0x00000f5d)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(224)
+                  DW_AT_call_column	(57)
+
+0x00000673:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004f9 "push")
+                  DW_AT_ranges	(0x00000198
+                     [0x00000f79, 0x00000f98)
+                     [0x00000fa4, 0x00000fce))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(227)
+                  DW_AT_call_column	(10)
+
+0x0000067f:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000004ff "note_overflow")
+                    DW_AT_low_pc	(0x00000f85)
+                    DW_AT_high_pc	(0x00000f96)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x0000068f:       NULL
+
+0x00000690:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000511 "RRUniformState")
+                  DW_AT_low_pc	(0x00000fd3)
+                  DW_AT_high_pc	(0x00001037)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(233)
+                  DW_AT_call_column	(20)
+
+0x000006a0:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004e7 "size")
+                  DW_AT_low_pc	(0x0000105f)
+                  DW_AT_high_pc	(0x0000106a)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(240)
+                  DW_AT_call_column	(44)
+
+0x000006b0:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000003fb "clear")
+                  DW_AT_low_pc	(0x00001071)
+                  DW_AT_high_pc	(0x00001076)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(286)
+                  DW_AT_call_column	(15)
+
+0x000006c1:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000523 "~Pass")
+                  DW_AT_low_pc	(0x00001076)
+                  DW_AT_high_pc	(0x00001094)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(287)
+                  DW_AT_call_column	(1)
+
+0x000006d2:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x0000051d "commit")
+                    DW_AT_low_pc	(0x00001076)
+                    DW_AT_high_pc	(0x00001094)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(56)
+                    DW_AT_call_column	(19)
+
+0x000006e2:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x00000517 "commit_pass")
+                      DW_AT_low_pc	(0x00001076)
+                      DW_AT_high_pc	(0x00001094)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                      DW_AT_call_line	(79)
+                      DW_AT_call_column	(20)
+
+0x000006f2:         NULL
+
+0x000006f3:       NULL
+
+0x000006f4:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004e1 "operator[]")
+                  DW_AT_low_pc	(0x00001097)
+                  DW_AT_high_pc	(0x000010a2)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(241)
+                  DW_AT_call_column	(26)
+
+0x00000704:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004f9 "push")
+                  DW_AT_ranges	(0x000001b0
+                     [0x000010c3, 0x000010e2)
+                     [0x000010fe, 0x00001128))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(247)
+                  DW_AT_call_column	(18)
+
+0x00000710:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000004ff "note_overflow")
+                    DW_AT_low_pc	(0x000010cf)
+                    DW_AT_high_pc	(0x000010e0)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x00000720:       NULL
+
+0x00000721:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004f9 "push")
+                  DW_AT_ranges	(0x000001c8
+                     [0x00001142, 0x00001161)
+                     [0x00001174, 0x000011ac))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(252)
+                  DW_AT_call_column	(26)
+
+0x0000072d:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000004ff "note_overflow")
+                    DW_AT_low_pc	(0x0000114e)
+                    DW_AT_high_pc	(0x0000115f)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x0000073d:       NULL
+
+0x0000073e:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004f9 "push")
+                  DW_AT_ranges	(0x000001e0
+                     [0x000011d3, 0x000011f2)
+                     [0x000011fe, 0x0000122f))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(257)
+                  DW_AT_call_column	(26)
+
+0x0000074b:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000004ff "note_overflow")
+                    DW_AT_low_pc	(0x000011df)
+                    DW_AT_high_pc	(0x000011f0)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x0000075b:       NULL
+
+0x0000075c:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004f9 "push")
+                  DW_AT_ranges	(0x000001f8
+                     [0x00001249, 0x00001268)
+                     [0x00001274, 0x000012a5))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(263)
+                  DW_AT_call_column	(26)
+
+0x00000769:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000004ff "note_overflow")
+                    DW_AT_low_pc	(0x00001255)
+                    DW_AT_high_pc	(0x00001266)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x00000779:       NULL
+
+0x0000077a:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004f9 "push")
+                  DW_AT_ranges	(0x00000210
+                     [0x000012ae, 0x000012cd)
+                     [0x000012d9, 0x00001303))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(264)
+                  DW_AT_call_column	(26)
+
+0x00000787:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000004ff "note_overflow")
+                    DW_AT_low_pc	(0x000012ba)
+                    DW_AT_high_pc	(0x000012cb)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x00000797:       NULL
+
+0x00000798:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000529 "updateRRUniforms")
+                  DW_AT_low_pc	(0x00001320)
+                  DW_AT_high_pc	(0x00001576)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(272)
+                  DW_AT_call_column	(13)
+
+0x000007a9:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x0000052f "size")
+                    DW_AT_low_pc	(0x00001344)
+                    DW_AT_high_pc	(0x0000134f)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                    DW_AT_call_line	(463)
+                    DW_AT_call_column	(43)
+
+0x000007ba:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000535 "data")
+                    DW_AT_low_pc	(0x00001356)
+                    DW_AT_high_pc	(0x00001360)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                    DW_AT_call_line	(465)
+                    DW_AT_call_column	(28)
+
+0x000007cb:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000004f9 "push")
+                    DW_AT_low_pc	(0x00001512)
+                    DW_AT_high_pc	(0x00001560)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                    DW_AT_call_line	(503)
+                    DW_AT_call_column	(10)
+
+0x000007dc:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x000004ff "note_overflow")
+                      DW_AT_low_pc	(0x0000151e)
+                      DW_AT_high_pc	(0x0000152f)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                      DW_AT_call_line	(60)
+                      DW_AT_call_column	(35)
+
+0x000007ec:         NULL
+
+0x000007ed:       NULL
+
+0x000007ee:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004f9 "push")
+                  DW_AT_low_pc	(0x000015aa)
+                  DW_AT_high_pc	(0x000015fe)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(279)
+                  DW_AT_call_column	(23)
+
+0x000007ff:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000004ff "note_overflow")
+                    DW_AT_low_pc	(0x000015b6)
+                    DW_AT_high_pc	(0x000015c9)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x0000080f:       NULL
+
+0x00000810:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000004f9 "push")
+                  DW_AT_ranges	(0x00000228
+                     [0x0000160c, 0x0000162b)
+                     [0x0000163a, 0x00001662))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(283)
+                  DW_AT_call_column	(14)
+
+0x0000081d:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000004ff "note_overflow")
+                    DW_AT_low_pc	(0x00001618)
+                    DW_AT_high_pc	(0x00001629)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x0000082d:       NULL
+
+0x0000082e:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000865)
+                  DW_AT_low_pc	(0x00000a3b)
+
+0x00000837:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000484)
+                  DW_AT_low_pc	(0x00000a41)
+
+0x00000840:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000866)
+                  DW_AT_low_pc	(0x00000c4d)
+
+0x00000849:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000866)
+                  DW_AT_low_pc	(0x00000d07)
+
+0x00000852:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000866)
+                  DW_AT_low_pc	(0x00000d4d)
+
+0x0000085b:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000867 "__builtin_memcmp")
+                  DW_AT_low_pc	(0x00001340)
+
+0x00000864:     NULL
+
+0x00000865:   DW_TAG_subprogram
+
+0x00000866:   DW_TAG_subprogram
+
+0x00000867:   DW_TAG_subprogram
+                DW_AT_name	("__builtin_memcmp")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                DW_AT_decl_line	(164)
+                DW_AT_declaration	(true)
+                DW_AT_artificial	(true)
+                DW_AT_external	(true)
+
+0x0000086e:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x000016c8)
+                DW_AT_high_pc	(0x0000173d)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("allocVtx")
+
+0x0000087b:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000505 "size")
+                  DW_AT_low_pc	(0x000016c8)
+                  DW_AT_high_pc	(0x000016d2)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(291)
+                  DW_AT_call_column	(44)
+
+0x0000088c:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000407 "capacity")
+                  DW_AT_low_pc	(0x000016f3)
+                  DW_AT_high_pc	(0x000016fa)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(294)
+                  DW_AT_call_column	(25)
+
+0x0000089d:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000050b "data")
+                  DW_AT_low_pc	(0x00001731)
+                  DW_AT_high_pc	(0x0000173a)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(300)
+                  DW_AT_call_column	(21)
+
+0x000008ae:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000483)
+                  DW_AT_low_pc	(0x00001726)
+
+0x000008b7:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000008c1)
+                  DW_AT_low_pc	(0x00001731)
+
+0x000008c0:     NULL
+
+0x000008c1:   DW_TAG_subprogram
+
+0x000008c2:   DW_TAG_subprogram
+                DW_AT_name	("checkBatchRR")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000008c8:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00001caf)
+                DW_AT_high_pc	(0x00001fd9)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("drawRoundRect")
+
+0x000008d5:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000008c2 "checkBatchRR")
+                  DW_AT_low_pc	(0x00001e10)
+                  DW_AT_high_pc	(0x00001ed1)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                  DW_AT_call_line	(432)
+                  DW_AT_call_column	(5)
+
+0x000008e6:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000485 "empty")
+                    DW_AT_low_pc	(0x00001e10)
+                    DW_AT_high_pc	(0x00001e19)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                    DW_AT_call_line	(160)
+                    DW_AT_call_column	(20)
+
+0x000008f6:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x0000048b "back")
+                    DW_AT_ranges	(0x00000240
+                       [0x00001e1e, 0x00001e2f)
+                       [0x00001e3d, 0x00001e3e))
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp")
+                    DW_AT_call_line	(161)
+                    DW_AT_call_column	(33)
+
+0x00000902:       NULL
+
+0x00000903:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000086e "allocVtx")
+                  DW_AT_low_pc	(0x00001ce5)
+
+0x0000090c:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000867 "__builtin_memcmp")
+                  DW_AT_low_pc	(0x00001e65)
+
+0x00000915:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000004cd)
+                  DW_AT_low_pc	(0x00001e91)
+
+0x0000091e:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000004ce)
+                  DW_AT_low_pc	(0x00001ed1)
+
+0x00000927:     NULL
+
+0x00000928:   NULL
+0x00000929: Compile Unit: length = 0x00000051, format = DWARF32, version = 0x0004, abbr_offset = 0x01e1, addr_size = 0x04 (next unit at 0x0000097e)
+
+0x00000934: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\\texture_manager.cpp")
+              DW_AT_stmt_list	(0x00001ad6)
+              DW_AT_comp_dir	(".")
+              DW_AT_low_pc	(0x00000000)
+              DW_AT_ranges	(0x00000308
+                 [0x00001fda, 0x00001ff7)
+                 [0x00001ff9, 0x000020a2)
+                 [0x0000211a, 0x000021c0)
+                 [0x000021c1, 0x0000222f)
+                 [0x000020a3, 0x000020df)
+                 [0x000020e0, 0x00002118))
+
+0x0000094f:   DW_TAG_subprogram
+                DW_AT_name	("getCtx")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000955:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00001fda)
+                DW_AT_high_pc	(0x00001ff7)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("request_url")
+
+0x00000962:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000094f "getCtx")
+                  DW_AT_low_pc	(0x00001fdf)
+                  DW_AT_high_pc	(0x00001fe6)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\texture_manager.cpp")
+                  DW_AT_call_line	(15)
+                  DW_AT_call_column	(52)
+
+0x00000972:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000097c)
+                  DW_AT_low_pc	(0x00001ff6)
+
+0x0000097b:     NULL
+
+0x0000097c:   DW_TAG_subprogram
+
+0x0000097d:   NULL
+0x0000097e: Compile Unit: length = 0x00000320, format = DWARF32, version = 0x0004, abbr_offset = 0x022d, addr_size = 0x04 (next unit at 0x00000ca2)
+
+0x00000989: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src/ui\\ui_manager.cpp")
+              DW_AT_stmt_list	(0x00001e37)
+              DW_AT_comp_dir	(".")
+              DW_AT_low_pc	(0x00000000)
+              DW_AT_ranges	(0x00000370
+                 [0x00002230, 0x00002248)
+                 [0x0000224a, 0x000022d3)
+                 [0x00002328, 0x00002529)
+                 [0x0000252b, 0x000025af)
+                 [0x000025b0, 0x000025cb)
+                 [0x000022d4, 0x00002326)
+                 [0x000025cd, 0x0000270a)
+                 [0x0000273b, 0x000027be)
+                 [0x000027bf, 0x0000283b)
+                 [0x0000283c, 0x00002883)
+                 [0x00002885, 0x00002c90)
+                 [0x0000270b, 0x00002739))
+
+0x000009a4:   DW_TAG_subprogram
+                DW_AT_name	("clear")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000009aa:   DW_TAG_subprogram
+                DW_AT_name	("capacity")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000009b0:   DW_TAG_subprogram
+                DW_AT_name	("size")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000009b6:   DW_TAG_subprogram
+                DW_AT_name	("operator[]")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000009bc:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00002328)
+                DW_AT_high_pc	(0x00002529)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("rebuildVisible")
+
+0x000009c9:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009a4 "clear")
+                  DW_AT_low_pc	(0x00002360)
+                  DW_AT_high_pc	(0x00002367)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(24)
+                  DW_AT_call_column	(15)
+
+0x000009d9:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009aa "capacity")
+                  DW_AT_low_pc	(0x0000236a)
+                  DW_AT_high_pc	(0x00002371)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(25)
+                  DW_AT_call_column	(19)
+
+0x000009e9:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009b0 "size")
+                  DW_AT_low_pc	(0x00002371)
+                  DW_AT_high_pc	(0x00002376)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(25)
+                  DW_AT_call_column	(43)
+
+0x000009f9:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009b0 "size")
+                  DW_AT_low_pc	(0x000023ac)
+                  DW_AT_high_pc	(0x000023b6)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(33)
+                  DW_AT_call_column	(43)
+
+0x00000a09:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009a4 "clear")
+                  DW_AT_low_pc	(0x000023c0)
+                  DW_AT_high_pc	(0x000023ce)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(29)
+                  DW_AT_call_column	(19)
+
+0x00000a19:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009b0 "size")
+                  DW_AT_low_pc	(0x00002431)
+                  DW_AT_high_pc	(0x0000243b)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(56)
+                  DW_AT_call_column	(42)
+
+0x00000a29:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009b6 "operator[]")
+                  DW_AT_low_pc	(0x0000243e)
+                  DW_AT_high_pc	(0x00002446)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(57)
+                  DW_AT_call_column	(13)
+
+0x00000a39:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009b6 "operator[]")
+                  DW_AT_low_pc	(0x00002472)
+                  DW_AT_high_pc	(0x00002479)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(43)
+                  DW_AT_call_column	(22)
+
+0x00000a49:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009a4 "clear")
+                  DW_AT_low_pc	(0x00002519)
+                  DW_AT_high_pc	(0x0000251d)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(59)
+                  DW_AT_call_column	(13)
+
+0x00000a59:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000a7e "applyResize")
+                  DW_AT_low_pc	(0x0000235b)
+
+0x00000a62:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000aac)
+                  DW_AT_low_pc	(0x00002385)
+
+0x00000a6b:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000aad)
+                  DW_AT_low_pc	(0x000024f1)
+
+0x00000a74:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000aae "addToBins")
+                  DW_AT_low_pc	(0x00002502)
+
+0x00000a7d:     NULL
+
+0x00000a7e:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x0000252b)
+                DW_AT_high_pc	(0x000025af)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("applyResize")
+
+0x00000a8b:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009b0 "size")
+                  DW_AT_low_pc	(0x0000254a)
+                  DW_AT_high_pc	(0x00002555)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(111)
+                  DW_AT_call_column	(43)
+
+0x00000a9b:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009b6 "operator[]")
+                  DW_AT_low_pc	(0x00002568)
+                  DW_AT_high_pc	(0x0000256f)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(113)
+                  DW_AT_call_column	(22)
+
+0x00000aab:     NULL
+
+0x00000aac:   DW_TAG_subprogram
+
+0x00000aad:   DW_TAG_subprogram
+
+0x00000aae:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x000025cd)
+                DW_AT_high_pc	(0x0000270a)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("addToBins")
+
+0x00000abb:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000b05 "clampi")
+                  DW_AT_low_pc	(0x00002629)
+                  DW_AT_high_pc	(0x0000263b)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(222)
+                  DW_AT_call_column	(15)
+
+0x00000acb:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000b05 "clampi")
+                  DW_AT_low_pc	(0x00002645)
+                  DW_AT_high_pc	(0x00002659)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(221)
+                  DW_AT_call_column	(15)
+
+0x00000adb:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000b05 "clampi")
+                  DW_AT_low_pc	(0x0000267e)
+                  DW_AT_high_pc	(0x00002690)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(220)
+                  DW_AT_call_column	(15)
+
+0x00000aeb:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000b05 "clampi")
+                  DW_AT_low_pc	(0x0000269a)
+                  DW_AT_high_pc	(0x000026b3)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(219)
+                  DW_AT_call_column	(15)
+
+0x00000afb:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000aad)
+                  DW_AT_low_pc	(0x000026f2)
+
+0x00000b04:     NULL
+
+0x00000b05:   DW_TAG_subprogram
+                DW_AT_name	("clampi")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000b0b:   DW_TAG_subprogram
+                DW_AT_name	("erase_unordered_at")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000b11:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x0000273b)
+                DW_AT_high_pc	(0x000027be)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("erase_first_unordered")
+
+0x00000b1e:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000b0b "erase_unordered_at")
+                  DW_AT_low_pc	(0x0000277a)
+                  DW_AT_high_pc	(0x000027a9)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\../Container\SVector.h")
+                  DW_AT_call_line	(170)
+                  DW_AT_call_column	(50)
+
+0x00000b2e:     NULL
+
+0x00000b2f:   DW_TAG_subprogram
+                DW_AT_low_pc	(dead code)
+                DW_AT_high_pc	(0x00000020)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("clear")
+
+0x00000b3c:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009a4 "clear")
+                  DW_AT_low_pc	(dead code)
+                  DW_AT_high_pc	(0x00000008)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(137)
+                  DW_AT_call_column	(13)
+
+0x00000b4c:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009a4 "clear")
+                  DW_AT_low_pc	(dead code)
+                  DW_AT_high_pc	(0x00000007)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(136)
+                  DW_AT_call_column	(15)
+
+0x00000b5c:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009a4 "clear")
+                  DW_AT_low_pc	(dead code)
+                  DW_AT_high_pc	(0x00000007)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(135)
+                  DW_AT_call_column	(16)
+
+0x00000b6c:     NULL
+
+0x00000b6d:   DW_TAG_subprogram
+                DW_AT_name	("empty")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000b73:   DW_TAG_subprogram
+                DW_AT_name	("rebuildDirty")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000b79:   DW_TAG_subprogram
+                DW_AT_name	("binIndex")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000b7f:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00002885)
+                DW_AT_high_pc	(0x00002c90)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("onPointer")
+
+0x00000b8c:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000b6d "empty")
+                  DW_AT_low_pc	(0x000028a1)
+                  DW_AT_high_pc	(0x000028a8)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(162)
+                  DW_AT_call_column	(20)
+
+0x00000b9c:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000b73 "rebuildDirty")
+                  DW_AT_low_pc	(0x000028c7)
+                  DW_AT_high_pc	(0x00002a6a)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(163)
+                  DW_AT_call_column	(46)
+
+0x00000bac:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000b6d "empty")
+                    DW_AT_low_pc	(0x000028ea)
+                    DW_AT_high_pc	(0x000028f2)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                    DW_AT_call_line	(74)
+                    DW_AT_call_column	(17)
+
+0x00000bbc:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000009a4 "clear")
+                    DW_AT_low_pc	(0x00002966)
+                    DW_AT_high_pc	(0x0000296c)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                    DW_AT_call_line	(96)
+                    DW_AT_call_column	(13)
+
+0x00000bcc:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000009b6 "operator[]")
+                    DW_AT_low_pc	(0x0000296d)
+                    DW_AT_high_pc	(0x0000297b)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                    DW_AT_call_line	(80)
+                    DW_AT_call_column	(22)
+
+0x00000bdc:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000009b0 "size")
+                    DW_AT_low_pc	(0x00002a56)
+                    DW_AT_high_pc	(0x00002a5e)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                    DW_AT_call_line	(79)
+                    DW_AT_call_column	(42)
+
+0x00000bec:       NULL
+
+0x00000bed:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009b0 "size")
+                  DW_AT_low_pc	(0x00002a73)
+                  DW_AT_high_pc	(0x00002a83)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(164)
+                  DW_AT_call_column	(50)
+
+0x00000bfd:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000b79 "binIndex")
+                  DW_AT_ranges	(0x00000358
+                     [0x00002abb, 0x00002abe)
+                     [0x00002ad2, 0x00002b19))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(171)
+                  DW_AT_call_column	(33)
+
+0x00000c09:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000b05 "clampi")
+                    DW_AT_low_pc	(0x00002ae5)
+                    DW_AT_high_pc	(0x00002af3)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                    DW_AT_call_line	(234)
+                    DW_AT_call_column	(14)
+
+0x00000c19:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000b05 "clampi")
+                    DW_AT_low_pc	(0x00002b06)
+                    DW_AT_high_pc	(0x00002b14)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                    DW_AT_call_line	(233)
+                    DW_AT_call_column	(14)
+
+0x00000c29:       NULL
+
+0x00000c2a:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009b0 "size")
+                  DW_AT_low_pc	(0x00002b2b)
+                  DW_AT_high_pc	(0x00002b34)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(174)
+                  DW_AT_call_column	(43)
+
+0x00000c3a:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009b6 "operator[]")
+                  DW_AT_low_pc	(0x00002b43)
+                  DW_AT_high_pc	(0x00002b4a)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(175)
+                  DW_AT_call_column	(38)
+
+0x00000c4a:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009b6 "operator[]")
+                  DW_AT_low_pc	(0x00002b9c)
+                  DW_AT_high_pc	(0x00002ba3)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(186)
+                  DW_AT_call_column	(34)
+
+0x00000c5a:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000009b6 "operator[]")
+                  DW_AT_low_pc	(0x00002c44)
+                  DW_AT_high_pc	(0x00002c4b)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                  DW_AT_call_line	(206)
+                  DW_AT_call_column	(22)
+
+0x00000c6a:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000a7e "applyResize")
+                  DW_AT_low_pc	(0x000028e2)
+
+0x00000c73:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000b11 "erase_first_unordered")
+                  DW_AT_low_pc	(0x000029a5)
+
+0x00000c7c:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000aad)
+                  DW_AT_low_pc	(0x00002a20)
+
+0x00000c85:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000aae "addToBins")
+                  DW_AT_low_pc	(0x00002a31)
+
+0x00000c8e:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000b11 "erase_first_unordered")
+                  DW_AT_low_pc	(0x00002a44)
+
+0x00000c97:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000009bc "rebuildVisible")
+                  DW_AT_low_pc	(0x00002a6a)
+
+0x00000ca0:     NULL
+
+0x00000ca1:   NULL
+0x00000ca2: Compile Unit: length = 0x00000161, format = DWARF32, version = 0x0004, abbr_offset = 0x0299, addr_size = 0x04 (next unit at 0x00000e07)
+
+0x00000cad: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src/engine\\engine.cpp")
+              DW_AT_stmt_list	(0x000026c4)
+              DW_AT_comp_dir	(".")
+              DW_AT_low_pc	(0x00000000)
+              DW_AT_ranges	(0x00000438
+                 [0x00002c91, 0x00002d0c)
+                 [0x00002d0e, 0x00002d96)
+                 [0x00002d98, 0x00003073))
+
+0x00000cc8:   DW_TAG_subprogram
+                DW_AT_name	("tick")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000cce:   DW_TAG_subprogram
+                DW_AT_name	("raw_free")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000cd4:   DW_TAG_subprogram
+                DW_AT_name	("cmd_reset")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000cda:   DW_TAG_subprogram
+                DW_AT_name	("begin_pass")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000ce0:   DW_TAG_subprogram
+                DW_AT_name	("push")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000ce6:   DW_TAG_subprogram
+                DW_AT_name	("note_overflow")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000cec:   DW_TAG_subprogram
+                DW_AT_name	("commit_pass")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000cf2:   DW_TAG_subprogram
+                DW_AT_name	("commit")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000cf8:   DW_TAG_subprogram
+                DW_AT_name	("~Pass")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000cfe:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00002d98)
+                DW_AT_high_pc	(0x00003073)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("frame")
+
+0x00000d0b:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000cc8 "tick")
+                  DW_AT_ranges	(0x000003e8
+                     [0x00002dbe, 0x00002dc9)
+                     [0x00002dcc, 0x00002e85))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\engine.cpp")
+                  DW_AT_call_line	(70)
+                  DW_AT_call_column	(14)
+
+0x00000d17:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000cce "raw_free")
+                    DW_AT_low_pc	(0x00002dee)
+                    DW_AT_high_pc	(0x00002df8)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\../util\timer.h")
+                    DW_AT_call_line	(117)
+                    DW_AT_call_column	(9)
+
+0x00000d27:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000cce "raw_free")
+                    DW_AT_low_pc	(0x00002e4a)
+                    DW_AT_high_pc	(0x00002e54)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\../util\timer.h")
+                    DW_AT_call_line	(130)
+                    DW_AT_call_column	(11)
+
+0x00000d37:       NULL
+
+0x00000d38:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000cd4 "cmd_reset")
+                  DW_AT_low_pc	(0x00002e85)
+                  DW_AT_high_pc	(0x00002e91)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\engine.cpp")
+                  DW_AT_call_line	(73)
+                  DW_AT_call_column	(5)
+
+0x00000d48:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000cda "begin_pass")
+                  DW_AT_ranges	(0x00000400
+                     [0x00002ea7, 0x00002eb2)
+                     [0x00002eb7, 0x00002ebe))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\engine.cpp")
+                  DW_AT_call_line	(78)
+                  DW_AT_call_column	(45)
+
+0x00000d54:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000ce0 "push")
+                  DW_AT_ranges	(0x00000418
+                     [0x00002eb2, 0x00002eb7)
+                     [0x00002ebe, 0x00002eda)
+                     [0x00002ee6, 0x00002f0d))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\engine.cpp")
+                  DW_AT_call_line	(81)
+                  DW_AT_call_column	(10)
+
+0x00000d60:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000ce6 "note_overflow")
+                    DW_AT_low_pc	(0x00002ec7)
+                    DW_AT_high_pc	(0x00002ed8)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x00000d70:       NULL
+
+0x00000d71:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000ce0 "push")
+                  DW_AT_low_pc	(0x00002f16)
+                  DW_AT_high_pc	(0x00002f71)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\engine.cpp")
+                  DW_AT_call_line	(84)
+                  DW_AT_call_column	(10)
+
+0x00000d81:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000ce6 "note_overflow")
+                    DW_AT_low_pc	(0x00002f22)
+                    DW_AT_high_pc	(0x00002f33)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x00000d91:       NULL
+
+0x00000d92:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000ce0 "push")
+                  DW_AT_low_pc	(0x00002f7a)
+                  DW_AT_high_pc	(0x00002fc7)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\engine.cpp")
+                  DW_AT_call_line	(85)
+                  DW_AT_call_column	(10)
+
+0x00000da2:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000ce6 "note_overflow")
+                    DW_AT_low_pc	(0x00002f86)
+                    DW_AT_high_pc	(0x00002f97)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(35)
+
+0x00000db2:       NULL
+
+0x00000db3:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000000000000e25 "end")
+                  DW_AT_low_pc	(0x00003008)
+                  DW_AT_high_pc	(0x00003014)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\engine.cpp")
+                  DW_AT_call_line	(93)
+                  DW_AT_call_column	(38)
+
+0x00000dc3:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000cf8 "~Pass")
+                  DW_AT_low_pc	(0x00003048)
+                  DW_AT_high_pc	(0x00003066)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\engine.cpp")
+                  DW_AT_call_line	(102)
+                  DW_AT_call_column	(1)
+
+0x00000dd3:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000cf2 "commit")
+                    DW_AT_low_pc	(0x00003048)
+                    DW_AT_high_pc	(0x00003066)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h")
+                    DW_AT_call_line	(56)
+                    DW_AT_call_column	(19)
+
+0x00000de3:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x00000cec "commit_pass")
+                      DW_AT_low_pc	(0x00003048)
+                      DW_AT_high_pc	(0x00003066)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h")
+                      DW_AT_call_line	(79)
+                      DW_AT_call_column	(20)
+
+0x00000df3:         NULL
+
+0x00000df4:       NULL
+
+0x00000df5:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00000dff "gl_submit")
+                  DW_AT_low_pc	(0x00003039)
+
+0x00000dfe:     NULL
+
+0x00000dff:   DW_TAG_subprogram
+                DW_AT_name	("gl_submit")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/engine\../graphics\gl_api.h")
+                DW_AT_decl_line	(58)
+                DW_AT_declaration	(true)
+                DW_AT_external	(true)
+
+0x00000e06:   NULL
+0x00000e07: Compile Unit: length = 0x00000021, format = DWARF32, version = 0x0004, abbr_offset = 0x0299, addr_size = 0x04 (next unit at 0x00000e2c)
+
+0x00000e12: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\\renderer_2d.cpp")
+              DW_AT_stmt_list	(0x00002add)
+              DW_AT_comp_dir	(".")
+
+0x00000e25:   DW_TAG_subprogram
+                DW_AT_name	("end")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000e2b:   NULL
+0x00000e2c: Compile Unit: length = 0x00001205, format = DWARF32, version = 0x0004, abbr_offset = 0x033e, addr_size = 0x04 (next unit at 0x00002035)
+
+0x00000e37: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp")
+              DW_AT_stmt_list	(0x00002afb)
+              DW_AT_comp_dir	(".")
+              DW_AT_low_pc	(0x00000000)
+              DW_AT_ranges	(0x00000710
+                 [0x00003075, 0x0000366f)
+                 [0x000036f0, 0x00003721)
+                 [0x000036cb, 0x000036ef)
+                 [0x00003697, 0x000036ca)
+                 [0x00003670, 0x00003696)
+                 [0x0000379b, 0x00003803)
+                 [0x00003805, 0x0000389c)
+                 [0x000038c3, 0x0000393b)
+                 [0x00003a19, 0x00003a87)
+                 [0x00003a91, 0x00003aea)
+                 [0x00003aeb, 0x00003b0d)
+                 [0x00003cde, 0x00003ce0)
+                 [0x00003ce2, 0x00003fce)
+                 [0x00004040, 0x00004105)
+                 [0x00004107, 0x00004285)
+                 [0x00003722, 0x00003777)
+                 [0x00003778, 0x0000379a)
+                 [0x00004286, 0x0000429c)
+                 [0x0000429d, 0x000042ad)
+                 [0x000042ae, 0x000042d8)
+                 [0x000042da, 0x00004380)
+                 [0x00004403, 0x0000445f)
+                 [0x00004616, 0x00004626)
+                 [0x0000389d, 0x000038c2)
+                 [0x00004627, 0x00004685)
+                 [0x00003c23, 0x00003ca0)
+                 [0x00003b0e, 0x00003b72)
+                 [0x00004686, 0x00004690)
+                 [0x00003ca1, 0x00003cdd)
+                 [0x00004691, 0x000046eb)
+                 [0x000046ed, 0x00004813)
+                 [0x00004814, 0x00004822)
+                 [0x0000496f, 0x00004aba)
+                 [0x00004abb, 0x00004ac5)
+                 [0x00004ac6, 0x00004acf)
+                 [0x00004ad0, 0x00004b0f)
+                 [0x00004824, 0x0000496d)
+                 [0x00004b10, 0x00004b12)
+                 [0x00003a8e, 0x00003a90)
+                 [0x00003a8b, 0x00003a8d)
+                 [0x00003a88, 0x00003a8a)
+                 [0x00004b13, 0x00004b17)
+                 [0x00004b18, 0x00004b22)
+                 [0x00004b23, 0x00004b31)
+                 [0x00004b32, 0x00004b65)
+                 [0x00003fcf, 0x00003fea)
+                 [0x00003bb0, 0x00003c22)
+                 [0x00003feb, 0x0000403e)
+                 [0x00004381, 0x000043c9)
+                 [0x000043ca, 0x00004402)
+                 [0x00003b73, 0x00003baf)
+                 [0x00004b66, 0x00004bd7)
+                 [0x0000448b, 0x00004615)
+                 [0x00004c69, 0x00004c79)
+                 [0x00004c7a, 0x00004c7e)
+                 [0x00004c7f, 0x00004caa)
+                 [0x00004bd9, 0x00004c68)
+                 [0x00004cab, 0x00004cae)
+                 [0x00004caf, 0x00004cb3)
+                 [0x00004460, 0x00004489)
+                 [0x00003968, 0x00003a18)
+                 [0x0000393c, 0x00003966)
+                 [0x00004cb4, 0x00004cc4)
+                 [0x00004cc5, 0x00004cc9)
+                 [0x00004cca, 0x00004d12)
+                 [0x00004d13, 0x00004d15)
+                 [0x00004d16, 0x00004d18)
+                 [0x00004d19, 0x00004d1b)
+                 [0x00004d1c, 0x00004d1e)
+                 [0x00004d1f, 0x00004d21)
+                 [0x00004d22, 0x00004d32)
+                 [0x00004d34, 0x00004f25)
+                 [0x00004f27, 0x000050a0)
+                 [0x000050a1, 0x000050b1)
+                 [0x000050b3, 0x00005183))
+
+0x00000e52:   DW_TAG_variable
+                DW_AT_specification	(0x00000e67 "_vtable$")
+                DW_AT_alignment	(4)
+                DW_AT_location	(DW_OP_addr 0xf00)
+                DW_AT_linkage_name	("_ZTV8DemoGame")
+
+0x00000e62:   DW_TAG_class_type
+                DW_AT_name	("DemoGame")
+                DW_AT_declaration	(true)
+
+0x00000e67:     DW_TAG_member
+                  DW_AT_name	("_vtable$")
+                  DW_AT_type	(0x00000e71 "void *")
+                  DW_AT_external	(true)
+                  DW_AT_declaration	(true)
+                  DW_AT_artificial	(true)
+
+0x00000e70:     NULL
+
+0x00000e71:   DW_TAG_pointer_type
+
+0x00000e72:   DW_TAG_variable
+                DW_AT_specification	(0x00000e91 "_vtable$")
+                DW_AT_alignment	(4)
+                DW_AT_location	(DW_OP_addr 0xf24)
+                DW_AT_linkage_name	("_ZTVN5shine2ui6ButtonE")
+
+0x00000e82:   DW_TAG_namespace
+                DW_AT_name	("shine")
+
+0x00000e87:     DW_TAG_namespace
+                  DW_AT_name	("ui")
+
+0x00000e8c:       DW_TAG_class_type
+                    DW_AT_name	("Button")
+                    DW_AT_declaration	(true)
+
+0x00000e91:         DW_TAG_member
+                      DW_AT_name	("_vtable$")
+                      DW_AT_type	(0x00000e71 "void *")
+                      DW_AT_external	(true)
+                      DW_AT_declaration	(true)
+                      DW_AT_artificial	(true)
+
+0x00000e9a:         NULL
+
+0x00000e9b:       DW_TAG_class_type
+                    DW_AT_name	("Element")
+                    DW_AT_declaration	(true)
+
+0x00000ea0:         DW_TAG_member
+                      DW_AT_name	("_vtable$")
+                      DW_AT_type	(0x00000e71 "void *")
+                      DW_AT_external	(true)
+                      DW_AT_declaration	(true)
+                      DW_AT_artificial	(true)
+
+0x00000ea9:         NULL
+
+0x00000eaa:       DW_TAG_class_type
+                    DW_AT_name	("Image")
+                    DW_AT_declaration	(true)
+
+0x00000eaf:         DW_TAG_member
+                      DW_AT_name	("_vtable$")
+                      DW_AT_type	(0x00000e71 "void *")
+                      DW_AT_external	(true)
+                      DW_AT_declaration	(true)
+                      DW_AT_artificial	(true)
+
+0x00000eb8:         NULL
+
+0x00000eb9:       NULL
+
+0x00000eba:     DW_TAG_namespace
+                  DW_AT_name	("game")
+
+0x00000ebf:       DW_TAG_class_type
+                    DW_AT_name	("Node")
+                    DW_AT_declaration	(true)
+
+0x00000ec4:         DW_TAG_member
+                      DW_AT_name	("_vtable$")
+                      DW_AT_type	(0x00000e71 "void *")
+                      DW_AT_external	(true)
+                      DW_AT_declaration	(true)
+                      DW_AT_artificial	(true)
+
+0x00000ecd:         NULL
+
+0x00000ece:       DW_TAG_class_type
+                    DW_AT_name	("Object")
+                    DW_AT_declaration	(true)
+
+0x00000ed3:         DW_TAG_member
+                      DW_AT_name	("_vtable$")
+                      DW_AT_type	(0x00000e71 "void *")
+                      DW_AT_external	(true)
+                      DW_AT_declaration	(true)
+                      DW_AT_artificial	(true)
+
+0x00000edc:         NULL
+
+0x00000edd:       DW_TAG_class_type
+                    DW_AT_name	("Transform")
+                    DW_AT_declaration	(true)
+
+0x00000ee2:         DW_TAG_member
+                      DW_AT_name	("_vtable$")
+                      DW_AT_type	(0x00000e71 "void *")
+                      DW_AT_external	(true)
+                      DW_AT_declaration	(true)
+                      DW_AT_artificial	(true)
+
+0x00000eeb:         NULL
+
+0x00000eec:       DW_TAG_class_type
+                    DW_AT_name	("SpriteRenderer")
+                    DW_AT_declaration	(true)
+
+0x00000ef1:         DW_TAG_member
+                      DW_AT_name	("_vtable$")
+                      DW_AT_type	(0x00000e71 "void *")
+                      DW_AT_external	(true)
+                      DW_AT_declaration	(true)
+                      DW_AT_artificial	(true)
+
+0x00000efa:         NULL
+
+0x00000efb:       NULL
+
+0x00000efc:     NULL
+
+0x00000efd:   DW_TAG_variable
+                DW_AT_specification	(0x00000ea0 "_vtable$")
+                DW_AT_alignment	(4)
+                DW_AT_location	(DW_OP_addr 0xf48)
+                DW_AT_linkage_name	("_ZTVN5shine2ui7ElementE")
+
+0x00000f0d:   DW_TAG_variable
+                DW_AT_specification	(0x00000eaf "_vtable$")
+                DW_AT_alignment	(4)
+                DW_AT_location	(DW_OP_addr 0xfe8)
+                DW_AT_linkage_name	("_ZTVN5shine2ui5ImageE")
+
+0x00000f1d:   DW_TAG_variable
+                DW_AT_specification	(0x00000f2c "_vtable$")
+                DW_AT_alignment	(4)
+                DW_AT_linkage_name	("_ZTV4Game")
+
+0x00000f27:   DW_TAG_class_type
+                DW_AT_name	("Game")
+                DW_AT_declaration	(true)
+
+0x00000f2c:     DW_TAG_member
+                  DW_AT_name	("_vtable$")
+                  DW_AT_type	(0x00000e71 "void *")
+                  DW_AT_external	(true)
+                  DW_AT_declaration	(true)
+                  DW_AT_artificial	(true)
+
+0x00000f35:     NULL
+
+0x00000f36:   DW_TAG_variable
+                DW_AT_specification	(0x00000ec4 "_vtable$")
+                DW_AT_alignment	(4)
+                DW_AT_location	(DW_OP_addr 0x100c)
+                DW_AT_linkage_name	("_ZTVN5shine4game4NodeE")
+
+0x00000f46:   DW_TAG_variable
+                DW_AT_specification	(0x00000ed3 "_vtable$")
+                DW_AT_alignment	(4)
+                DW_AT_location	(DW_OP_addr 0x1024)
+                DW_AT_linkage_name	("_ZTVN5shine4game6ObjectE")
+
+0x00000f56:   DW_TAG_variable
+                DW_AT_specification	(0x00000ee2 "_vtable$")
+                DW_AT_alignment	(4)
+                DW_AT_location	(DW_OP_addr 0x103c)
+                DW_AT_linkage_name	("_ZTVN5shine4game9TransformE")
+
+0x00000f66:   DW_TAG_variable
+                DW_AT_specification	(0x00000ef1 "_vtable$")
+                DW_AT_alignment	(4)
+                DW_AT_location	(DW_OP_addr 0x1068)
+                DW_AT_linkage_name	("_ZTVN5shine4game14SpriteRendererE")
+
+0x00000f76:   DW_TAG_variable
+                DW_AT_specification	(0x00000f8b "_vtable$")
+                DW_AT_alignment	(4)
+                DW_AT_location	(DW_OP_addr 0x1094)
+                DW_AT_linkage_name	("_ZTV11KillOnClick")
+
+0x00000f86:   DW_TAG_structure_type
+                DW_AT_name	("KillOnClick")
+                DW_AT_declaration	(true)
+
+0x00000f8b:     DW_TAG_member
+                  DW_AT_name	("_vtable$")
+                  DW_AT_type	(0x00000e71 "void *")
+                  DW_AT_external	(true)
+                  DW_AT_declaration	(true)
+                  DW_AT_artificial	(true)
+                  DW_AT_accessibility	(DW_ACCESS_private)
+
+0x00000f95:     NULL
+
+0x00000f96:   DW_TAG_subprogram
+                DW_AT_name	("add_pass")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000f9c:   DW_TAG_subprogram
+                DW_AT_name	("add_default_passes")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000fa2:   DW_TAG_subprogram
+                DW_AT_name	("getCtx")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000fa8:   DW_TAG_subprogram
+                DW_AT_name	("SArray")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000fae:   DW_TAG_subprogram
+                DW_AT_name	("ensure_buffer")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000fb4:   DW_TAG_subprogram
+                DW_AT_name	("raw_malloc")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000fba:   DW_TAG_subprogram
+                DW_AT_name	("ensure_instanced")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000fc0:   DW_TAG_subprogram
+                DW_AT_name	("setPosition")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000fc6:   DW_TAG_subprogram
+                DW_AT_name	("setSize")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000fcc:   DW_TAG_subprogram
+                DW_AT_name	("addComponent<KillOnClick>")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000fd2:   DW_TAG_subprogram
+                DW_AT_name	("KillOnClick")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000fd8:   DW_TAG_subprogram
+                DW_AT_name	("setTypeId<KillOnClick>")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000fde:   DW_TAG_subprogram
+                DW_AT_name	("bindUnHoverEvent")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000fe4:   DW_TAG_subprogram
+                DW_AT_name	("bindHoverEvent")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000fea:   DW_TAG_subprogram
+                DW_AT_name	("bindOnClick")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000ff0:   DW_TAG_subprogram
+                DW_AT_name	("setBgUrl")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000ff6:   DW_TAG_subprogram
+                DW_AT_name	("setAlignment")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00000ffc:   DW_TAG_subprogram
+                DW_AT_name	("setLayoutPx")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001002:   DW_TAG_subprogram
+                DW_AT_name	("setAnchors")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001008:   DW_TAG_subprogram
+                DW_AT_name	("setAnchorPoint")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000100e:   DW_TAG_subprogram
+                DW_AT_name	("Image")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001014:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00003075)
+                DW_AT_high_pc	(0x0000366f)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("onInit")
+
+0x00001021:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000000000002059 "clear")
+                  DW_AT_ranges	(0x00000468
+                     [0x00003089, 0x0000308b)
+                     [0x00003114, 0x00003118)
+                     [0x0000314c, 0x00003150)
+                     [0x00003153, 0x00003155)
+                     [0x000031be, 0x000031c2)
+                     [0x00003272, 0x00003276)
+                     [0x00003332, 0x00003336)
+                     [0x00003385, 0x00003389)
+                     [0x000033e0, 0x000033e4)
+                     [0x0000341d, 0x00003449)
+                     [0x00003499, 0x0000349d)
+                     [0x00003549, 0x0000354f)
+                     [0x0000359a, 0x000035a0)
+                     [0x000035e5, 0x000035e9)
+                     [0x00003655, 0x0000365b))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(191)
+                  DW_AT_call_column	(38)
+
+0x0000102d:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x0000000000002053 "clear")
+                    DW_AT_ranges	(0x000004e8
+                       [0x00003089, 0x0000308b)
+                       [0x00003114, 0x00003118)
+                       [0x0000314c, 0x00003150)
+                       [0x00003153, 0x00003155)
+                       [0x000031be, 0x000031c2)
+                       [0x00003272, 0x00003276)
+                       [0x00003332, 0x00003336)
+                       [0x00003385, 0x00003389)
+                       [0x000033e0, 0x000033e4)
+                       [0x0000341d, 0x00003421)
+                       [0x00003428, 0x0000342c)
+                       [0x00003433, 0x00003437)
+                       [0x0000343e, 0x00003449)
+                       [0x00003499, 0x0000349d)
+                       [0x00003549, 0x0000354f)
+                       [0x0000359a, 0x000035a0)
+                       [0x000035e5, 0x000035e9)
+                       [0x00003655, 0x0000365b))
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                    DW_AT_call_line	(135)
+                    DW_AT_call_column	(16)
+
+0x00001039:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x0000000000002053 "clear")
+                    DW_AT_low_pc	(0x0000342c)
+                    DW_AT_high_pc	(0x00003433)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                    DW_AT_call_line	(137)
+                    DW_AT_call_column	(13)
+
+0x00001049:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x0000000000002053 "clear")
+                    DW_AT_low_pc	(0x00003437)
+                    DW_AT_high_pc	(0x0000343e)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp")
+                    DW_AT_call_line	(136)
+                    DW_AT_call_column	(15)
+
+0x00001059:       NULL
+
+0x0000105a:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000f9c "add_default_passes")
+                  DW_AT_ranges	(0x00000580
+                     [0x00003098, 0x00003114)
+                     [0x00003118, 0x0000311c)
+                     [0x00003162, 0x0000316e))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(127)
+                  DW_AT_call_column	(14)
+
+0x00001066:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000f96 "add_pass")
+                    DW_AT_ranges	(0x000005a0
+                       [0x00003098, 0x000030a0)
+                       [0x00003162, 0x0000316e))
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h")
+                    DW_AT_call_line	(62)
+                    DW_AT_call_column	(9)
+
+0x00001072:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000f96 "add_pass")
+                    DW_AT_low_pc	(0x000030a0)
+                    DW_AT_high_pc	(0x000030b0)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h")
+                    DW_AT_call_line	(61)
+                    DW_AT_call_column	(9)
+
+0x00001082:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000f96 "add_pass")
+                    DW_AT_low_pc	(0x000030b0)
+                    DW_AT_high_pc	(0x000030c0)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(9)
+
+0x00001092:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000f96 "add_pass")
+                    DW_AT_low_pc	(0x000030c0)
+                    DW_AT_high_pc	(0x000030d0)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h")
+                    DW_AT_call_line	(59)
+                    DW_AT_call_column	(9)
+
+0x000010a2:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000f96 "add_pass")
+                    DW_AT_low_pc	(0x000030d0)
+                    DW_AT_high_pc	(0x000030e0)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h")
+                    DW_AT_call_line	(58)
+                    DW_AT_call_column	(9)
+
+0x000010b2:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000f96 "add_pass")
+                    DW_AT_low_pc	(0x000030e0)
+                    DW_AT_high_pc	(0x000030f0)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h")
+                    DW_AT_call_line	(57)
+                    DW_AT_call_column	(9)
+
+0x000010c2:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000f96 "add_pass")
+                    DW_AT_low_pc	(0x000030f0)
+                    DW_AT_high_pc	(0x00003100)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h")
+                    DW_AT_call_line	(56)
+                    DW_AT_call_column	(9)
+
+0x000010d2:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000f96 "add_pass")
+                    DW_AT_low_pc	(0x00003100)
+                    DW_AT_high_pc	(0x00003110)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h")
+                    DW_AT_call_line	(55)
+                    DW_AT_call_column	(9)
+
+0x000010e2:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000f96 "add_pass")
+                    DW_AT_ranges	(0x000005b8
+                       [0x00003110, 0x00003114)
+                       [0x00003118, 0x0000311c))
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h")
+                    DW_AT_call_line	(54)
+                    DW_AT_call_column	(9)
+
+0x000010ee:       NULL
+
+0x000010ef:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000fa2 "getCtx")
+                  DW_AT_low_pc	(0x00003155)
+                  DW_AT_high_pc	(0x00003162)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(120)
+                  DW_AT_call_column	(28)
+
+0x000010ff:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000fae "ensure_buffer")
+                  DW_AT_ranges	(0x000005d0
+                     [0x00003282, 0x000032b7)
+                     [0x000032c0, 0x000032c9))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(165)
+                  DW_AT_call_column	(5)
+
+0x0000110b:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000fa8 "SArray")
+                    DW_AT_low_pc	(0x00003282)
+                    DW_AT_high_pc	(0x00003299)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                    DW_AT_call_line	(273)
+                    DW_AT_call_column	(11)
+
+0x0000111c:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x00000fb4 "raw_malloc")
+                      DW_AT_low_pc	(0x0000328b)
+                      DW_AT_high_pc	(0x00003291)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\../graphics\../Container\SArray.h")
+                      DW_AT_call_line	(25)
+                      DW_AT_call_column	(14)
+
+0x0000112c:         NULL
+
+0x0000112d:       NULL
+
+0x0000112e:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000fba "ensure_instanced")
+                  DW_AT_ranges	(0x000005e8
+                     [0x000032b7, 0x000032c0)
+                     [0x000032c9, 0x000032ff))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(166)
+                  DW_AT_call_column	(5)
+
+0x0000113a:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000fa8 "SArray")
+                    DW_AT_low_pc	(0x000032c9)
+                    DW_AT_high_pc	(0x000032e0)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                    DW_AT_call_line	(281)
+                    DW_AT_call_column	(12)
+
+0x0000114b:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x00000fb4 "raw_malloc")
+                      DW_AT_low_pc	(0x000032d2)
+                      DW_AT_high_pc	(0x000032d8)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\../graphics\../Container\SArray.h")
+                      DW_AT_call_line	(25)
+                      DW_AT_call_column	(14)
+
+0x0000115b:         NULL
+
+0x0000115c:       NULL
+
+0x0000115d:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000fc0 "setPosition")
+                  DW_AT_low_pc	(0x00003336)
+                  DW_AT_high_pc	(0x00003354)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(175)
+                  DW_AT_call_column	(14)
+
+0x0000116d:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000fc6 "setSize")
+                  DW_AT_low_pc	(0x00003354)
+                  DW_AT_high_pc	(0x0000335f)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(176)
+                  DW_AT_call_column	(14)
+
+0x0000117d:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000fc0 "setPosition")
+                  DW_AT_low_pc	(0x00003389)
+                  DW_AT_high_pc	(0x000033af)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(181)
+                  DW_AT_call_column	(14)
+
+0x0000118d:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000fc6 "setSize")
+                  DW_AT_low_pc	(0x000033af)
+                  DW_AT_high_pc	(0x000033ba)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(182)
+                  DW_AT_call_column	(14)
+
+0x0000119d:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000fcc "addComponent<KillOnClick>")
+                  DW_AT_low_pc	(0x000033f1)
+                  DW_AT_high_pc	(0x0000341d)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(188)
+                  DW_AT_call_column	(13)
+
+0x000011ad:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000fd2 "KillOnClick")
+                    DW_AT_ranges	(0x00000600
+                       [0x000033f7, 0x000033fd)
+                       [0x00003410, 0x00003413))
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                    DW_AT_call_line	(109)
+                    DW_AT_call_column	(16)
+
+0x000011b9:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00000fd8 "setTypeId<KillOnClick>")
+                    DW_AT_low_pc	(0x000033fd)
+                    DW_AT_high_pc	(0x00003410)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                    DW_AT_call_line	(110)
+                    DW_AT_call_column	(17)
+
+0x000011c9:       NULL
+
+0x000011ca:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000fde "bindUnHoverEvent")
+                  DW_AT_low_pc	(0x0000344f)
+                  DW_AT_high_pc	(0x0000345a)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(196)
+                  DW_AT_call_column	(10)
+
+0x000011da:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000fe4 "bindHoverEvent")
+                  DW_AT_low_pc	(0x0000345a)
+                  DW_AT_high_pc	(0x00003465)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(195)
+                  DW_AT_call_column	(10)
+
+0x000011ea:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000fea "bindOnClick")
+                  DW_AT_low_pc	(0x00003465)
+                  DW_AT_high_pc	(0x00003470)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(194)
+                  DW_AT_call_column	(10)
+
+0x000011fa:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000ff0 "setBgUrl")
+                  DW_AT_ranges	(0x00000618
+                     [0x00003478, 0x00003499)
+                     [0x0000349d, 0x000034a4))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(197)
+                  DW_AT_call_column	(10)
+
+0x00001206:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000ff6 "setAlignment")
+                  DW_AT_low_pc	(0x000034b6)
+                  DW_AT_high_pc	(0x000034d9)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(198)
+                  DW_AT_call_column	(10)
+
+0x00001216:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000ffc "setLayoutPx")
+                  DW_AT_low_pc	(0x000034e9)
+                  DW_AT_high_pc	(0x00003549)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(200)
+                  DW_AT_call_column	(10)
+
+0x00001226:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001008 "setAnchorPoint")
+                    DW_AT_low_pc	(0x00003518)
+                    DW_AT_high_pc	(0x0000352a)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\ui.h")
+                    DW_AT_call_line	(180)
+                    DW_AT_call_column	(5)
+
+0x00001236:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x00001002 "setAnchors")
+                      DW_AT_low_pc	(0x00003518)
+                      DW_AT_high_pc	(0x0000352a)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\ui.h")
+                      DW_AT_call_line	(162)
+                      DW_AT_call_column	(5)
+
+0x00001246:         NULL
+
+0x00001247:       NULL
+
+0x00001248:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000fea "bindOnClick")
+                  DW_AT_low_pc	(0x00003561)
+                  DW_AT_high_pc	(0x0000356c)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(204)
+                  DW_AT_call_column	(15)
+
+0x00001258:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000100e "Image")
+                  DW_AT_ranges	(0x00000630
+                     [0x000035dd, 0x000035e5)
+                     [0x000035e9, 0x000035fe))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(208)
+                  DW_AT_call_column	(15)
+
+0x00001264:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000ff6 "setAlignment")
+                  DW_AT_low_pc	(0x00003612)
+                  DW_AT_high_pc	(0x00003635)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(209)
+                  DW_AT_call_column	(10)
+
+0x00001274:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000013e6 "gl_create_buffer")
+                  DW_AT_low_pc	(0x00003192)
+
+0x0000127d:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000013ed "gl_create_vertex_array")
+                  DW_AT_low_pc	(0x000031a0)
+
+0x00001286:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000013f4 "gl_bind_vertex_array")
+                  DW_AT_low_pc	(0x000031b0)
+
+0x0000128f:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000013fb "gl_setup_attribs_basic")
+                  DW_AT_low_pc	(0x000031be)
+
+0x00001298:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000013f4 "gl_bind_vertex_array")
+                  DW_AT_low_pc	(0x000031c8)
+
+0x000012a1:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001402 "gl_create_shader")
+                  DW_AT_low_pc	(0x000031e1)
+
+0x000012aa:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001402 "gl_create_shader")
+                  DW_AT_low_pc	(0x000031f6)
+
+0x000012b3:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001409 "gl_create_program_instanced")
+                  DW_AT_low_pc	(0x000031fc)
+
+0x000012bc:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000013e6 "gl_create_buffer")
+                  DW_AT_low_pc	(0x0000320a)
+
+0x000012c5:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001410 "gl_bind_buffer")
+                  DW_AT_low_pc	(0x0000321e)
+
+0x000012ce:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001417 "gl_buffer_data_f32")
+                  DW_AT_low_pc	(0x00003236)
+
+0x000012d7:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000013e6 "gl_create_buffer")
+                  DW_AT_low_pc	(0x00003240)
+
+0x000012e0:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000013ed "gl_create_vertex_array")
+                  DW_AT_low_pc	(0x0000324e)
+
+0x000012e9:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000013f4 "gl_bind_vertex_array")
+                  DW_AT_low_pc	(0x0000325e)
+
+0x000012f2:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000141e "gl_setup_attribs_instanced")
+                  DW_AT_low_pc	(0x00003272)
+
+0x000012fb:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000013f4 "gl_bind_vertex_array")
+                  DW_AT_low_pc	(0x0000327c)
+
+0x00001304:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001425 "operator=")
+                  DW_AT_low_pc	(0x000032a5)
+
+0x0000130d:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001454 "~SArray")
+                  DW_AT_low_pc	(0x000032b1)
+
+0x00001316:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001425 "operator=")
+                  DW_AT_low_pc	(0x000032ec)
+
+0x0000131f:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001454 "~SArray")
+                  DW_AT_low_pc	(0x000032f8)
+
+0x00001328:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001472 "addChildNode<shine::game::Node, const char (&)[7]>")
+                  DW_AT_low_pc	(0x0000330c)
+
+0x00001331:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001472 "addChildNode<shine::game::Node, const char (&)[7]>")
+                  DW_AT_low_pc	(0x00003322)
+
+0x0000133a:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000014c5 "addComponent<shine::game::Transform>")
+                  DW_AT_low_pc	(0x00003332)
+
+0x00001343:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001505)
+                  DW_AT_low_pc	(0x00003348)
+
+0x0000134c:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001505)
+                  DW_AT_low_pc	(0x0000335f)
+
+0x00001355:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001506 "addComponent<shine::game::SpriteRenderer>")
+                  DW_AT_low_pc	(0x0000336b)
+
+0x0000135e:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001546 "js_create_texture_checker")
+                  DW_AT_low_pc	(0x00003376)
+
+0x00001367:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000014c5 "addComponent<shine::game::Transform>")
+                  DW_AT_low_pc	(0x00003385)
+
+0x00001370:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001505)
+                  DW_AT_low_pc	(0x000033a3)
+
+0x00001379:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001505)
+                  DW_AT_low_pc	(0x000033ba)
+
+0x00001382:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001506 "addComponent<shine::game::SpriteRenderer>")
+                  DW_AT_low_pc	(0x000033c6)
+
+0x0000138b:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000154d)
+                  DW_AT_low_pc	(0x000033fd)
+
+0x00001394:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000154e "attachComponent")
+                  DW_AT_low_pc	(0x0000341d)
+
+0x0000139d:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001589 "create")
+                  DW_AT_low_pc	(0x0000344f)
+
+0x000013a6:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000015b9 "__builtin_strlen")
+                  DW_AT_low_pc	(0x00003490)
+
+0x000013af:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000015c0 "setLayoutRel")
+                  DW_AT_low_pc	(0x000034df)
+
+0x000013b8:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001589 "create")
+                  DW_AT_low_pc	(0x00003561)
+
+0x000013c1:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000015c0 "setLayoutRel")
+                  DW_AT_low_pc	(0x0000359a)
+
+0x000013ca:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000015ef)
+                  DW_AT_low_pc	(0x000035e5)
+
+0x000013d3:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000015c0 "setLayoutRel")
+                  DW_AT_low_pc	(0x0000363b)
+
+0x000013dc:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001546 "js_create_texture_checker")
+                  DW_AT_low_pc	(0x00003646)
+
+0x000013e5:     NULL
+
+0x000013e6:   DW_TAG_subprogram
+                DW_AT_name	("gl_create_buffer")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../graphics\gl_api.h")
+                DW_AT_decl_line	(39)
+                DW_AT_declaration	(true)
+                DW_AT_external	(true)
+
+0x000013ed:   DW_TAG_subprogram
+                DW_AT_name	("gl_create_vertex_array")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../graphics\gl_api.h")
+                DW_AT_decl_line	(43)
+                DW_AT_declaration	(true)
+                DW_AT_external	(true)
+
+0x000013f4:   DW_TAG_subprogram
+                DW_AT_name	("gl_bind_vertex_array")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../graphics\gl_api.h")
+                DW_AT_decl_line	(44)
+                DW_AT_declaration	(true)
+                DW_AT_external	(true)
+
+0x000013fb:   DW_TAG_subprogram
+                DW_AT_name	("gl_setup_attribs_basic")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../graphics\gl_api.h")
+                DW_AT_decl_line	(45)
+                DW_AT_declaration	(true)
+                DW_AT_external	(true)
+
+0x00001402:   DW_TAG_subprogram
+                DW_AT_name	("gl_create_shader")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../graphics\gl_api.h")
+                DW_AT_decl_line	(24)
+                DW_AT_declaration	(true)
+                DW_AT_external	(true)
+
+0x00001409:   DW_TAG_subprogram
+                DW_AT_name	("gl_create_program_instanced")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../graphics\gl_api.h")
+                DW_AT_decl_line	(26)
+                DW_AT_declaration	(true)
+                DW_AT_external	(true)
+
+0x00001410:   DW_TAG_subprogram
+                DW_AT_name	("gl_bind_buffer")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../graphics\gl_api.h")
+                DW_AT_decl_line	(40)
+                DW_AT_declaration	(true)
+                DW_AT_external	(true)
+
+0x00001417:   DW_TAG_subprogram
+                DW_AT_name	("gl_buffer_data_f32")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../graphics\gl_api.h")
+                DW_AT_decl_line	(41)
+                DW_AT_declaration	(true)
+                DW_AT_external	(true)
+
+0x0000141e:   DW_TAG_subprogram
+                DW_AT_name	("gl_setup_attribs_instanced")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../graphics\gl_api.h")
+                DW_AT_decl_line	(46)
+                DW_AT_declaration	(true)
+                DW_AT_external	(true)
+
+0x00001425:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00003722)
+                DW_AT_high_pc	(0x00003777)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("operator=")
+
+0x00001432:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001aa1 "reset")
+                  DW_AT_low_pc	(0x0000372e)
+                  DW_AT_high_pc	(0x00003751)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\../graphics\../Container\SArray.h")
+                  DW_AT_call_line	(43)
+                  DW_AT_call_column	(4)
+
+0x00001442:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001aa7 "raw_free")
+                    DW_AT_low_pc	(0x0000373a)
+                    DW_AT_high_pc	(0x00003746)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\../graphics\../Container\SArray.h")
+                    DW_AT_call_line	(73)
+                    DW_AT_call_column	(5)
+
+0x00001452:       NULL
+
+0x00001453:     NULL
+
+0x00001454:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00003778)
+                DW_AT_high_pc	(0x0000379a)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~SArray")
+
+0x00001461:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001aa7 "raw_free")
+                  DW_AT_low_pc	(0x00003787)
+                  DW_AT_high_pc	(0x00003793)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\../graphics\../Container\SArray.h")
+                  DW_AT_call_line	(55)
+                  DW_AT_call_column	(5)
+
+0x00001471:     NULL
+
+0x00001472:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x0000379b)
+                DW_AT_high_pc	(0x00003803)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("addChildNode<shine::game::Node, const char (&)[7]>")
+
+0x0000147f:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000015f0 "attachChild")
+                  DW_AT_low_pc	(0x000037bf)
+                  DW_AT_high_pc	(0x000037f4)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(75)
+                  DW_AT_call_column	(5)
+
+0x0000148f:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000015f6 "markTransformDirty")
+                    DW_AT_low_pc	(0x000037dd)
+                    DW_AT_high_pc	(0x000037f4)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                    DW_AT_call_line	(64)
+                    DW_AT_call_column	(5)
+
+0x0000149f:       NULL
+
+0x000014a0:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000015fc "Node")
+                  DW_AT_low_pc	(0x000037bf)
+
+0x000014a9:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001633 "push_back")
+                  DW_AT_low_pc	(0x000037dd)
+
+0x000014b2:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000165a "getComponent<shine::game::Transform>")
+                  DW_AT_low_pc	(0x000037e7)
+
+0x000014bb:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001505)
+                  DW_AT_low_pc	(0x000037f4)
+
+0x000014c4:     NULL
+
+0x000014c5:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00003805)
+                DW_AT_high_pc	(0x0000389c)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("addComponent<shine::game::Transform>")
+
+0x000014d2:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001678 "Transform")
+                  DW_AT_low_pc	(0x00003826)
+                  DW_AT_high_pc	(0x00003884)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(109)
+                  DW_AT_call_column	(16)
+
+0x000014e2:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000167e "setTypeId<shine::game::Transform>")
+                  DW_AT_low_pc	(0x00003884)
+                  DW_AT_high_pc	(0x0000388f)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(110)
+                  DW_AT_call_column	(17)
+
+0x000014f2:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000154d)
+                  DW_AT_low_pc	(0x0000382e)
+
+0x000014fb:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000154e "attachComponent")
+                  DW_AT_low_pc	(0x00003899)
+
+0x00001504:     NULL
+
+0x00001505:   DW_TAG_subprogram
+
+0x00001506:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x000038c3)
+                DW_AT_high_pc	(0x0000393b)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("addComponent<shine::game::SpriteRenderer>")
+
+0x00001513:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001684 "SpriteRenderer")
+                  DW_AT_low_pc	(0x000038e4)
+                  DW_AT_high_pc	(0x00003923)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(109)
+                  DW_AT_call_column	(16)
+
+0x00001523:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000168a "setTypeId<shine::game::SpriteRenderer>")
+                  DW_AT_low_pc	(0x00003923)
+                  DW_AT_high_pc	(0x0000392e)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(110)
+                  DW_AT_call_column	(17)
+
+0x00001533:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000154d)
+                  DW_AT_low_pc	(0x000038ec)
+
+0x0000153c:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000154e "attachComponent")
+                  DW_AT_low_pc	(0x00003938)
+
+0x00001545:     NULL
+
+0x00001546:   DW_TAG_subprogram
+                DW_AT_name	("js_create_texture_checker")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../graphics\gl_api.h")
+                DW_AT_decl_line	(12)
+                DW_AT_declaration	(true)
+                DW_AT_external	(true)
+
+0x0000154d:   DW_TAG_subprogram
+
+0x0000154e:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00003968)
+                DW_AT_high_pc	(0x00003a18)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("attachComponent")
+
+0x0000155b:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001f3d "push_back")
+                  DW_AT_ranges	(0x000006f8
+                     [0x00003979, 0x000039f1)
+                     [0x000039f4, 0x000039ff))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(84)
+                  DW_AT_call_column	(16)
+
+0x00001567:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001f43 "grow_cap")
+                    DW_AT_low_pc	(0x0000399c)
+                    DW_AT_high_pc	(0x000039c6)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h")
+                    DW_AT_call_line	(134)
+                    DW_AT_call_column	(35)
+
+0x00001577:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001f49 "reserve")
+                    DW_AT_low_pc	(0x000039c6)
+                    DW_AT_high_pc	(0x000039d5)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h")
+                    DW_AT_call_line	(134)
+                    DW_AT_call_column	(27)
+
+0x00001587:       NULL
+
+0x00001588:     NULL
+
+0x00001589:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00003a19)
+                DW_AT_high_pc	(0x00003a87)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("create")
+
+0x00001596:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001690 "Button")
+                  DW_AT_low_pc	(0x00003a4d)
+                  DW_AT_high_pc	(0x00003a7c)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\button.h")
+                  DW_AT_call_line	(72)
+                  DW_AT_call_column	(27)
+
+0x000015a6:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000015ef)
+                  DW_AT_low_pc	(0x00003a55)
+
+0x000015af:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001696 "init")
+                  DW_AT_low_pc	(0x00003a84)
+
+0x000015b8:     NULL
+
+0x000015b9:   DW_TAG_subprogram
+                DW_AT_name	("__builtin_strlen")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\button.h")
+                DW_AT_decl_line	(53)
+                DW_AT_declaration	(true)
+                DW_AT_artificial	(true)
+                DW_AT_external	(true)
+
+0x000015c0:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00003a91)
+                DW_AT_high_pc	(0x00003aea)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("setLayoutRel")
+
+0x000015cd:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001008 "setAnchorPoint")
+                  DW_AT_low_pc	(0x00003aae)
+                  DW_AT_high_pc	(0x00003aca)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\ui.h")
+                  DW_AT_call_line	(193)
+                  DW_AT_call_column	(5)
+
+0x000015dd:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001002 "setAnchors")
+                    DW_AT_low_pc	(0x00003aae)
+                    DW_AT_high_pc	(0x00003aca)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\ui.h")
+                    DW_AT_call_line	(162)
+                    DW_AT_call_column	(5)
+
+0x000015ed:       NULL
+
+0x000015ee:     NULL
+
+0x000015ef:   DW_TAG_subprogram
+
+0x000015f0:   DW_TAG_subprogram
+                DW_AT_name	("attachChild")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000015f6:   DW_TAG_subprogram
+                DW_AT_name	("markTransformDirty")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000015fc:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00003b73)
+                DW_AT_high_pc	(0x00003baf)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("Node")
+
+0x00001609:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e56 "SVector")
+                  DW_AT_low_pc	(0x00003b89)
+                  DW_AT_high_pc	(0x00003b97)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(28)
+                  DW_AT_call_column	(12)
+
+0x00001619:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e4a "SVector")
+                  DW_AT_low_pc	(0x00003b97)
+                  DW_AT_high_pc	(0x00003b9e)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(28)
+                  DW_AT_call_column	(12)
+
+0x00001629:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001e5c "Object")
+                  DW_AT_low_pc	(0x00003b7e)
+
+0x00001632:     NULL
+
+0x00001633:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00003bb0)
+                DW_AT_high_pc	(0x00003c22)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("push_back")
+
+0x00001640:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e2c "grow_cap")
+                  DW_AT_low_pc	(0x00003bcf)
+                  DW_AT_high_pc	(0x00003bf5)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h")
+                  DW_AT_call_line	(134)
+                  DW_AT_call_column	(35)
+
+0x00001650:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000018c8)
+                  DW_AT_low_pc	(0x00003bff)
+
+0x00001659:     NULL
+
+0x0000165a:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00003c23)
+                DW_AT_high_pc	(0x00003ca0)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("getComponent<shine::game::Transform>")
+
+0x00001667:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001d7c "typeId")
+                  DW_AT_low_pc	(0x00003c68)
+                  DW_AT_high_pc	(0x00003c73)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(121)
+                  DW_AT_call_column	(19)
+
+0x00001677:     NULL
+
+0x00001678:   DW_TAG_subprogram
+                DW_AT_name	("Transform")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000167e:   DW_TAG_subprogram
+                DW_AT_name	("setTypeId<shine::game::Transform>")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001684:   DW_TAG_subprogram
+                DW_AT_name	("SpriteRenderer")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000168a:   DW_TAG_subprogram
+                DW_AT_name	("setTypeId<shine::game::SpriteRenderer>")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001690:   DW_TAG_subprogram
+                DW_AT_name	("Button")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001696:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00003ca1)
+                DW_AT_high_pc	(0x00003cdd)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("init")
+
+0x000016a3:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001da0 "init")
+                  DW_AT_low_pc	(0x00003ca8)
+                  DW_AT_high_pc	(0x00003cae)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\button.h")
+                  DW_AT_call_line	(79)
+                  DW_AT_call_column	(18)
+
+0x000016b3:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001da6 "DefaultButtonStyle")
+                  DW_AT_low_pc	(0x00003cae)
+                  DW_AT_high_pc	(0x00003ccd)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\button.h")
+                  DW_AT_call_line	(81)
+                  DW_AT_call_column	(17)
+
+0x000016c3:     NULL
+
+0x000016c4:   DW_TAG_subprogram
+                DW_AT_name	("clear")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000016ca:   DW_TAG_subprogram
+                DW_AT_name	("update")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000016d0:   DW_TAG_subprogram
+                DW_AT_name	("capacity")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000016d6:   DW_TAG_subprogram
+                DW_AT_name	("empty")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000016dc:   DW_TAG_subprogram
+                DW_AT_name	("pop_back")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000016e2:   DW_TAG_subprogram
+                DW_AT_name	("back")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000016e8:   DW_TAG_subprogram
+                DW_AT_name	("isActive")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000016ee:   DW_TAG_subprogram
+                DW_AT_name	("size")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000016f4:   DW_TAG_subprogram
+                DW_AT_name	("size")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000016fa:   DW_TAG_subprogram
+                DW_AT_name	("operator[]")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001700:   DW_TAG_subprogram
+                DW_AT_name	("operator[]")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001706:   DW_TAG_subprogram
+                DW_AT_name	("update")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000170c:   DW_TAG_subprogram
+                DW_AT_name	("collectGarbage")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001712:   DW_TAG_subprogram
+                DW_AT_name	("pendingKillCount")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001718:   DW_TAG_subprogram
+                DW_AT_name	("collectGarbageIncremental")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000171e:   DW_TAG_subprogram
+                DW_AT_name	("gcHead")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001724:   DW_TAG_subprogram
+                DW_AT_name	("gcUnmark")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000172a:   DW_TAG_subprogram
+                DW_AT_name	("gcNext")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001730:   DW_TAG_subprogram
+                DW_AT_name	("pendingKill")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001736:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00003ce2)
+                DW_AT_high_pc	(0x00003fce)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("onUpdate")
+
+0x00001743:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000016ca "update")
+                  DW_AT_ranges	(0x00000648
+                     [0x00003cfa, 0x00003d09)
+                     [0x00003d0c, 0x00003e1e))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(224)
+                  DW_AT_call_column	(11)
+
+0x0000174f:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016c4 "clear")
+                    DW_AT_low_pc	(0x00003cfa)
+                    DW_AT_high_pc	(0x00003d02)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(19)
+                    DW_AT_call_column	(20)
+
+0x0000175f:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016d0 "capacity")
+                    DW_AT_low_pc	(0x00003d0c)
+                    DW_AT_high_pc	(0x00003d15)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(20)
+                    DW_AT_call_column	(24)
+
+0x0000176f:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016d6 "empty")
+                    DW_AT_low_pc	(0x00003d38)
+                    DW_AT_high_pc	(0x00003d41)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(22)
+                    DW_AT_call_column	(28)
+
+0x0000177f:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016dc "pop_back")
+                    DW_AT_low_pc	(0x00003d4c)
+                    DW_AT_high_pc	(0x00003d50)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(24)
+                    DW_AT_call_column	(22)
+
+0x0000178f:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016e2 "back")
+                    DW_AT_low_pc	(0x00003d50)
+                    DW_AT_high_pc	(0x00003d5e)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(23)
+                    DW_AT_call_column	(32)
+
+0x0000179f:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016e8 "isActive")
+                    DW_AT_low_pc	(0x00003d66)
+                    DW_AT_high_pc	(0x00003d6e)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(25)
+                    DW_AT_call_column	(11)
+
+0x000017af:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016ee "size")
+                    DW_AT_low_pc	(0x00003d79)
+                    DW_AT_high_pc	(0x00003d84)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(26)
+                    DW_AT_call_column	(50)
+
+0x000017bf:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016f4 "size")
+                    DW_AT_low_pc	(0x00003d8f)
+                    DW_AT_high_pc	(0x00003d98)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(30)
+                    DW_AT_call_column	(48)
+
+0x000017cf:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016fa "operator[]")
+                    DW_AT_low_pc	(0x00003d9b)
+                    DW_AT_high_pc	(0x00003da2)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(31)
+                    DW_AT_call_column	(19)
+
+0x000017df:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001700 "operator[]")
+                    DW_AT_low_pc	(0x00003dd4)
+                    DW_AT_high_pc	(0x00003ddb)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(27)
+                    DW_AT_call_column	(24)
+
+0x000017ef:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001706 "update")
+                    DW_AT_low_pc	(0x00003de6)
+                    DW_AT_high_pc	(0x00003e0a)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(28)
+                    DW_AT_call_column	(19)
+
+0x000017ff:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x000016e8 "isActive")
+                      DW_AT_low_pc	(0x00003de6)
+                      DW_AT_high_pc	(0x00003ded)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\component.h")
+                      DW_AT_call_line	(66)
+                      DW_AT_call_column	(10)
+
+0x0000180f:         NULL
+
+0x00001810:       NULL
+
+0x00001811:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000170c "collectGarbage")
+                  DW_AT_low_pc	(0x00003e44)
+                  DW_AT_high_pc	(0x00003fc0)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(227)
+                  DW_AT_call_column	(15)
+
+0x00001821:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001712 "pendingKillCount")
+                    DW_AT_low_pc	(0x00003e66)
+                    DW_AT_high_pc	(0x00003e72)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(82)
+                    DW_AT_call_column	(9)
+
+0x00001831:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001718 "collectGarbageIncremental")
+                    DW_AT_low_pc	(0x00003e7d)
+                    DW_AT_high_pc	(0x00003fc0)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(83)
+                    DW_AT_call_column	(5)
+
+0x00001841:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x0000171e "gcHead")
+                      DW_AT_low_pc	(0x00003ea0)
+                      DW_AT_high_pc	(0x00003eab)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                      DW_AT_call_line	(90)
+                      DW_AT_call_column	(19)
+
+0x00001851:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x00001724 "gcUnmark")
+                      DW_AT_low_pc	(0x00003edc)
+                      DW_AT_high_pc	(0x00003eea)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                      DW_AT_call_line	(100)
+                      DW_AT_call_column	(18)
+
+0x00001861:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x0000172a "gcNext")
+                      DW_AT_low_pc	(0x00003eea)
+                      DW_AT_high_pc	(0x00003ef1)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                      DW_AT_call_line	(99)
+                      DW_AT_call_column	(33)
+
+0x00001871:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x0000171e "gcHead")
+                      DW_AT_low_pc	(0x00003f21)
+                      DW_AT_high_pc	(0x00003f2c)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                      DW_AT_call_line	(108)
+                      DW_AT_call_column	(19)
+
+0x00001881:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x0000172a "gcNext")
+                      DW_AT_low_pc	(0x00003f5a)
+                      DW_AT_high_pc	(0x00003f61)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                      DW_AT_call_line	(117)
+                      DW_AT_call_column	(33)
+
+0x00001891:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x00001730 "pendingKill")
+                      DW_AT_low_pc	(0x00003f61)
+                      DW_AT_high_pc	(0x00003f6b)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                      DW_AT_call_line	(118)
+                      DW_AT_call_column	(36)
+
+0x000018a1:         NULL
+
+0x000018a2:       NULL
+
+0x000018a3:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000018c8)
+                  DW_AT_low_pc	(0x00003d23)
+
+0x000018ac:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001633 "push_back")
+                  DW_AT_low_pc	(0x00003d38)
+
+0x000018b5:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001633 "push_back")
+                  DW_AT_low_pc	(0x00003dc1)
+
+0x000018be:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000018c9 "markTree")
+                  DW_AT_low_pc	(0x00003f16)
+
+0x000018c7:     NULL
+
+0x000018c8:   DW_TAG_subprogram
+
+0x000018c9:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00003feb)
+                DW_AT_high_pc	(0x0000403e)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("markTree")
+
+0x000018d6:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e32 "gcMark")
+                  DW_AT_low_pc	(0x00003feb)
+                  DW_AT_high_pc	(0x00003ffc)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(98)
+                  DW_AT_call_column	(5)
+
+0x000018e6:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e38 "end")
+                  DW_AT_low_pc	(0x00003ffc)
+                  DW_AT_high_pc	(0x00004003)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(102)
+                  DW_AT_call_column	(18)
+
+0x000018f6:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e44 "begin")
+                  DW_AT_low_pc	(0x00004006)
+                  DW_AT_high_pc	(0x0000400d)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(102)
+                  DW_AT_call_column	(18)
+
+0x00001906:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001e3e "data")
+                    DW_AT_low_pc	(0x00004006)
+                    DW_AT_high_pc	(0x0000400d)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h")
+                    DW_AT_call_line	(88)
+                    DW_AT_call_column	(39)
+
+0x00001916:       NULL
+
+0x00001917:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000018c9 "markTree")
+                  DW_AT_low_pc	(0x0000402a)
+
+0x00001920:     NULL
+
+0x00001921:   DW_TAG_subprogram
+                DW_AT_name	("count")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001927:   DW_TAG_subprogram
+                DW_AT_name	("Vector3")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000192d:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004040)
+                DW_AT_high_pc	(0x00004105)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("onRender")
+
+0x0000193a:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001921 "count")
+                  DW_AT_low_pc	(0x00004054)
+                  DW_AT_high_pc	(0x0000405e)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(233)
+                  DW_AT_call_column	(46)
+
+0x0000194a:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000fa2 "getCtx")
+                  DW_AT_low_pc	(0x0000405e)
+                  DW_AT_high_pc	(0x00004067)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(234)
+                  DW_AT_call_column	(28)
+
+0x0000195a:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001927 "Vector3")
+                  DW_AT_low_pc	(0x000040a7)
+                  DW_AT_high_pc	(0x000040c1)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(246)
+                  DW_AT_call_column	(61)
+
+0x0000196a:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001927 "Vector3")
+                  DW_AT_low_pc	(0x000040c1)
+                  DW_AT_high_pc	(0x000040d3)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(246)
+                  DW_AT_call_column	(81)
+
+0x0000197a:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001984 "RunDemoPasses")
+                  DW_AT_low_pc	(0x000040f9)
+
+0x00001983:     NULL
+
+0x00001984:   DW_TAG_subprogram
+                DW_AT_name	("RunDemoPasses")
+                DW_AT_decl_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../renderer/pass\base_pass.h")
+                DW_AT_decl_line	(22)
+                DW_AT_declaration	(true)
+                DW_AT_external	(true)
+
+0x0000198b:   DW_TAG_subprogram
+                DW_AT_name	("pointer")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001991:   DW_TAG_subprogram
+                DW_AT_name	("pointerTree")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001997:   DW_TAG_subprogram
+                DW_AT_name	("getHalf")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000199d:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004107)
+                DW_AT_high_pc	(0x00004285)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("onPointer")
+
+0x000019aa:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000198b "pointer")
+                  DW_AT_ranges	(0x00000660
+                     [0x0000411f, 0x0000412e)
+                     [0x00004131, 0x00004247))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(252)
+                  DW_AT_call_column	(11)
+
+0x000019b6:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016c4 "clear")
+                    DW_AT_low_pc	(0x0000411f)
+                    DW_AT_high_pc	(0x00004127)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(57)
+                    DW_AT_call_column	(21)
+
+0x000019c6:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016d0 "capacity")
+                    DW_AT_low_pc	(0x00004131)
+                    DW_AT_high_pc	(0x0000413a)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(58)
+                    DW_AT_call_column	(25)
+
+0x000019d6:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016d6 "empty")
+                    DW_AT_low_pc	(0x0000415d)
+                    DW_AT_high_pc	(0x00004166)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(60)
+                    DW_AT_call_column	(29)
+
+0x000019e6:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016dc "pop_back")
+                    DW_AT_low_pc	(0x00004171)
+                    DW_AT_high_pc	(0x00004175)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(62)
+                    DW_AT_call_column	(23)
+
+0x000019f6:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016e2 "back")
+                    DW_AT_low_pc	(0x00004175)
+                    DW_AT_high_pc	(0x00004183)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(61)
+                    DW_AT_call_column	(33)
+
+0x00001a06:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016e8 "isActive")
+                    DW_AT_low_pc	(0x0000418b)
+                    DW_AT_high_pc	(0x00004193)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(63)
+                    DW_AT_call_column	(11)
+
+0x00001a16:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016ee "size")
+                    DW_AT_low_pc	(0x0000419e)
+                    DW_AT_high_pc	(0x000041a9)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(64)
+                    DW_AT_call_column	(50)
+
+0x00001a26:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016f4 "size")
+                    DW_AT_low_pc	(0x000041b4)
+                    DW_AT_high_pc	(0x000041bd)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(68)
+                    DW_AT_call_column	(48)
+
+0x00001a36:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x000016fa "operator[]")
+                    DW_AT_low_pc	(0x000041c0)
+                    DW_AT_high_pc	(0x000041c7)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(69)
+                    DW_AT_call_column	(19)
+
+0x00001a46:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001700 "operator[]")
+                    DW_AT_low_pc	(0x000041f9)
+                    DW_AT_high_pc	(0x00004200)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(65)
+                    DW_AT_call_column	(24)
+
+0x00001a56:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001991 "pointerTree")
+                    DW_AT_low_pc	(0x0000420b)
+                    DW_AT_high_pc	(0x00004233)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                    DW_AT_call_line	(66)
+                    DW_AT_call_column	(19)
+
+0x00001a66:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x000016e8 "isActive")
+                      DW_AT_low_pc	(0x0000420b)
+                      DW_AT_high_pc	(0x00004212)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\component.h")
+                      DW_AT_call_line	(76)
+                      DW_AT_call_column	(10)
+
+0x00001a76:         NULL
+
+0x00001a77:       NULL
+
+0x00001a78:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001997 "getHalf")
+                  DW_AT_ranges	(0x00000678
+                     [0x00004257, 0x0000425e)
+                     [0x00004269, 0x00004270))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(258)
+                  DW_AT_call_column	(18)
+
+0x00001a85:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000018c8)
+                  DW_AT_low_pc	(0x00004148)
+
+0x00001a8e:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001633 "push_back")
+                  DW_AT_low_pc	(0x0000415d)
+
+0x00001a97:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001633 "push_back")
+                  DW_AT_low_pc	(0x000041e6)
+
+0x00001aa0:     NULL
+
+0x00001aa1:   DW_TAG_subprogram
+                DW_AT_name	("reset")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001aa7:   DW_TAG_subprogram
+                DW_AT_name	("raw_free")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001aad:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004286)
+                DW_AT_high_pc	(0x0000429c)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("on_tex_loaded")
+
+0x00001aba:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000000000000207e "on_loaded")
+                  DW_AT_low_pc	(0x00004286)
+                  DW_AT_high_pc	(0x0000429b)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(420)
+                  DW_AT_call_column	(49)
+
+0x00001acb:     NULL
+
+0x00001acc:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x0000429d)
+                DW_AT_high_pc	(0x000042ad)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("on_tex_failed")
+
+0x00001ad9:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x0000000000002084 "on_failed")
+                  DW_AT_low_pc	(0x0000429d)
+                  DW_AT_high_pc	(0x000042ac)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(424)
+                  DW_AT_call_column	(49)
+
+0x00001aea:     NULL
+
+0x00001aeb:   DW_TAG_subprogram
+                DW_AT_name	("RenderContext")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001af1:   DW_TAG_subprogram
+                DW_AT_name	("SArray")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001af7:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x000042da)
+                DW_AT_high_pc	(0x00004380)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("DemoGame")
+
+0x00001b04:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001aeb "RenderContext")
+                  DW_AT_low_pc	(0x000042f6)
+                  DW_AT_high_pc	(0x0000431d)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.h")
+                  DW_AT_call_line	(16)
+                  DW_AT_call_column	(5)
+
+0x00001b14:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001af1 "SArray")
+                  DW_AT_low_pc	(0x00004351)
+                  DW_AT_high_pc	(0x00004359)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.h")
+                  DW_AT_call_line	(16)
+                  DW_AT_call_column	(5)
+
+0x00001b24:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001af1 "SArray")
+                  DW_AT_low_pc	(0x00004361)
+                  DW_AT_high_pc	(0x00004369)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.h")
+                  DW_AT_call_line	(16)
+                  DW_AT_call_column	(5)
+
+0x00001b34:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001b47 "Scene")
+                  DW_AT_low_pc	(0x000042f1)
+
+0x00001b3d:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001b8e "RenderPipeline")
+                  DW_AT_low_pc	(0x00004324)
+
+0x00001b46:     NULL
+
+0x00001b47:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004381)
+                DW_AT_high_pc	(0x000043c9)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("Scene")
+
+0x00001b54:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e4a "SVector")
+                  DW_AT_low_pc	(0x00004394)
+                  DW_AT_high_pc	(0x0000439b)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                  DW_AT_call_line	(11)
+                  DW_AT_call_column	(7)
+
+0x00001b64:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e4a "SVector")
+                  DW_AT_low_pc	(0x0000439b)
+                  DW_AT_high_pc	(0x000043a9)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                  DW_AT_call_line	(11)
+                  DW_AT_call_column	(7)
+
+0x00001b74:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e4a "SVector")
+                  DW_AT_low_pc	(0x000043a9)
+                  DW_AT_high_pc	(0x000043b0)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h")
+                  DW_AT_call_line	(11)
+                  DW_AT_call_column	(7)
+
+0x00001b84:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x000015fc "Node")
+                  DW_AT_low_pc	(0x00004390)
+
+0x00001b8d:     NULL
+
+0x00001b8e:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x000043ca)
+                DW_AT_high_pc	(0x00004402)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("RenderPipeline")
+
+0x00001b9b:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e50 "RenderPass")
+                  DW_AT_low_pc	(0x000043dc)
+                  DW_AT_high_pc	(0x000043ed)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h")
+                  DW_AT_call_line	(26)
+                  DW_AT_call_column	(7)
+
+0x00001bab:     NULL
+
+0x00001bac:   DW_TAG_subprogram
+                DW_AT_name	("~Scene")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001bb2:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004403)
+                DW_AT_high_pc	(0x0000445f)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~DemoGame")
+
+0x00001bbf:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001bac "~Scene")
+                  DW_AT_ranges	(0x00000690
+                     [0x0000442e, 0x00004454)
+                     [0x00004455, 0x0000445c))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.h")
+                  DW_AT_call_line	(17)
+                  DW_AT_call_column	(33)
+
+0x00001bcb:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001454 "~SArray")
+                  DW_AT_low_pc	(0x0000441b)
+
+0x00001bd4:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001454 "~SArray")
+                  DW_AT_low_pc	(0x00004428)
+
+0x00001bdd:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001c02 "~SVector")
+                  DW_AT_low_pc	(0x00004435)
+
+0x00001be6:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001c02 "~SVector")
+                  DW_AT_low_pc	(0x00004442)
+
+0x00001bef:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001c02 "~SVector")
+                  DW_AT_low_pc	(0x0000444f)
+
+0x00001bf8:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001c20 "~Node")
+                  DW_AT_low_pc	(0x0000445b)
+
+0x00001c01:     NULL
+
+0x00001c02:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004460)
+                DW_AT_high_pc	(0x00004489)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~SVector")
+
+0x00001c0f:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001aa7 "raw_free")
+                  DW_AT_low_pc	(0x0000446f)
+                  DW_AT_high_pc	(0x0000447b)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h")
+                  DW_AT_call_line	(68)
+                  DW_AT_call_column	(5)
+
+0x00001c1f:     NULL
+
+0x00001c20:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x0000448b)
+                DW_AT_high_pc	(0x00004615)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~Node")
+
+0x00001c2d:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e8e "end")
+                  DW_AT_low_pc	(0x00004499)
+                  DW_AT_high_pc	(0x000044a0)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(31)
+                  DW_AT_call_column	(22)
+
+0x00001c3d:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e9a "begin")
+                  DW_AT_low_pc	(0x000044a3)
+                  DW_AT_high_pc	(0x000044aa)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(31)
+                  DW_AT_call_column	(22)
+
+0x00001c4d:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001e94 "data")
+                    DW_AT_low_pc	(0x000044a3)
+                    DW_AT_high_pc	(0x000044aa)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h")
+                    DW_AT_call_line	(88)
+                    DW_AT_call_column	(39)
+
+0x00001c5d:       NULL
+
+0x00001c5e:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001ea0 "clear")
+                  DW_AT_low_pc	(0x000044b8)
+                  DW_AT_high_pc	(0x000044bf)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(38)
+                  DW_AT_call_column	(20)
+
+0x00001c6e:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e38 "end")
+                  DW_AT_low_pc	(0x000044c2)
+                  DW_AT_high_pc	(0x000044c9)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(41)
+                  DW_AT_call_column	(22)
+
+0x00001c7e:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e44 "begin")
+                  DW_AT_low_pc	(0x000044cc)
+                  DW_AT_high_pc	(0x000044d3)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(41)
+                  DW_AT_call_column	(22)
+
+0x00001c8e:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001e3e "data")
+                    DW_AT_low_pc	(0x000044cc)
+                    DW_AT_high_pc	(0x000044d3)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h")
+                    DW_AT_call_line	(88)
+                    DW_AT_call_column	(39)
+
+0x00001c9e:       NULL
+
+0x00001c9f:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000016c4 "clear")
+                  DW_AT_low_pc	(0x000044e3)
+                  DW_AT_high_pc	(0x000044e6)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(47)
+                  DW_AT_call_column	(18)
+
+0x00001caf:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001eac "removeChild")
+                  DW_AT_low_pc	(0x00004500)
+                  DW_AT_high_pc	(0x00004561)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(50)
+                  DW_AT_call_column	(29)
+
+0x00001cbf:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001ea6 "erase_first_unordered")
+                    DW_AT_low_pc	(0x00004500)
+                    DW_AT_high_pc	(0x00004561)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                    DW_AT_call_line	(69)
+                    DW_AT_call_column	(14)
+
+0x00001ccf:         DW_TAG_inlined_subroutine
+                      DW_AT_abstract_origin	(0x00001eb2 "erase_unordered_at")
+                      DW_AT_low_pc	(0x0000451f)
+                      DW_AT_high_pc	(0x00004550)
+                      DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h")
+                      DW_AT_call_line	(170)
+                      DW_AT_call_column	(50)
+
+0x00001cdf:         NULL
+
+0x00001ce0:       NULL
+
+0x00001ce1:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001eb8 "~SVector")
+                  DW_AT_low_pc	(0x000045e0)
+                  DW_AT_high_pc	(0x00004603)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(51)
+                  DW_AT_call_column	(5)
+
+0x00001cf1:       DW_TAG_inlined_subroutine
+                    DW_AT_abstract_origin	(0x00001aa7 "raw_free")
+                    DW_AT_low_pc	(0x000045ec)
+                    DW_AT_high_pc	(0x000045f8)
+                    DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h")
+                    DW_AT_call_line	(68)
+                    DW_AT_call_column	(5)
+
+0x00001d01:       NULL
+
+0x00001d02:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001c02 "~SVector")
+                  DW_AT_low_pc	(0x0000460b)
+
+0x00001d0b:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001ebe "~Object")
+                  DW_AT_low_pc	(0x00004614)
+
+0x00001d14:     NULL
+
+0x00001d15:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004616)
+                DW_AT_high_pc	(0x00004626)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~DemoGame")
+
+0x00001d22:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000000000020a9 "operator delete")
+                  DW_AT_low_pc	(0x0000461f)
+                  DW_AT_high_pc	(0x00004625)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.h")
+                  DW_AT_call_line	(17)
+                  DW_AT_call_column	(33)
+
+0x00001d32:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001bb2 "~DemoGame")
+                  DW_AT_low_pc	(0x0000461f)
+
+0x00001d3b:     NULL
+
+0x00001d3c:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004627)
+                DW_AT_high_pc	(0x00004685)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("markChildrenDirty")
+
+0x00001d49:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000016f4 "size")
+                  DW_AT_low_pc	(0x00004632)
+                  DW_AT_high_pc	(0x0000463d)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\transform.h")
+                  DW_AT_call_line	(92)
+                  DW_AT_call_column	(46)
+
+0x00001d59:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x000016fa "operator[]")
+                  DW_AT_low_pc	(0x00004640)
+                  DW_AT_high_pc	(0x00004647)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\transform.h")
+                  DW_AT_call_line	(93)
+                  DW_AT_call_column	(21)
+
+0x00001d69:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000165a "getComponent<shine::game::Transform>")
+                  DW_AT_low_pc	(0x0000465c)
+
+0x00001d72:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001d3c "markChildrenDirty")
+                  DW_AT_low_pc	(0x00004671)
+
+0x00001d7b:     NULL
+
+0x00001d7c:   DW_TAG_subprogram
+                DW_AT_name	("typeId")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001d82:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004686)
+                DW_AT_high_pc	(0x00004690)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~Button")
+
+0x00001d8f:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000000000020a9 "operator delete")
+                  DW_AT_low_pc	(0x00004686)
+                  DW_AT_high_pc	(0x0000468f)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\button.h")
+                  DW_AT_call_line	(11)
+                  DW_AT_call_column	(7)
+
+0x00001d9f:     NULL
+
+0x00001da0:   DW_TAG_subprogram
+                DW_AT_name	("init")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001da6:   DW_TAG_subprogram
+                DW_AT_name	("DefaultButtonStyle")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001dac:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004abb)
+                DW_AT_high_pc	(0x00004ac5)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~Element")
+
+0x00001db9:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000000000020a9 "operator delete")
+                  DW_AT_low_pc	(0x00004abb)
+                  DW_AT_high_pc	(0x00004ac4)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\ui.h")
+                  DW_AT_call_line	(88)
+                  DW_AT_call_column	(30)
+
+0x00001dc9:     NULL
+
+0x00001dca:   DW_TAG_subprogram
+                DW_AT_name	("markDirty")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001dd0:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004824)
+                DW_AT_high_pc	(0x0000496d)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("onResize")
+
+0x00001ddd:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001dca "markDirty")
+                  DW_AT_low_pc	(0x0000494b)
+                  DW_AT_high_pc	(0x0000496b)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\ui.h")
+                  DW_AT_call_line	(151)
+                  DW_AT_call_column	(5)
+
+0x00001ded:     NULL
+
+0x00001dee:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004b18)
+                DW_AT_high_pc	(0x00004b22)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~Image")
+
+0x00001dfb:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000000000020a9 "operator delete")
+                  DW_AT_low_pc	(0x00004b18)
+                  DW_AT_high_pc	(0x00004b21)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\image.h")
+                  DW_AT_call_line	(9)
+                  DW_AT_call_column	(7)
+
+0x00001e0b:     NULL
+
+0x00001e0c:   DW_TAG_subprogram
+                DW_AT_name	("drawRectUV")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001e12:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004b32)
+                DW_AT_high_pc	(0x00004b65)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("render")
+
+0x00001e1f:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e0c "drawRectUV")
+                  DW_AT_ranges	(0x000006a8
+                     [0x00004b41, 0x00004b47)
+                     [0x00004b5d, 0x00004b63))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\image.h")
+                  DW_AT_call_line	(39)
+                  DW_AT_call_column	(38)
+
+0x00001e2b:     NULL
+
+0x00001e2c:   DW_TAG_subprogram
+                DW_AT_name	("grow_cap")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001e32:   DW_TAG_subprogram
+                DW_AT_name	("gcMark")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001e38:   DW_TAG_subprogram
+                DW_AT_name	("end")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001e3e:   DW_TAG_subprogram
+                DW_AT_name	("data")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001e44:   DW_TAG_subprogram
+                DW_AT_name	("begin")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001e4a:   DW_TAG_subprogram
+                DW_AT_name	("SVector")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001e50:   DW_TAG_subprogram
+                DW_AT_name	("RenderPass")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001e56:   DW_TAG_subprogram
+                DW_AT_name	("SVector")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001e5c:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004b66)
+                DW_AT_high_pc	(0x00004bd7)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("Object")
+
+0x00001e69:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e82 "next_id")
+                  DW_AT_ranges	(0x000006c0
+                     [0x00004b82, 0x00004b8d)
+                     [0x00004b92, 0x00004b96)
+                     [0x00004ba2, 0x00004bba))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\object.h")
+                  DW_AT_call_line	(38)
+                  DW_AT_call_column	(10)
+
+0x00001e75:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001e88 "gc_link")
+                  DW_AT_ranges	(0x000006e0
+                     [0x00004b96, 0x00004ba2)
+                     [0x00004bba, 0x00004bd4))
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\object.h")
+                  DW_AT_call_line	(39)
+                  DW_AT_call_column	(5)
+
+0x00001e81:     NULL
+
+0x00001e82:   DW_TAG_subprogram
+                DW_AT_name	("next_id")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001e88:   DW_TAG_subprogram
+                DW_AT_name	("gc_link")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001e8e:   DW_TAG_subprogram
+                DW_AT_name	("end")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001e94:   DW_TAG_subprogram
+                DW_AT_name	("data")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001e9a:   DW_TAG_subprogram
+                DW_AT_name	("begin")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001ea0:   DW_TAG_subprogram
+                DW_AT_name	("clear")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001ea6:   DW_TAG_subprogram
+                DW_AT_name	("erase_first_unordered")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001eac:   DW_TAG_subprogram
+                DW_AT_name	("removeChild")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001eb2:   DW_TAG_subprogram
+                DW_AT_name	("erase_unordered_at")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001eb8:   DW_TAG_subprogram
+                DW_AT_name	("~SVector")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001ebe:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004bd9)
+                DW_AT_high_pc	(0x00004c68)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~Object")
+
+0x00001ecb:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001f37 "gc_unlink")
+                  DW_AT_low_pc	(0x00004c11)
+                  DW_AT_high_pc	(0x00004c65)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\object.h")
+                  DW_AT_call_line	(46)
+                  DW_AT_call_column	(5)
+
+0x00001edb:     NULL
+
+0x00001edc:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004c69)
+                DW_AT_high_pc	(0x00004c79)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~Node")
+
+0x00001ee9:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000000000020a9 "operator delete")
+                  DW_AT_low_pc	(0x00004c72)
+                  DW_AT_high_pc	(0x00004c78)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(29)
+                  DW_AT_call_column	(19)
+
+0x00001ef9:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00001c20 "~Node")
+                  DW_AT_low_pc	(0x00004c72)
+
+0x00001f02:     NULL
+
+0x00001f03:   DW_TAG_subprogram
+                DW_AT_name	("gcMarked")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001f09:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004c7f)
+                DW_AT_high_pc	(0x00004caa)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("isOwnedByDead")
+
+0x00001f16:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001730 "pendingKill")
+                  DW_AT_low_pc	(0x00004c8f)
+                  DW_AT_high_pc	(0x00004c9b)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(56)
+                  DW_AT_call_column	(33)
+
+0x00001f26:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001f03 "gcMarked")
+                  DW_AT_low_pc	(0x00004ca7)
+                  DW_AT_high_pc	(0x00004ca9)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(56)
+                  DW_AT_call_column	(59)
+
+0x00001f36:     NULL
+
+0x00001f37:   DW_TAG_subprogram
+                DW_AT_name	("gc_unlink")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001f3d:   DW_TAG_subprogram
+                DW_AT_name	("push_back")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001f43:   DW_TAG_subprogram
+                DW_AT_name	("grow_cap")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001f49:   DW_TAG_subprogram
+                DW_AT_name	("reserve")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001f4f:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004cb4)
+                DW_AT_high_pc	(0x00004cc4)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~Transform")
+
+0x00001f5c:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000000000020a9 "operator delete")
+                  DW_AT_low_pc	(0x00004cbd)
+                  DW_AT_high_pc	(0x00004cc3)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\transform.h")
+                  DW_AT_call_line	(11)
+                  DW_AT_call_column	(7)
+
+0x00001f6c:     NULL
+
+0x00001f6d:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004cca)
+                DW_AT_high_pc	(0x00004d12)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("isOwnedByDead")
+
+0x00001f7a:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001730 "pendingKill")
+                  DW_AT_low_pc	(0x00004cdb)
+                  DW_AT_high_pc	(0x00004ce3)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(182)
+                  DW_AT_call_column	(32)
+
+0x00001f8a:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001730 "pendingKill")
+                  DW_AT_low_pc	(0x00004cfa)
+                  DW_AT_high_pc	(0x00004d04)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(183)
+                  DW_AT_call_column	(28)
+
+0x00001f9a:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001f03 "gcMarked")
+                  DW_AT_low_pc	(0x00004d0b)
+                  DW_AT_high_pc	(0x00004d0d)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h")
+                  DW_AT_call_line	(183)
+                  DW_AT_call_column	(52)
+
+0x00001faa:     NULL
+
+0x00001fab:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x00004d22)
+                DW_AT_high_pc	(0x00004d32)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~SpriteRenderer")
+
+0x00001fb8:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000000000020a9 "operator delete")
+                  DW_AT_low_pc	(0x00004d2b)
+                  DW_AT_high_pc	(0x00004d31)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\sprite_renderer.h")
+                  DW_AT_call_line	(11)
+                  DW_AT_call_column	(7)
+
+0x00001fc8:     NULL
+
+0x00001fc9:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x000050a1)
+                DW_AT_high_pc	(0x000050b1)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("~KillOnClick")
+
+0x00001fd6:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00000000000020a9 "operator delete")
+                  DW_AT_low_pc	(0x000050aa)
+                  DW_AT_high_pc	(0x000050b0)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(45)
+                  DW_AT_call_column	(8)
+
+0x00001fe6:     NULL
+
+0x00001fe7:   DW_TAG_subprogram
+                DW_AT_name	("worldXY")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001fed:   DW_TAG_subprogram
+                DW_AT_name	("markPendingKill")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00001ff3:   DW_TAG_subprogram
+                DW_AT_low_pc	(0x000050b3)
+                DW_AT_high_pc	(0x00005183)
+                DW_AT_GNU_all_call_sites	(true)
+                DW_AT_name	("onPointer")
+
+0x00002000:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001fe7 "worldXY")
+                  DW_AT_low_pc	(0x000050e7)
+                  DW_AT_high_pc	(0x000050fe)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(54)
+                  DW_AT_call_column	(13)
+
+0x00002010:     DW_TAG_inlined_subroutine
+                  DW_AT_abstract_origin	(0x00001fed "markPendingKill")
+                  DW_AT_low_pc	(0x0000514b)
+                  DW_AT_high_pc	(0x00005176)
+                  DW_AT_call_file	("E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp")
+                  DW_AT_call_line	(62)
+                  DW_AT_call_column	(15)
+
+0x00002020:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x0000165a "getComponent<shine::game::Transform>")
+                  DW_AT_low_pc	(0x000050e2)
+
+0x00002029:     DW_TAG_GNU_call_site
+                  DW_AT_abstract_origin	(0x00002033)
+                  DW_AT_low_pc	(0x000050fe)
+
+0x00002032:     NULL
+
+0x00002033:   DW_TAG_subprogram
+
+0x00002034:   NULL
+0x00002035: Compile Unit: length = 0x00000027, format = DWARF32, version = 0x0004, abbr_offset = 0x033e, addr_size = 0x04 (next unit at 0x00002060)
+
+0x00002040: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src/ui\\ui_manager.cpp")
+              DW_AT_stmt_list	(0x00004b12)
+              DW_AT_comp_dir	(".")
+
+0x00002053:   DW_TAG_subprogram
+                DW_AT_name	("clear")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00002059:   DW_TAG_subprogram
+                DW_AT_name	("clear")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000205f:   NULL
+0x00002060: Compile Unit: length = 0x00000027, format = DWARF32, version = 0x0004, abbr_offset = 0x033e, addr_size = 0x04 (next unit at 0x0000208b)
+
+0x0000206b: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src/graphics\\texture_manager.cpp")
+              DW_AT_stmt_list	(0x00004b30)
+              DW_AT_comp_dir	(".")
+
+0x0000207e:   DW_TAG_subprogram
+                DW_AT_name	("on_loaded")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x00002084:   DW_TAG_subprogram
+                DW_AT_name	("on_failed")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x0000208a:   NULL
+0x0000208b: Compile Unit: length = 0x00000021, format = DWARF32, version = 0x0004, abbr_offset = 0x033e, addr_size = 0x04 (next unit at 0x000020b0)
+
+0x00002096: DW_TAG_compile_unit
+              DW_AT_producer	("clang version 21.1.7")
+              DW_AT_language	(DW_LANG_C_plus_plus_14)
+              DW_AT_name	("E:/c++/ShineEngine/Program/smallwasm/src/util\\wasm_runtime.cpp")
+              DW_AT_stmt_list	(0x00004b4e)
+              DW_AT_comp_dir	(".")
+
+0x000020a9:   DW_TAG_subprogram
+                DW_AT_name	("operator delete")
+                DW_AT_inline	(DW_INL_inlined)
+
+0x000020af:   NULL

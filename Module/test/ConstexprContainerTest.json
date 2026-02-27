@@ -1,7 +1,7 @@
 {
   "name": "ConstexprContainerTest",
   "type": "exe",
-  "dirs": ["test/ConstexprContainerTest"],
+  "dirs": ["dev/test/ConstexprContainerTest"],
   "deps": ["engine_core", "fmt"],
   "defines": [""]
 }

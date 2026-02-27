@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef FORCEINLINE
+#undef FORCEINLINE
+#endif
+
 #if defined(__clang__) || defined(__GNUC__)
     #define FORCEINLINE __attribute__((always_inline)) inline
 #elif defined(_MSC_VER)
@@ -7,6 +11,8 @@
 #else
     #define FORCEINLINE inline
 #endif
+
+
 
 // #if defined(__clang__) || defined(__GNUC__)
 //     #define ASSUME(condition) __builtin_assume(condition)

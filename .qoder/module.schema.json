@@ -1,0 +1,338 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/shine-engine/module-schema.json",
+  "title": "Shine Engine Module Configuration",
+  "description": "Schema for Shine Engine module configuration files",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "模块名称，必须与 JSON 文件名相同",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+    },
+    "files": {
+      "type": "array",
+      "description": "该模块包含的源文件列表。支持 .cpp、.ixx、.cppm、.h、.hpp、.c 等",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl|c)$"
+      },
+      "minItems": 0
+    },
+    "files_module": {
+      "type": "array",
+      "description": "启用 C++20 模块时使用的文件列表（仅当 SHINE_BUILD_MODULE=ON 时生效）。通常包含 .ixx 模块接口文件",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*\\.(ixx|cppm)$"
+      },
+      "minItems": 0
+    },
+    "files_header": {
+      "type": "array",
+      "description": "不使用 C++20 模块时使用的文件列表（仅当 SHINE_BUILD_MODULE=OFF 时生效）。通常包含 .h 头文件",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*\\.(h|hpp)$"
+      },
+      "minItems": 0
+    },
+    "files_windows": {
+      "type": "array",
+      "description": "仅在 Windows 平台使用的文件列表",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl|c)$"
+      },
+      "minItems": 0
+    },
+    "files_wasm": {
+      "type": "array",
+      "description": "仅在 WebAssembly (Emscripten) 平台使用的文件列表",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl|c)$"
+      },
+      "minItems": 0
+    },
+    "files_android": {
+      "type": "array",
+      "description": "仅在 Android 平台使用的文件列表",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*\\.(cpp|h|hpp|ixx|cppm|inl|c)$"
+      },
+      "minItems": 0
+    },
+    "files_compile": {
+      "type": "array",
+      "description": "指定需要被编译的源文件白名单。不在列表中的 .cpp 文件会被标记为 HEADER_FILE_ONLY（当作头文件处理）。适用于第三方库选择性编译",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*\\.cpp$"
+      },
+      "minItems": 0
+    },
+    "dirs": {
+      "type": "array",
+      "description": "自动收集指定目录下所有相关文件的目录列表。递归搜索目录及其子目录",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*"
+      },
+      "minItems": 0
+    },
+    "include_dirs": {
+      "type": "array",
+      "description": "额外的头文件包含目录列表。用于第三方库或特殊目录结构，编译时会添加 -I 或 /I 选项",
+      "items": {
+        "type": "string",
+        "pattern": "^src/.*"
+      },
+      "minItems": 0
+    },
+    "deps": {
+      "type": "array",
+      "description": "依赖的其他 JSON 模块（按文件名）。支持传递依赖（自动解析）",
+      "items": {
+        "type": "string",
+        "description": "依赖的模块名称（不含 .json 扩展名）"
+      },
+      "minItems": 0
+    },
+    "defines": {
+      "type": "array",
+      "description": "编译时宏定义列表",
+      "items": {
+        "type": "string",
+        "description": "宏定义名称，例如：ENABLE_LOGGING"
+      },
+      "minItems": 0
+    },
+    "type": {
+      "description": "模块构建类型，默认 \"lib\"",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": ["lib", "static", "shared", "exe", "third", "interface", "subcmake"],
+          "default": "lib"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["lib", "static", "shared", "exe", "third", "interface", "subcmake"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      ]
+    },
+    "buildMode": {
+      "description": "构建模式限制，控制模块在 Editor 或 Runtime 模式下是否构建",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": ["editor", "runtime", "both"],
+          "default": "both"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["editor", "runtime", "both"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      ]
+    },
+    "platform": {
+      "type": "array",
+      "description": "仅在指定平台启用该模块。可用值: Windows, Wasm, Linux 等",
+      "items": {
+        "type": "string",
+        "enum": ["Windows", "Wasm", "Linux", "macOS", "Android", "iOS"]
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "link": {
+      "type": "object",
+      "description": "第三方库链接配置，仅对 type: \"third\" 的模块有效",
+      "properties": {
+        "debug": {
+          "type": "object",
+          "description": "Debug 构建配置",
+          "properties": {
+            "lib": {
+              "type": "array",
+              "description": "要链接的库文件（.lib/.a）",
+              "items": {
+                "type": "string",
+                "pattern": ".*\\.(lib|a)$"
+              }
+            },
+            "dll": {
+              "type": "array",
+              "description": "要复制的动态库文件（.dll/.so）",
+              "items": {
+                "type": "string",
+                "pattern": ".*\\.(dll|so|dylib)$"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "release": {
+          "type": "object",
+          "description": "Release 构建配置",
+          "properties": {
+            "lib": {
+              "type": "array",
+              "description": "要链接的库文件（.lib/.a）",
+              "items": {
+                "type": "string",
+                "pattern": ".*\\.(lib|a)$"
+              }
+            },
+            "dll": {
+              "type": "array",
+              "description": "要复制的动态库文件（.dll/.so）",
+              "items": {
+                "type": "string",
+                "pattern": ".*\\.(dll|so|dylib)$"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "subcmake": {
+      "type": "object",
+      "description": "子 CMake 工程配置，用于构建独立的子项目（如 WASM 模块）",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "子工程源码目录，相对于项目根目录。默认为 Program/{模块名}"
+        },
+        "build": {
+          "type": "string",
+          "description": "子工程构建目录，相对于项目根目录。默认为 Program/{模块名}/build"
+        },
+        "generator": {
+          "type": "string",
+          "description": "CMake 生成器，默认为 Ninja",
+          "default": "Ninja"
+        },
+        "target": {
+          "type": "string",
+          "description": "要构建的目标名称，默认为 all",
+          "default": "all"
+        },
+        "configure": {
+          "type": "array",
+          "description": "传递给 CMake configure 阶段的额外参数",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "comment": {
+      "type": "string",
+      "description": "模块注释说明（可选）"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "name": "math",
+      "dirs": ["src/math"],
+      "type": "static",
+      "deps": ["shine_define"]
+    },
+    {
+      "name": "base64",
+      "type": "static",
+      "files": [
+        "src/util/base64/base64.cpp"
+      ],
+      "comment": "使用条件文件：启用模块时使用 .ixx，否则使用 .h"
+    },
+    {
+      "name": "texture",
+      "files": [
+        "src/image/Texture.h",
+        "src/image/Texture.cpp"
+      ],
+      "type": "lib",
+      "deps": ["shine_define"],
+      "platform": ["Windows", "Wasm"]
+    },
+    {
+      "name": "fmt",
+      "files": [
+        "src/third/fmt/format.h"
+      ],
+      "type": "third",
+      "link": {
+        "release": {
+          "lib": ["fmt.lib"]
+        },
+        "debug": {
+          "lib": ["fmtd.lib"]
+        }
+      },
+      "defines": ["FMT_SHARED"]
+    },
+    {
+      "name": "EngineLauncher",
+      "files": ["src/launcher.cpp"],
+      "type": "exe",
+      "deps": ["fmt", "imgui"]
+    },
+    {
+      "name": "mimalloc",
+      "files": ["src/third/mimalloc/src/static.c"],
+      "dirs": ["src/third/mimalloc"],
+      "defines": ["MI_STATIC_LIB"],
+      "type": "static",
+      "include_dirs": ["src/third/mimalloc", "src/third/mimalloc/src"],
+      "comment": "第三方库，使用 Single Source 方式编译"
+    },
+    {
+      "name": "editor_ui",
+      "dirs": ["src/editor/ui"],
+      "type": "lib",
+      "buildMode": "editor",
+      "comment": "仅 Editor 模式构建的模块"
+    },
+    {
+      "name": "smallwasm",
+      "type": "subcmake",
+      "dirs": ["Program/smallwasm/src"],
+      "subcmake": {
+        "source": "Program/smallwasm",
+        "build": "Program/smallwasm/build",
+        "generator": "Ninja",
+        "target": "all",
+        "configure": ["-DSMALLWASM_DEBUG=ON"]
+      },
+      "comment": "独立的 WASM 子工程"
+    },
+    {
+      "name": "tracy",
+      "dirs": ["src/third/tracy"],
+      "type": "shared",
+      "defines": ["TRACY_ENABLE"],
+      "files_compile": ["src/third/tracy/TracyClient.cpp"],
+      "comment": "第三方库选择性编译：dirs 扫描出多个 .cpp，但只有 TracyClient.cpp 需要编译"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+WASM 体积分析快速指引（smallwasm）
+
+你现在有三个文件：
+1) output.gl.dwarf.txt
+   - 这是 llvm-dwarfdump 的原始输出
+   - 信息很全，但不适合直接看
+
+2) output.gl.dwarf.report.txt
+   - 从 DWARF 里提取“函数大小排序”
+   - 排在前面的函数就是 wasm 代码段里最占体积的函数
+
+3) output.gl.map
+   - wasm-ld 的链接映射文件
+   - 记录段、符号在最终 wasm 里的真实大小
+
+建议的分析顺序：
+1. 先看 output.gl.dwarf.report.txt 的前 10~20 行
+   - 这些就是“最大的函数”
+   - 直接打开对应的 .cpp 函数体，找循环、分支、内联、模板实例
+
+2. 再用 map_report.ps1 看真实的段占用
+   - 运行示例：
+     powershell -ExecutionPolicy Bypass -File Program/smallwasm/tools/map_report.ps1 -OutPath Program/smallwasm/output.gl.map.txt
+   - 重点看：
+     Section summary 里 CODE/.rodata/.data/.bss
+     Top CODE symbols 与 CODE by object file
+
+如何判断从哪里下手：
+A) 如果 CODE 最大
+   - 从 dwarf.report 的前几行函数开始优化
+   - 常见手段：拆分函数、减少模板实例、避免过度内联
+
+B) 如果 .rodata 最大
+   - 大多是常量表、纹理数据、字符串
+   - 看 map_report 里 .rodata 的 Top 列表
+
+C) 如果 .data/.bss 最大
+   - 静态全局数据过多
+   - 检查静态数组、全局缓存、对象池
+
+debug 与 release 的区别：
+debug（SMALLWASM_ANALYZE=ON）
+  - 保留 DWARF 行号/函数名
+  - 适合分析
+release（SMALLWASM_ANALYZE=OFF）
+  - strip 掉调试信息和名字
+  - 适合最终体积
+
+一个实际的起点（示例）：
+你的 dwarf.report 里最大的是 renderer_2d.cpp::flush
+这就是最先该看的函数

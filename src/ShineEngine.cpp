@@ -51,6 +51,9 @@ int main(int argc, char **argv) {
 
 #include "render/backend/render_backend.h"
 
+#define TRACY_ENABLE
+#include "tracy/tracy/Tracy.hpp"
+
 // Include Memory
 #ifdef SHINE_USE_MODULE
 import shine.memory;
@@ -69,6 +72,8 @@ shine::render::backend::IRenderBackend *RenderBackend = nullptr; // Non-owning, 
 shine::gameplay::Camera g_Camera("默认相机");
 
 int main(int argc, char **argv) {
+
+    ZoneScoped;
 
     for (int i = 0; i < argc; i++) {
         fmt::println("命令行参数[{}]: {}", i, argv[i]);
@@ -117,10 +122,10 @@ int main(int argc, char **argv) {
 
     auto  RenderService = context.GetSystem<render::RendererService>();
     auto  Camera        = context.GetSystem<manager::CameraManager>();
-    auto &g_FPSManager  = util::FPSController::get();
+    auto& g_FPSManager  = util::FPSController::get();
 
     util::watcher::DirectoryWatcher fileWatcher;
-    fileWatcher.OnFileChanged.bind([](std::wstring path, std::wstring filename, DWORD action, bool is_dir) {
+    auto handle = fileWatcher.OnFileChanged.bind([](std::wstring path, std::wstring filename, DWORD action, bool is_dir) {
         const wchar_t *type = is_dir ? L"[目录]" : L"[文件]";
         const wchar_t *act  = L"未知";
 

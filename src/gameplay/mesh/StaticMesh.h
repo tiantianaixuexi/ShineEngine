@@ -182,7 +182,9 @@ namespace shine::gameplay
         }
 
         // 材质接口
-        void setMaterial(std::shared_ptr<shine::render::Material> mat) { m_Material = std::move(mat); }
+        void setMaterial(std::shared_ptr<shine::render::Material> mat) { 
+            m_Material = std::move(mat); 
+        }
         std::shared_ptr<shine::render::Material> getMaterial() const { return m_Material; }
 
         [[nodiscard]] u64 vaoHandle() const { return static_cast<u64>(m_VAO); }
@@ -190,15 +192,10 @@ namespace shine::gameplay
 
     private:
 
-#ifdef SHINE_OPENGL
         unsigned int m_VAO { 0 };
         unsigned int m_VBO { 0 };
         std::shared_ptr<shine::render::Material> m_Material;
-#else
-        unsigned int m_VAO { 0 };
-        unsigned int m_VBO { 0 };
-        std::shared_ptr<shine::render::Material> m_Material;
-#endif
+        
         int m_VertexCount { 0 };
     };
 }

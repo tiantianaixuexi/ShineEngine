@@ -1,7 +1,7 @@
 {
   "name": "ReflectionTest",
   "type": "exe",
-  "dirs": ["test/ReflectionTest"],
+  "dirs": ["dev/test/ReflectionTest"],
   "deps": ["engine_core", "fmt"],
   "defines": ["TEST_BUILD"],
   "platform": ["Windows"],

@@ -280,7 +280,19 @@ goto end_script
 if "%TARGET_ARG%"=="" set TARGET_ARG=smallwasm
 call :log_info "Building wasm target (%TARGET_ARG%) ..."
 
-if exist "%BUILD_DIR%\CMakeCache.txt" (
+:: 检查目标是否是 subcmake 类型（需要从 JSON 读取类型）
+set IS_SUBCMAKE=
+for %%f in ("Module\%TARGET_ARG%.json" "Module\test\%TARGET_ARG%.json" "Module\Program\%TARGET_ARG%.json") do (
+    if exist %%f (
+        findstr /i "\"type\"" %%f | findstr /i "subcmake" >nul && set IS_SUBCMAKE=1
+    )
+)
+
+:: subcmake 目标需要重新配置（因为可能有新增的子目录）
+if defined IS_SUBCMAKE (
+    call :log_info "Detected subcmake target, forcing reconfigure..."
+    call :build_generic "%TARGET_ARG%" "%MODULE_CONFIG%" "FALSE"
+) else if exist "%BUILD_DIR%\CMakeCache.txt" (
     call :log_info "Using existing build directory: %BUILD_DIR%"
     cmake --build "%BUILD_DIR%" --config "%MODULE_CONFIG%" --target "%TARGET_ARG%" --parallel %CLEAN_FIRST% || call :error_exit "Build failed"
     call :log_success "Build successful!"

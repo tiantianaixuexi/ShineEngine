@@ -1,0 +1,18 @@
+{
+  "name": "WasmSizeTests",
+  "type": "subcmake",
+  "dirs": [
+    "dev/test/WasmSizeTest"
+  ],
+  "files": [
+    "dev/test/WasmSizeTest/CMakeLists.txt"
+  ],
+  "subcmake": {
+    "source": "dev/test/WasmSizeTest",
+    "build": "dev/test/WasmSizeTest/build",
+    "generator": "Ninja",
+    "target": "all",
+    "configure": []
+  },
+  "output": "dev/test/WasmSizeTest/build"
+}
