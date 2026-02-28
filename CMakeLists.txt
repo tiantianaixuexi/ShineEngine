@@ -18,7 +18,7 @@ option(SHINE_BUILD_MODULE "Enable C++20 modules support" OFF)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # 构建类型配置
@@ -369,6 +369,7 @@ function(parse_and_cache_modules)
                     file(GLOB_RECURSE dir_found_files
                         "${CMAKE_SOURCE_DIR}/${dir}/*.h"
                         "${CMAKE_SOURCE_DIR}/${dir}/*.hpp"
+                        "${CMAKE_SOURCE_DIR}/${dir}/*.c"
                         "${CMAKE_SOURCE_DIR}/${dir}/*.cpp"
                         "${CMAKE_SOURCE_DIR}/${dir}/*.cppm"
                     )
@@ -743,6 +744,8 @@ foreach(module_name ${MODULE_LIST})
 
     # subcmake 模块允许 files 为空（因为它不参与本工程编译，只负责触发子工程构建）
     check_module_type("${types}" "subcmake" is_subcmake)
+    # interface 模块允许 files 为空（header-only 接口库）
+    check_module_type("${types}" "interface" is_interface_type)
 
 
     if(SHINE_WASM_DISPATCH_ONLY AND NOT is_subcmake)
@@ -764,7 +767,8 @@ foreach(module_name ${MODULE_LIST})
         continue()
     endif()
 
-    if(NOT files AND NOT is_subcmake)
+    # interface 模块允许没有 files（如 fmt header-only）
+    if(NOT files AND NOT is_subcmake AND NOT is_interface_type)
         should_show_module(${name})
         if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
             message(STATUS "Skip empty module: ${name}")

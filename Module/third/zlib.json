@@ -1,0 +1,9 @@
+{
+    "name": "zlib",
+    "dirs": [
+      "src/third/zlib"
+
+    ],
+    "type": "static",
+    "comment": "zlib库"
+}

@@ -35,6 +35,7 @@ namespace shine::render
     {
     public:
         RendererService() = default;
+        ~RendererService() noexcept override = default;
 
         // 注入应用后端（必须先调用）
         void init(backend::IRenderBackend* backend) noexcept;

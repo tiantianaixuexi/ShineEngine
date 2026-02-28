@@ -1,6 +1,6 @@
 {
   "name": "fmt",
-  "files": [
+  "dirs": [
     "src/third/fmt/args.h",
     "src/third/fmt/base.h",
     "src/third/fmt/chrono.h",

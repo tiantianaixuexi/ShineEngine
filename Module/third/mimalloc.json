@@ -6,11 +6,14 @@
   "dirs": [
     "src/third/mimalloc"
   ],
-  "defines": [ "MI_STATIC_LIB" ],
-  "type": "static",
+  "files_compile": [
+    "src/third/mimalloc/src/static.c"
+  ],
   "include_dirs": [
     "src/third/mimalloc",
     "src/third/mimalloc/src"
   ],
+  "defines": [ "MI_STATIC_LIB" ],
+  "type": "static",
   "comment": "第三方库，内存池, https://github.com/microsoft/mimalloc"
 }

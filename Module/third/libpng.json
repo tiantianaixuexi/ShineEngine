@@ -1,0 +1,12 @@
+{
+    "name": "libpng",
+    "dirs": [
+      "src/third/libpng"
+    ],
+    "files":[
+      "src/third/zlib/zlib.h"
+    ],
+    "type": "static",
+    "comment": "解析png库"
+}
+

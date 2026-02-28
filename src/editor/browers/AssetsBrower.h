@@ -13,10 +13,8 @@ namespace shine::editor::assets_brower
     {
         public:
 
-            
-            std::string         title = "Assets border";
+            std::string         title = "资产浏览器";
             bool                RequestSort = false;        // Deferred sort request
-
 
 
             ImVector<assets_item::AssetsItem> items;

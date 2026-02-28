@@ -1,69 +1,216 @@
-﻿#include "GL/glew.h"
+﻿#pragma once
 
-#include "third/stb/stb_image.h"
+#include "GL/glew.h"
+#include "imgui/imgui.h"
 
-
-#include "imgui.h"
-
+#include <cstdint>
+#include <expected>
+#include <filesystem>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace shine::util
 {
 
-    bool LoadTextureFromMemory(const void *data, size_t data_size, GLuint *out_texture, int *out_width, int *out_height);
-    bool LoadTextureFromFile(const char *file_name, GLuint *out_texture, int *out_width, int *out_height);
+// ============================================================================
+// 图像数据结构
+// ============================================================================
+
+/**
+ * @brief 图像数据结构
+ */
+struct ImageData
+{
+    std::vector<std::byte> data;     // 像素数据
+    std::int32_t width = 0;               // 图像宽度
+    std::int32_t height = 0;              // 图像高度
+    std::int32_t channels = 0;            // 通道数 (1=灰度, 3=RGB, 4=RGBA)
+    GLenum format = GL_RGBA;         // OpenGL 格式
+    GLenum internalFormat = GL_RGBA8;// OpenGL 内部格式
+
+    [[nodiscard]] bool valid() const noexcept { return !data.empty() && width > 0 && height > 0; }
+    [[nodiscard]] size_t size() const noexcept { return data.size(); }
+    [[nodiscard]] const std::byte* raw() const noexcept { return data.data(); }
+};
+
+/**
+ * @brief 纹理 ID 包装器 (RAII)
+ */
+struct GlTexture
+{
+    GLuint id = 0;
+
+    GlTexture() = default;
+    explicit GlTexture(GLuint textureId) : id(textureId) {}
+
+    // 禁用复制
+    GlTexture(const GlTexture&) = delete;
+    GlTexture& operator=(const GlTexture&) = delete;
+
+    // 移动构造
+    GlTexture(GlTexture&& other) noexcept : id(other.id) { other.id = 0; }
+    GlTexture& operator=(GlTexture&& other) noexcept
+    {
+        if (this != &other)
+        {
+            release();
+            id = other.id;
+            other.id = 0;
+        }
+        return *this;
+    }
+
+    ~GlTexture() { release(); }
+
+    void release()
+    {
+        if (id != 0)
+        {
+            glDeleteTextures(1, &id);
+            id = 0;
+        }
+    }
+
+    [[nodiscard]] bool valid() const noexcept { return id != 0; }
+    [[nodiscard]] GLuint get() const noexcept { return id; }
+};
+
+/**
+ * @brief 图像文件格式
+ */
+enum class ImageFormat : uint8_t
+{
+    Unknown = 0,
+    PNG,
+    JPEG,
+    BMP,
+    TGA,
+    WEBP
+};
+
+/**
+ * @brief 完整图像资源 (CPU数据 + GPU纹理 + 元数据)
+ */
+struct Image
+{
+    // CPU 端数据
+    std::vector<std::byte> pixels;      // 像素数据
+    std::int32_t width = 0;             // 图像宽度
+    std::int32_t height = 0;            // 图像高度
+    std::int32_t channels = 0;          // 通道数 (1=灰度, 3=RGB, 4=RGBA)
+    
+    // GPU 端资源
+    GLuint textureId = 0;               // OpenGL 纹理 ID (外部管理生命周期)
+    
+    // 元数据
+    ImageFormat format = ImageFormat::Unknown;  // 源文件格式
+    GLenum glFormat = GL_RGBA;                  // OpenGL 格式
+    GLenum glInternalFormat = GL_RGBA8;         // OpenGL 内部格式
+    size_t fileSize = 0;                        // 原始文件大小 (字节)
+
+    [[nodiscard]] bool hasPixels() const noexcept { return !pixels.empty(); }
+    [[nodiscard]] bool hasTexture() const noexcept { return textureId != 0; }
+    [[nodiscard]] bool valid() const noexcept { return hasPixels() && width > 0 && height > 0; }
+    [[nodiscard]] size_t pixelCount() const noexcept { return static_cast<size_t>(width) * height; }
+    [[nodiscard]] size_t dataSize() const noexcept { return pixels.size(); }
+    [[nodiscard]] const std::byte* raw() const noexcept { return pixels.data(); }
+    
+    // 计算内存占用
+    [[nodiscard]] size_t memoryUsage() const noexcept
+    {
+        return pixels.size() + (hasTexture() ? static_cast<size_t>(width) * height * channels : 0);
+    }
+};
+
+// ============================================================================
+// 图像文件读取
+// ============================================================================
+
+/**
+ * @brief 读取图像文件原始字节
+ * @param path 文件路径
+ * @return 成功返回字节数组，失败返回错误信息
+ */
+std::expected<std::vector<std::byte>, std::string> read_image_bytes(std::string_view path);
+
+/**
+ * @brief 读取图像文件 (自动识别格式: PNG/JPEG等)
+ * @param path 文件路径
+ * @param desiredChannels 期望的通道数 (0=保持原样, 1=灰度, 3=RGB, 4=RGBA)
+ * @return 成功返回 ImageData，失败返回错误信息
+ */
+std::expected<ImageData, std::string> load_image(std::string_view path, int32_t desiredChannels = 4);
+
+/**
+ * @brief 从内存数据加载图像
+ * @param data 图像文件数据 (如 PNG/JPEG 编码的字节)
+ * @param desiredChannels 期望的通道数
+ * @return 成功返回 ImageData，失败返回错误信息
+ */
+std::expected<ImageData, std::string> load_image_from_memory(std::span<const std::byte> data, int32_t desiredChannels = 4);
+
+/**
+ * @brief 加载完整图像资源 (包含元数据)
+ * @param path 文件路径
+ * @param desiredChannels 期望的通道数
+ * @return 成功返回 Image，失败返回错误信息
+ */
+std::expected<Image*, std::string> load_image_full(std::string_view path, int32_t desiredChannels = 4);
+
+/**
+ * @brief 加载图像并创建纹理 (一站式便捷函数)
+ * @param path 文件路径
+ * @param desiredChannels 期望的通道数
+ * @param generateMipmaps 是否生成 mipmaps
+ * @return 成功返回 Image (含像素+纹理+元数据)，失败返回错误信息
+ */
+std::expected<Image*, std::string> load_image_with_texture(std::string_view path, int32_t desiredChannels = 4, bool generateMipmaps = false);
+
+// ============================================================================
+// OpenGL 纹理创建
+// ============================================================================
+
+/**
+ * @brief 从图像数据创建 OpenGL 纹理
+ * @param image 图像数据
+ * @param generateMipmaps 是否生成 mipmaps
+ * @return 成功返回纹理 ID，失败返回错误信息
+ */
+std::expected<GlTexture, std::string> create_texture(const ImageData& image, bool generateMipmaps = true);
+
+/**
+ * @brief 从文件加载图像并创建纹理 (便捷函数)
+ * @param path 图像文件路径
+ * @param generateMipmaps 是否生成 mipmaps
+ * @return 成功返回纹理 ID，失败返回错误信息
+ */
+std::expected<GlTexture, std::string> load_texture(std::string_view path, bool generateMipmaps = true);
+
+// ============================================================================
+// ImGui 纹理集成
+// ============================================================================
+
+/**
+ * @brief 获取纹理的 ImGui 纹理指针
+ * @param texture OpenGL 纹理
+ * @return ImGui 纹理指针 (用于 ImGui::Image)
+ */
+inline ImTextureID to_imtexture_id(const GlTexture& texture) noexcept
+{
+    return (ImTextureID)(static_cast<intptr_t>(texture.get()));
+}
+
+/**
+ * @brief 获取 GLuint 纹理 ID 的 ImGui 纹理指针
+ * @param textureId OpenGL 纹理 ID
+ * @return ImGui 纹理指针
+ */
+inline ImTextureID to_imtexture_id(GLuint textureId) noexcept
+{
+    return (ImTextureID)(static_cast<intptr_t>(textureId));
+}
 
 }
 
- namespace shine::util
- {
-
-    bool LoadTextureFromMemory(const void *data, size_t data_size, GLuint *out_texture, int *out_width, int *out_height)
-    {
-        // Load from file
-        int image_width = 0;
-        int image_height = 0;
-        unsigned char *image_data = stbi_load_from_memory(static_cast<const unsigned char*>(data), static_cast<int>(data_size), &image_width, &image_height, nullptr, 4);
-        if (image_data == nullptr)
-            return false;
-
-        // Create a OpenGL texture identifier
-        GLuint image_texture;
-        glGenTextures(1, &image_texture);
-        glBindTexture(GL_TEXTURE_2D, image_texture);
-
-        // Setup filtering parameters for display
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        // Upload pixels into texture
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-        stbi_image_free(image_data);
-
-        *out_texture = image_texture;
-        *out_width = image_width;
-        *out_height = image_height;
-
-        return true;
-    }
-
-    bool LoadTextureFromFile(const char *file_name, GLuint *out_texture, int *out_width, int *out_height)
-    {
-        FILE *f = nullptr;
-        if(fopen_s(&f,file_name, "rb") !=0 ) return false;
-        fseek(f, 0, 2);
-        const size_t file_size = static_cast<size_t>(ftell(f));
-        if (file_size == -1)
-            return false;
-        fseek(f, 0, 0);
-        void *file_data = ImGui::MemAlloc(file_size);
-        fread(file_data, 1, file_size, f);
-        fclose(f);
-        const bool ret = LoadTextureFromMemory(file_data, file_size, out_texture, out_width, out_height);
-        ImGui::MemFree(file_data);
-        return ret;
-    }
-
- 
-
-}
