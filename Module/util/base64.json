@@ -2,8 +2,8 @@
     "name": "base64",
     "type": "static",
     "files": [
-        "src/util/base64/base64.cpp",
-        "src/util/base64/base64.ixx"
+        "src/util/Algorithm/base64.cpp",
+        "src/util/Algorithm/base64.ixx"
     ],
     "platform": [
         "Windows",

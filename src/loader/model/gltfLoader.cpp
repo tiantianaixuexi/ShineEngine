@@ -20,7 +20,7 @@
 
 #include "util/timer/function_timer.h"
 #include "util/file_util.ixx"
-#include "util/base64/base64.ixx"
+#include "util/Algorithm/base64.ixx"
 
 
 namespace shine::loader

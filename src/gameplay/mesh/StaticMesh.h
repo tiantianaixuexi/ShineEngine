@@ -4,14 +4,11 @@
 #include <vector>
 #include <cmath>
 
-
-#include "GL/glew.h"
-
-
-
+#include "EngineCore/engine_context.h"
 #include "shine_define.h"
 #include "render/material.h"
 #include "render/pipeline/command_buffer.h"
+#include "render/renderer_service.h"
 
 
 namespace shine::gameplay
@@ -23,45 +20,30 @@ namespace shine::gameplay
         StaticMesh() = default;
         ~StaticMesh()
         {
-#ifdef SHINE_OPENGL
-            if (m_VAO) glDeleteVertexArrays(1, &m_VAO);
-            if (m_VBO) glDeleteBuffers(1, &m_VBO);
-#endif
+            releaseMesh();
         }
 
         void initTriangle()
         {
-#ifdef SHINE_OPENGL
             m_VertexCount = 3;
-            const GLfloat vertices[] = {
+            std::vector<float> vertices = {
                 -0.5f, -0.5f, 0.0f,
                  0.5f, -0.5f, 0.0f,
                  0.0f,  0.5f, 0.0f
             };
 
-            if (!m_VAO) glGenVertexArrays(1, &m_VAO);
-            glBindVertexArray(m_VAO);
+            render::backend::VertexLayoutDesc layout;
+            layout.strideBytes = 3 * sizeof(float);
+            layout.attributes = { {0, 3, 0} };
 
-            if (!m_VBO) glGenBuffers(1, &m_VBO);
-            glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-            glEnableVertexAttribArray(0);
-
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glBindVertexArray(0);
-#endif
+            buildMesh(vertices, layout);
         }
 
         // 在 XY 平面绘制一个正方形（两个三角形），每个顶点包含位置(vec3) + 法线(vec3)
         void initQuadWithNormals()
         {
-#ifdef SHINE_OPENGL
-            // 6 椤剁偣锛堜袱涓笁瑙掑舰锛夛紝娉曠嚎缁熶竴涓?+Z
             m_VertexCount = 6;
-            const GLfloat vertices[] = {
-                // pos                // normal
+            std::vector<float> vertices = {
                 -0.5f, -0.5f, 0.0f,    0.0f, 0.0f, 1.0f,
                  0.5f, -0.5f, 0.0f,    0.0f, 0.0f, 1.0f,
                  0.5f,  0.5f, 0.0f,    0.0f, 0.0f, 1.0f,
@@ -71,34 +53,18 @@ namespace shine::gameplay
                 -0.5f,  0.5f, 0.0f,    0.0f, 0.0f, 1.0f,
             };
 
-            if (!m_VAO) glGenVertexArrays(1, &m_VAO);
-            glBindVertexArray(m_VAO);
+            render::backend::VertexLayoutDesc layout;
+            layout.strideBytes = 6 * sizeof(float);
+            layout.attributes = { {0, 3, 0}, {1, 3, 3 * sizeof(float)} };
 
-            if (!m_VBO) glGenBuffers(1, &m_VBO);
-            glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-            // layout(location=0) -> position
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
-            glEnableVertexAttribArray(0);
-            // layout(location=1) -> normal
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-            glEnableVertexAttribArray(1);
-
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glBindVertexArray(0);
-#endif
+            buildMesh(vertices, layout);
         }
 
         // 绘制一个正方体（单位长宽高，中心点原点），每个面具有其面法线
         void initCubeWithNormals()
         {
-#ifdef SHINE_OPENGL
-            // 6 涓潰 脳 姣忛潰 2 涓笁瑙掑舰 脳 姣忎笁瑙掑舰 3 椤剁偣 = 36 椤剁偣
             m_VertexCount = 36;
-            const GLfloat vertices[] = {
-                // 浣嶇疆                // 娉曠嚎
-                // +X 闈?(鍙?
+            std::vector<float> vertices = {
                  0.5f, -0.5f, -0.5f,    1.0f, 0.0f, 0.0f,
                  0.5f,  0.5f, -0.5f,    1.0f, 0.0f, 0.0f,
                  0.5f,  0.5f,  0.5f,    1.0f, 0.0f, 0.0f,
@@ -107,7 +73,6 @@ namespace shine::gameplay
                  0.5f,  0.5f,  0.5f,    1.0f, 0.0f, 0.0f,
                  0.5f, -0.5f,  0.5f,    1.0f, 0.0f, 0.0f,
 
-                // -X 闈?(宸?
                 -0.5f, -0.5f,  0.5f,   -1.0f, 0.0f, 0.0f,
                 -0.5f,  0.5f,  0.5f,   -1.0f, 0.0f, 0.0f,
                 -0.5f,  0.5f, -0.5f,   -1.0f, 0.0f, 0.0f,
@@ -116,7 +81,6 @@ namespace shine::gameplay
                 -0.5f,  0.5f, -0.5f,   -1.0f, 0.0f, 0.0f,
                 -0.5f, -0.5f, -0.5f,   -1.0f, 0.0f, 0.0f,
 
-                // +Y 闈?(涓?
                 -0.5f,  0.5f, -0.5f,    0.0f, 1.0f, 0.0f,
                  0.5f,  0.5f, -0.5f,    0.0f, 1.0f, 0.0f,
                  0.5f,  0.5f,  0.5f,    0.0f, 1.0f, 0.0f,
@@ -125,7 +89,6 @@ namespace shine::gameplay
                  0.5f,  0.5f,  0.5f,    0.0f, 1.0f, 0.0f,
                 -0.5f,  0.5f,  0.5f,    0.0f, 1.0f, 0.0f,
 
-                // -Y 闈?(涓?
                 -0.5f, -0.5f,  0.5f,    0.0f,-1.0f, 0.0f,
                  0.5f, -0.5f,  0.5f,    0.0f,-1.0f, 0.0f,
                  0.5f, -0.5f, -0.5f,    0.0f,-1.0f, 0.0f,
@@ -134,7 +97,6 @@ namespace shine::gameplay
                  0.5f, -0.5f, -0.5f,    0.0f,-1.0f, 0.0f,
                 -0.5f, -0.5f, -0.5f,    0.0f,-1.0f, 0.0f,
 
-                // +Z 闈?(鍓?
                 -0.5f, -0.5f,  0.5f,    0.0f, 0.0f, 1.0f,
                  0.5f, -0.5f,  0.5f,    0.0f, 0.0f, 1.0f,
                  0.5f,  0.5f,  0.5f,    0.0f, 0.0f, 1.0f,
@@ -143,7 +105,6 @@ namespace shine::gameplay
                  0.5f,  0.5f,  0.5f,    0.0f, 0.0f, 1.0f,
                 -0.5f,  0.5f,  0.5f,    0.0f, 0.0f, 1.0f,
 
-                // -Z 闈?(鍚?
                 -0.5f,  0.5f, -0.5f,    0.0f, 0.0f,-1.0f,
                  0.5f,  0.5f, -0.5f,    0.0f, 0.0f,-1.0f,
                  0.5f, -0.5f, -0.5f,    0.0f, 0.0f,-1.0f,
@@ -153,30 +114,19 @@ namespace shine::gameplay
                 -0.5f, -0.5f, -0.5f,    0.0f, 0.0f,-1.0f,
             };
 
-            if (!m_VAO) glGenVertexArrays(1, &m_VAO);
-            glBindVertexArray(m_VAO);
+            render::backend::VertexLayoutDesc layout;
+            layout.strideBytes = 6 * sizeof(float);
+            layout.attributes = { {0, 3, 0}, {1, 3, 3 * sizeof(float)} };
 
-            if (!m_VBO) glGenBuffers(1, &m_VBO);
-            glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-            glEnableVertexAttribArray(1);
-
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glBindVertexArray(0);
-#endif
+            buildMesh(vertices, layout);
         }
 
         void initSphereWithNormals(int segments = 24, int rings = 16)
         {
-#ifdef SHINE_OPENGL
             if (segments < 3) segments = 3;
             if (rings < 2) rings = 2;
             const float radius = 0.5f;
-            std::vector<GLfloat> vertices;
+            std::vector<float> vertices;
             vertices.reserve(segments * rings * 6 * 6);
 
             auto pushVertex = [&](float x, float y, float z) {
@@ -234,34 +184,23 @@ namespace shine::gameplay
             }
 
             m_VertexCount = static_cast<int>(vertices.size() / 6);
-            if (!m_VAO) glGenVertexArrays(1, &m_VAO);
-            glBindVertexArray(m_VAO);
 
-            if (!m_VBO) glGenBuffers(1, &m_VBO);
-            glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-            glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
+            render::backend::VertexLayoutDesc layout;
+            layout.strideBytes = 6 * sizeof(float);
+            layout.attributes = { {0, 3, 0}, {1, 3, 3 * sizeof(float)} };
 
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-            glEnableVertexAttribArray(1);
-
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glBindVertexArray(0);
-#endif
+            buildMesh(vertices, layout);
         }
 
         // 渲染，绑定着色器（用后端编译缓存），提交渲染
         void render(render::CommandBuffer& cmd)
         {
-#ifdef SHINE_OPENGL
-            if (!m_VAO || m_VertexCount <= 0) return;
+            if (m_MeshHandle == 0 || m_VertexCount <= 0) return;
             if (!m_Material) m_Material = shine::render::Material::GetDefaultPhong();
             if (m_Material) m_Material->bind(cmd);
 
-            cmd.BindVertexArray(static_cast<u64>(m_VAO));
+            cmd.BindVertexArray(m_MeshHandle);
             cmd.DrawTriangles(0, m_VertexCount);
-#endif
         }
 
         // 材质接口
@@ -270,13 +209,44 @@ namespace shine::gameplay
         }
         std::shared_ptr<shine::render::Material> getMaterial() const { return m_Material; }
 
-        [[nodiscard]] u64 vaoHandle() const { return static_cast<u64>(m_VAO); }
+        [[nodiscard]] u64 meshHandle() const { return m_MeshHandle; }
         [[nodiscard]] int vertexCount() const { return m_VertexCount; }
 
     private:
+        void buildMesh(const std::vector<float>& vertices, const render::backend::VertexLayoutDesc& layout)
+        {
+            releaseMesh();
+            auto* renderer = shine::EngineContext::Get().GetSystem<shine::render::RendererService>();
+            if (!renderer) return;
+            auto* backend = renderer->GetBackend();
+            if (!backend) return;
 
-        unsigned int m_VAO { 0 };
-        unsigned int m_VBO { 0 };
+            render::backend::MeshCreateInfo info;
+            info.vertexData = vertices.data();
+            info.vertexDataSize = vertices.size() * sizeof(float);
+            info.vertexCount = m_VertexCount;
+            info.layout = layout;
+
+            m_MeshHandle = backend->CreateMesh(info);
+        }
+
+        void releaseMesh()
+        {
+            if (m_MeshHandle == 0) return;
+            if (!shine::EngineContext::IsInitialized()) {
+                m_MeshHandle = 0;
+                return;
+            }
+            auto* renderer = shine::EngineContext::Get().GetSystem<shine::render::RendererService>();
+            if (renderer) {
+                if (auto* backend = renderer->GetBackend()) {
+                    backend->ReleaseMesh(m_MeshHandle);
+                }
+            }
+            m_MeshHandle = 0;
+        }
+
+        u64 m_MeshHandle { 0 };
         std::shared_ptr<shine::render::Material> m_Material;
         
         int m_VertexCount { 0 };

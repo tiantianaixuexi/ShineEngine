@@ -18,15 +18,7 @@ namespace shine::gameplay::component
         if (!m_StaticMesh) return;
 
         // 1. Get Model Matrix
-        shine::math::FMatrix4f modelMatrix = shine::math::FMatrix4f::identity();
-        if (m_Owner)
-        {
-            if (auto* transform = m_Owner->getComponent<TransformComponent>())
-            {
-                modelMatrix = transform->getModelMatrix();
-            }
-        }
-        
+        shine::math::FMatrix4f modelMatrix = m_Owner->getComponent<TransformComponent>()->getModelMatrix();
         // 2. Prepare Matrix Data (column-major for OpenGL)
         std::vector<float> matData(16);
         const float* src = modelMatrix.data();
@@ -36,9 +28,9 @@ namespace shine::gameplay::component
         auto material = m_StaticMesh->getMaterial();
         if (!material) 
         {
-             // Use default if none
-             material = shine::render::Material::GetDefaultPhong();
-             m_StaticMesh->setMaterial(material);
+            // Use default if none
+            material = shine::render::Material::GetDefaultPhong();
+            m_StaticMesh->setMaterial(material);
         }
 
         if (material)
@@ -54,9 +46,9 @@ namespace shine::gameplay::component
         }
         
         // 4. Draw
-        if (m_StaticMesh->vaoHandle() > 0 && m_StaticMesh->vertexCount() > 0)
+        if (m_StaticMesh->meshHandle() > 0 && m_StaticMesh->vertexCount() > 0)
         {
-            cmd.BindVertexArray(m_StaticMesh->vaoHandle());
+            cmd.BindVertexArray(m_StaticMesh->meshHandle());
             cmd.DrawTriangles(0, m_StaticMesh->vertexCount());
         }
     }

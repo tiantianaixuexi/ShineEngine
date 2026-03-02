@@ -45,6 +45,8 @@ namespace shine::render::opengl3
         std::unordered_map<s32, ViewportInfo> m_Viewports;
         s32 m_NextViewportHandle{1};
 
+        std::unordered_map<GLuint, GLuint> m_MeshVbos;
+
         // ---- Backend dimensions (moved from base class) ----
         int m_Width  = 800;
         int m_Height = 600;
@@ -74,6 +76,9 @@ namespace shine::render::opengl3
 
         void ExecuteCommandBuffer(s32 viewportHandle,
                                   const shine::render::CommandBuffer* cmdBuffer) override;
+
+        u64 CreateMesh(const backend::MeshCreateInfo& info) override;
+        void ReleaseMesh(u64 handle) override;
 
         s32                CreateViewport(int width, int height) override;
         void               DestroyViewport(s32 handle) override;

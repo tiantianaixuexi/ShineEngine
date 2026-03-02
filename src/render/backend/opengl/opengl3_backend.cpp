@@ -483,6 +483,48 @@ namespace shine::render::opengl3
         return glGetUniformLocation(programId, name.data());
     }
 
+    u64 OpenGLRenderBackend::CreateMesh(const backend::MeshCreateInfo& info)
+    {
+        if (!info.vertexData || info.vertexDataSize == 0 || info.vertexCount <= 0) return 0;
+        if (info.layout.strideBytes == 0 || info.layout.attributes.empty()) return 0;
+
+        GLuint vao = 0;
+        GLuint vbo = 0;
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, info.vertexDataSize, info.vertexData, GL_STATIC_DRAW);
+
+        for (const auto& attr : info.layout.attributes)
+        {
+            glVertexAttribPointer(attr.location, attr.components, GL_FLOAT, GL_FALSE,
+                                  info.layout.strideBytes,
+                                  reinterpret_cast<const void*>(static_cast<uintptr_t>(attr.offsetBytes)));
+            glEnableVertexAttribArray(attr.location);
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+
+        m_MeshVbos[vao] = vbo;
+        return static_cast<u64>(vao);
+    }
+
+    void OpenGLRenderBackend::ReleaseMesh(u64 handle)
+    {
+        if (handle == 0) return;
+        const GLuint vao = static_cast<GLuint>(handle);
+        if (const auto it = m_MeshVbos.find(vao); it != m_MeshVbos.end())
+        {
+            const GLuint vbo = it->second;
+            if (vbo) glDeleteBuffers(1, &vbo);
+            m_MeshVbos.erase(it);
+        }
+        glDeleteVertexArrays(1, &vao);
+    }
+
     uint32_t OpenGLRenderBackend::CreateVertexArray()
     {
         GLuint vao = 0;

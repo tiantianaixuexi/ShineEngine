@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <cstddef>
 #include <expected>
 #include <functional>
 #include <string>
@@ -21,6 +22,27 @@ namespace shine::render::backend {
 // Platform-opaque handle — cast to HWND / NSWindow* / etc. in implementations
 // ============================================================================
 using NativeWindowHandle = void*;
+
+struct VertexAttributeDesc
+{
+    u32 location = 0;
+    u32 components = 0;
+    u32 offsetBytes = 0;
+};
+
+struct VertexLayoutDesc
+{
+    u32 strideBytes = 0;
+    std::vector<VertexAttributeDesc> attributes;
+};
+
+struct MeshCreateInfo
+{
+    const void* vertexData = nullptr;
+    size_t vertexDataSize = 0;
+    s32 vertexCount = 0;
+    VertexLayoutDesc layout;
+};
 
 // ============================================================================
 // IRenderBackend — graphics-API-agnostic interface
@@ -98,6 +120,10 @@ public:
     // Returns uniform location for a given program; -1 if not found.
     virtual int32_t GetUniformLocation(uint32_t programId,
                                        std::string_view name) = 0;
+
+    // ---- Mesh ----
+    virtual u64 CreateMesh(const MeshCreateInfo& info) = 0;
+    virtual void ReleaseMesh(u64 handle) = 0;
 
     // ---- Vertex Arrays ----
     virtual uint32_t CreateVertexArray() { return 0; }
