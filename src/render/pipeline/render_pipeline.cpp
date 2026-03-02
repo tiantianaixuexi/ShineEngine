@@ -3,15 +3,35 @@
 #include "scriptable_render_context.h"
 #include "render_data.h"
 #include "command_buffer.h"
-#include "gameplay/camera.h"
-#include "gameplay/object.h"
-#include "gameplay/component/component.h"
+#include <algorithm>
+#include <fmt/format.h>
 
 namespace shine::render
 {
     RenderPipeline::RenderPipeline(RenderPipelineAsset* asset)
         : m_Asset(asset)
     {
+    }
+
+    void RenderPipeline::AddPass(std::unique_ptr<RenderPass> pass)
+    {
+        if (pass)
+        {
+            m_Passes.push_back(std::move(pass));
+        }
+    }
+
+    void RenderPipeline::SortPasses()
+    {
+        // 1. Sort by Event priority first
+        std::stable_sort(m_Passes.begin(), m_Passes.end(), [](const auto& a, const auto& b) {
+            return a->GetEvent() < b->GetEvent();
+        });
+
+        // 2. Resolve dependencies within same Event (Basic implementation)
+        // If Pass B inputs contains any of Pass A outputs, ensure A comes before B.
+        // Since we use stable_sort and Event order, this is mostly handled by assigning correct Events.
+        // A full graph sort would require building an adjacency list.
     }
 
     void RenderPipeline::Render(ScriptableRenderContext& context, RenderingData& data)
@@ -21,102 +41,12 @@ namespace shine::render
             return;
         }
 
-        const auto& settings = m_Asset->GetSettings();
+        SortPasses();
 
-        // 渲染主相机
-        RenderCamera(context, data, data.mainCamera);
-
-        // 如果有其他相机，也可以渲染（支持多相机）
-        for (auto* camera : data.cameras)
+        for (auto& pass : m_Passes)
         {
-            if (camera != data.mainCamera)
-            {
-                RenderCamera(context, data, camera);
-            }
+            pass->Configure(this, data);
+            pass->Execute(context, data);
         }
-    }
-
-    void RenderPipeline::RenderCamera(ScriptableRenderContext& context, RenderingData& data, shine::gameplay::Camera* camera)
-    {
-        if (!camera)
-        {
-            return;
-        }
-
-        const auto& settings = m_Asset->GetSettings();
-
-        // 注意：基础的 FBO 绑定、视口设置、清除等操作由后端在 RenderSceneWith 中处理
-        // 这里只负责渲染逻辑，不重复设置这些基础状态
-
-        // 渲染天空盒
-        if (settings.enableSkybox)
-        {
-            RenderSkybox(context, data, camera);
-        }
-
-        // 渲染不透明对象
-        if (settings.enableOpaqueObjects)
-        {
-            RenderOpaqueObjects(context, data, camera);
-        }
-
-        // 渲染透明对象
-        if (settings.enableTransparentObjects)
-        {
-            RenderTransparentObjects(context, data, camera);
-        }
-
-        // 后处理
-        if (settings.enablePostProcessing)
-        {
-            PostProcess(context, data, camera);
-        }
-    }
-
-    void RenderPipeline::RenderOpaqueObjects(ScriptableRenderContext& context, RenderingData& data, shine::gameplay::Camera* camera)
-    {
-        // 创建命令缓冲区用于渲染对象
-        CommandBuffer cmdBuffer;
-
-        // 遍历场景对象，渲染不透明对象
-        for (auto* obj : data.sceneObjects)
-        {
-            if (!obj)
-            {
-                continue;
-            }
-
-            // 遍历对象的组件，调用渲染回调
-            for (auto& compPtr : obj->getComponents())
-            {
-                if (!compPtr)
-                {
-                    continue;
-                }
-
-                // 使用 CommandBuffer 直接进行记录
-                compPtr->onRender(cmdBuffer);
-            }
-        }
-
-        // 提交命令缓冲区 (move semantics — 避免深拷贝)
-        context.Submit(std::move(cmdBuffer));
-    }
-
-    void RenderPipeline::RenderTransparentObjects(ScriptableRenderContext& context, RenderingData& data, shine::gameplay::Camera* camera)
-    {
-        // 类似不透明对象的渲染，但需要按深度排序
-        // 暂时留空，后续实现
-    }
-
-    void RenderPipeline::RenderSkybox(ScriptableRenderContext& context, RenderingData& data, shine::gameplay::Camera* camera)
-    {
-        // 天空盒渲染，暂时留空，后续实现
-    }
-
-    void RenderPipeline::PostProcess(ScriptableRenderContext& context, RenderingData& data, shine::gameplay::Camera* camera)
-    {
-        // 后处理效果，暂时留空，后续实现
     }
 }
-

@@ -21,13 +21,17 @@ namespace shine::render
         void SetClearColor(float r, float g, float b, float a);
         void ClearRenderTarget(bool clearColor, bool clearDepth);
         void BindFramebuffer(u64 framebufferHandle);
+        void BindTexture(u32 unit, u32 textureHandle);
         void EnableDepthTest(bool enabled);
         void UseProgram(u64 programHandle);
         void BindVertexArray(u64 vaoHandle);
         void DrawTriangles(s32 firstVertex, s32 vertexCount);
         void DrawIndexedTriangles(s32 indexCount, command::IndexType indexType, u64 indexBufferOffsetBytes = 0);
         void SetUniform1f(s32 location, float value);
+        void SetUniform1i(s32 location, s32 value);
+        void SetUniform2f(s32 location, float x, float y);
         void SetUniform3f(s32 location, float x, float y, float z);
+        void SetUniform4f(s32 location, float x, float y, float z, float w);
         void SetUniformMatrix4fv(s32 location, const std::vector<float>& data, bool transpose = false);
         void RenderImGui(void* drawData);
         void SwapBuffers(void* nativeSwapContext);

@@ -80,6 +80,12 @@ namespace shine::render::opengl3
         void               ResizeViewport(s32 handle, int width, int height) override;
         void               BindViewport(s32 handle) override;
         unsigned long long  GetViewportTexture(u32 handle) override;
+        u32                GetViewportFBO(s32 handle) override;
+
+        // ---- Custom FBO ----
+        s32 CreateCustomFramebuffer(int width, int height, const std::vector<uint32_t>& colorAttachments, uint32_t depthAttachment = 0) override;
+        void BindCustomFramebuffer(s32 handle) override;
+        void DeleteCustomFramebuffer(s32 handle) override;
 
         // ---- Texture ----
         uint32_t CreateTexture2D(int width, int height, const void* data = nullptr,
@@ -98,6 +104,10 @@ namespace shine::render::opengl3
         // ---- Uniform query ----
         int32_t GetUniformLocation(uint32_t programId,
                                    std::string_view name) override;
+
+        // ---- Vertex Arrays ----
+        uint32_t CreateVertexArray() override;
+        void ReleaseVertexArray(uint32_t vao) override;
 
         // ---- Per-frame UBO updates ----
         void UpdateCameraUBO();

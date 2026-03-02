@@ -22,7 +22,7 @@ namespace shine::render
         static std::shared_ptr<Material> CreateFancyRimToon()
         {
             auto m = std::make_shared<Material>();
-            m->m_ShaderKey = "FancyRimToon";
+            m->m_ShaderKey = "FancyRimToon_Emissive";
             m->m_VS = R"(
             #version 330 core
             layout(location = 0) in vec3 aPos;
@@ -33,17 +33,22 @@ namespace shine::render
                 mat4 u_VP;
                 vec4 u_ViewPos;
             };
+            uniform mat4 u_Model;
             void main(){
-                vNormal = aNormal;
-                vWorldPos = aPos;
-                gl_Position = u_VP * vec4(aPos, 1.0);
+                vec4 worldPos = u_Model * vec4(aPos, 1.0);
+                vWorldPos = worldPos.xyz;
+                vNormal = mat3(transpose(inverse(u_Model))) * aNormal;
+                gl_Position = u_VP * worldPos;
             }
             )";
             m->m_FS = R"(
             #version 330 core
+            layout(location = 0) out vec4 color;
+            layout(location = 1) out vec4 emissiveColor;
+
             in vec3 vNormal;
             in vec3 vWorldPos;
-            out vec4 color;
+
             uniform CameraUBO {
                 mat4 u_VP;
                 vec4 u_ViewPos;
@@ -52,13 +57,16 @@ namespace shine::render
             uniform vec3 u_Ambient;
             uniform vec3 u_LightDir;
             uniform float u_Shininess;
+            uniform vec4 u_Emissive;
+
             void main(){
                 vec3 N = normalize(vNormal);
                 vec3 L = normalize(-u_LightDir);
                 vec3 V = normalize(u_ViewPos.xyz - vWorldPos);
                 vec3 H = normalize(L + V);
                 float NdotL = max(dot(N, L), 0.0);
-                float toon = floor(NdotL * 4.0) / 4.0;
+                float toon = smoothstep(0.12, 0.9, NdotL);
+                toon = pow(toon, 0.85);
                 float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
                 vec3 rimColor = vec3(0.2, 0.6, 1.0);
                 float spec = pow(max(dot(N, H), 0.0), u_Shininess);
@@ -67,6 +75,7 @@ namespace shine::render
                 vec3 ambient = u_Ambient * u_BaseColor;
                 vec3 rim = rimColor * fres * 0.7;
                 color = vec4(ambient + diffuse + specular + rim, 1.0);
+                emissiveColor = vec4(u_Emissive.rgb * u_Emissive.a, 1.0);
             }
             )";
             m->setBaseColor(0.9f, 0.5f, 0.3f);
@@ -195,9 +204,14 @@ namespace shine::render
             if (m_LocationRoughness >= 0) cmdBuffer.SetUniform1f(m_LocationRoughness, m_Roughness);
             if (m_LocationAo        >= 0) cmdBuffer.SetUniform1f(m_LocationAo,        m_Ao);
             if (m_LocationLightDir  >= 0) cmdBuffer.SetUniform3f(m_LocationLightDir,  m_LightDir[0], m_LightDir[1], m_LightDir[2]);
+            if (m_LocationEmissive  >= 0) cmdBuffer.SetUniform4f(m_LocationEmissive,  m_Emissive[0], m_Emissive[1], m_Emissive[2], m_Emissive[3]);
         }
 
         // ---- 参数设置 ----
+        void setEmissive(float r, float g, float b, float intensity) { m_Emissive = {r, g, b, intensity}; }
+        
+        std::array<float, 4> m_Emissive{0.0f, 0.0f, 0.0f, 0.0f};
+        int32_t m_LocationEmissive = -1;
         void setBaseColor(float r, float g, float b) { m_BaseColor = {r,g,b}; }
         void setAmbient(float r, float g, float b)   { m_Ambient = {r,g,b}; }
         void setLightDir(float x, float y, float z)  { m_LightDir = {x,y,z}; }
@@ -359,6 +373,7 @@ namespace shine::render
             m_LocationRoughness = sm.getUniformLocation(m_Program, "u_Roughness");
             m_LocationAo        = sm.getUniformLocation(m_Program, "u_Ao");
             m_LocationLightDir  = sm.getUniformLocation(m_Program, "u_LightDir");
+            m_LocationEmissive  = sm.getUniformLocation(m_Program, "u_Emissive");
             m_LocationModel     = sm.getUniformLocation(m_Program, "u_Model");
         }
 

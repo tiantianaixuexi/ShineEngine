@@ -8,12 +8,13 @@ namespace shine::render::backend::gl
         GLuint fbo{0};
         GLuint color{0};
         GLuint depth{0};
+        bool depthIsRenderbuffer{true};
         int width{0};
         int height{0};
 
         ViewportInfo() = default;
-        ViewportInfo(GLuint f, GLuint c, GLuint d, int w, int h)
-            : fbo(f), color(c), depth(d), width(w), height(h) {}
+        ViewportInfo(GLuint f, GLuint c, GLuint d, int w, int h, bool depthRb = true)
+            : fbo(f), color(c), depth(d), depthIsRenderbuffer(depthRb), width(w), height(h) {}
         
         // Rule of 5 defaults
         ViewportInfo(const ViewportInfo&) = default;

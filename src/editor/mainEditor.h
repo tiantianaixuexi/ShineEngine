@@ -15,6 +15,7 @@ class ImageViewerView;
 class SettingsView;
 class MemoryProfiler;
 class SMainEditorToolbar;
+class DebugTextureView;
 } // namespace shine::editor::views
 
 namespace shine::editor::main_editor {
@@ -53,6 +54,7 @@ private:
     views::SettingsView       *settingsView       = nullptr;
     views::MemoryProfiler     *memoryProfiler     = nullptr;
     views::LogUI              *logUI              = nullptr;
+    views::DebugTextureView   *debugTextureView   = nullptr;
 
     button::shineButton *myButton = nullptr;
 };

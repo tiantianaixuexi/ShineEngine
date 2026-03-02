@@ -7,6 +7,10 @@ namespace shine::gameplay
     class Camera;
 }
 
+#include <vector>
+#include <memory>
+#include "render_pass.h"
+
 namespace shine::render
 {
     class RenderPipelineAsset;
@@ -35,31 +39,12 @@ namespace shine::render
          */
         RenderPipelineAsset* GetAsset() const { return m_Asset; }
 
+        void AddPass(std::unique_ptr<RenderPass> pass);
+        void SortPasses();
+        const std::vector<std::unique_ptr<RenderPass>>& GetPasses() const { return m_Passes; }
+
     protected:
-        /**
-         * @brief 渲染单个相机
-         */
-        virtual void RenderCamera(ScriptableRenderContext& context, RenderingData& data, shine::gameplay::Camera* camera);
-
-        /**
-         * @brief 渲染不透明对象
-         */
-        virtual void RenderOpaqueObjects(ScriptableRenderContext& context, RenderingData& data, shine::gameplay::Camera* camera);
-
-        /**
-         * @brief 渲染透明对象
-         */
-        virtual void RenderTransparentObjects(ScriptableRenderContext& context, RenderingData& data, shine::gameplay::Camera* camera);
-
-        /**
-         * @brief 渲染天空盒
-         */
-        virtual void RenderSkybox(ScriptableRenderContext& context, RenderingData& data, shine::gameplay::Camera* camera);
-
-        /**
-         * @brief 后处理
-         */
-        virtual void PostProcess(ScriptableRenderContext& context, RenderingData& data, shine::gameplay::Camera* camera);
+        std::vector<std::unique_ptr<RenderPass>> m_Passes;
 
     private:
         RenderPipelineAsset* m_Asset;

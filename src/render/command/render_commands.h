@@ -23,6 +23,11 @@ namespace shine::render::command
         u64 framebufferHandle;
     };
 
+    struct CmdBindTexture {
+        u32 unit;
+        u32 textureHandle;
+    };
+
     struct CmdSetViewport {
         s32 x, y, width, height;
     };
@@ -67,9 +72,24 @@ namespace shine::render::command
         float value;
     };
 
+    struct CmdSetUniform1i {
+        s32 location;
+        s32 value;
+    };
+
+    struct CmdSetUniform2f {
+        s32 location;
+        float x, y;
+    };
+
     struct CmdSetUniform3f {
         s32 location;
         float x, y, z;
+    };
+
+    struct CmdSetUniform4f {
+        s32 location;
+        float x, y, z, w;
     };
 
     struct CmdSetUniformMatrix4fv {
@@ -95,6 +115,7 @@ namespace shine::render::command
         CmdExecute,
         CmdReset,
         CmdBindFramebuffer,
+        CmdBindTexture,
         CmdSetViewport,
         CmdClearColor,
         CmdClear,
@@ -104,7 +125,10 @@ namespace shine::render::command
         CmdDrawTriangles,
         CmdDrawIndexedTriangles,
         CmdSetUniform1f,
+        CmdSetUniform1i,
+        CmdSetUniform2f,
         CmdSetUniform3f,
+        CmdSetUniform4f,
         CmdSetUniformMatrix4fv,
         CmdImguiRender,
         CmdSwapBuffers

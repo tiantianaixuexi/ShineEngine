@@ -50,6 +50,7 @@ int main(int argc, char **argv) {
 #include "editor/mainEditor.h"
 
 #include "render/backend/render_backend.h"
+#include "render/debug/pass_texture_manager.h"
 
 #define TRACY_ENABLE
 #include "tracy/tracy/Tracy.hpp"
@@ -97,6 +98,7 @@ int main(int argc, char **argv) {
 
     // context.Register(new render::RenderManager());
     context.Register(new render::TextureManager());
+    context.Register(new render::PassTextureManager());
     context.Register(new render::RendererService());
 
     context.Register(new gameplay::tick::TickManager());

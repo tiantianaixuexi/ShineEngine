@@ -43,6 +43,11 @@ namespace shine::render
         m_Commands.push_back(command::CmdBindFramebuffer{ framebufferHandle });
     }
 
+    void CommandBuffer::BindTexture(u32 unit, u32 textureHandle)
+    {
+        m_Commands.push_back(command::CmdBindTexture{ unit, textureHandle });
+    }
+
     void CommandBuffer::EnableDepthTest(bool enabled)
     {
         m_Commands.push_back(command::CmdEnableDepthTest{ enabled });
@@ -73,9 +78,24 @@ namespace shine::render
         m_Commands.push_back(command::CmdSetUniform1f{ location, value });
     }
 
+    void CommandBuffer::SetUniform1i(s32 location, s32 value)
+    {
+        m_Commands.push_back(command::CmdSetUniform1i{ location, value });
+    }
+
+    void CommandBuffer::SetUniform2f(s32 location, float x, float y)
+    {
+        m_Commands.push_back(command::CmdSetUniform2f{ location, x, y });
+    }
+
     void CommandBuffer::SetUniform3f(s32 location, float x, float y, float z)
     {
         m_Commands.push_back(command::CmdSetUniform3f{ location, x, y, z });
+    }
+
+    void CommandBuffer::SetUniform4f(s32 location, float x, float y, float z, float w)
+    {
+        m_Commands.push_back(command::CmdSetUniform4f{ location, x, y, z, w });
     }
 
     void CommandBuffer::SetUniformMatrix4fv(s32 location, const std::vector<float>& data, bool transpose)

@@ -44,6 +44,11 @@ public:
     virtual void         ReSizeFrameBuffer(int width, int height) = 0;
     virtual unsigned int GetFramebufferTexture() = 0;
 
+    // Custom FBO support (MRT, Depth, etc.)
+    virtual s32 CreateCustomFramebuffer(int width, int height, const std::vector<uint32_t>& colorAttachments, uint32_t depthAttachment = 0) { return 0; }
+    virtual void BindCustomFramebuffer(s32 handle) {}
+    virtual void DeleteCustomFramebuffer(s32 handle) {}
+
     // ---- Size --------------------------------------------------------------
     virtual void SetSize(int width, int height) = 0;
     [[nodiscard]] virtual std::pair<int,int> GetSize() const noexcept = 0;
@@ -69,6 +74,7 @@ public:
     virtual unsigned long long  GetViewportTexture(u32 /*handle*/) {
         return GetFramebufferTexture();
     }
+    virtual u32 GetViewportFBO(s32 handle) { return 0; }
 
     // ---- Texture creation (cross-API) --------------------------------------
     virtual uint32_t CreateTexture2D(int width, int height,
@@ -92,6 +98,10 @@ public:
     // Returns uniform location for a given program; -1 if not found.
     virtual int32_t GetUniformLocation(uint32_t programId,
                                        std::string_view name) = 0;
+
+    // ---- Vertex Arrays ----
+    virtual uint32_t CreateVertexArray() { return 0; }
+    virtual void ReleaseVertexArray(uint32_t vao) {}
 };
 
 } // namespace shine::render::backend

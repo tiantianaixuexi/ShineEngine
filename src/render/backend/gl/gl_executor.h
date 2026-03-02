@@ -30,6 +30,12 @@ namespace shine::render::backend::gl
             glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(cmd.framebufferHandle));
         }
 
+        void operator()(const CmdBindTexture& cmd)
+        {
+            glActiveTexture(GL_TEXTURE0 + cmd.unit);
+            glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(cmd.textureHandle));
+        }
+
         void operator()(const CmdSetViewport& cmd)
         {
             glViewport(cmd.x, cmd.y, cmd.width, cmd.height);
@@ -108,9 +114,24 @@ namespace shine::render::backend::gl
             if (cmd.location >= 0) glUniform1f(cmd.location, cmd.value);
         }
 
+        void operator()(const CmdSetUniform1i& cmd)
+        {
+            if (cmd.location >= 0) glUniform1i(cmd.location, cmd.value);
+        }
+
+        void operator()(const CmdSetUniform2f& cmd)
+        {
+            if (cmd.location >= 0) glUniform2f(cmd.location, cmd.x, cmd.y);
+        }
+
         void operator()(const CmdSetUniform3f& cmd)
         {
             if (cmd.location >= 0) glUniform3f(cmd.location, cmd.x, cmd.y, cmd.z);
+        }
+
+        void operator()(const CmdSetUniform4f& cmd)
+        {
+            if (cmd.location >= 0) glUniform4f(cmd.location, cmd.x, cmd.y, cmd.z, cmd.w);
         }
 
         void operator()(const CmdSetUniformMatrix4fv& cmd)

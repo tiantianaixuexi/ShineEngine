@@ -285,7 +285,7 @@ namespace shine::render::opengl3
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         s32 handle = m_NextViewportHandle++;
-        m_Viewports.emplace(handle, ViewportInfo(fbo, color, depth, width, height));
+        m_Viewports.emplace(handle, ViewportInfo(fbo, color, depth, width, height, true));
         return handle;
     }
 
@@ -295,7 +295,7 @@ namespace shine::render::opengl3
         if (it == m_Viewports.end()) return;
         if (it->second.fbo)   glDeleteFramebuffers(1, &it->second.fbo);
         if (it->second.color) glDeleteTextures(1, &it->second.color);
-        if (it->second.depth) glDeleteRenderbuffers(1, &it->second.depth);
+        if (it->second.depth && it->second.depthIsRenderbuffer) glDeleteRenderbuffers(1, &it->second.depth);
         m_Viewports.erase(it);
     }
 
@@ -305,8 +305,11 @@ namespace shine::render::opengl3
         if (it == m_Viewports.end()) return;
         glBindTexture(GL_TEXTURE_2D, it->second.color);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-        glBindRenderbuffer(GL_RENDERBUFFER, it->second.depth);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+        if (it->second.depthIsRenderbuffer && it->second.depth)
+        {
+            glBindRenderbuffer(GL_RENDERBUFFER, it->second.depth);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+        }
         it->second.width = width;
         it->second.height = height;
     }
@@ -326,6 +329,13 @@ namespace shine::render::opengl3
         auto it = m_Viewports.find(handle);
         if (it == m_Viewports.end()) return GetFramebufferTexture();
         return it->second.color;
+    }
+
+    u32 OpenGLRenderBackend::GetViewportFBO(s32 handle)
+    {
+        auto it = m_Viewports.find(handle);
+        if (it == m_Viewports.end()) return g_FramebufferObject;
+        return it->second.fbo;
     }
 
     void OpenGLRenderBackend::ReSizeFrameBuffer(int width, int height)
@@ -398,113 +408,161 @@ namespace shine::render::opengl3
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapMode);
 
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-            static_cast<GLsizei>(width), static_cast<GLsizei>(height),
-            0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            if (generateMipmaps) glGenerateMipmap(GL_TEXTURE_2D);
+        }
+        else
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        }
 
-        if (generateMipmaps && data != nullptr)
-            glGenerateMipmap(GL_TEXTURE_2D);
-
-        glBindTexture(GL_TEXTURE_2D, 0);
-        return static_cast<uint32_t>(textureId);
+        return textureId;
     }
 
     void OpenGLRenderBackend::UpdateTexture2D(uint32_t textureId, int width, int height, const void* data)
     {
-        if (textureId == 0 || width <= 0 || height <= 0) return;
-        glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(textureId));
+        if (textureId == 0 || !data) return;
+        glBindTexture(GL_TEXTURE_2D, textureId);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
     void OpenGLRenderBackend::ReleaseTexture(uint32_t textureId)
     {
-        if (textureId != 0) {
-            GLuint glId = static_cast<GLuint>(textureId);
-            glDeleteTextures(1, &glId);
-        }
+        if (textureId != 0) glDeleteTextures(1, &textureId);
     }
 
-    // ---- Shader ----
-    std::expected<uint32_t, std::string>
-    OpenGLRenderBackend::CreateShaderProgram(std::string_view vsSource,
-                                             std::string_view fsSource)
+    std::expected<uint32_t, std::string> OpenGLRenderBackend::CreateShaderProgram(std::string_view vsSource, std::string_view fsSource)
     {
-        GLint ok = 0;
+        auto compile = [](GLenum type, std::string_view src) -> std::expected<GLuint, std::string> {
+            GLuint shader = glCreateShader(type);
+            const char* s = src.data();
+            GLint len = (GLint)src.size();
+            glShaderSource(shader, 1, &s, &len);
+            glCompileShader(shader);
+            GLint success;
+            glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+            if (!success) {
+                char infoLog[512];
+                glGetShaderInfoLog(shader, 512, nullptr, infoLog);
+                return std::unexpected(infoLog);
+            }
+            return shader;
+        };
 
-        // Vertex shader
-        GLuint v = glCreateShader(GL_VERTEX_SHADER);
-        const char* vsSrc = vsSource.data();
-        GLint vsLen = static_cast<GLint>(vsSource.size());
-        glShaderSource(v, 1, &vsSrc, &vsLen);
-        glCompileShader(v);
-        glGetShaderiv(v, GL_COMPILE_STATUS, &ok);
-        if (!ok) {
-            char log[2048]{};
-            glGetShaderInfoLog(v, 2048, nullptr, log);
-            glDeleteShader(v);
-            return std::unexpected(std::string("VS:") + log);
-        }
+        auto vs = compile(GL_VERTEX_SHADER, vsSource);
+        if (!vs) return std::unexpected("VS: " + vs.error());
+        auto fs = compile(GL_FRAGMENT_SHADER, fsSource);
+        if (!fs) return std::unexpected("FS: " + fs.error());
 
-        // Fragment shader
-        GLuint f = glCreateShader(GL_FRAGMENT_SHADER);
-        const char* fsSrc = fsSource.data();
-        GLint fsLen = static_cast<GLint>(fsSource.size());
-        glShaderSource(f, 1, &fsSrc, &fsLen);
-        glCompileShader(f);
-        glGetShaderiv(f, GL_COMPILE_STATUS, &ok);
-        if (!ok) {
-            char log[2048]{};
-            glGetShaderInfoLog(f, 2048, nullptr, log);
-            glDeleteShader(v);
-            glDeleteShader(f);
-            return std::unexpected(std::string("FS:") + log);
-        }
-
-        // Link
         GLuint prog = glCreateProgram();
-        glAttachShader(prog, v);
-        glAttachShader(prog, f);
+        glAttachShader(prog, *vs);
+        glAttachShader(prog, *fs);
         glLinkProgram(prog);
-        glGetProgramiv(prog, GL_LINK_STATUS, &ok);
-        if (!ok) {
-            char log[2048]{};
-            glGetProgramInfoLog(prog, 2048, nullptr, log);
-            glDeleteShader(v);
-            glDeleteShader(f);
-            glDeleteProgram(prog);
-            return std::unexpected(std::string("LK:") + log);
-        }
-        glDeleteShader(v);
-        glDeleteShader(f);
+        glDeleteShader(*vs);
+        glDeleteShader(*fs);
 
-        // Bind CameraUBO if present
-        GLuint blockIndex = glGetUniformBlockIndex(prog, "CameraUBO");
-        if (blockIndex != GL_INVALID_INDEX) {
-            glUniformBlockBinding(prog, blockIndex, 0);
+        GLint success;
+        glGetProgramiv(prog, GL_LINK_STATUS, &success);
+        if (!success) {
+            char infoLog[512];
+            glGetProgramInfoLog(prog, 512, nullptr, infoLog);
+            return std::unexpected("Link: " + std::string(infoLog));
         }
-
-        return static_cast<uint32_t>(prog);
+        return prog;
     }
 
     void OpenGLRenderBackend::ReleaseShaderProgram(uint32_t programId)
     {
-        if (programId) glDeleteProgram(static_cast<GLuint>(programId));
+        if (programId != 0) glDeleteProgram(programId);
     }
 
-    // ---- Uniform query ----
-    int32_t OpenGLRenderBackend::GetUniformLocation(uint32_t programId,
-                                                     std::string_view name)
+    int32_t OpenGLRenderBackend::GetUniformLocation(uint32_t programId, std::string_view name)
     {
-        if (programId == 0) return -1;
-        // glGetUniformLocation needs a null-terminated string.
-        // string_view from string literals / std::string is already null-terminated in practice,
-        // but to be safe we pass the data pointer (which is fine for our use case).
-        return static_cast<int32_t>(
-            glGetUniformLocation(static_cast<GLuint>(programId),
-                                 name.data()));
+        return glGetUniformLocation(programId, name.data());
+    }
+
+    uint32_t OpenGLRenderBackend::CreateVertexArray()
+    {
+        GLuint vao = 0;
+        glGenVertexArrays(1, &vao);
+        return vao;
+    }
+
+    void OpenGLRenderBackend::ReleaseVertexArray(uint32_t vao)
+    {
+        if(vao) glDeleteVertexArrays(1, &vao);
+    }
+
+    // ---- Custom FBO ----
+    s32 OpenGLRenderBackend::CreateCustomFramebuffer(int width, int height, const std::vector<uint32_t>& colorAttachments, uint32_t depthAttachment)
+    {
+        GLuint fbo = 0;
+        glGenFramebuffers(1, &fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+        std::vector<GLenum> drawBuffers;
+        for(size_t i=0; i<colorAttachments.size(); ++i) {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorAttachments[i], 0);
+            drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
+        }
+        
+        if(!drawBuffers.empty())
+            glDrawBuffers((GLsizei)drawBuffers.size(), drawBuffers.data());
+        else
+            glDrawBuffer(GL_NONE);
+
+        GLuint depthRb = 0;
+        bool depthIsRb = false;
+        if(depthAttachment != 0) {
+             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthAttachment, 0);
+        } else {
+            glGenRenderbuffers(1, &depthRb);
+            glBindRenderbuffer(GL_RENDERBUFFER, depthRb);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRb);
+            depthIsRb = true;
+        }
+
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if(status != GL_FRAMEBUFFER_COMPLETE) {
+             fmt::println("Custom FBO Incomplete: 0x{:x}", status);
+             glBindFramebuffer(GL_FRAMEBUFFER, 0);
+             if (depthRb) glDeleteRenderbuffers(1, &depthRb);
+             glDeleteFramebuffers(1, &fbo);
+             return 0;
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        s32 handle = m_NextViewportHandle++;
+        GLuint primaryColor = colorAttachments.empty() ? 0 : colorAttachments[0];
+        m_Viewports.emplace(handle, ViewportInfo(fbo, primaryColor, depthIsRb ? depthRb : depthAttachment, width, height, depthIsRb));
+        return handle;
+    }
+
+    void OpenGLRenderBackend::BindCustomFramebuffer(s32 handle)
+    {
+        auto it = m_Viewports.find(handle);
+        if (it != m_Viewports.end()) {
+            glBindFramebuffer(GL_FRAMEBUFFER, it->second.fbo);
+            glViewport(0, 0, it->second.width, it->second.height);
+        } else {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+    }
+
+    void OpenGLRenderBackend::DeleteCustomFramebuffer(s32 handle)
+    {
+        auto it = m_Viewports.find(handle);
+        if (it != m_Viewports.end()) {
+            glDeleteFramebuffers(1, &it->second.fbo);
+            if (it->second.depth && it->second.depthIsRenderbuffer) glDeleteRenderbuffers(1, &it->second.depth);
+            m_Viewports.erase(it);
+        }
     }
 
 #endif // SHINE_OPENGL
+
 }

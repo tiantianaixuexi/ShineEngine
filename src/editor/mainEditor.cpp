@@ -12,6 +12,7 @@
 #include "editor/views/ImageViewerView.h"
 #include "editor/views/SettingsView.h"
 #include "editor/views/Profiler/MemoryProfiler.h"
+#include "editor/views/DebugTextureView.h"
 #include "views/MainEditor/MainEditorToolbar.h"
 #include "render/demo/EngineDemoScene.h"
 
@@ -37,6 +38,7 @@ namespace shine::editor::main_editor {
         delete settingsView;
         delete memoryProfiler;
         delete logUI;
+        delete debugTextureView;
 	}
 
 	void MainEditor::Init() {
@@ -107,6 +109,10 @@ namespace shine::editor::main_editor {
         logUI = new views::LogUI();
 		logUI->onInit();
 
+        debugTextureView = new views::DebugTextureView();
+        debugTextureView->onInit();
+        debugTextureView->SetShow();
+
 
 		SHINE_LOG_INFO(EditorLog, "init", "[MainEditor] Init Finish");
 	}
@@ -153,6 +159,7 @@ namespace shine::editor::main_editor {
         settingsView->RenderBase();
         memoryProfiler->RenderBase();
         logUI->RenderBase();
+        debugTextureView->RenderBase();
 
 		ImGui::Render();
 	}

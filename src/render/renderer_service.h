@@ -68,6 +68,9 @@ namespace shine::render
         [[nodiscard]]
         backend::IRenderBackend* GetBackend() const noexcept { return m_Backend; }
 
+        [[nodiscard]]
+        std::shared_ptr<RenderPipeline> GetPipeline() const noexcept { return m_RenderPipeline; }
+
     private:
         RenderingData collectRenderingData(ViewportHandle handle, shine::gameplay::Camera* camera) noexcept;
         void setupRenderContext() noexcept;
