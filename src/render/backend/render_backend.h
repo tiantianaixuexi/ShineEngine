@@ -14,6 +14,7 @@
 
 namespace shine::render {
 class CommandBuffer;
+class RenderingData;
 }
 
 namespace shine::render::backend {
@@ -86,6 +87,7 @@ public:
 
     // ---- Command buffer execution ------------------------------------------
     virtual void ExecuteCommandBuffer(s32 viewportHandle,
+                                      const shine::render::RenderingData& renderingData,
                                       const shine::render::CommandBuffer* cmdBuffer) = 0;
 
     // ---- Multi-viewport / FBO management (optional overrides) ---------------

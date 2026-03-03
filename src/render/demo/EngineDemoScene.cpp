@@ -3,11 +3,49 @@
 #include "gameplay/object.h"
 #include "gameplay/component/StaticMeshComponent.h"
 #include "gameplay/component/TransformComponent.h"
+#include "gameplay/component/tickableComponent.h"
 #include "render/material.h"
 #include "render/pipeline/render_passes.h"
 
 namespace shine::render::demo
 {
+    class DemoRotationTickComponent : public gameplay::component::TickableComponent
+    {
+    public:
+        void setAngularVelocity(float degreesPerSecond, float pitchScale)
+        {
+            m_DegreesPerSecond = degreesPerSecond;
+            m_PitchScale = pitchScale;
+        }
+
+    protected:
+        void onTick(float deltaTime) override
+        {
+            auto* owner = getOwner();
+            if (!owner)
+            {
+                return;
+            }
+
+            auto* tr = owner->getComponent<gameplay::component::TransformComponent>();
+            if (!tr)
+            {
+                return;
+            }
+
+            m_RotationAngle += deltaTime * m_DegreesPerSecond;
+            auto rot = tr->getRotation();
+            rot.Yaw = m_RotationAngle;
+            rot.Pitch = m_RotationAngle * m_PitchScale;
+            tr->setRotation(rot);
+        }
+
+    private:
+        float m_DegreesPerSecond = 50.0f;
+        float m_PitchScale = 0.35f;
+        float m_RotationAngle = 0.0f;
+    };
+
     EngineDemoScene::EngineDemoScene(shine::EngineContext& context)
         : m_Context(context)
     {
@@ -34,12 +72,8 @@ namespace shine::render::demo
         // Setup Pipeline Passes (Refactored to Pass-based)
         if (auto pipeline = renderer->GetPipeline())
         {
-            // Clear existing passes logic by replacing pipeline behavior via added passes
-            // Note: Since we rewrote RenderPipeline::Render to iterate m_Passes, 
-            // and m_Passes starts empty, we just add them here.
-            
+            pipeline->ClearPasses();
             auto opaquePass = std::make_unique<shine::render::OpaquePass>();
-            // Keep pointer to opaquePass before moving it, to link with BloomPass
             auto* pOpaque = opaquePass.get();
             
             auto bloomPass = std::make_unique<shine::render::BloomPass>();
@@ -80,6 +114,9 @@ namespace shine::render::demo
             mat->setBaseColor(base.X, base.Y, base.Z);
             mat->setEmissive(emissiveColor.X, emissiveColor.Y, emissiveColor.Z, emissiveIntensity);
             meshComp->getMesh()->setMaterial(mat);
+            auto* tickComp = obj->addComponent<DemoRotationTickComponent>();
+            tickComp->setTickGroup(shine::gameplay::ETickGroup::Late);
+            tickComp->setAngularVelocity(50.0f, 0.35f);
             renderer->registerObject(obj.get());
             m_Objects.push_back(std::move(obj));
         };
@@ -96,21 +133,5 @@ namespace shine::render::demo
                   { 0.05f, 0.12f, 0.07f }, { 0.2f, 1.0f, 0.35f }, 3.2f);
         spawnMesh("SphereC", { -1.0f, -0.9f, 0.9f }, { 0.6f, 0.6f, 0.6f }, true,
                   { 0.12f, 0.12f, 0.02f }, { 1.0f, 0.95f, 0.2f }, 2.8f);
-    }
-
-    void EngineDemoScene::Tick(float deltaTime)
-    {
-        m_RotationAngle += deltaTime * 50.0f; // degrees per second
-        
-        for(const auto& obj : m_Objects)
-        {
-            if(auto* tr = obj->getComponent<shine::gameplay::component::TransformComponent>())
-            {
-                shine::math::FRotator3f rot = tr->getRotation();
-                rot.Yaw = m_RotationAngle;
-                rot.Pitch = m_RotationAngle * 0.35f;
-                tr->setRotation(rot);
-            }
-        }
     }
 }

@@ -5,12 +5,7 @@
 // Use RenderBackendFactory for runtime selection instead when possible.
 // ============================================================================
 
-#if defined(SHINE_WEBGL2)
-#include "webgl2/webgl2_backend.h"
-namespace shine::render::backend {
-    using SRenderBackend = webgl2::WebGL2RenderBackend;
-}
-#elif defined(SHINE_OPENGL)
+#if defined(SHINE_OPENGL)
 #include "opengl/opengl3_backend.h"
 namespace shine::render::backend {
     using SRenderBackend = opengl3::OpenGLRenderBackend;

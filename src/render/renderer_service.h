@@ -53,6 +53,8 @@ namespace shine::render
         void beginFrame() noexcept;
         void renderView(ViewportHandle handle, shine::gameplay::Camera* camera) noexcept;
         void endFrame(const std::array<float,4>& clear_color) noexcept;
+        void setPostProcessingEnabled(bool enabled) noexcept { m_EnablePostProcessing = enabled; }
+        [[nodiscard]] bool isPostProcessingEnabled() const noexcept { return m_EnablePostProcessing; }
 
         // 场景对象注册（生命周期由外部管理）
         void registerObject(shine::gameplay::SObject* object) noexcept {
@@ -86,5 +88,7 @@ namespace shine::render
         std::shared_ptr<RenderPipeline>      m_RenderPipeline;
         ScriptableRenderContext              m_RenderContext;
         ViewportHandle                       m_CurrentViewportHandle{ 0 };
+        RenderingData*                       m_CurrentRenderingData{ nullptr };
+        bool                                 m_EnablePostProcessing{ true };
     };
 }

@@ -39,6 +39,7 @@ namespace shine::render
 
         /** 清空所有待执行的命令 */
         void Clear();
+        void Reserve(size_t count);
 
         /** 设置执行回调 — 使用 std::move_only_function (C++23) */
         void SetExecuteCallback(std::move_only_function<void(CommandBuffer*)> callback);

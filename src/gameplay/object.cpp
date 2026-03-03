@@ -12,7 +12,8 @@ namespace shine::gameplay
 
     SObject::~SObject()
     {
-        // 析构函数实现
+        detachAllComponents();
+        m_Components.clear();
     }
 
     void SObject::OnInit()
@@ -24,6 +25,18 @@ namespace shine::gameplay
     void SObject::onBeginPlay()
     {
         // onBeginPlay实现
+    }
+
+    void SObject::detachAllComponents() noexcept
+    {
+        for (const auto& comp : m_Components)
+        {
+            if (!comp)
+            {
+                continue;
+            }
+            comp->detachFromOwner();
+        }
     }
 
 

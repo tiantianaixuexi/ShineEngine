@@ -3,6 +3,7 @@
 #include "shine_define.h"
 
 #include <memory>
+#include <array>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -40,6 +41,10 @@ namespace shine::render::opengl3
         // ---- Per-frame UBOs ----
         GLuint m_CameraUbo = 0;  // std140, binding=0
         GLuint m_LightUbo  = 0;  // std140, binding=1
+        bool m_HasCameraUboCache = false;
+        std::array<float, 20> m_CameraUboCache{};
+        bool m_HasLightUboCache = false;
+        std::array<float, 12> m_LightUboCache{};
 
         // ---- Multi-viewport FBO registry ----
         std::unordered_map<s32, ViewportInfo> m_Viewports;
@@ -75,6 +80,7 @@ namespace shine::render::opengl3
         void CompileShaders() override;
 
         void ExecuteCommandBuffer(s32 viewportHandle,
+                                  const shine::render::RenderingData& renderingData,
                                   const shine::render::CommandBuffer* cmdBuffer) override;
 
         u64 CreateMesh(const backend::MeshCreateInfo& info) override;
@@ -115,8 +121,8 @@ namespace shine::render::opengl3
         void ReleaseVertexArray(uint32_t vao) override;
 
         // ---- Per-frame UBO updates ----
-        void UpdateCameraUBO();
-        void UpdateLightUBO();
+        void UpdateCameraUBO(const shine::render::RenderingData& renderingData);
+        void UpdateLightUBO(const shine::render::RenderingData& renderingData);
     };
 
 #endif // SHINE_OPENGL

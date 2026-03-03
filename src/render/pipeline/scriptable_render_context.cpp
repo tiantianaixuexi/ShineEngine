@@ -10,7 +10,6 @@ namespace shine::render
 
     void ScriptableRenderContext::Submit(CommandBuffer&& cmdBuffer)
     {
-        // Move semantics — no deep copy of the variant vector
         m_CommandBuffers.push_back(std::move(cmdBuffer));
     }
 
@@ -38,6 +37,14 @@ namespace shine::render
     void ScriptableRenderContext::Clear()
     {
         m_CommandBuffers.clear();
+    }
+
+    void ScriptableRenderContext::Reserve(size_t count)
+    {
+        if (count > m_CommandBuffers.capacity())
+        {
+            m_CommandBuffers.reserve(count);
+        }
     }
 
     void ScriptableRenderContext::SetExecuteCallback(std::move_only_function<void(CommandBuffer*)> callback)

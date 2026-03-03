@@ -27,8 +27,17 @@ public:
 
     virtual void onBeginPlay() {}
     virtual void onRender(render::CommandBuffer &cmd) {}
+    virtual void onAttached() {}
+    virtual void onDetached() {}
 
-    void                   attachTo(SObject *owner) noexcept { m_Owner = owner; }
+    void attachTo(SObject *owner) noexcept {
+        m_Owner = owner;
+        onAttached();
+    }
+    void detachFromOwner() noexcept {
+        onDetached();
+        m_Owner = nullptr;
+    }
     [[nodiscard]] SObject *getOwner() const noexcept { return m_Owner; }
 
 protected:

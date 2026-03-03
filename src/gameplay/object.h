@@ -41,13 +41,11 @@ namespace shine::gameplay
         [[nodiscard]] bool isActive() const noexcept { return m_isActive; }
         [[nodiscard]] bool isVisible() const noexcept { return m_isVisible; }
         [[nodiscard]] bool shouldRender() const noexcept { return m_isRender; }
-        [[nodiscard]] bool canTick() const noexcept { return m_isTickable; }
 
         // setter 方法
         void setActive(bool active) noexcept { m_isActive = active; }
         void setVisible(bool visible) noexcept { m_isVisible = visible; }
         void setRender(bool render) noexcept { m_isRender = render; }
-        void setTickable(bool tickable) noexcept { m_isTickable = tickable; }
 
         void setFlag(EObjectFlags flag, bool value) noexcept
         {
@@ -71,7 +69,6 @@ namespace shine::gameplay
         EObjectFlags m_Flags;
 
         // 用 m_ 前缀标记成员变量，避免与函数名冲突
-        u32 m_isTickable:1 = true;
         u32  m_isVisible:1  = true;
         u32  m_isRender:1   = true;
         u32  m_isActive:1   = true;
@@ -113,6 +110,7 @@ namespace shine::gameplay
         }
 
     private:
+        void detachAllComponents() noexcept;
 
         std::vector<ComponentPtr> m_Components;
 

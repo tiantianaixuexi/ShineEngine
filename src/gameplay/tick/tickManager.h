@@ -48,7 +48,11 @@ namespace shine::gameplay::tick
         }
 
         void Register(TickFunction* fn) {
+            if (!fn)
+                return;
             std::lock_guard<std::mutex> lock(_mutex);
+            if (fn->_registered)
+                return;
             auto& vec = _groups[static_cast<u32>(fn->group)];
             fn->execIndex = static_cast<u32>(vec.size());
             vec.push_back(fn);
@@ -57,10 +61,18 @@ namespace shine::gameplay::tick
         }
 
         void Unregister(TickFunction* fn) {
+            if (!fn)
+                return;
             std::lock_guard<std::mutex> lock(_mutex);
+            if (!fn->_registered)
+                return;
             auto& vec = _groups[static_cast<u32>(fn->group)];
+            if (vec.empty())
+                return;
             const u32 idx = fn->execIndex;
             const u32 last = static_cast<u32>(vec.size()) - 1;
+            if (idx > last)
+                return;
 
             if (idx != last) {
                 vec[idx] = vec[last];
@@ -112,7 +124,7 @@ namespace shine::gameplay::tick
                     continue;
 
                 fn->accTime = 0.f;
-                fn->fn(fn->userdata, dt);
+                fn->fn(fn->owner, dt);
             }
         }
 
@@ -165,7 +177,7 @@ namespace shine::gameplay::tick
                 for (auto* fn : readyGroup) {
                     pool.Submit(util::job::JobExecuteTick{
                         fn->fn,
-                        fn->userdata,
+                        fn->owner,
                         dt
                     });
                 }

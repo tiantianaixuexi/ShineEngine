@@ -3,13 +3,11 @@
 #include "shine_define.h"
 #include "render/command/render_commands.h"
 #include <array>
+#include <cassert>
 #include <vector>
 
 namespace shine::render
 {
-    /**
-     * @brief Command buffer using std::variant for static polymorphism
-     */
     class CommandBuffer
     {
     public:
@@ -37,20 +35,33 @@ namespace shine::render
         void RenderImGui(void* drawData);
         void SwapBuffers(void* nativeSwapContext);
 
-        // Access the underlying vector of variants
-        const command::CommandBuffer& GetCommands() const { return m_Commands; }
+        const command::CommandBuffer& GetRawCommands() const { return m_Commands; }
         size_t GetCommandCount() const { return m_Commands.size(); }
 
     private:
+        static constexpr size_t kTextureStateSlots = 32;
+
+        template <typename T>
+        void PushRaw(command::CommandOpcode opcode, const T& data)
+        {
+            assert(static_cast<size_t>(opcode) < static_cast<size_t>(command::CommandOpcode::Count));
+            m_Commands.push_back(command::RawRenderCommand::Make(opcode, data));
+        }
+
         command::CommandBuffer m_Commands;
-        
-        // Cache clear color to push it when needed or just push state changes?
-        // Original code pushed a ClearColor command when SetClearColor was called? 
-        // No, original SetClearColor just set member vars. Execute() called cmdList.clearColor at start and when CommandType::SetClearColor was found.
-        // We should probably just push the command immediately.
-        float m_ClearColorR = 0.0f;
-        float m_ClearColorG = 0.0f;
-        float m_ClearColorB = 0.0f;
-        float m_ClearColorA = 1.0f;
+        bool m_HasViewport = false;
+        command::CmdSetViewport m_LastViewport{};
+        bool m_HasClearColor = false;
+        command::CmdClearColor m_LastClearColor{};
+        bool m_HasDepthTest = false;
+        bool m_LastDepthTest = false;
+        bool m_HasFramebuffer = false;
+        u64 m_LastFramebufferHandle = 0;
+        bool m_HasProgram = false;
+        u64 m_LastProgramHandle = 0;
+        bool m_HasVao = false;
+        u64 m_LastVaoHandle = 0;
+        std::array<bool, kTextureStateSlots> m_HasTextureBinding{};
+        std::array<u32, kTextureStateSlots> m_LastTextureHandle{};
     };
 }

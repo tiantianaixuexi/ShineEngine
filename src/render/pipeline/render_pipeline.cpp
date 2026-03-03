@@ -21,6 +21,11 @@ namespace shine::render
         }
     }
 
+    void RenderPipeline::ClearPasses()
+    {
+        m_Passes.clear();
+    }
+
     void RenderPipeline::SortPasses()
     {
         // 1. Sort by Event priority first
@@ -45,6 +50,10 @@ namespace shine::render
 
         for (auto& pass : m_Passes)
         {
+            if (!data.enablePostProcessing && pass->IsPostProcessPass())
+            {
+                continue;
+            }
             pass->Configure(this, data);
             pass->Execute(context, data);
         }

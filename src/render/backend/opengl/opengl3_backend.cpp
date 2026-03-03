@@ -2,20 +2,78 @@
 
 #include <memory>
 #include <fmt/format.h>
+#include <cassert>
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 
-#include "manager/CameraManager.h"
+#include "gameplay/camera.h"
 #include "manager/light_manager.h"
 #include "render/backend/gl/gl_executor.h"
 #include "render/pipeline/command_buffer.h"
+#include "render/pipeline/render_data.h"
 #include "EngineCore/engine_context.h"
 
 namespace shine::render::opengl3
 {
 #ifdef SHINE_OPENGL
+    namespace
+    {
+        using Executor = shine::render::backend::gl::GLExecutor;
+        using RawCommand = shine::render::command::RawRenderCommand;
+        using Handler = void (*)(Executor&, const RawCommand&);
+
+        void HandleBegin(Executor& executor, const RawCommand&) { executor(shine::render::command::CmdBegin{}); }
+        void HandleEnd(Executor& executor, const RawCommand&) { executor(shine::render::command::CmdEnd{}); }
+        void HandleExecute(Executor& executor, const RawCommand&) { executor(shine::render::command::CmdExecute{}); }
+        void HandleReset(Executor& executor, const RawCommand&) { executor(shine::render::command::CmdReset{}); }
+        void HandleBindFramebuffer(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdBindFramebuffer>()); }
+        void HandleBindTexture(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdBindTexture>()); }
+        void HandleSetViewport(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdSetViewport>()); }
+        void HandleClearColor(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdClearColor>()); }
+        void HandleClear(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdClear>()); }
+        void HandleEnableDepthTest(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdEnableDepthTest>()); }
+        void HandleUseProgram(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdUseProgram>()); }
+        void HandleBindVertexArray(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdBindVertexArray>()); }
+        void HandleDrawTriangles(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdDrawTriangles>()); }
+        void HandleDrawIndexedTriangles(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdDrawIndexedTriangles>()); }
+        void HandleSetUniform1f(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdSetUniform1f>()); }
+        void HandleSetUniform1i(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdSetUniform1i>()); }
+        void HandleSetUniform2f(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdSetUniform2f>()); }
+        void HandleSetUniform3f(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdSetUniform3f>()); }
+        void HandleSetUniform4f(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdSetUniform4f>()); }
+        void HandleSetUniformMatrix4fv(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdSetUniformMatrix4fv>()); }
+        void HandleImguiRender(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdImguiRender>()); }
+        void HandleSwapBuffers(Executor& executor, const RawCommand& cmd) { executor(cmd.AsRef<shine::render::command::CmdSwapBuffers>()); }
+
+        constexpr std::array<Handler, static_cast<size_t>(shine::render::command::CommandOpcode::Count)> kCommandHandlers = {
+            &HandleBegin,
+            &HandleEnd,
+            &HandleExecute,
+            &HandleReset,
+            &HandleBindFramebuffer,
+            &HandleBindTexture,
+            &HandleSetViewport,
+            &HandleClearColor,
+            &HandleClear,
+            &HandleEnableDepthTest,
+            &HandleUseProgram,
+            &HandleBindVertexArray,
+            &HandleDrawTriangles,
+            &HandleDrawIndexedTriangles,
+            &HandleSetUniform1f,
+            &HandleSetUniform1i,
+            &HandleSetUniform2f,
+            &HandleSetUniform3f,
+            &HandleSetUniform4f,
+            &HandleSetUniformMatrix4fv,
+            &HandleImguiRender,
+            &HandleSwapBuffers
+        };
+        constexpr GLsizeiptr kCameraUboBytes = static_cast<GLsizeiptr>(sizeof(float) * 20);
+        constexpr GLsizeiptr kLightUboBytes = static_cast<GLsizeiptr>(sizeof(float) * 12);
+    }
 
     int OpenGLRenderBackend::init(backend::NativeWindowHandle window, void* platformData)
     {
@@ -60,17 +118,19 @@ namespace shine::render::opengl3
         if (!m_CameraUbo) {
             glGenBuffers(1, &m_CameraUbo);
             glBindBuffer(GL_UNIFORM_BUFFER, m_CameraUbo);
-            glBufferData(GL_UNIFORM_BUFFER, 96, nullptr, GL_DYNAMIC_DRAW);
+            glBufferData(GL_UNIFORM_BUFFER, kCameraUboBytes, nullptr, GL_DYNAMIC_DRAW);
             glBindBuffer(GL_UNIFORM_BUFFER, 0);
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_CameraUbo);
+            m_HasCameraUboCache = false;
         }
         // Create global light UBO, binding = 1
         if (!m_LightUbo) {
             glGenBuffers(1, &m_LightUbo);
             glBindBuffer(GL_UNIFORM_BUFFER, m_LightUbo);
-            glBufferData(GL_UNIFORM_BUFFER, 3 * 16, nullptr, GL_DYNAMIC_DRAW);
+            glBufferData(GL_UNIFORM_BUFFER, kLightUboBytes, nullptr, GL_DYNAMIC_DRAW);
             glBindBuffer(GL_UNIFORM_BUFFER, 0);
             glBindBufferBase(GL_UNIFORM_BUFFER, 1, m_LightUbo);
+            m_HasLightUboCache = false;
         }
         return 0;
     }
@@ -187,7 +247,10 @@ namespace shine::render::opengl3
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void OpenGLRenderBackend::ExecuteCommandBuffer(s32 handle, const shine::render::CommandBuffer* cmdBuffer)
+    void OpenGLRenderBackend::ExecuteCommandBuffer(
+        s32 handle,
+        const shine::render::RenderingData& renderingData,
+        const shine::render::CommandBuffer* cmdBuffer)
     {
         if (!cmdBuffer) return;
 
@@ -213,14 +276,16 @@ namespace shine::render::opengl3
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
 
-        UpdateCameraUBO();
-        UpdateLightUBO();
+        UpdateCameraUBO(renderingData);
+        UpdateLightUBO(renderingData);
 
-        // Execute commands via visitor
+        // Execute commands via opcode
         shine::render::backend::gl::GLExecutor executor;
-        for (const auto& cmd : cmdBuffer->GetCommands())
+        for (const auto& cmd : cmdBuffer->GetRawCommands())
         {
-            std::visit(executor, cmd);
+            const size_t opcodeIndex = static_cast<size_t>(cmd.opcode);
+            assert(opcodeIndex < kCommandHandlers.size());
+            kCommandHandlers[opcodeIndex](executor, cmd);
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -358,35 +423,50 @@ namespace shine::render::opengl3
         wglDeleteContext(g_hRC);
     }
 
-    void OpenGLRenderBackend::UpdateCameraUBO()
+    void OpenGLRenderBackend::UpdateCameraUBO(const shine::render::RenderingData& renderingData)
     {
-        auto* cam = shine::manager::CameraManager::get().getMainCamera();
+        auto* cam = renderingData.mainCamera;
         if (!cam || !m_CameraUbo) return;
         const math::FMatrix4d VP = cam->GetViewProjectionMatrixM();
-        std::array<float, 16> vpFloat{};
+        std::array<float, 20> data{};
         const double* src = VP.data();
-        for (int i = 0; i < 16; ++i) vpFloat[i] = static_cast<float>(src[i]);
+        for (int i = 0; i < 16; ++i) data[static_cast<size_t>(i)] = static_cast<float>(src[i]);
+        data[16] = static_cast<float>(cam->position.X);
+        data[17] = static_cast<float>(cam->position.Y);
+        data[18] = static_cast<float>(cam->position.Z);
+        data[19] = 0.0f;
+        if (m_HasCameraUboCache && m_CameraUboCache == data) return;
+        m_HasCameraUboCache = true;
+        m_CameraUboCache = data;
         glBindBuffer(GL_UNIFORM_BUFFER, m_CameraUbo);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, 64, vpFloat.data());
-        float viewPos[4] = { (float)cam->position.X, (float)cam->position.Y, (float)cam->position.Z, 0.0f };
-        glBufferSubData(GL_UNIFORM_BUFFER, 64, 16, viewPos);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, kCameraUboBytes, data.data());
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
-        glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_CameraUbo);
     }
 
-    void OpenGLRenderBackend::UpdateLightUBO()
+    void OpenGLRenderBackend::UpdateLightUBO(const shine::render::RenderingData& renderingData)
     {
         if (!m_LightUbo) return;
-        auto& lm = shine::manager::LightManager::get();
-        const float dir4[4]   = { lm.directional().dir[0], lm.directional().dir[1], lm.directional().dir[2], 0.0f };
-        const float color4[4] = { lm.directional().color[0], lm.directional().color[1], lm.directional().color[2], 1.0f };
-        const float inten4[4] = { lm.directional().intensity, 0.0f, 0.0f, 0.0f };
+        if (!renderingData.lightManager) return;
+        auto& lm = *renderingData.lightManager;
+        std::array<float, 12> data{};
+        data[0] = lm.directional().dir[0];
+        data[1] = lm.directional().dir[1];
+        data[2] = lm.directional().dir[2];
+        data[3] = 0.0f;
+        data[4] = lm.directional().color[0];
+        data[5] = lm.directional().color[1];
+        data[6] = lm.directional().color[2];
+        data[7] = 1.0f;
+        data[8] = lm.directional().intensity;
+        data[9] = 0.0f;
+        data[10] = 0.0f;
+        data[11] = 0.0f;
+        if (m_HasLightUboCache && m_LightUboCache == data) return;
+        m_HasLightUboCache = true;
+        m_LightUboCache = data;
         glBindBuffer(GL_UNIFORM_BUFFER, m_LightUbo);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0,  16, dir4);
-        glBufferSubData(GL_UNIFORM_BUFFER, 16, 16, color4);
-        glBufferSubData(GL_UNIFORM_BUFFER, 32, 16, inten4);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, kLightUboBytes, data.data());
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
-        glBindBufferBase(GL_UNIFORM_BUFFER, 1, m_LightUbo);
     }
 
     // ---- Texture ----

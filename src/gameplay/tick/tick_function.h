@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <vector>
 
 #include "tick_types.h"
@@ -8,12 +7,12 @@
 
 namespace shine::gameplay
 {
-    using TickFn = void(*)(void* userdata, float dt);
-
     namespace component
     {
         class UComponent;
     }
+
+    using TickFn = void(*)(component::UComponent* owner, float dt);
 
     namespace tick
     {
@@ -25,7 +24,7 @@ namespace shine::gameplay
 
         struct TickFunction {
             TickFn      fn = nullptr;
-            void* userdata = nullptr;
+            component::UComponent* owner = nullptr;
             ETickGroup   group = ETickGroup::PrePhysics;
 
             float       interval = 0.f;

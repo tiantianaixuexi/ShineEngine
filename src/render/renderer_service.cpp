@@ -70,12 +70,17 @@ namespace shine::render
         if (!m_RenderPipeline) return;
 
         RenderingData renderingData = collectRenderingData(handle, camera);
+        m_CurrentViewportHandle = handle;
+        m_CurrentRenderingData = &renderingData;
 
         m_RenderContext.Clear();
+        m_RenderContext.Reserve(m_RenderPipeline->GetPasses().size());
 
         m_RenderPipeline->Render(m_RenderContext, renderingData);
 
         m_RenderContext.Execute();
+        m_CurrentRenderingData = nullptr;
+        m_CurrentViewportHandle = 0;
     }
 
     void RendererService::endFrame(const std::array<float,4>& clear_color) noexcept
@@ -125,6 +130,8 @@ namespace shine::render
             data.viewport.height = it->second.height;
         }
 
+        data.enablePostProcessing = m_EnablePostProcessing;
+
         return data;
     }
 
@@ -132,6 +139,7 @@ namespace shine::render
     {
         m_RenderContext.SetExecuteCallback([this](CommandBuffer* cmdBuffer) {
             if (!cmdBuffer || !m_Backend) return;
+            if (!m_CurrentRenderingData) return;
 
             ViewportHandle viewportHandle = m_CurrentViewportHandle;
             if (viewportHandle == 0 && !m_Viewports.empty())
@@ -139,7 +147,7 @@ namespace shine::render
                 viewportHandle = m_Viewports.begin()->first;
             }
 
-            m_Backend->ExecuteCommandBuffer(static_cast<s32>(viewportHandle), cmdBuffer);
+            m_Backend->ExecuteCommandBuffer(static_cast<s32>(viewportHandle), *m_CurrentRenderingData, cmdBuffer);
         });
     }
 }

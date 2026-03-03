@@ -4,6 +4,11 @@
 #include <variant>
 #include <string>
 
+namespace shine::gameplay::component
+{
+    class UComponent;
+}
+
 namespace shine::util::job
 {
     // Define concrete Job types
@@ -35,8 +40,8 @@ namespace shine::util::job
     };
 
     struct JobExecuteTick {
-        void(*fn)(void*, float);
-        void* userdata;
+        void(*fn)(::shine::gameplay::component::UComponent*, float);
+        ::shine::gameplay::component::UComponent* owner;
         float deltaTime;
     };
 

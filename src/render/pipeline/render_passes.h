@@ -119,6 +119,7 @@ namespace shine::render
 
         OpaquePass* m_OpaquePass = nullptr;
         void SetOpaquePass(OpaquePass* pass) { m_OpaquePass = pass; }
+        bool IsPostProcessPass() const override { return true; }
 
         float m_Threshold = 0.5f;
         float m_Intensity = 1.2f;

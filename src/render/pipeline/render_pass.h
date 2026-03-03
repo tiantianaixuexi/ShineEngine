@@ -43,6 +43,7 @@ namespace shine::render
         virtual void Configure(RenderPipeline* pipeline, RenderingData& data) {}
         virtual void Execute(ScriptableRenderContext& context, RenderingData& data) = 0;
         virtual void CollectDebugTextures(DebugTextureSink& sink) {}
+        virtual bool IsPostProcessPass() const { return false; }
 
         const std::string& GetName() const { return m_Name; }
         RenderPassEvent GetEvent() const { return m_Event; }

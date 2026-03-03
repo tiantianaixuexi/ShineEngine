@@ -49,7 +49,7 @@ namespace shine::util::job
     {
         if (job.fn)
         {
-            job.fn(job.userdata, job.deltaTime);
+            job.fn(job.owner, job.deltaTime);
         }
     }
 }

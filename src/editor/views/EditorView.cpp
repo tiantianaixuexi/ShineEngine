@@ -29,8 +29,11 @@ void EditView::onInit() {
 }
 
 void EditView::onShutDown() {
-    // 视口资源由渲染服务管理，无需手动销毁
     m_DemoScene.reset();
+    if (renderer && Viewport != 0) {
+        renderer->destroyViewport(Viewport);
+        Viewport = 0;
+    }
 }
 
 void EditView::onRender() {
@@ -65,11 +68,6 @@ void EditView::onRender() {
                 lastH = h;
             }
 
-            // Update Scene
-            if (m_DemoScene) {
-                m_DemoScene->Tick(ImGui::GetIO().DeltaTime);
-            }
-            
             // Render View
             renderer->renderView(Viewport, cam);
 

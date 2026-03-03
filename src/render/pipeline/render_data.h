@@ -51,6 +51,8 @@ namespace shine::render
 
         // 清除颜色
         std::array<float, 4> clearColor = {{0.2f, 0.3f, 0.4f, 1.0f}};
+
+        bool enablePostProcessing = true;
     };
 }
 

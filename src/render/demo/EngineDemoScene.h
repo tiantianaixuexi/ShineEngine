@@ -14,12 +14,9 @@ namespace shine::render::demo
         ~EngineDemoScene();
 
         void Init();
-        void Tick(float deltaTime);
 
     private:
         shine::EngineContext& m_Context;
         std::vector<std::unique_ptr<shine::gameplay::SObject>> m_Objects;
-        
-        float m_RotationAngle = 0.0f;
     };
 }

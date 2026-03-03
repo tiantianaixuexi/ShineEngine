@@ -40,6 +40,7 @@ namespace shine::render
         RenderPipelineAsset* GetAsset() const { return m_Asset; }
 
         void AddPass(std::unique_ptr<RenderPass> pass);
+        void ClearPasses();
         void SortPasses();
         const std::vector<std::unique_ptr<RenderPass>>& GetPasses() const { return m_Passes; }
 

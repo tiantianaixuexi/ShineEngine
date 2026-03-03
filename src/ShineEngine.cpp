@@ -124,6 +124,7 @@ int main(int argc, char **argv) {
 
     auto  RenderService = context.GetSystem<render::RendererService>();
     auto  Camera        = context.GetSystem<manager::CameraManager>();
+    auto* TickManager   = context.GetSystem<gameplay::tick::TickManager>();
     auto& g_FPSManager  = util::FPSController::get();
 
     util::watcher::DirectoryWatcher fileWatcher;
@@ -162,6 +163,7 @@ int main(int argc, char **argv) {
     fileWatcher.start_async();
 
     bool done = false;
+    float frameDeltaTime = 0.0f;
 
     while (!done) {
         // shine::co::MemoryScope frameScope(shine::co::MemoryTag::Core);
@@ -170,7 +172,7 @@ int main(int argc, char **argv) {
         {
             g_FPSManager.BeginFrame();
             const double dt_d = g_FPSManager.GetDeltaTime();
-            const float  dt   = static_cast<float>(dt_d);
+            frameDeltaTime = static_cast<float>(dt_d * 0.001);
         }
 
         // Poll and handle messages (inputs, window resize, etc.)
@@ -186,6 +188,10 @@ int main(int argc, char **argv) {
 
         if (done)
             break;
+
+        if (TickManager) {
+            TickManager->ExecuteAll(frameDeltaTime);
+        }
 
         {
             // shine::co::MemoryScope renderScope(shine::co::MemoryTag::Render);
