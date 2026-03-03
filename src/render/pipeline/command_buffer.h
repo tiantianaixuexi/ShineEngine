@@ -2,6 +2,7 @@
 
 #include "shine_define.h"
 #include "render/command/render_commands.h"
+#include <array>
 #include <vector>
 
 namespace shine::render
@@ -32,7 +33,7 @@ namespace shine::render
         void SetUniform2f(s32 location, float x, float y);
         void SetUniform3f(s32 location, float x, float y, float z);
         void SetUniform4f(s32 location, float x, float y, float z, float w);
-        void SetUniformMatrix4fv(s32 location, const std::vector<float>& data, bool transpose = false);
+        void SetUniformMatrix4fv(s32 location, const std::array<float, 16>& data, bool transpose = false);
         void RenderImGui(void* drawData);
         void SwapBuffers(void* nativeSwapContext);
 

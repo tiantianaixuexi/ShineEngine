@@ -4,37 +4,27 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <type_traits>
+#include <utility>
 
+#include "objectFlag.h"
 #include "util/guid.h"
-#include "util/EnumFlags.h"
 #include "gameplay/component/component.h"
+#include "memory/object_pool.h"
 
 
 
 
-namespace shine::gameplay
-{
-    enum class EObjectFlags : uint64_t {
-        OF_Active      = 1u << 0,
-        OF_Visible     = 1u << 1,
-        OF_Tick        = 1u << 2,
-        OF_Render      = 1u << 3,
-        OF_Pointer     = 1u << 4,
-        OF_PendingKill = 1u << 5,
-        OF_GCMark      = 1u << 6,
-    };
-}
-
-ENABLE_ENUM_FLAGS(shine::gameplay::EObjectFlags)
 
 namespace shine::gameplay
 {
 
 
-	namespace component
-	{
-		class UComponent;
-	}
+    namespace component
+    {
+        class UComponent;
+    }
+
 
     class SObject
     {
@@ -81,25 +71,33 @@ namespace shine::gameplay
         EObjectFlags m_Flags;
 
         // 用 m_ 前缀标记成员变量，避免与函数名冲突
-        unsigned int m_isTickable:1 = true;
-        unsigned int m_isVisible:1  = true;
-        unsigned int m_isRender:1   = true;
-        unsigned int m_isActive:1   = true;
+        u32 m_isTickable:1 = true;
+        u32  m_isVisible:1  = true;
+        u32  m_isRender:1   = true;
+        u32  m_isActive:1   = true;
 
         // 组件管理
     public:
 
+        using ComponentDeleter = void(*)(component::UComponent*);
+        using ComponentPtr = std::unique_ptr<component::UComponent, ComponentDeleter>;
+
+        template <class TComponent>
+        static void destroyComponent(component::UComponent* comp) {
+            component::DestroyComponent(static_cast<TComponent*>(comp));
+        }
+
         template <class TComponent, class... TArgs>
         TComponent* addComponent(TArgs&&... args)
         {
-            auto comp = std::make_unique<TComponent>(std::forward<TArgs>(args)...);
-            comp->attachTo(this);
-            TComponent* raw = comp.get();
+            auto* raw = component::NewComponent<TComponent>(std::forward<TArgs>(args)...);
+            raw->attachTo(this);
+            ComponentPtr comp(raw, &destroyComponent<TComponent>);
             m_Components.emplace_back(std::move(comp));
             return raw;
         }
 
-        const std::vector<std::unique_ptr<component::UComponent>>& getComponents() const noexcept { return m_Components; }
+        const std::vector<ComponentPtr>& getComponents() const noexcept { return m_Components; }
 
         template <typename T>
         T* getComponent() const
@@ -116,10 +114,30 @@ namespace shine::gameplay
 
     private:
 
-        std::vector<std::unique_ptr<component::UComponent>> m_Components;
+        std::vector<ComponentPtr> m_Components;
 
         std::string _name;
         util::FGuid _guid;
 
+    };
+
+    template <typename T, typename... TArgs>
+    requires std::is_base_of_v<SObject, T>
+    T* NewObject(TArgs&&... args) {
+        return shine::co::PooledCreate<T>(std::forward<TArgs>(args)...);
+    }
+
+    template <typename T>
+    requires std::is_base_of_v<SObject, T>
+    void DestroyObject(T* obj) {
+        shine::co::PooledDestroy(obj);
+    }
+}
+
+namespace shine::co {
+    template <typename T>
+    struct ObjectPoolConfig<T, std::enable_if_t<std::is_base_of_v<shine::gameplay::SObject, T>>> {
+        static constexpr MemoryTag Tag = MemoryTag::Gameplay;
+        static constexpr size_t BlockCount = 256;
     };
 }

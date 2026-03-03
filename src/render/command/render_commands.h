@@ -1,6 +1,7 @@
 #pragma once
 
 #include "util/shine_define.h"
+#include <array>
 #include <variant>
 #include <vector>
 
@@ -94,7 +95,7 @@ namespace shine::render::command
 
     struct CmdSetUniformMatrix4fv {
         s32 location;
-        std::vector<float> data; // 16 floats per matrix
+        std::array<float, 16> data;
         bool transpose;
     };
 

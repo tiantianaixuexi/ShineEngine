@@ -136,7 +136,7 @@ namespace shine::render::backend::gl
 
         void operator()(const CmdSetUniformMatrix4fv& cmd)
         {
-            if (cmd.location >= 0 && !cmd.data.empty()) {
+            if (cmd.location >= 0) {
                 glUniformMatrix4fv(cmd.location, 1, cmd.transpose ? GL_TRUE : GL_FALSE, cmd.data.data());
             }
         }

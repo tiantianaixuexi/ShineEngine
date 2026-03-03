@@ -3,7 +3,6 @@
 #include "imgui/imgui.h"
 #include "render/debug/pass_texture_manager.h"
 #include "render/renderer_service.h"
-#include "render/pipeline/render_pipeline.h"
 #include "EngineCore/engine_context.h"
 #include <algorithm>
 #include <string>
@@ -25,19 +24,9 @@ namespace shine::editor::views
         ImGui::Begin("Debug贴图");
 
         auto& registry = shine::render::PassTextureManager::get();
-        registry.ClearTextures();
         auto* renderer = shine::EngineContext::Get().GetSystem<shine::render::RendererService>();
-        if (renderer)
-        {
-            if (auto pipeline = renderer->GetPipeline())
-            {
-                for (const auto& pass : pipeline->GetPasses())
-                {
-                    if (!pass) continue;
-                    pass->CollectDebugTextures(registry);
-                }
-            }
-        }
+        const auto pipeline = renderer ? renderer->GetPipeline() : nullptr;
+        registry.RefreshFromPipeline(pipeline ? pipeline.get() : nullptr);
 
         auto names = registry.GetNames();
         if (names.empty())

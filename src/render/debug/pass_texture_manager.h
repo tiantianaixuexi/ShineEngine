@@ -8,6 +8,7 @@
 #include "EngineCore/subsystem.h"
 #include "EngineCore/engine_context.h"
 #include "render/debug/debug_texture_sink.h"
+#include "render/pipeline/render_pipeline.h"
 #include "shine_define.h"
 
 namespace shine::render
@@ -32,6 +33,17 @@ namespace shine::render
         void ClearTextures()
         {
             m_Textures.clear();
+        }
+
+        void RefreshFromPipeline(const RenderPipeline* pipeline)
+        {
+            ClearTextures();
+            if (!pipeline) return;
+            for (const auto& pass : pipeline->GetPasses())
+            {
+                if (!pass) continue;
+                pass->CollectDebugTextures(*this);
+            }
         }
 
         u32 GetTextureId(std::string_view name) const

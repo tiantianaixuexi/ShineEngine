@@ -14,13 +14,12 @@ import <source_location>;
 #include "memory.ixx"
 #include "fmt/printf.h"
 #endif
+#include "memory_backend.h"
+#include "util/profiling/shine_profiling.h"
 
-// Include mimalloc source directly for static linking
-#if !defined(SHINE_USE_MODULE)
-#define MI_MALLOC_IMPLEMENTATION
-#include "../third/mimalloc/mimalloc.h"
+#ifndef SHINE_MEMORY_BACKEND_UE_B2
+#define SHINE_MEMORY_BACKEND_UE_B2 0
 #endif
-
 namespace shine::co {
 
     // ============================================================
@@ -43,6 +42,7 @@ namespace shine::co {
         "Resource",
         "Physics",
         "AI",
+        "Gameplay",
         "Reflection",
         "Script"
     };
@@ -181,6 +181,7 @@ namespace shine::co {
     // ============================================================
 
     void* Memory::Alloc(size_t size, size_t align, const std::source_location& loc) noexcept {
+        SHINE_PROFILE_CPU_SCOPE_N("Memory::Alloc");
         if (size == 0) [[unlikely]] return nullptr;
 
         // ----------------------------------------------------------
@@ -200,7 +201,7 @@ namespace shine::co {
         const size_t offset     = (headerSize + align - 1) & ~(align - 1);
         const size_t allocAlign = std::max(align, alignof(AllocationHeader));
 
-        void* raw = mi_malloc_aligned(size + offset, allocAlign);
+        void* raw = memory_backend::Alloc(size + offset, allocAlign);
         if (!raw) [[unlikely]] return nullptr;
 
         void* userPtr = static_cast<char*>(raw) + offset;
@@ -212,12 +213,17 @@ namespace shine::co {
         MarkHeaderAlive(header);
 
         UpdateAllocStats(static_cast<MemoryTag>(header->tag), size);
+        const char* tagName = g_memoryTagNames[static_cast<size_t>(header->tag)];
+        SHINE_PROFILE_CPU_VALUE(static_cast<uint64_t>(size));
+        SHINE_PROFILE_CPU_TEXT(tagName, std::strlen(tagName));
+        SHINE_PROFILE_MEM_ALLOC_N(userPtr, size, tagName);
         
         (void)loc; // Reserved for future source-location tracking
         return userPtr;
     }
 
     void Memory::Free(void* p) noexcept {
+        SHINE_PROFILE_CPU_SCOPE_N("Memory::Free");
         if (!p) [[unlikely]] return;
 
         auto* header = GetHeader(p);
@@ -236,14 +242,19 @@ namespace shine::co {
         const MemoryTag tag = static_cast<MemoryTag>(header->tag);
         const uint16_t storedOffset = header->offset;
 
+        const char* tagName = g_memoryTagNames[static_cast<size_t>(tag)];
+        SHINE_PROFILE_CPU_VALUE(static_cast<uint64_t>(size));
+        SHINE_PROFILE_CPU_TEXT(tagName, std::strlen(tagName));
+        SHINE_PROFILE_MEM_FREE_N(p, tagName);
         MarkHeaderDead(header);
         UpdateFreeStats(tag, size);
 
         void* raw = static_cast<char*>(p) - storedOffset;
-        mi_free(raw);
+        memory_backend::Free(raw);
     }
 
     void* Memory::Realloc(void* p, size_t newSize, size_t align, const std::source_location& loc) noexcept {
+        SHINE_PROFILE_CPU_SCOPE_N("Memory::Realloc");
         if (!p) return Alloc(newSize, align, loc);
         if (newSize == 0) {
             Free(p);
@@ -274,7 +285,7 @@ namespace shine::co {
         // layout is preserved.
 
         void* oldRaw = static_cast<char*>(p) - storedOffset;
-        void* newRaw = mi_realloc_aligned(oldRaw, newSize + storedOffset, allocAlign);
+        void* newRaw = memory_backend::Realloc(oldRaw, newSize + storedOffset, allocAlign);
         if (!newRaw) [[unlikely]] return nullptr;
 
         void* newUserPtr = static_cast<char*>(newRaw) + storedOffset;
@@ -294,6 +305,11 @@ namespace shine::co {
         } else if (newSize < oldSize) {
             UpdateFreeStats(tag, oldSize - newSize);
         }
+        const char* tagName = g_memoryTagNames[static_cast<size_t>(tag)];
+        SHINE_PROFILE_CPU_VALUE(static_cast<uint64_t>(newSize));
+        SHINE_PROFILE_CPU_TEXT(tagName, std::strlen(tagName));
+        SHINE_PROFILE_MEM_FREE_N(p, tagName);
+        SHINE_PROFILE_MEM_ALLOC_N(newUserPtr, newSize, tagName);
 
         return newUserPtr;
     }
@@ -369,6 +385,33 @@ namespace shine::co {
                 allocs,
                 static_cast<double>(s.bytes_current.load()) / (1024.0 * 1024.0)
             );
+        }
+    }
+
+    void Memory::TrimAllocator() noexcept {
+        SHINE_PROFILE_CPU_SCOPE_N("Memory::TrimAllocator");
+        memory_backend::Trim();
+        SHINE_PROFILE_CPU_MESSAGE_L("[Memory] TrimAllocator");
+    }
+
+    bool Memory::ValidateHeap() noexcept {
+        SHINE_PROFILE_CPU_SCOPE_N("Memory::ValidateHeap");
+        const bool ok = memory_backend::ValidateHeap();
+        if (!ok) {
+            SHINE_PROFILE_CPU_MESSAGE_L("[Memory] ValidateHeap FAILED");
+        }
+        return ok;
+    }
+
+    void Memory::DumpAllocatorStats() noexcept {
+        SHINE_PROFILE_CPU_SCOPE_N("Memory::DumpAllocatorStats");
+        memory_backend::DumpAllocatorStats();
+        for (size_t i = 0; i < static_cast<size_t>(MemoryTag::Count); ++i) {
+            auto s = GetTagStats(static_cast<MemoryTag>(i));
+            if (s.bytes_current == 0 && s.bytes_peak == 0 && s.alloc_count == 0 && s.free_count == 0) {
+                continue;
+            }
+            SHINE_PROFILE_CPU_PLOT(g_memoryTagNames[i], static_cast<double>(s.bytes_current));
         }
     }
 

@@ -143,6 +143,24 @@ namespace shine::render
         uint32_t m_ProgFXAA = 0;
         uint32_t m_ProgHighPass = 0;
         uint32_t m_DummyVAO = 0;
+        s32 m_LocHighPassImage = -1;
+        s32 m_LocHighPassThreshold = -1;
+        s32 m_LocHighPassSoftKnee = -1;
+        s32 m_LocBlurXImage = -1;
+        s32 m_LocBlurYImage = -1;
+        s32 m_LocCombineScene = -1;
+        s32 m_LocCombineBloom0 = -1;
+        s32 m_LocCombineBloom1 = -1;
+        s32 m_LocCombineBloom2 = -1;
+        s32 m_LocCombineBloom3 = -1;
+        s32 m_LocCombineBloom4 = -1;
+        s32 m_LocCombineWeights = -1;
+        s32 m_LocCombineWeight4 = -1;
+        s32 m_LocCombineIntensity = -1;
+        s32 m_LocCombineExposure = -1;
+        s32 m_LocCombineRadius = -1;
+        s32 m_LocFxaaScene = -1;
+        s32 m_LocFxaaInvTexSize = -1;
         float m_Exposure = 1.0f;
         std::array<float, kBloomLevels> m_BloomWeights{ 1.0f, 0.8f, 0.6f, 0.4f, 0.3f };
         bool m_EnableFXAA = true;
@@ -398,6 +416,32 @@ namespace shine::render
             m_ProgHighPass = compile(fs_highpass);
             m_ProgCombine = compile(fs_combine);
             m_ProgFXAA = compile(fs_fxaa);
+            CacheUniformLocations(backend);
+        }
+
+        void CacheUniformLocations(backend::IRenderBackend* backend)
+        {
+            m_LocHighPassImage = backend->GetUniformLocation(m_ProgHighPass, "image");
+            m_LocHighPassThreshold = backend->GetUniformLocation(m_ProgHighPass, "threshold");
+            m_LocHighPassSoftKnee = backend->GetUniformLocation(m_ProgHighPass, "softKnee");
+
+            m_LocBlurXImage = backend->GetUniformLocation(m_ProgBlurX, "image");
+            m_LocBlurYImage = backend->GetUniformLocation(m_ProgBlurY, "image");
+
+            m_LocCombineScene = backend->GetUniformLocation(m_ProgCombine, "scene");
+            m_LocCombineBloom0 = backend->GetUniformLocation(m_ProgCombine, "bloom0");
+            m_LocCombineBloom1 = backend->GetUniformLocation(m_ProgCombine, "bloom1");
+            m_LocCombineBloom2 = backend->GetUniformLocation(m_ProgCombine, "bloom2");
+            m_LocCombineBloom3 = backend->GetUniformLocation(m_ProgCombine, "bloom3");
+            m_LocCombineBloom4 = backend->GetUniformLocation(m_ProgCombine, "bloom4");
+            m_LocCombineWeights = backend->GetUniformLocation(m_ProgCombine, "bloomWeights");
+            m_LocCombineWeight4 = backend->GetUniformLocation(m_ProgCombine, "bloomWeight4");
+            m_LocCombineIntensity = backend->GetUniformLocation(m_ProgCombine, "intensity");
+            m_LocCombineExposure = backend->GetUniformLocation(m_ProgCombine, "exposure");
+            m_LocCombineRadius = backend->GetUniformLocation(m_ProgCombine, "bloomRadius");
+
+            m_LocFxaaScene = backend->GetUniformLocation(m_ProgFXAA, "scene");
+            m_LocFxaaInvTexSize = backend->GetUniformLocation(m_ProgFXAA, "invTexSize");
         }
 
         void Execute(ScriptableRenderContext& context, RenderingData& data) override
@@ -417,47 +461,44 @@ namespace shine::render
             if (levels > kBloomLevels) levels = kBloomLevels;
             std::array<float, kBloomLevels> weights = m_BloomWeights;
             for (int i = levels; i < kBloomLevels; ++i) weights[i] = 0.0f;
+            std::array<u32, kBloomLevels> pingFBOs{};
+            std::array<u32, kBloomLevels> pongFBOs{};
+            for (int i = 0; i < levels; ++i)
+            {
+                pingFBOs[i] = backend->GetViewportFBO(m_PingHandle[i]);
+                pongFBOs[i] = backend->GetViewportFBO(m_PongHandle[i]);
+                if (pingFBOs[i] == 0 || pongFBOs[i] == 0) return;
+            }
 
             {
-                //shine::util::FunctionTimer timer("BloomPass::HighPass");
                 u32 brightFBO = backend->GetViewportFBO(m_BrightHandle);
                 if (brightFBO == 0) return;
                 cmd.BindFramebuffer(static_cast<uint64_t>(brightFBO));
                 cmd.SetViewport(0, 0, m_BrightWidth, m_BrightHeight);
                 cmd.UseProgram(static_cast<uint64_t>(m_ProgHighPass));
-                s32 locImage = backend->GetUniformLocation(m_ProgHighPass, "image");
-                s32 locThreshold = backend->GetUniformLocation(m_ProgHighPass, "threshold");
-                s32 locSoftKnee = backend->GetUniformLocation(m_ProgHighPass, "softKnee");
-                cmd.SetUniform1i(locImage, 0);
-                cmd.SetUniform1f(locThreshold, m_Threshold);
-                cmd.SetUniform1f(locSoftKnee, m_SoftKnee);
+                cmd.SetUniform1i(m_LocHighPassImage, 0);
+                cmd.SetUniform1f(m_LocHighPassThreshold, m_Threshold);
+                cmd.SetUniform1f(m_LocHighPassSoftKnee, m_SoftKnee);
                 cmd.BindTexture(0, TextureManager::get().GetTextureId(m_OpaquePass->m_EmissiveTex));
                 cmd.DrawTriangles(0, 3);
             }
 
             {
-                //shine::util::FunctionTimer timer("BloomPass::Blur");
                 const int iterations = (std::max)(1, m_BlurRadius);
                 u32 sourceTexId = TextureManager::get().GetTextureId(m_BrightTex);
 
                 for (int iter = 0; iter < iterations; ++iter)
                 {
-                    u32 pingFBO0 = backend->GetViewportFBO(m_PingHandle[0]);
-                    if (pingFBO0 == 0) return;
-                    cmd.BindFramebuffer(static_cast<uint64_t>(pingFBO0));
+                    cmd.BindFramebuffer(static_cast<uint64_t>(pingFBOs[0]));
                     cmd.SetViewport(0, 0, m_Width[0], m_Height[0]);
                     cmd.UseProgram(static_cast<uint64_t>(m_ProgBlurX));
-                    s32 locImage = backend->GetUniformLocation(m_ProgBlurX, "image");
-                    cmd.SetUniform1i(locImage, 0);
+                    cmd.SetUniform1i(m_LocBlurXImage, 0);
                     cmd.BindTexture(0, sourceTexId);
                     cmd.DrawTriangles(0, 3);
 
-                    u32 pongFBO0 = backend->GetViewportFBO(m_PongHandle[0]);
-                    if (pongFBO0 == 0) return;
-                    cmd.BindFramebuffer(static_cast<uint64_t>(pongFBO0));
+                    cmd.BindFramebuffer(static_cast<uint64_t>(pongFBOs[0]));
                     cmd.UseProgram(static_cast<uint64_t>(m_ProgBlurY));
-                    locImage = backend->GetUniformLocation(m_ProgBlurY, "image");
-                    cmd.SetUniform1i(locImage, 0);
+                    cmd.SetUniform1i(m_LocBlurYImage, 0);
                     cmd.BindTexture(0, TextureManager::get().GetTextureId(m_PingTex[0]));
                     cmd.DrawTriangles(0, 3);
                     sourceTexId = TextureManager::get().GetTextureId(m_PongTex[0]);
@@ -468,22 +509,16 @@ namespace shine::render
                     sourceTexId = TextureManager::get().GetTextureId(m_PongTex[i - 1]);
                     for (int iter = 0; iter < iterations; ++iter)
                     {
-                        u32 pingFBO = backend->GetViewportFBO(m_PingHandle[i]);
-                        if (pingFBO == 0) return;
-                        cmd.BindFramebuffer(static_cast<uint64_t>(pingFBO));
+                        cmd.BindFramebuffer(static_cast<uint64_t>(pingFBOs[i]));
                         cmd.SetViewport(0, 0, m_Width[i], m_Height[i]);
                         cmd.UseProgram(static_cast<uint64_t>(m_ProgBlurX));
-                        s32 locImage = backend->GetUniformLocation(m_ProgBlurX, "image");
-                        cmd.SetUniform1i(locImage, 0);
+                        cmd.SetUniform1i(m_LocBlurXImage, 0);
                         cmd.BindTexture(0, sourceTexId);
                         cmd.DrawTriangles(0, 3);
 
-                        u32 pongFBO = backend->GetViewportFBO(m_PongHandle[i]);
-                        if (pongFBO == 0) return;
-                        cmd.BindFramebuffer(static_cast<uint64_t>(pongFBO));
+                        cmd.BindFramebuffer(static_cast<uint64_t>(pongFBOs[i]));
                         cmd.UseProgram(static_cast<uint64_t>(m_ProgBlurY));
-                        locImage = backend->GetUniformLocation(m_ProgBlurY, "image");
-                        cmd.SetUniform1i(locImage, 0);
+                        cmd.SetUniform1i(m_LocBlurYImage, 0);
                         cmd.BindTexture(0, TextureManager::get().GetTextureId(m_PingTex[i]));
                         cmd.DrawTriangles(0, 3);
                         sourceTexId = TextureManager::get().GetTextureId(m_PongTex[i]);
@@ -498,28 +533,17 @@ namespace shine::render
                 cmd.BindFramebuffer(static_cast<uint64_t>(combineFBO));
                 cmd.SetViewport(0, 0, data.viewport.width, data.viewport.height);
                 cmd.UseProgram(static_cast<uint64_t>(m_ProgCombine));
-                s32 locScene = backend->GetUniformLocation(m_ProgCombine, "scene");
-                s32 locBloom0 = backend->GetUniformLocation(m_ProgCombine, "bloom0");
-                s32 locBloom1 = backend->GetUniformLocation(m_ProgCombine, "bloom1");
-                s32 locBloom2 = backend->GetUniformLocation(m_ProgCombine, "bloom2");
-                s32 locBloom3 = backend->GetUniformLocation(m_ProgCombine, "bloom3");
-                s32 locBloom4 = backend->GetUniformLocation(m_ProgCombine, "bloom4");
-                s32 locWeights = backend->GetUniformLocation(m_ProgCombine, "bloomWeights");
-                s32 locWeight4 = backend->GetUniformLocation(m_ProgCombine, "bloomWeight4");
-                s32 locIntensity = backend->GetUniformLocation(m_ProgCombine, "intensity");
-                s32 locExposure = backend->GetUniformLocation(m_ProgCombine, "exposure");
-                s32 locRadius = backend->GetUniformLocation(m_ProgCombine, "bloomRadius");
-                cmd.SetUniform1i(locScene, 0);
-                cmd.SetUniform1i(locBloom0, 1);
-                cmd.SetUniform1i(locBloom1, 2);
-                cmd.SetUniform1i(locBloom2, 3);
-                cmd.SetUniform1i(locBloom3, 4);
-                cmd.SetUniform1i(locBloom4, 5);
-                cmd.SetUniform4f(locWeights, weights[0], weights[1], weights[2], weights[3]);
-                cmd.SetUniform1f(locWeight4, weights[4]);
-                cmd.SetUniform1f(locIntensity, m_Intensity);
-                cmd.SetUniform1f(locExposure, m_Exposure);
-                cmd.SetUniform1f(locRadius, m_BloomRadius);
+                cmd.SetUniform1i(m_LocCombineScene, 0);
+                cmd.SetUniform1i(m_LocCombineBloom0, 1);
+                cmd.SetUniform1i(m_LocCombineBloom1, 2);
+                cmd.SetUniform1i(m_LocCombineBloom2, 3);
+                cmd.SetUniform1i(m_LocCombineBloom3, 4);
+                cmd.SetUniform1i(m_LocCombineBloom4, 5);
+                cmd.SetUniform4f(m_LocCombineWeights, weights[0], weights[1], weights[2], weights[3]);
+                cmd.SetUniform1f(m_LocCombineWeight4, weights[4]);
+                cmd.SetUniform1f(m_LocCombineIntensity, m_Intensity);
+                cmd.SetUniform1f(m_LocCombineExposure, m_Exposure);
+                cmd.SetUniform1f(m_LocCombineRadius, m_BloomRadius);
                 cmd.BindTexture(0, TextureManager::get().GetTextureId(m_OpaquePass->m_ColorTex));
                 cmd.BindTexture(1, TextureManager::get().GetTextureId(m_PongTex[0]));
                 cmd.BindTexture(2, TextureManager::get().GetTextureId(m_PongTex[1]));
@@ -537,10 +561,8 @@ namespace shine::render
                 cmd.BindFramebuffer(static_cast<uint64_t>(targetFBO));
                 cmd.SetViewport(0, 0, data.viewport.width, data.viewport.height);
                 cmd.UseProgram(static_cast<uint64_t>(m_ProgFXAA));
-                s32 locSceneFxaa = backend->GetUniformLocation(m_ProgFXAA, "scene");
-                s32 locInv = backend->GetUniformLocation(m_ProgFXAA, "invTexSize");
-                cmd.SetUniform1i(locSceneFxaa, 0);
-                cmd.SetUniform2f(locInv, 1.0f / static_cast<float>(m_FinalWidth), 1.0f / static_cast<float>(m_FinalHeight));
+                cmd.SetUniform1i(m_LocFxaaScene, 0);
+                cmd.SetUniform2f(m_LocFxaaInvTexSize, 1.0f / static_cast<float>(m_FinalWidth), 1.0f / static_cast<float>(m_FinalHeight));
                 cmd.BindTexture(0, TextureManager::get().GetTextureId(m_FinalTex));
                 cmd.DrawTriangles(0, 3);
             }
@@ -550,22 +572,21 @@ namespace shine::render
 
         void CollectDebugTextures(DebugTextureSink& sink) override
         {
+            int levels = m_ActiveLevels;
+            if (levels < 1) levels = 1;
+            if (levels > kBloomLevels) levels = kBloomLevels;
             if (m_BrightTex.isValid())
             {
                 sink.RegisterTexture("BloomBright", TextureManager::get().GetTextureId(m_BrightTex), m_BrightWidth, m_BrightHeight);
             }
-            for (int i = 0; i < kBloomLevels; ++i)
+            for (int i = 0; i < levels; ++i)
             {
                 if (m_PongTex[i].isValid())
                 {
                     sink.RegisterTexture("BloomL" + std::to_string(i), TextureManager::get().GetTextureId(m_PongTex[i]), m_Width[i], m_Height[i]);
                 }
-                if (m_PingTex[i].isValid())
-                {
-                    sink.RegisterTexture("BloomPingL" + std::to_string(i), TextureManager::get().GetTextureId(m_PingTex[i]), m_Width[i], m_Height[i]);
-                }
             }
-            if (m_FinalTex.isValid())
+            if (m_EnableFXAA && m_FinalTex.isValid())
             {
                 sink.RegisterTexture("BloomFinal", TextureManager::get().GetTextureId(m_FinalTex), m_FinalWidth, m_FinalHeight);
             }

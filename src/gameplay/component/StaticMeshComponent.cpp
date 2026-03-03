@@ -2,6 +2,7 @@
 #include "gameplay/object.h"
 #include "TransformComponent.h"
 #include "render/material.h"
+#include <array>
 
 namespace shine::gameplay::component
 {
@@ -20,7 +21,7 @@ namespace shine::gameplay::component
         // 1. Get Model Matrix
         shine::math::FMatrix4f modelMatrix = m_Owner->getComponent<TransformComponent>()->getModelMatrix();
         // 2. Prepare Matrix Data (column-major for OpenGL)
-        std::vector<float> matData(16);
+        std::array<float, 16> matData{};
         const float* src = modelMatrix.data();
         for(int i=0; i<16; ++i) matData[i] = src[i];
 

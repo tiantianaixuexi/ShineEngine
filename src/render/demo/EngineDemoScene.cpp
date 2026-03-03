@@ -45,14 +45,14 @@ namespace shine::render::demo
             auto bloomPass = std::make_unique<shine::render::BloomPass>();
             bloomPass->SetOpaquePass(pOpaque);
             bloomPass->m_Threshold = 0.75f;
-            bloomPass->m_BlurRadius = 3;
+            bloomPass->m_BlurRadius = 2;
             bloomPass->m_Intensity = 0.95f;
             bloomPass->m_Exposure = 0.85f;
             bloomPass->m_BloomWeights = { 1.0f, 0.8f, 0.6f, 0.4f, 0.3f };
             bloomPass->m_BloomRadius = 0.2f;
             bloomPass->m_SoftKnee = 0.5f;
-            bloomPass->m_ActiveLevels = 5;
-            bloomPass->m_EnableFXAA = true;
+            bloomPass->m_ActiveLevels = 4;
+            bloomPass->m_EnableFXAA = false;
 
             pipeline->AddPass(std::move(opaquePass));
             pipeline->AddPass(std::move(bloomPass));

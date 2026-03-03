@@ -8,6 +8,7 @@ import <atomic>;
 import <algorithm>;
 import <cstdio>;
 import <cstring>;
+import <new>;
 import <source_location>;
 import <type_traits>;
 import <utility>;
@@ -15,13 +16,13 @@ import <utility>;
 #else
 
 #pragma once
-#include <mimalloc/mimalloc.h>
 #include <cstddef>
 #include <cstdint>
 #include <atomic>
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <new>
 #include <source_location>
 #include <type_traits>
 #include <utility>
@@ -46,6 +47,10 @@ namespace shine::co {
   #endif
 #endif
 
+#if !defined(SHINE_MEMORY_BACKEND_UE_B2)
+  #define SHINE_MEMORY_BACKEND_UE_B2 0
+#endif
+
     // ============================================================
     // Frame Context
     // ============================================================
@@ -68,6 +73,7 @@ namespace shine::co {
         Resource,
         Physics,
         AI,
+        Gameplay,
         Reflection,
         Script,
         Count
@@ -205,6 +211,9 @@ namespace shine::co {
         static void PrintTagStats(MemoryTag tag) noexcept;
         static void DumpAllTags() noexcept;
         static void DumpFrameSpikes(uint32_t allocThreshold = 64) noexcept;
+        static void TrimAllocator() noexcept;
+        static bool ValidateHeap() noexcept;
+        static void DumpAllocatorStats() noexcept;
 
         /// Flush all thread-local stat buffers to global atomics.
         /// Call before reading stats for accurate numbers.
