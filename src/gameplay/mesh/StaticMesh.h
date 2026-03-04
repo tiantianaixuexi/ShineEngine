@@ -3,8 +3,10 @@
 #include <memory>
 #include <vector>
 #include <cmath>
+#include <string_view>
 
 #include "EngineCore/engine_context.h"
+#include "loader/model/model_loader.h"
 #include "shine_define.h"
 #include "render/material.h"
 #include "render/pipeline/command_buffer.h"
@@ -190,6 +192,61 @@ namespace shine::gameplay
             layout.attributes = { {0, 3, 0}, {1, 3, 3 * sizeof(float)} };
 
             buildMesh(vertices, layout);
+        }
+
+        bool initFromMeshData(const loader::MeshData& meshData)
+        {
+            std::vector<float> vertices;
+            auto appendVertex = [&](size_t sourceIndex)
+            {
+                if (sourceIndex >= meshData.vertices.size())
+                {
+                    return;
+                }
+
+                const auto& p = meshData.vertices[sourceIndex];
+                const auto n = sourceIndex < meshData.normals.size() ? meshData.normals[sourceIndex] : shine::math::FVector3f(0.0f, 0.0f, 1.0f);
+                const auto uv = sourceIndex < meshData.texcoords.size() ? meshData.texcoords[sourceIndex] : shine::math::FVector2f(0.0f, 0.0f);
+
+                vertices.push_back(p.X);
+                vertices.push_back(p.Y);
+                vertices.push_back(p.Z);
+                vertices.push_back(n.X);
+                vertices.push_back(n.Y);
+                vertices.push_back(n.Z);
+                vertices.push_back(uv.X);
+                vertices.push_back(uv.Y);
+            };
+
+            if (!meshData.indices.empty())
+            {
+                vertices.reserve(meshData.indices.size() * 8);
+                for (auto idx : meshData.indices)
+                {
+                    appendVertex(static_cast<size_t>(idx));
+                }
+            }
+            else
+            {
+                vertices.reserve(meshData.vertices.size() * 8);
+                for (size_t i = 0; i < meshData.vertices.size(); ++i)
+                {
+                    appendVertex(i);
+                }
+            }
+
+            m_VertexCount = static_cast<int>(vertices.size() / 8);
+            if (m_VertexCount <= 0)
+            {
+                releaseMesh();
+                return false;
+            }
+
+            render::backend::VertexLayoutDesc layout;
+            layout.strideBytes = 8 * sizeof(float);
+            layout.attributes = { {0, 3, 0}, {1, 3, 3 * sizeof(float)}, {2, 2, 6 * sizeof(float)} };
+            buildMesh(vertices, layout);
+            return m_MeshHandle != 0;
         }
 
         // 渲染，绑定着色器（用后端编译缓存），提交渲染

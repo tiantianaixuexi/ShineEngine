@@ -2,6 +2,8 @@
 #include "gameplay/object.h"
 #include "TransformComponent.h"
 #include "render/material.h"
+#include "manager/AssetManager.h"
+#include "loader/model/gltfLoader.h"
 #include <array>
 
 namespace shine::gameplay::component
@@ -13,6 +15,51 @@ namespace shine::gameplay::component
 	StaticMeshComponent::~StaticMeshComponent()
 	{
 	}
+
+    bool StaticMeshComponent::setMeshData(const shine::loader::MeshData& meshData)
+    {
+        auto mesh = std::make_shared<StaticMesh>();
+        if (!mesh->initFromMeshData(meshData))
+        {
+            return false;
+        }
+        m_StaticMesh = std::move(mesh);
+        return true;
+    }
+
+    bool StaticMeshComponent::loadFromGltfFile(std::string_view filePath, size_t meshIndex)
+    {
+        std::string path(filePath);
+        if (path.empty())
+        {
+            return false;
+        }
+
+        auto* assetManager = shine::EngineContext::Get().GetSystem<shine::manager::AssetManager>();
+        if (!assetManager)
+        {
+            return false;
+        }
+
+        auto meshResult = assetManager->LoadModelMesh(path, meshIndex);
+        if (!meshResult.has_value())
+        {
+            return false;
+        }
+
+        return setMeshData(meshResult.value());
+    }
+
+    bool StaticMeshComponent::loadFromGltfMemory(const void* data, size_t size, size_t meshIndex)
+    {
+        auto meshResult = shine::loader::LoadGltfMeshFromMemory(data, size, meshIndex);
+        if (!meshResult.has_value())
+        {
+            return false;
+        }
+
+        return setMeshData(meshResult.value());
+    }
 
     void StaticMeshComponent::onRender(shine::render::CommandBuffer& cmd)
     {

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 #include <filesystem>
+#include <expected>
 #include "loader/core/loader.h"
 #include "loader/image/image_loader.h"
 #include "loader/model/model_loader.h"
@@ -111,6 +112,7 @@ namespace shine::manager
          * @return 资源句柄，失败返回无效句柄
          */
         AssetHandle LoadModel(const std::string& filePath);
+        AssetHandle LoadModel(const std::string& filePath, loader::IModelLoader::ProgressCallback progressCallback);
 
         /**
          * @brief 获取模型加载器
@@ -118,6 +120,10 @@ namespace shine::manager
          * @return 模型加载器指针，失败返回nullptr
          */
         loader::IModelLoader* GetModelLoader(const AssetHandle& handle) const;
+
+        std::expected<std::vector<loader::MeshData>, std::string> GetModelMeshes(const AssetHandle& handle) const;
+        std::expected<loader::MeshData, std::string> GetModelMesh(const AssetHandle& handle, size_t meshIndex = 0) const;
+        std::expected<loader::MeshData, std::string> LoadModelMesh(const std::string& filePath, size_t meshIndex = 0, loader::IModelLoader::ProgressCallback progressCallback = nullptr);
 
         // ========================================================================
         // 通用资源管理

@@ -3,6 +3,9 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <functional>
+#include <string_view>
+#include <algorithm>
 
 #include "loader/core/loader.h"
 #include "math/vector.ixx"
@@ -50,6 +53,8 @@ namespace shine::loader
     class IModelLoader : public IAssetLoader
     {
     public:
+        using ProgressCallback = std::function<void(float, std::string_view)>;
+
         virtual ~IModelLoader() = default;
 
         /**
@@ -69,6 +74,28 @@ namespace shine::loader
          * @return 网格数量
          */
         virtual size_t getMeshCount() const noexcept = 0;
+
+        void setProgressCallback(ProgressCallback callback)
+        {
+            _progressCallback = std::move(callback);
+        }
+
+        void clearProgressCallback()
+        {
+            _progressCallback = nullptr;
+        }
+
+    protected:
+        void notifyProgress(float progress, std::string_view stage) const
+        {
+            if (_progressCallback)
+            {
+                _progressCallback(std::clamp(progress, 0.0f, 1.0f), stage);
+            }
+        }
+
+    private:
+        ProgressCallback _progressCallback;
     };
 }
 

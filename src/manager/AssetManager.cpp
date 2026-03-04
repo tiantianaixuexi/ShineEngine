@@ -196,6 +196,11 @@ namespace shine::manager
 
     AssetHandle AssetManager::LoadModel(const std::string& filePath)
     {
+        return LoadModel(filePath, nullptr);
+    }
+
+    AssetHandle AssetManager::LoadModel(const std::string& filePath, loader::IModelLoader::ProgressCallback progressCallback)
+    {
         shine::util::FunctionTimer timer("AssetManager::LoadModel", shine::util::TimerPrecision::Nanoseconds);
 
         // 检查是否已加载
@@ -225,6 +230,11 @@ namespace shine::manager
         {
             fmt::print("AssetManager: 不支持的模型格式: {}\n", filePath);
             return AssetHandle{};
+        }
+
+        if (progressCallback)
+        {
+            loader->setProgressCallback(std::move(progressCallback));
         }
 
         // 加载文件
@@ -263,6 +273,52 @@ namespace shine::manager
         }
 
         return nullptr;
+    }
+
+    std::expected<std::vector<loader::MeshData>, std::string> AssetManager::GetModelMeshes(const AssetHandle& handle) const
+    {
+        auto* loader = GetModelLoader(handle);
+        if (!loader)
+        {
+            return std::unexpected("无效模型句柄或模型未加载");
+        }
+        if (!loader->isLoaded())
+        {
+            return std::unexpected("模型尚未加载完成");
+        }
+
+        auto meshes = loader->extractMeshData();
+        if (meshes.empty())
+        {
+            return std::unexpected("模型未包含可渲染网格");
+        }
+        return meshes;
+    }
+
+    std::expected<loader::MeshData, std::string> AssetManager::GetModelMesh(const AssetHandle& handle, size_t meshIndex) const
+    {
+        auto meshesResult = GetModelMeshes(handle);
+        if (!meshesResult.has_value())
+        {
+            return std::unexpected(meshesResult.error());
+        }
+
+        const auto& meshes = meshesResult.value();
+        if (meshIndex >= meshes.size())
+        {
+            return std::unexpected(fmt::format("网格索引越界: {} / {}", meshIndex, meshes.size()));
+        }
+        return meshes[meshIndex];
+    }
+
+    std::expected<loader::MeshData, std::string> AssetManager::LoadModelMesh(const std::string& filePath, size_t meshIndex, loader::IModelLoader::ProgressCallback progressCallback)
+    {
+        auto handle = LoadModel(filePath, std::move(progressCallback));
+        if (!handle.isValid())
+        {
+            return std::unexpected(fmt::format("模型加载失败: {}", filePath));
+        }
+        return GetModelMesh(handle, meshIndex);
     }
 
 
