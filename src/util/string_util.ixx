@@ -136,22 +136,6 @@ namespace shine::util
          */
         [[nodiscard]] static bool WildcardMatch(std::string_view str, std::string_view pattern);
 
-        // ===================== URL编码解码 =====================
-
-        /**
-         * @brief URL编码字符串
-         * @param input 要编码的字符串
-         * @return URL编码后的字符串
-         */
-        [[nodiscard]] static std::string URLEncode(std::string_view input);
-
-        /**
-         * @brief URL解码字符串
-         * @param input URL编码的字符串
-         * @return 解码后的字符串。解码错误时返回空字符串
-         */
-        [[nodiscard]] static std::string URLDecode(std::string_view input);
-
         // ===================== UTF-8 字符操作 =====================
 
         /**
@@ -300,6 +284,7 @@ namespace shine::util
          * @return 包含点的扩展名（如".txt"），如果没有扩展名则为空字符串
          */
         [[nodiscard]] static std::string_view GetFileExtension(std::string_view path);
+        [[nodiscard]] static std::string NormalizeFileExtension(std::string_view path);
 
         /**
          * @brief 获取完整路径的目录部分
@@ -335,13 +320,6 @@ namespace shine::util
          * @return 使用反斜杠的路径字符串
          */
         [[nodiscard]] static std::string ToWindowsPath(std::string_view path);
-
-        /**
-         * @brief 使用文件系统语义规范化路径
-         * @param path 输入路径字符串视图
-         * @return 规范化后的路径字符串
-         */
-        [[nodiscard]] static std::string NormalizePath(std::string path);
 
         /**
          * @brief 将路径分隔符转换为本机格式

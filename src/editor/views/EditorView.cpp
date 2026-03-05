@@ -1,6 +1,12 @@
 #include "EditorView.h"
 
+#include "fmt/format.h"
+#include "gameplay/actor.h"
 #include "gameplay/camera.h"
+#include "gameplay/component/StaticMeshComponent.h"
+#include "gameplay/component/TransformComponent.h"
+#include "gameplay/mesh/StaticMesh.h"
+#include "gameplay/world/WorldServiceInterfaces.h"
 #include "imgui/imgui.h"
 #include "manager/CameraManager.h"
 #include "render/demo/EngineDemoScene.h"
@@ -13,6 +19,11 @@ static render::RendererService *renderer         = nullptr;
 
 
 EditView::~EditView() = default;
+
+void EditView::SetWorldPlacementService(shine::gameplay::world::IWorldActorPlacementService* worldPlacementService)
+{
+    worldPlacementService_ = worldPlacementService;
+}
 
 void EditView::onInit() {
 
@@ -77,6 +88,19 @@ void EditView::onRender() {
             ImGui::InvisibleButton("EditorViewportArea", rightSize);
         }
 
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SHINE_PLACE_ITEM"))
+            {
+                if (payload->Data && payload->DataSize == sizeof(PlacementItemPayload))
+                {
+                    const auto* item = static_cast<const PlacementItemPayload*>(payload->Data);
+                    SpawnPlacementActor(item->type, item->scale, cam);
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
         const bool is_hovered = ImGui::IsItemHovered();
         
         // 当鼠标悬停在视口上，或者正在进行右键操作时（即使鼠标移出了视口范围），都应响应控制
@@ -122,5 +146,45 @@ void EditView::onRender() {
     }
 
     ImGui::End();
+}
+
+void EditView::SpawnPlacementActor(EPlacementItemType type, float scale, gameplay::Camera* cam)
+{
+    if (!worldPlacementService_ || !cam)
+    {
+        return;
+    }
+
+    const auto camPos = cam->GetPosition();
+    const auto spawnPos = camPos + cam->front * 3.0;
+
+    if (type == EPlacementItemType::EmptyActor)
+    {
+        auto actor = std::make_unique<shine::gameplay::EmptyActor>();
+        actor->setName(fmt::format("PlacedEmpty_{}", nextPlacedActorId_++));
+        auto* transform = actor->addComponent<shine::gameplay::component::TransformComponent>();
+        transform->setPosition({
+            static_cast<float>(spawnPos.X),
+            static_cast<float>(spawnPos.Y),
+            static_cast<float>(spawnPos.Z)
+        });
+        worldPlacementService_->addActorToPersistentLevel(std::move(actor));
+        return;
+    }
+
+    auto actor = std::make_unique<shine::gameplay::StaticMeshActor>();
+    actor->setName(fmt::format("PlacedMesh_{}", nextPlacedActorId_++));
+    auto* transform = actor->addComponent<shine::gameplay::component::TransformComponent>();
+    transform->setPosition({
+        static_cast<float>(spawnPos.X),
+        static_cast<float>(spawnPos.Y),
+        static_cast<float>(spawnPos.Z)
+    });
+    transform->setScale({ scale, scale, scale });
+    auto* meshComp = actor->addComponent<shine::gameplay::component::StaticMeshComponent>();
+    auto mesh = std::make_shared<shine::gameplay::StaticMesh>();
+    mesh->initCubeWithNormals();
+    meshComp->setMesh(mesh);
+    worldPlacementService_->addActorToPersistentLevel(std::move(actor));
 }
 } // namespace shine::editor::EditorView

@@ -1,6 +1,10 @@
 #pragma once
 
+#include <algorithm>
+#include <concepts>
 #include <functional>
+#include <utility>
+#include <vector>
 
 #include "compiler_hints.h"
 
@@ -129,6 +133,12 @@ public:
         next_id_ = 1;
     }
 
+    void compact() {
+        slots_.erase(std::remove_if(slots_.begin(), slots_.end(), [](const auto& p) {
+            return !p.second;
+        }), slots_.end());
+    }
+
     // ============================================
     // 查询
     // ============================================
@@ -139,6 +149,28 @@ public:
     
     [[nodiscard]] size_t size() const noexcept { 
         return slots_.size(); 
+    }
+
+    [[nodiscard]] size_t active_size() const noexcept {
+        size_t count = 0;
+        for (const auto& slot : slots_) {
+            if (slot.second) {
+                ++count;
+            }
+        }
+        return count;
+    }
+
+    [[nodiscard]] bool is_bound(Handle h) const noexcept {
+        if (!h) {
+            return false;
+        }
+        for (const auto& [id, cb] : slots_) {
+            if (id == h.id && cb) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ============================================

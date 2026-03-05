@@ -1,10 +1,10 @@
-﻿{
+{
     "name": "url_util",
     "type": "static",
     "files": [
         "src/util/encoding/url_util.h",
         "src/util/encoding/url_util.cpp"
     ],
-    "deps": ["string_util"],
-    "comment": "URL工具类，依赖string_util模块"
+    "deps": ["string_util", "path_util"],
+    "comment": "URL工具类，依赖string_util基础字符工具"
 }

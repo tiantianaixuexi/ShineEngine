@@ -1237,10 +1237,11 @@ foreach(module_name ${MODULE_LIST})
             check_module_type("${dep_types}" "exe" dep_is_executable)
             check_module_type("${dep_types}" "third" dep_is_third)
             check_module_type("${dep_types}" "static" dep_is_static)
+            check_module_type("${dep_types}" "interface" dep_is_interface_type)
 
             set(needs_link FALSE)
             # third 或 static 类型的模块总是需要链接（即使只有头文件也能生成 .lib）
-            if(dep_is_third OR dep_is_static)
+            if(dep_is_third OR dep_is_static OR dep_is_interface_type)
                 set(needs_link TRUE)
             elseif(NOT dep_is_executable AND (dep STREQUAL "fmt" OR "${dep_files}" MATCHES "\\.(cpp|ixx|cppm)$"))
                 set(needs_link TRUE)
@@ -1521,6 +1522,22 @@ if(SCRIPT_FILES)
             endif()
             source_group("${group_path}" FILES "${script_file}")
         endforeach()
+    endif()
+endif()
+
+option(SHINE_ENABLE_TS_SCRIPT_AUTO_BUILD "Enable TypeScript script auto build" OFF)
+if(SHINE_ENABLE_TS_SCRIPT_AUTO_BUILD)
+    find_program(SHINE_NPM_EXECUTABLE NAMES npm.cmd npm)
+    if(SHINE_NPM_EXECUTABLE AND EXISTS "${CMAKE_SOURCE_DIR}/script/package.json" AND EXISTS "${CMAKE_SOURCE_DIR}/script/tsconfig.json")
+        add_custom_target(ScriptBuild
+            COMMAND "${SHINE_NPM_EXECUTABLE}" install
+            COMMAND "${SHINE_NPM_EXECUTABLE}" run build
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/script"
+            VERBATIM
+        )
+        if(TARGET MainEngine)
+            add_dependencies(MainEngine ScriptBuild)
+        endif()
     endif()
 endif()
 

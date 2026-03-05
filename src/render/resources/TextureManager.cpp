@@ -3,14 +3,8 @@
 #include "image/Texture.h"
 #include "fmt/format.h"
 
-// 暂时引入全局上下文，后续应通过依赖注入传递
-#include "../../EngineCore/engine_context.h"
-// extern shine::EngineContext* g_EngineContext; // Removed global pointer declaration
-
 namespace shine::render
 {
-
-
     void TextureManager::Initialize(render::backend::IRenderBackend* renderBackend)
     {
         renderBackend_ = renderBackend;
@@ -19,63 +13,6 @@ namespace shine::render
     void TextureManager::Shutdown(EngineContext& ctx)
     {
         ReleaseAllTextures();
-    }
-
-    TextureHandle TextureManager::CreateTextureFromAsset(const manager::AssetHandle& assetHandle)
-    {
-        if (!assetHandle.isValid() || assetHandle.type != manager::EAssetType::Image)
-        {
-            return TextureHandle{};
-        }
-
-        // 检查是否已经创建过纹理
-        for (const auto& pair : textures_)
-        {
-            if (pair.second.assetHandle.id == assetHandle.id)
-            {
-                TextureHandle handle;
-                handle.id = pair.first;
-                return handle;
-            }
-        }
-
-        if (!shine::EngineContext::IsInitialized()) return TextureHandle{};
-
-        // 获取加载器
-        auto* loader = shine::EngineContext::Get().GetSystem<manager::AssetManager>()->GetImageLoader(assetHandle);
-        if (!loader || !loader->isDecoded())
-        {
-            fmt::println("TextureManager: 无法获取图片加载器或图片未解码");
-            return TextureHandle{};
-        }
-
-        // 从加载器获取数据
-        const auto& imageData = loader->getImageData();
-        int width = static_cast<int>(loader->getWidth());
-        int height = static_cast<int>(loader->getHeight());
-
-        if (imageData.empty() || width <= 0 || height <= 0)
-        {
-            fmt::println("TextureManager: 图片数据无效");
-            return TextureHandle{};
-        }
-
-        // 创建纹理
-        TextureCreateInfo info;
-        info.width = width;
-        info.height = height;
-        info.data = imageData.data();
-        info.generateMipmaps = false;
-        info.linearFilter = true;
-        info.clampToEdge = true;
-
-        TextureHandle handle = CreateTexture(info);
-        if (handle.isValid())
-        {
-            textures_[handle.id].assetHandle = assetHandle;
-        }
-
-        return handle;
     }
 
     TextureHandle TextureManager::CreateTexture(const TextureCreateInfo& info)
@@ -114,9 +51,10 @@ namespace shine::render
 
         // 存储纹理数据
         TextureData data;
-        data.textureId = textureId;
         data.width = info.width;
         data.height = info.height;
+        data.textureId = textureId;
+        data.streamable = info.generateMipmaps;
         textures_[handle.id] = data;
 
         return handle;
@@ -132,6 +70,16 @@ namespace shine::render
         auto it = textures_.find(handle.id);
         if (it != textures_.end())
         {
+            std::string oldLabel;
+#if defined(BUILD_EDITOR) && BUILD_EDITOR
+            oldLabel = it->second.editorDebugLabel;
+#elif defined(BUILD_RUNTIME) && BUILD_RUNTIME
+            oldLabel = it->second.runtimeDebugLabel;
+#endif
+            if (!oldLabel.empty())
+            {
+                labelToTexture_.erase(oldLabel);
+            }
             if (renderBackend_)
             {
                 renderBackend_->ReleaseTexture(it->second.textureId);
@@ -150,27 +98,7 @@ namespace shine::render
             }
         }
         textures_.clear();
-    }
-
-    TextureHandle TextureManager::CreateTextureFromMemory(const void* data, size_t size, const std::string& formatHint)
-    {
-        if (!data || size == 0)
-        {
-            return TextureHandle{};
-        }
-
-        if (!shine::EngineContext::IsInitialized()) return TextureHandle{};
-
-        // 使用 AssetManager 从内存加载图片
-        auto assetHandle = shine::EngineContext::Get().GetSystem<manager::AssetManager>()->LoadImageFromMemory(data, size, formatHint);
-        if (!assetHandle.isValid())
-        {
-            fmt::println("TextureManager: 从内存加载图片失败");
-            return TextureHandle{};
-        }
-
-        // 从资源创建纹理
-        return CreateTextureFromAsset(assetHandle);
+        labelToTexture_.clear();
     }
 
     uint32_t TextureManager::GetTextureId(const TextureHandle& handle) const
@@ -249,6 +177,11 @@ namespace shine::render
         return handle;
     }
 
+    TextureHandle TextureManager::CreateTextureFromSTexture(image::STexture& texture)
+    {
+        return CreateTextureFromImage(texture);
+    }
+
     void TextureManager::GetTextureStats(size_t& count, size_t& totalMemory) const
     {
         count = textures_.size();
@@ -263,39 +196,44 @@ namespace shine::render
         }
     }
 
-    TextureHandle TextureManager::GetTextureHandleByPath(const std::string& filePath) const
+    void TextureManager::BindDebugLabel(const TextureHandle& handle, const std::string& label)
     {
-        if (!shine::EngineContext::IsInitialized()) return TextureHandle{};
-
-        // 先通过 AssetManager 获取资源句柄
-        auto assetHandle = shine::EngineContext::Get().GetSystem<manager::AssetManager>()->GetAssetHandleByPath(filePath);
-        if (!assetHandle.isValid())
+        if (!handle.isValid() || label.empty())
         {
-            return TextureHandle{};
+            return;
         }
-
-        // 再查找对应的纹理
-        return GetTextureHandleByAsset(assetHandle);
+        auto it = textures_.find(handle.id);
+        if (it == textures_.end())
+        {
+            return;
+        }
+        std::string oldLabel;
+#if defined(BUILD_EDITOR) && BUILD_EDITOR
+        oldLabel = it->second.editorDebugLabel;
+        it->second.editorDebugLabel = label;
+#endif
+#if defined(BUILD_RUNTIME) && BUILD_RUNTIME
+        oldLabel = it->second.runtimeDebugLabel;
+        it->second.runtimeDebugLabel = label;
+#endif
+        if (!oldLabel.empty())
+        {
+            labelToTexture_.erase(oldLabel);
+        }
+        labelToTexture_[label] = handle.id;
     }
 
-    TextureHandle TextureManager::GetTextureHandleByAsset(const manager::AssetHandle& assetHandle) const
+    TextureHandle TextureManager::FindTextureByDebugLabel(const std::string& label) const
     {
-        if (!assetHandle.isValid())
+        if (label.empty())
         {
             return TextureHandle{};
         }
-
-        // 查找已创建的纹理
-        for (const auto& pair : textures_)
+        auto it = labelToTexture_.find(label);
+        if (it == labelToTexture_.end())
         {
-            if (pair.second.assetHandle.id == assetHandle.id)
-            {
-                TextureHandle handle;
-                handle.id = pair.first;
-                return handle;
-            }
+            return TextureHandle{};
         }
-
-        return TextureHandle{};
+        return TextureHandle{ .id = it->second };
     }
 }

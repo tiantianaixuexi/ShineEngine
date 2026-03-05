@@ -2,6 +2,7 @@
 
 #include "shine_define.h"
 #include <string>
+#include <string_view>
 #include <optional>
 
 namespace shine::util
@@ -25,6 +26,28 @@ namespace shine::util
      * @return 规范化后的路径
      */
     std::string normalize_path(const std::string& path);
+
+    /**
+     * @brief 检查路径是否为绝对路径
+     * @param path 输入路径
+     * @return 为绝对路径返回 true
+     */
+    bool is_absolute_path(std::string_view path);
+
+    /**
+     * @brief 拼接路径并做规范化
+     * @param base 基础路径
+     * @param part 子路径
+     * @return 规范化后的拼接路径
+     */
+    std::string join_path(std::string_view base, std::string_view part);
+
+    /**
+     * @brief 规范化资源逻辑路径，统一分隔符并转小写
+     * @param path 输入路径
+     * @return 规范化后的资源路径
+     */
+    std::string normalize_asset_path(const std::string& path);
 
     /**
      * @brief 将相对路径转换为绝对路径

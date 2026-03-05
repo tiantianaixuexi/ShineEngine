@@ -9,14 +9,12 @@
 
 
 #include "util/string_util.ixx"
+#include "util/path_util.h"
 
 namespace shine::util {
 
     // 辅助函数声明
-    bool isAbsolutePath(std::string_view path);
     std::string getParentPath(std::string_view path);
-    std::string normalizePath(std::string path);
-    std::string combinePath(std::string_view base, std::string_view relative);
 
     bool isDataURI(std::string_view uri) {
         return uri.size() > 5 && uri.substr(0, 5) == "data:";
@@ -36,22 +34,6 @@ namespace shine::util {
     }
 
     // 辅助函数实现
-    bool isAbsolutePath(std::string_view path) {
-#ifdef _WIN32
-        // Windows 下支持盘符路径 (C:\...) 和 UNC 路径 (\\server\share 或 //server/share)
-        if (path.size() >= 2 && path[1] == ':') {
-            return true;
-        }
-        if (path.size() >= 2 &&
-            ((path[0] == '\\' && path[1] == '\\') || (path[0] == '/' && path[1] == '/'))) {
-            return true;
-        }
-        return false;
-#else
-        return !path.empty() && path[0] == '/';
-#endif
-    }
-
     std::string getParentPath(std::string_view path) {
         auto lastSlash = path.find_last_of("/\\");
         if (lastSlash == std::string_view::npos) {
@@ -60,90 +42,12 @@ namespace shine::util {
         return std::string(path.substr(0, lastSlash));
     }
 
-    std::string normalizePath(std::string path) {
-        // 统一路径分隔符为 '/'
-        std::replace(path.begin(), path.end(), '\\', '/');
-
-        // 分割路径组件
-        std::vector<std::string> components;
-
-        // 处理绝对路径前缀
-        bool isAbsolute = !path.empty() && path.front() == '/';
-
-        // 分隔路径
-        size_t start = isAbsolute ? 1 : 0;
-        while (start < path.size()) {
-            auto pos = path.find('/', start);
-            if (pos == std::string::npos) pos = path.size();
-
-            std::string_view component(path.data() + start, pos - start);
-
-            if (!component.empty() && component != ".") {
-                if (component == "..") {
-                    if (!components.empty() && components.back() != "..") {
-                        // 向上返回一层目录
-                        components.pop_back();
-                    }
-                    else if (!isAbsolute) {
-                        // 相对路径前导的 ".." 需要保留，例如 "../a/b"
-                        components.emplace_back("..");
-                    }
-                }
-                else {
-                    components.emplace_back(component);
-                }
-            }
-
-            start = pos + 1;
-        }
-
-        // 重新组合路径
-        std::string result;
-        if (isAbsolute && !components.empty()) {
-            result = "/";
-        }
-
-        for (size_t i = 0; i < components.size(); ++i) {
-            result += components[i];
-            if (i < components.size() - 1) {
-                result += "/";
-            }
-        }
-
-        // 如果路径为空，返回当前目录
-        if (result.empty()) {
-            result = isAbsolute ? "/" : ".";
-        }
-
-        return result;
-    }
-
-    std::string combinePath(std::string_view base, std::string_view relative) {
-        if (base.empty()) return std::string(relative);
-        if (relative.empty()) return std::string(base);
-
-        // 如果相对路径是绝对路径，直接返回
-        if (isAbsolutePath(relative)) {
-            return std::string(relative);
-        }
-
-        std::string result(base);
-
-        // 检查是否需要添加分隔符
-        if (!result.empty() && result.back() != '/' && result.back() != '\\') {
-            result += '/';
-        }
-        result += relative;
-
-        return normalizePath(result);
-    }
-
     // 将本地文件路径转换为文件URI
     std::string pathToFileURI(const std::string& path) {
         std::string absolutePath = path;
 
         // 如果不是绝对路径，假设相对于当前目录
-        if (!isAbsolutePath(absolutePath)) {
+        if (!is_absolute_path(absolutePath)) {
             // 这里我们不实现实际的绝对路径转换，而是保留原路径
             // 实际应用中可能需要根据具体需求处理
             absolutePath = path;
@@ -158,7 +62,7 @@ namespace shine::util {
             // 例如，C:\path 变为 file:///C:/path
             result += "/";
             // 替换反斜杠为正斜杠
-            absolutePath = StringUtil::ReplaceAll(absolutePath, "\\", "/");
+            std::replace(absolutePath.begin(), absolutePath.end(), '\\', '/');
         }
 #endif
 
@@ -216,7 +120,9 @@ namespace shine::util {
 
         // 使用ranges处理字符
         for (auto it = str.begin(); it != str.end(); ++it) {
-            if (*it == '%' && std::distance(it, str.end()) > 2) {
+            if (*it == '%' && std::distance(it, str.end()) > 2 &&
+                StringUtil::isAlphaNumericHex(static_cast<unsigned char>(*(it + 1))) &&
+                StringUtil::isAlphaNumericHex(static_cast<unsigned char>(*(it + 2)))) {
                 // 处理URL编码的字符，例如%20表示空格
                 unsigned char high = StringUtil::fromHex(static_cast<unsigned char>(*(it + 1)));
                 unsigned char low = StringUtil::fromHex(static_cast<unsigned char>(*(it + 2)));
@@ -428,7 +334,7 @@ namespace shine::util {
         if (path.size() > 2 && path[0] == '/' && path[2] == ':') {
             // 例如，C:/path 变为 C:\path
             path = path.substr(1);
-            path = StringUtil::ReplaceAll(path, "/", "\\");
+            std::replace(path.begin(), path.end(), '/', '\\');
         }
 #endif
 
@@ -474,7 +380,7 @@ namespace shine::util {
         else {
             // 相对路径
             std::string parentPath = getParentPath(base.path);
-            std::string combinedPath = combinePath(parentPath, std::string(relativeURI));
+            std::string combinedPath = join_path(parentPath, std::string(relativeURI));
 
             result.path = combinedPath;
             result.query = "";
@@ -522,7 +428,7 @@ namespace shine::util {
         assetPath = urlDecode(assetPath);
 
         // 构建完整文件路径
-        std::string fullPath = combinePath(std::string(assetRootDir), assetPath);
+        std::string fullPath = join_path(std::string(assetRootDir), assetPath);
 
 
 
@@ -532,7 +438,7 @@ namespace shine::util {
     // 规范化URI路径，处理./和/
     std::expected<std::string, UriError> normalizeURIPath(std::string_view uriPath) {
         std::string path(uriPath);
-        return normalizePath(path);
+        return normalize_path(path);
     }
 }
 

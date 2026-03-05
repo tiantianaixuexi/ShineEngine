@@ -4,6 +4,7 @@
 #include "render/material.h"
 #include "manager/AssetManager.h"
 #include "loader/model/gltfLoader.h"
+#include "EngineCore/engine_context.h"
 #include <array>
 
 namespace shine::gameplay::component
@@ -27,37 +28,18 @@ namespace shine::gameplay::component
         return true;
     }
 
-    bool StaticMeshComponent::loadFromGltfFile(std::string_view filePath, size_t meshIndex)
+    bool StaticMeshComponent::loadModelMesh(std::string_view path, size_t meshIndex)
     {
-        std::string path(filePath);
-        if (path.empty())
-        {
-            return false;
-        }
-
         auto* assetManager = shine::EngineContext::Get().GetSystem<shine::manager::AssetManager>();
         if (!assetManager)
         {
             return false;
         }
-
-        auto meshResult = assetManager->LoadModelMesh(path, meshIndex);
+        auto meshResult = assetManager->LoadModelMesh(std::string(path), meshIndex);
         if (!meshResult.has_value())
         {
             return false;
         }
-
-        return setMeshData(meshResult.value());
-    }
-
-    bool StaticMeshComponent::loadFromGltfMemory(const void* data, size_t size, size_t meshIndex)
-    {
-        auto meshResult = shine::loader::LoadGltfMeshFromMemory(data, size, meshIndex);
-        if (!meshResult.has_value())
-        {
-            return false;
-        }
-
         return setMeshData(meshResult.value());
     }
 

@@ -108,6 +108,7 @@ struct ScriptView : TypeView {
             const TypeInfo* pt = GetTypeInfo(method->paramTypes[i]);
             if (!pt) return {};
             auto buf = std::make_unique<char[]>(pt->size);
+            if (!pt->isPod) Construct(buf.get(), pt->id);
             bridge.FromScript(args[i], buf.get(), method->paramTypes[i]);
             rawArgs[i] = buf.get();
             argBufs.push_back(std::move(buf));
@@ -117,11 +118,20 @@ struct ScriptView : TypeView {
                                  ? GetTypeInfo(method->returnType) : nullptr;
         std::unique_ptr<char[]> retBuf;
         void* retPtr = nullptr;
-        if (rt) { retBuf = std::make_unique<char[]>(rt->size); retPtr = retBuf.get(); }
+        if (rt) {
+            retBuf = std::make_unique<char[]>(rt->size);
+            retPtr = retBuf.get();
+            if (!rt->isPod) Construct(retPtr, rt->id);
+        }
 
         method->Invoke(instance, rawArgs.data(), retPtr);
-
-        return (rt && retPtr) ? bridge.ToScript(retPtr, method->returnType) : ScriptValue{};
+        ScriptValue result = (rt && retPtr) ? bridge.ToScript(retPtr, method->returnType) : ScriptValue{};
+        if (rt && retPtr && !rt->isPod) Destruct(retPtr, rt->id);
+        for (std::size_t i = 0; i < args.size(); ++i) {
+            const TypeInfo* pt = GetTypeInfo(method->paramTypes[i]);
+            if (pt && !pt->isPod) Destruct(rawArgs[i], pt->id);
+        }
+        return result;
     }
 
     ScriptValue CallMethod(void* inst, std::string_view n,

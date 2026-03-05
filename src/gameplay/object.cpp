@@ -1,13 +1,18 @@
-﻿﻿#include "object.h"
+﻿#include "object.h"
 
+#include <atomic>
 
 // 实现模块内容
 namespace shine::gameplay
 {
+    namespace
+    {
+        std::atomic<uint32_t> g_ObjectIdCounter{1};
+    }
 
     SObject::SObject()
     {
-        // 构造函数实现
+        objectId_ = g_ObjectIdCounter.fetch_add(1, std::memory_order_relaxed);
     }
 
     SObject::~SObject()

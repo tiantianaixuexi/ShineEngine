@@ -15,6 +15,7 @@
 
 #include "util/timer/function_timer.h"
 #include "util/file_util.ixx"
+#include "util/string_util.ixx"
 
 namespace shine::loader
 {
@@ -136,7 +137,7 @@ namespace shine::loader
         _loaded = false;
 
         // 获取文件基础路径
-        _basePath = util::get_file_directory(filePath);
+        _basePath = std::string(util::StringUtil::GetDirectory(filePath));
 
         // 读取文件
         auto fileResult = util::read_full_file(filePath);
@@ -581,7 +582,7 @@ namespace shine::loader
         std::string_view line;
         
         ObjMaterial* currentMaterial = nullptr;
-        std::string mtlBasePath = util::get_file_directory(filePath);
+        std::string mtlBasePath = std::string(util::StringUtil::GetDirectory(filePath));
 
         while (ptr < end) {
             const char* lineStart = ptr;

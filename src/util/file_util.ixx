@@ -1,4 +1,4 @@
-﻿#ifdef SHINE_USE_MODULE
+#ifdef SHINE_USE_MODULE
 
 export module shine.util.file_util;
 
@@ -216,51 +216,6 @@ namespace shine::util
 	EFileFolderType file_or_directory(STextView name, bool* success = nullptr);
 #endif
 
-	/**
-	 * @brief 从给定的文件名中提取文件扩展名
-	 * @param filename 文件名
-	 * @return 成功返回扩展名（包含点），失败返回错误
-	 */
-#ifndef SHINE_PLATFORM_WASM
-	std::expected<std::string, std::string> get_file_suffix(STextView filename);
-	std::expected<std::string, std::string> get_file_suffix(std::string_view filename);
-#else
-	std::string get_file_suffix(STextView filename, bool* success = nullptr);
-	std::string get_file_suffix(std::string_view filename, bool* success = nullptr);
-#endif
-
-	/**
-	 * @brief 从给定的文件名中提取文件扩展名（不包含点）
-	 * @param filename 文件名
-	 * @return 成功返回扩展名（不包含点），失败返回空字符串
-	 */
-	std::string get_file_extension(STextView filename);
-	std::string get_file_extension(std::string_view filename);
-
-	/**
-	 * @brief 获取文件名（不含路径）
-	 * @param filepath 完整文件路径
-	 * @return 文件名
-	 */
-	std::string get_file_name(STextView filepath);
-	std::string get_file_name(std::string_view filepath);
-
-	/**
-	 * @brief 获取文件目录路径（不含文件名）
-	 * @param filepath 完整文件路径
-	 * @return 目录路径
-	 */
-	std::string get_file_directory(STextView filepath);
-	std::string get_file_directory(std::string_view filepath);
-
-	/**
-	 * @brief 获取文件基础名（不含扩展名）
-	 * @param filepath 完整文件路径
-	 * @return 基础名
-	 */
-	std::string get_file_stem(STextView filepath);
-	std::string get_file_stem(std::string_view filepath);
-
 	// ============================================================================
 	// 文件映射操作（高性能大文件读取）
 	// ============================================================================
@@ -471,69 +426,4 @@ namespace shine::util
 	 */
 	bool SetCurrentDirectory(STextView path);
 
-	// ============================================================================
-	// 路径操作
-	// ============================================================================
-
-	/**
-	 * @brief 规范化路径（统一路径分隔符）
-	 * @param path 路径
-	 * @return 规范化后的路径
-	 */
-	std::string NormalizePath(STextView path);
-	std::string NormalizePath(const std::string& path);
-
-	/**
-	 * @brief 连接路径
-	 * @param base 基础路径
-	 * @param part 要添加的路径部分
-	 * @return 连接后的路径
-	 */
-	std::string JoinPath(STextView base, STextView part);
-	std::string JoinPath(const std::string& base, const std::string& part);
-
-	/**
-	 * @brief 连接多个路径部分（基础版本：单个参数）
-	 * @param first 路径部分
-	 * @return 路径字符串
-	 */
-	inline std::string JoinPath(STextView first)
-	{
-		return first.to_string();
-	}
-
-	inline std::string JoinPath(const std::string& first)
-	{
-		return first;
-	}
-
-	/**
-	 * @brief 连接多个路径部分
-	 * @param parts 路径部分列表
-	 * @return 连接后的路径
-	 */
-	template<typename... Args>
-	std::string JoinPath(STextView first, Args... rest)
-	{
-		std::string result = first.to_string();
-		for (std::string parts[] = { STextView(rest).to_string()... }; const auto& part : parts)
-		{
-			result = JoinPath(result, part);
-		}
-		return result;
-	}
-
-	/**
-	 * @brief 检查路径是否为绝对路径
-	 * @param path 路径
-	 * @return 是绝对路径返回 true，否则返回 false
-	 */
-	bool IsAbsolutePath(STextView path);
-
-	/**
-	 * @brief 将相对路径转换为绝对路径
-	 * @param path 相对路径
-	 * @return 绝对路径
-	 */
-	std::string GetAbsolutePath(STextView path);
 }

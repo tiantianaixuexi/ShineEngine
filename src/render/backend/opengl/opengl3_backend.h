@@ -13,8 +13,8 @@
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
 #endif
+#include <Windows.h>
 
 #include "render/backend/render_backend.h"
 #include "render/backend/gl/gl_common.h"

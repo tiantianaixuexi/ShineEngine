@@ -6,6 +6,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <cstdint>
 
 #include "objectFlag.h"
 #include "util/guid.h"
@@ -34,6 +35,7 @@ namespace shine::gameplay
 
         virtual void OnInit();
         virtual void onBeginPlay();
+        virtual const char* getClassName() const noexcept { return "SObject"; }
         // 不直接需要渲染逻辑，组件自行在 onRender 中提供
 
     public:
@@ -63,6 +65,7 @@ namespace shine::gameplay
         // 名字管理
         [[nodiscard]] const std::string& getName() const noexcept { return _name; }
         void setName(const std::string& name) { _name = name; }
+        [[nodiscard]] uint32_t getObjectId() const noexcept { return objectId_; }
 
     private:
         // 事件 Flag
@@ -116,6 +119,7 @@ namespace shine::gameplay
 
         std::string _name;
         util::FGuid _guid;
+        uint32_t objectId_ = 0;
 
     };
 

@@ -1,8 +1,6 @@
 #pragma once
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
+#include "util/shine_define.h"
 #include <windows.h>
 #include <shlwapi.h>
 

@@ -1,3 +1,4 @@
+#pragma once
 // ============================================================
 // UUID C++23/26 实现 (128-bit, 符合 RFC 9562)
 // 编译选项: -std=c++23 (或 -std=c++26 如果可用)
@@ -172,7 +173,7 @@ namespace {
     std::atomic<std::uint16_t> g_clock_sequence{0};
 }
 
-[[nodiscard]] UUID UUID::GenerateV4() noexcept {
+inline [[nodiscard]] UUID UUID::GenerateV4() noexcept {
     UUID uuid;
     auto& rnd = GetThreadRandom();
     
@@ -199,7 +200,7 @@ namespace {
     return uuid;
 }
 
-[[nodiscard]] UUID UUID::GenerateV7() noexcept {
+inline [[nodiscard]] UUID UUID::GenerateV7() noexcept {
     UUID uuid;
     auto& rnd = GetThreadRandom();
     
@@ -245,7 +246,7 @@ namespace {
 }
 
 // C++23 使用 std::expected 替代 optional
-[[nodiscard]] std::expected<UUID, int> UUID::FromString(std::string_view str) noexcept {
+inline [[nodiscard]] std::expected<UUID, int> UUID::FromString(std::string_view str) noexcept {
     // C++23 使用 std::ranges 或直接处理
     std::array<char, 32> clean{};
     std::size_t j = 0;
@@ -278,7 +279,7 @@ namespace {
 }
 
 
-[[nodiscard]] std::string UUID::ToString() const {
+inline [[nodiscard]] std::string UUID::ToString() const {
 
         return fmt::format("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
             m_data[0], m_data[1], m_data[2], m_data[3],
@@ -289,7 +290,7 @@ namespace {
         );
 }
 
-[[nodiscard]] std::string UUID::ToStringCompact() const {
+inline [[nodiscard]] std::string UUID::ToStringCompact() const {
         static constexpr char hex[] = "0123456789abcdef";
         std::string result(32, '0');
         
@@ -300,7 +301,7 @@ namespace {
         return result;
 }
 
-[[nodiscard]] std::string UUID::ToShortString() const {
+inline [[nodiscard]] std::string UUID::ToShortString() const {
 
         return fmt::format("{:02x}{:02x}{:02x}{:02x}", 
             m_data[0], m_data[1], m_data[2], m_data[3]);

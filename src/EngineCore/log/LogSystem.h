@@ -71,12 +71,19 @@ public:
     void AddCategory(const std::string &category, CategoryConfig config = {log::LogCategoryFlag::E_WRITE_TO_CONSOLE}) noexcept {
         m_Categories.emplace(category, config);
     }
+    void AddCategory(const std::string &category, bool writeToConsole) noexcept {
+        AddCategory(category, {writeToConsole ? log::LogCategoryFlag::E_WRITE_TO_CONSOLE : log::LogCategoryFlag::E_WRITE_TO_FILE});
+    }
 
     template <typename... Args>
     void Log(const char *category, ShineLogLevel level, fmt::format_string<Args...> fmt, Args &&...args) {
 
         const std::string &msg = fmt::format(fmt, std::forward<Args>(args)...);
+        const size_t sizeBefore = m_Logs.size();
         AddLog(category, level, msg);
+        if (ShouldWriteToConsole(category) && m_Logs.size() > sizeBefore) {
+            fmt::print("{}", m_Logs.back().message);
+        }
     }
 
     template <typename... Args>
@@ -85,6 +92,13 @@ public:
     }
 
 private:
+    bool ShouldWriteToConsole(const std::string &category) const noexcept {
+        auto it = m_Categories.find(category);
+        if (it == m_Categories.end()) {
+            return true;
+        }
+        return HasAnyFlag(it->second.flags, log::LogCategoryFlag::E_WRITE_TO_CONSOLE);
+    }
     std::unordered_map<std::string, CategoryConfig> m_Categories;
 };
 
@@ -146,6 +160,9 @@ private:
 
 #define ADD_LOG_CATEGORY_WITH_CONFIG(GroupName, CategoryName, Config) \
     GroupName##_Imple::getInstance().AddCategory(CategoryName, Config);
+
+#define ADD_LOG_CATEGORY_WITH_CONSOLE(GroupName, CategoryName, WriteToConsole) \
+    GroupName##_Imple::getInstance().AddCategory(CategoryName, WriteToConsole);
 
 #define ADD_LOG_CATEGORYS(GroupName, ...) \
     GroupName##_Imple::getInstance().AddCategorys(__VA_ARGS__);

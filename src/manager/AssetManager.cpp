@@ -1,19 +1,18 @@
 #include "AssetManager.h"
-#include "image/png.h"
-#include "image/jpeg.h"
+
 #include "image/Texture.h"
-#include "loader/model/gltfLoader.h"
-#include "loader/model/objLoader.h"
+#include "manager/AssetCatalogImpl.h"
+#include "manager/AssetImportPipelineImpl.h"
+#include "manager/AssetTextureBridgeImpl.h"
 #include "fmt/format.h"
-#include "util/timer/function_timer.h"
-#include "util/file_util.ixx"
-#include <algorithm>
-#include <cstring>
 
 namespace shine::manager
 {
     AssetManager::AssetManager()
     {
+        catalog_ = std::make_unique<AssetCatalogImpl>();
+        importPipeline_ = std::make_unique<AssetImportPipelineImpl>(*catalog_);
+        textureBridge_ = std::make_unique<AssetTextureBridgeImpl>(*catalog_, importPipeline_.get());
     }
 
     AssetManager::~AssetManager()
@@ -23,7 +22,6 @@ namespace shine::manager
 
     void AssetManager::Initialize()
     {
-        // 初始化资源管理器
     }
 
     void AssetManager::ShutdownEvent()
@@ -31,248 +29,59 @@ namespace shine::manager
         UnloadAllAssets();
     }
 
+    AssetHandle AssetManager::RegisterRuntimeAsset(EAssetType type, const std::string& logicalPath, std::unique_ptr<IRuntimeAsset> asset)
+    {
+        return catalog_->RegisterRuntimeAsset(type, logicalPath, std::move(asset));
+    }
+
+    IRuntimeAsset* AssetManager::GetRuntimeAsset(const AssetHandle& handle) const
+    {
+        return catalog_->GetRuntimeAsset(handle);
+    }
+
     AssetHandle AssetManager::LoadTextureAsset(const std::string& filePath)
     {
-        shine::util::FunctionTimer timer("AssetManager::LoadTextureAsset", shine::util::TimerPrecision::Nanoseconds);
-
-        // 检查是否已加载
-        auto it = pathToHandle_.find(filePath);
-        if (it != pathToHandle_.end())
-        {
-            AssetHandle handle;
-            handle.id = it->second;
-            handle.type = EAssetType::Image;
-            handle.path = filePath;
-            return handle;
-        }
-
-        // 创建加载器 - 使用 file_util 提取扩展名（不包含点号）
-        std::string ext = util::get_file_extension(filePath);
-        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-
-        auto loader = CreateImageLoader(ext);
-        if (!loader)
-        {
-            fmt::print("AssetManager: 不支持的图片格式: {}\n", filePath);
-            return AssetHandle{};
-        }
-
-        // 加载文件
-        if (!loader->loadFromFile(filePath.c_str()))
-        {
-            fmt::print(FMT_STRING("AssetManager: 图片文件加载失败: {} - 错误: {}\n"), filePath, static_cast<int>(loader->getLastError()));
-            return AssetHandle{};
-        }
-
-        // 解码图片（数据存储在加载器中）
-        auto decodeResult = loader->decode();
-        if (!decodeResult.has_value())
-        {
-            fmt::print(FMT_STRING("AssetManager: 图片解码失败: {} - {}\n"), filePath, decodeResult.error());
-            return AssetHandle{};
-        }
-
-        // 验证数据
-        if (!loader->isDecoded() || loader->getImageData().empty())
-        {
-            fmt::print("AssetManager: 图片数据为空: {}\n", filePath);
-            return AssetHandle{};
-        }
-
-        // 创建句柄
-        AssetHandle handle;
-        handle.id = nextHandleId_++;
-        handle.type = EAssetType::Image;
-        handle.path = filePath;
-
-        // 保存加载器（数据由加载器持有）
-        imageLoaders_[handle.id] = std::move(loader);
-        pathToHandle_[filePath] = handle.id;
-
-        fmt::print(FMT_STRING("AssetManager: 图片加载成功 - {}x{} - {} - {}\n"), 
-            imageLoaders_[handle.id]->getWidth(), 
-            imageLoaders_[handle.id]->getHeight(), 
-            ext, filePath);
-
-        return handle;
+        return importPipeline_->LoadTextureAsset(filePath);
     }
 
     AssetHandle AssetManager::LoadImageFromMemory(const void* data, size_t size, const std::string& formatHint)
     {
-        shine::util::FunctionTimer timer("AssetManager::LoadImageFromMemory", shine::util::TimerPrecision::Nanoseconds);
-
-        std::string format = formatHint;
-        if (format.empty())
-        {
-            format = DetectImageFormat(data, size);
-        }
-
-        if (format.empty())
-        {
-            fmt::print("AssetManager: 无法识别图片格式\n");
-            return AssetHandle{};
-        }
-
-        auto loader = CreateImageLoader(format);
-        if (!loader)
-        {
-            fmt::print("AssetManager: 不支持的图片格式: {}\n", format);
-            return AssetHandle{};
-        }
-
-        // 从内存加载
-        if (!loader->loadFromMemory(data, size))
-        {
-            fmt::print("AssetManager: 从内存加载图片失败\n");
-            return AssetHandle{};
-        }
-
-        // 解码图片（数据存储在加载器中）
-        auto decodeResult = loader->decode();
-        if (!decodeResult.has_value())
-        {
-            fmt::print("AssetManager: 图片解码失败: {}\n", decodeResult.error());
-            return AssetHandle{};
-        }
-
-        // 验证数据
-        if (!loader->isDecoded() || loader->getImageData().empty())
-        {
-            fmt::print("AssetManager: 图片数据为空\n");
-            return AssetHandle{};
-        }
-
-        // 创建句柄（内存加载没有路径）
-        AssetHandle handle;
-        handle.id = nextHandleId_++;
-        handle.type = EAssetType::Image;
-        handle.path = "";  // 内存加载没有路径
-
-        // 保存加载器（数据由加载器持有）
-        imageLoaders_[handle.id] = std::move(loader);
-
-        fmt::print("AssetManager: 从内存加载图片成功 - {}x{} - {}\n", 
-            imageLoaders_[handle.id]->getWidth(), 
-            imageLoaders_[handle.id]->getHeight(), 
-            format);
-
-        return handle;
+        return importPipeline_->LoadImageFromMemory(data, size, formatHint);
     }
 
     loader::IImageLoader* AssetManager::GetImageLoader(const AssetHandle& handle) const
     {
-        if (!handle.isValid() || handle.type != EAssetType::Image)
-        {
-            return nullptr;
-        }
-
-        auto it = imageLoaders_.find(handle.id);
-        if (it != imageLoaders_.end())
-        {
-            return it->second.get();
-        }
-
-        return nullptr;
+        return catalog_->GetImageLoader(handle);
     }
 
     std::shared_ptr<image::STexture> AssetManager::LoadTexture(const std::string& filePath)
     {
-        // 先加载图片资源
         auto assetHandle = LoadTextureAsset(filePath);
         if (!assetHandle.isValid())
         {
             return nullptr;
         }
-
-        // 创建 STexture 并初始化
         auto texture = std::make_shared<image::STexture>();
-        if (!texture->InitializeFromAsset(assetHandle))
+        if (!texture->InitializeFromAsset(assetHandle, *this))
         {
             return nullptr;
         }
-
         return texture;
     }
 
     AssetHandle AssetManager::LoadModel(const std::string& filePath)
     {
-        return LoadModel(filePath, nullptr);
+        return importPipeline_->LoadModel(filePath);
     }
 
     AssetHandle AssetManager::LoadModel(const std::string& filePath, loader::IModelLoader::ProgressCallback progressCallback)
     {
-        shine::util::FunctionTimer timer("AssetManager::LoadModel", shine::util::TimerPrecision::Nanoseconds);
-
-        // 检查是否已加载
-        auto it = pathToHandle_.find(filePath);
-        if (it != pathToHandle_.end())
-        {
-            AssetHandle handle;
-            handle.id = it->second;
-            handle.type = EAssetType::Model;
-            handle.path = filePath;
-            return handle;
-        }
-
-        // 创建加载器 - 使用 file_util 提取扩展名（不包含点号）
-        std::string ext = util::get_file_extension(filePath);
-        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-
-        // 先检查文件是否存在，避免不必要的操作和可能的阻塞
-        if (!util::file_exists(SString::from_utf8(filePath)))
-        {
-            fmt::print("AssetManager: 模型文件不存在: {}\n", filePath);
-            return AssetHandle{};
-        }
-
-        auto loader = CreateModelLoader(ext);
-        if (!loader)
-        {
-            fmt::print("AssetManager: 不支持的模型格式: {}\n", filePath);
-            return AssetHandle{};
-        }
-
-        if (progressCallback)
-        {
-            loader->setProgressCallback(std::move(progressCallback));
-        }
-
-        // 加载文件
-        if (!loader->loadFromFile(filePath.c_str()))
-        {
-            fmt::print("AssetManager: 模型文件加载失败: {} - 错误: {}\n", filePath, static_cast<int>(loader->getLastError()));
-            return AssetHandle{};
-        }
-
-        // 创建句柄
-        AssetHandle handle;
-        handle.id = nextHandleId_++;
-        handle.type = EAssetType::Model;
-        handle.path = filePath;
-
-        // 保存加载器（数据由加载器持有）
-        modelLoaders_[handle.id] = std::move(loader);
-        pathToHandle_[filePath] = handle.id;
-
-        fmt::print("AssetManager: 模型加载成功 - {} - 网格数: {}\n", filePath, modelLoaders_[handle.id]->getMeshCount());
-
-        return handle;
+        return importPipeline_->LoadModel(filePath, std::move(progressCallback));
     }
 
     loader::IModelLoader* AssetManager::GetModelLoader(const AssetHandle& handle) const
     {
-        if (!handle.isValid() || handle.type != EAssetType::Model)
-        {
-            return nullptr;
-        }
-
-        auto it = modelLoaders_.find(handle.id);
-        if (it != modelLoaders_.end())
-        {
-            return it->second.get();
-        }
-
-        return nullptr;
+        return catalog_->GetModelLoader(handle);
     }
 
     std::expected<std::vector<loader::MeshData>, std::string> AssetManager::GetModelMeshes(const AssetHandle& handle) const
@@ -286,7 +95,6 @@ namespace shine::manager
         {
             return std::unexpected("模型尚未加载完成");
         }
-
         auto meshes = loader->extractMeshData();
         if (meshes.empty())
         {
@@ -302,7 +110,6 @@ namespace shine::manager
         {
             return std::unexpected(meshesResult.error());
         }
-
         const auto& meshes = meshesResult.value();
         if (meshIndex >= meshes.size())
         {
@@ -321,84 +128,41 @@ namespace shine::manager
         return GetModelMesh(handle, meshIndex);
     }
 
+    AssetHandle AssetManager::LoadMapAsset(const std::string& filePath)
+    {
+        return importPipeline_->LoadMapAsset(filePath);
+    }
+
+    gameplay::world::MapAsset* AssetManager::GetMapAsset(const AssetHandle& handle) const
+    {
+        return catalog_->GetMapAsset(handle);
+    }
 
     void AssetManager::UnloadAsset(const AssetHandle& handle)
     {
-        if (!handle.isValid())
-        {
-            return;
-        }
-
-        if (handle.type == EAssetType::Image)
-        {
-            imageLoaders_.erase(handle.id);
-        }
-        else if (handle.type == EAssetType::Model)
-        {
-            modelLoaders_.erase(handle.id);
-        }
-
-        // 移除路径映射
-        if (!handle.path.empty())
-        {
-            pathToHandle_.erase(handle.path);
-        }
+        catalog_->UnloadAsset(handle);
     }
 
     void AssetManager::UnloadAllAssets()
     {
-        // 清空所有加载器（加载器析构时会自动清理数据）
-        imageLoaders_.clear();
-        modelLoaders_.clear();
-        pathToHandle_.clear();
+        if (textureBridge_)
+        {
+            textureBridge_->ReleaseAll();
+        }
+        if (catalog_)
+        {
+            catalog_->UnloadAllAssets();
+        }
     }
 
     bool AssetManager::IsAssetLoaded(const AssetHandle& handle) const
     {
-        if (!handle.isValid())
-        {
-            return false;
-        }
-
-        if (handle.type == EAssetType::Image)
-        {
-            return imageLoaders_.find(handle.id) != imageLoaders_.end();
-        }
-        else if (handle.type == EAssetType::Model)
-        {
-            return modelLoaders_.find(handle.id) != modelLoaders_.end();
-        }
-
-        return false;
+        return catalog_->IsAssetLoaded(handle);
     }
 
     AssetHandle AssetManager::GetAssetHandleByPath(const std::string& filePath) const
     {
-        auto it = pathToHandle_.find(filePath);
-        if (it != pathToHandle_.end())
-        {
-            AssetHandle handle;
-            handle.id = it->second;
-            handle.path = filePath;
-
-            // 检测类型
-            if (imageLoaders_.find(handle.id) != imageLoaders_.end())
-            {
-                handle.type = EAssetType::Image;
-            }
-            else if (modelLoaders_.find(handle.id) != modelLoaders_.end())
-            {
-                handle.type = EAssetType::Model;
-            }
-            else
-            {
-                handle.type = EAssetType::Unknown;
-            }
-
-            return handle;
-        }
-
-        return AssetHandle{};
+        return catalog_->GetAssetHandleByPath(filePath);
     }
 
     std::vector<std::string> AssetManager::GetSupportedImageFormats()
@@ -411,91 +175,23 @@ namespace shine::manager
         return {"gltf", "glb", "obj"};
     }
 
-    EAssetType AssetManager::DetectAssetType(const std::string& filePath) const
+    TextureResourceHandle AssetManager::CreateTextureResource(const AssetHandle& imageAsset)
     {
-        // 使用 file_util 提取扩展名（不包含点号）
-        std::string ext = util::get_file_extension(filePath);
-        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-
-        // 图片格式
-        if (ext == "png" || ext == "jpg" || ext == "jpeg")
-        {
-            return EAssetType::Image;
-        }
-
-        // 模型格式
-        if (ext == "gltf" || ext == "glb" || ext == "obj")
-        {
-            return EAssetType::Model;
-        }
-
-        return EAssetType::Unknown;
+        return textureBridge_->CreateTextureResource(imageAsset);
     }
 
-    std::unique_ptr<loader::IImageLoader> AssetManager::CreateImageLoader(const std::string& format) const
+    TextureResourceHandle AssetManager::CreateTextureResourceByPath(const std::string& filePath)
     {
-        std::string fmt = format;
-        std::transform(fmt.begin(), fmt.end(), fmt.begin(), ::tolower);
-
-        if (fmt == "png")
-        {
-            return std::make_unique<shine::image::png>();
-        }
-        else if (fmt == "jpeg" || fmt == "jpg")
-        {
-            return std::make_unique<shine::image::jpeg>();
-        }
-
-        return nullptr;
+        return textureBridge_->CreateTextureResourceByPath(filePath);
     }
 
-    std::unique_ptr<loader::IModelLoader> AssetManager::CreateModelLoader(const std::string& format) const
+    uint32_t AssetManager::GetTextureNativeId(const TextureResourceHandle& textureHandle) const
     {
-        std::string fmt = format;
-        std::transform(fmt.begin(), fmt.end(), fmt.begin(), ::tolower);
-
-        if (fmt == "gltf" || fmt == "glb")
-        {
-            return std::make_unique<shine::loader::gltfLoader>();
-        }
-        else if (fmt == "obj")
-        {
-            return std::make_unique<shine::loader::objLoader>();
-        }
-
-        return nullptr;
+        return textureBridge_->GetTextureNativeId(textureHandle);
     }
 
-    std::string AssetManager::DetectImageFormat(const void* data, size_t size) const
+    void AssetManager::ReleaseTextureResource(const TextureResourceHandle& textureHandle)
     {
-        if (!data || size < 12)
-        {
-            return "";
-        }
-
-        const uint8_t* bytes = static_cast<const uint8_t*>(data);
-
-        // 检测PNG: 89 50 4E 47 0D 0A 1A 0A
-        if (size >= 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47 &&
-            bytes[4] == 0x0D && bytes[5] == 0x0A && bytes[6] == 0x1A && bytes[7] == 0x0A)
-        {
-            return "png";
-        }
-
-        // 检测JPEG: FF D8
-        if (size >= 2 && bytes[0] == 0xFF && bytes[1] == 0xD8)
-        {
-            return "jpeg";
-        }
-
-        // 检测WebP: RIFF ... WEBP
-        // if (size >= 12 && 
-        //     bytes[0] == 'R' && bytes[1] == 'I' && bytes[2] == 'F' && bytes[3] == 'F' &&
-        //     bytes[8] == 'W' && bytes[9] == 'E' && bytes[10] == 'B' && bytes[11] == 'P')
-        // {
-        //     return "webp";
-        // }
-
-        return "";
+        textureBridge_->ReleaseTextureResource(textureHandle);
     }
 }

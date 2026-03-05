@@ -27,9 +27,7 @@ namespace shine::gameplay::component
         [[nodiscard]] std::shared_ptr<StaticMesh> getMesh() const { return m_StaticMesh; }
 
         bool setMeshData(const shine::loader::MeshData& meshData);
-        bool loadFromGltfFile(std::string_view filePath, size_t meshIndex = 0);
-        bool loadFromGltfMemory(const void* data, size_t size, size_t meshIndex = 0);
-
+        bool loadModelMesh(std::string_view path, size_t meshIndex = 0);
 
         void onRender(shine::render::CommandBuffer& cmd) override;
 

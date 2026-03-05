@@ -1,11 +1,11 @@
-﻿{
+{
     "name": "file_util",
     "type": "static",
     "files": [
       "src/util/file_util.ixx",
       "src/util/file_util.cpp"
     ],
-    "deps": ["fmt", "shine_define"],
+    "deps": ["fmt", "shine_define", "path_util"],
     "comment": "文件操作工具"
 }
 

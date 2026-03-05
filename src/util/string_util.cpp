@@ -118,6 +118,21 @@ namespace shine::util
         return {};
     }
 
+    std::string StringUtil::NormalizeFileExtension(std::string_view path) {
+        std::string_view ext = GetFileExtension(path);
+        if (ext.empty()) {
+            return {};
+        }
+        if (!ext.empty() && ext.front() == '.') {
+            ext.remove_prefix(1);
+        }
+        std::string result(ext);
+        std::transform(result.begin(), result.end(), result.begin(), [](unsigned char c) {
+            return static_cast<char>(std::tolower(c));
+        });
+        return result;
+    }
+
     std::string_view StringUtil::GetDirectory(std::string_view path) {
         size_t sepPos = path.find_last_of("/\\");
         if (sepPos != std::string_view::npos) {
@@ -167,97 +182,6 @@ namespace shine::util
             if (c == '/') c = '\\';
         }
         return result;
-    }
-
-    std::string StringUtil::NormalizePath(std::string path) {
-        std::replace(path.begin(), path.end(), '\\', '/');
-
-        std::vector<std::string> components;
-        bool isAbsolute = path.starts_with('/');
-        size_t start = isAbsolute ? 1 : 0;
-
-        while (start < path.size()) {
-            auto pos = path.find('/', start);
-            if (pos == std::string::npos) pos = path.size();
-
-            std::string_view component = std::string_view(path).substr(start, pos - start);
-
-            if (!component.empty() && component != ".") {
-                if (component == "..") {
-                    if (!components.empty()) {
-                        components.pop_back();
-                    }
-                } else {
-                    components.emplace_back(component);
-                }
-            }
-            start = pos + 1;
-        }
-
-        std::string result;
-        if (isAbsolute && !components.empty()) {
-            result = "/";
-        }
-
-        for (size_t i = 0; i < components.size(); ++i) {
-            result += components[i];
-            if (i < components.size() - 1) {
-                result += "/";
-            }
-        }
-
-        if (result.empty()) {
-            result = isAbsolute ? "/" : ".";
-        }
-
-        return result;
-    }
-
-    std::string StringUtil::URLEncode(std::string_view input) {
-        std::string encoded;
-        encoded.reserve(input.size() * 3);
-
-        for (unsigned char c : input) {
-            if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
-                encoded += c;
-            } else {
-                encoded += '%';
-                encoded += toHex(c >> 4);
-                encoded += toHex(c & 0xF);
-            }
-        }
-        return encoded;
-    }
-
-    std::string StringUtil::URLDecode(std::string_view input) {
-        std::string decoded;
-        decoded.reserve(input.length());
-
-        const char* current = input.data();
-        const char* const end = input.data() + input.length();
-
-        while (current < end) {
-            if (*current == '%') {
-                if (current + 2 < end &&
-                    isAlphaNumericHex(static_cast<unsigned char>(current[1])) &&
-                    isAlphaNumericHex(static_cast<unsigned char>(current[2]))) {
-                    unsigned char hi = fromHex(static_cast<unsigned char>(current[1]));
-                    unsigned char lo = fromHex(static_cast<unsigned char>(current[2]));
-                    decoded += static_cast<char>((hi << 4) | lo);
-                    current += 3;
-                } else {
-                    decoded += '%';
-                    current++;
-                }
-            } else if (*current == '+') {
-                decoded += ' ';
-                current++;
-            } else {
-                decoded += *current;
-                current++;
-            }
-        }
-        return decoded;
     }
 
     std::string StringUtil::BytesToHex(std::span<const unsigned char> bytes) {

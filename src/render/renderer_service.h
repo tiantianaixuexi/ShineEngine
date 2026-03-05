@@ -3,7 +3,6 @@
 #include <array>
 #include <memory>
 #include <unordered_map>
-#include <unordered_set>
 
 #include "shine_define.h"
 #include "EngineCore/subsystem.h"
@@ -56,14 +55,6 @@ namespace shine::render
         void setPostProcessingEnabled(bool enabled) noexcept { m_EnablePostProcessing = enabled; }
         [[nodiscard]] bool isPostProcessingEnabled() const noexcept { return m_EnablePostProcessing; }
 
-        // 场景对象注册（生命周期由外部管理）
-        void registerObject(shine::gameplay::SObject* object) noexcept {
-            if (object) m_SceneObjects.insert(object);
-        }
-        void unregisterObject(shine::gameplay::SObject* object) noexcept {
-            m_SceneObjects.erase(object);
-        }
-
         // 渲染管线
         void setRenderPipelineAsset(std::shared_ptr<RenderPipelineAsset> asset) noexcept;
 
@@ -80,8 +71,6 @@ namespace shine::render
         backend::IRenderBackend* m_Backend{ nullptr };
         std::unordered_map<ViewportHandle, ViewportRecord> m_Viewports;
         ViewportHandle m_NextHandle{ 1 };
-
-        std::unordered_set<shine::gameplay::SObject*> m_SceneObjects;
 
         // 渲染管线
         std::shared_ptr<RenderPipelineAsset> m_RenderPipelineAsset;

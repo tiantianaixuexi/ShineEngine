@@ -1,7 +1,6 @@
 #undef SHINE_USE_MODULE
 #include "path_util.h"
 #include "shine_define.h"
-#include "string_util.ixx"
 
 #ifdef SHINE_PLATFORM_WIN
 #ifndef WIN32_LEAN_AND_MEAN
@@ -19,6 +18,8 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <algorithm>
+#include <cctype>
 
 namespace shine::util
 {
@@ -76,15 +77,50 @@ namespace shine::util
 
     std::string normalize_path(const std::string& path)
     {
+        std::filesystem::path fsPath(path);
+        std::string result = fsPath.lexically_normal().string();
 #ifdef SHINE_PLATFORM_WIN
-        // Windows 下将 '/' 转换为 '\'
-        std::string result = path;
         std::replace(result.begin(), result.end(), '/', '\\');
-        return result;
 #else
-        // 其他平台保持 '/'
-        return path;
+        std::replace(result.begin(), result.end(), '\\', '/');
 #endif
+        return result;
+    }
+
+    bool is_absolute_path(std::string_view path)
+    {
+        return std::filesystem::path(path).is_absolute();
+    }
+
+    std::string join_path(std::string_view base, std::string_view part)
+    {
+        if (base.empty())
+        {
+            return normalize_path(std::string(part));
+        }
+        if (part.empty())
+        {
+            return normalize_path(std::string(base));
+        }
+        if (is_absolute_path(part))
+        {
+            return normalize_path(std::string(part));
+        }
+        std::filesystem::path combined = std::filesystem::path(base) / std::filesystem::path(part);
+        return normalize_path(combined.string());
+    }
+
+    std::string normalize_asset_path(const std::string& path)
+    {
+        std::string normalized = path;
+        std::replace(normalized.begin(), normalized.end(), '\\', '/');
+        std::transform(normalized.begin(), normalized.end(), normalized.begin(),
+            [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        while (normalized.size() > 1 && normalized.back() == '/')
+        {
+            normalized.pop_back();
+        }
+        return normalized;
     }
 
     std::optional<std::string> to_absolute_path(const std::string& relative_path, const std::string& base_path)

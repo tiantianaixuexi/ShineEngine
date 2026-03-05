@@ -12,6 +12,11 @@
 
 #include "ScriptValue.h"
 #include "../ReflectionCore.h"
+#include "string/shine_string.h"
+
+#include <cstdint>
+#include <new>
+#include <string>
 
 namespace shine::reflection {
 
@@ -29,7 +34,63 @@ struct ScriptBridge {
 // Helper functions for construction/destruction
 // =============================================================================
 
-inline void Construct(void*, TypeId) {}
-inline void Destruct(void*, TypeId)  {}
+inline void Construct(void* target, TypeId typeId)
+{
+    if (!target)
+    {
+        return;
+    }
+    if (typeId == GetTypeId<std::string>())
+    {
+        new (target) std::string();
+        return;
+    }
+    if (typeId == GetTypeId<shine::SString>())
+    {
+        new (target) shine::SString();
+        return;
+    }
+    if (typeId == GetTypeId<bool>())
+    {
+        new (target) bool(false);
+        return;
+    }
+    if (typeId == GetTypeId<int>())
+    {
+        new (target) int(0);
+        return;
+    }
+    if (typeId == GetTypeId<uint32_t>())
+    {
+        new (target) uint32_t(0);
+        return;
+    }
+    if (typeId == GetTypeId<float>())
+    {
+        new (target) float(0.0f);
+        return;
+    }
+    if (typeId == GetTypeId<double>())
+    {
+        new (target) double(0.0);
+    }
+}
+
+inline void Destruct(void* target, TypeId typeId)
+{
+    if (!target)
+    {
+        return;
+    }
+    if (typeId == GetTypeId<std::string>())
+    {
+        static_cast<std::string*>(target)->~basic_string();
+        return;
+    }
+    if (typeId == GetTypeId<shine::SString>())
+    {
+        static_cast<shine::SString*>(target)->~SString();
+    }
+}
 
 } // namespace shine::reflection

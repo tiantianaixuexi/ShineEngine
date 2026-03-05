@@ -4,6 +4,7 @@
 #include "render/pipeline/render_pipeline_asset.h"
 #include "render/pipeline/command_buffer.h"
 #include "gameplay/object.h"
+#include "gameplay/world/world_service.h"
 #include "manager/CameraManager.h"
 #include "manager/light_manager.h"
 #include "render/resources/TextureManager.h"
@@ -117,10 +118,14 @@ namespace shine::render
 
         data.lightManager = &shine::manager::LightManager::get();
 
-        data.sceneObjects.reserve(m_SceneObjects.size());
-        for (auto* obj : m_SceneObjects)
+        const auto sceneObjects = gameplay::world::WorldService::get().getAllActorsSnapshot();
+        data.sceneObjects.reserve(sceneObjects.size());
+        for (auto* obj : sceneObjects)
         {
-            if (obj) data.sceneObjects.push_back(obj);
+            if (obj)
+            {
+                data.sceneObjects.push_back(obj);
+            }
         }
 
         if (const auto it = m_Viewports.find(handle); it != m_Viewports.end())

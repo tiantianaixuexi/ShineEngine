@@ -6,7 +6,7 @@
 
 #include "manager/InputManager.h"
 
-#ifdef SHINE_PLATFORM_WASN
+#ifdef SHINE_PLATFORM_WASM
 
 #include <GLES/gl2.h>
 
@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
 
 #include "gameplay/camera.h"
 #include "gameplay/tick/tickManager.h"
+#include "gameplay/world/world_service.h"
 
 #include "manager/AssetManager.h"
 #include "manager/CameraManager.h"
@@ -44,13 +45,18 @@ int main(int argc, char **argv) {
 #include "EngineCore/engine_context.h"
 
 #include "util/encoding_util.ixx"
+#include "util/EngineDirectoryService.h"
 #include "util/fps_controller.h"
-#include "util/watcher/file_watcher.h"
+#include "util/watcher/FileWatchService.h"
 
 #include "editor/mainEditor.h"
+#include "editor/asset/editor_asset_manager.h"
+#include "editor/asset/editor_runtime_asset_bridge.h"
+#include "editor/main_editor/editor_composition_root.h"
 
 #include "render/backend/render_backend.h"
 #include "render/debug/pass_texture_manager.h"
+#include "script/ScriptSystem.h"
 
 #define TRACY_ENABLE
 #include "tracy/tracy/Tracy.hpp"
@@ -91,8 +97,11 @@ int main(int argc, char **argv) {
     context.Register(new windows::WindowsInfo());
     context.Register(new input::InputManager());
     context.Register(new util::FPSController());
+    context.Register(new util::EngineDirectoryService());
     context.Register(new manager::AssetManager());
+    editor::main_editor::EditorCompositionRoot::RegisterEditorSystems(context);
     context.Register(new manager::CameraManager());
+    context.Register(new script::ScriptSystem());
 
     context.Register(new editor::SEditorPlayer());
 
@@ -102,6 +111,13 @@ int main(int argc, char **argv) {
     context.Register(new render::RendererService());
 
     context.Register(new gameplay::tick::TickManager());
+    context.Register(new gameplay::world::WorldService());
+    context.Register(new util::watcher::FileWatchService());
+
+    if (!context.InitAll()) {
+        fmt::println("EngineContext::InitAll 失败");
+        return -1;
+    }
 
     windows::InitWindowsPlatform(context);
 
@@ -115,8 +131,7 @@ int main(int argc, char **argv) {
     // RenderBackend = context.GetSystem<render::RenderManager>()->GetRenderBackend();
     RenderBackend = context.GetSystem<render::RendererService>()->GetBackend();
 
-    editor::main_editor::MainEditor *mainEditor = nullptr;
-    mainEditor                                  = new editor::main_editor::MainEditor(context);
+    auto mainEditor = editor::main_editor::EditorCompositionRoot::BuildMainEditor(context);
     mainEditor->Init();
 
     editor::SEditorPlayer *editorPlayer = context.GetSystem<editor::SEditorPlayer>();
@@ -125,42 +140,9 @@ int main(int argc, char **argv) {
     auto  RenderService = context.GetSystem<render::RendererService>();
     auto  Camera        = context.GetSystem<manager::CameraManager>();
     auto* TickManager   = context.GetSystem<gameplay::tick::TickManager>();
+    auto* WorldService  = context.GetSystem<gameplay::world::WorldService>();
+    auto* FileWatchService = context.GetSystem<util::watcher::FileWatchService>();
     auto& g_FPSManager  = util::FPSController::get();
-
-    util::watcher::DirectoryWatcher fileWatcher;
-    auto handle = fileWatcher.OnFileChanged.bind([](std::wstring path, std::wstring filename, DWORD action, bool is_dir) {
-        const wchar_t *type = is_dir ? L"[目录]" : L"[文件]";
-        const wchar_t *act  = L"未知";
-
-        switch (action) {
-        case FILE_ACTION_ADDED:
-            act = L"创建";
-            break;
-        case FILE_ACTION_REMOVED:
-            act = L"删除";
-            break;
-        case FILE_ACTION_MODIFIED:
-            act = L"修改";
-            break;
-        case FILE_ACTION_RENAMED_OLD_NAME:
-            act = L"重命名(旧)";
-            break;
-        case FILE_ACTION_RENAMED_NEW_NAME:
-            act = L"重命名(新)";
-            break;
-        default:
-            act = L"未知";
-            break;
-        }
-        fmt::println("file chang - Path: {}, Filename: {}, Action: {},{}",
-            util::EncodingUtil::WstringToUTF8(path), 
-            util::EncodingUtil::WstringToUTF8(filename),  
-            util::EncodingUtil::WstringToUTF8(act),util::EncodingUtil::WstringToUTF8(type));
-    });
-
-    fileWatcher.CreateIocp();
-    fileWatcher.AddWatchDirectory(L"E:\\c++\\111");
-    fileWatcher.start_async();
 
     bool done = false;
     float frameDeltaTime = 0.0f;
@@ -192,6 +174,12 @@ int main(int argc, char **argv) {
         if (TickManager) {
             TickManager->ExecuteAll(frameDeltaTime);
         }
+        if (WorldService) {
+            WorldService->tickStreaming();
+        }
+        if (FileWatchService) {
+            FileWatchService->PumpEvents();
+        }
 
         {
             // shine::co::MemoryScope renderScope(shine::co::MemoryTag::Render);
@@ -216,10 +204,7 @@ int main(int argc, char **argv) {
     RenderBackend->ClearUp(info.hwnd);
 
     // 清理编辑器
-    if (mainEditor) {
-        delete mainEditor;
-        mainEditor = nullptr;
-    }
+    mainEditor.reset();
 
     ::DestroyWindow(info.hwnd);
     //::UnregisterClassW(wc.lpszClassName, wc.hInstance);

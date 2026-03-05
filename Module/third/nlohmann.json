@@ -1,0 +1,8 @@
+{
+    "name": "nlohmann",
+    "dirs": [
+        "src/third/nlohmann/json.hpp"
+    ],
+    "type": "interface",
+    "comment": "nlohmann/json 单头文件模块"
+}

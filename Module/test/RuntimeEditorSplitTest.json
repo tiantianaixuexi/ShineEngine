@@ -1,0 +1,8 @@
+{
+  "name": "RuntimeEditorSplitTest",
+  "type": "exe",
+  "dirs": ["dev/test/RuntimeEditorSplitTest"],
+  "deps": ["engine_core"],
+  "defines": ["TEST_BUILD"],
+  "output": "exe/RuntimeEditorSplitTest.exe"
+}

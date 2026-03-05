@@ -6,6 +6,20 @@ namespace shine::gameplay
 
     class SActor : public SObject
     {
+    public:
+        const char* getClassName() const noexcept override { return "SActor"; }
+    };
+
+    class EmptyActor : public SActor
+    {
+    public:
+        const char* getClassName() const noexcept override { return "EmptyActor"; }
+    };
+
+    class StaticMeshActor : public SActor
+    {
+    public:
+        const char* getClassName() const noexcept override { return "StaticMeshActor"; }
     };
 
     template <typename T, typename... TArgs>

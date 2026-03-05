@@ -1,13 +1,11 @@
 #undef SHINE_USE_MODULE
 #include "Texture.h"
 #include "render/resources/TextureManager.h"
-#include "manager/AssetManager.h"
+#include "manager/AssetInterfaces.h"
 #include "loader/image/image_loader.h"
 #include <cstring>
 
-// 暂时引入全局上下文，后续应通过依赖注入传递
 #include "../EngineCore/engine_context.h"
-// extern shine::EngineContext* g_EngineContext; // Removed global pointer declaration
 
 namespace shine::image
 {
@@ -42,17 +40,14 @@ namespace shine::image
         }
     }
 
-    bool STexture::InitializeFromAsset(const manager::AssetHandle& assetHandle)
+    bool STexture::InitializeFromAsset(const manager::AssetHandle& assetHandle, const manager::IImageAssetProvider& imageAssetProvider)
     {
         if (!assetHandle.isValid() || assetHandle.type != manager::EAssetType::Image)
         {
             return false;
         }
 
-        if (!shine::EngineContext::IsInitialized()) return false;
-
-        // 获取加载器
-        auto* loader = shine::EngineContext::Get().GetSystem<manager::AssetManager>()->GetImageLoader(assetHandle);
+        auto* loader = imageAssetProvider.GetImageLoader(assetHandle);
         if (!loader || !loader->isDecoded())
         {
             return false;

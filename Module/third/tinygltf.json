@@ -1,10 +1,12 @@
 {
     "name": "tinygltf",
-    "files": [
-        "src/third/tinygltf/tiny_gltf.cc",
+    "dirs": [
         "src/third/tinygltf/tiny_gltf.h"
     ],
-    "type": "third",
+    "type": "interface",
+    "deps": [
+        "nlohmann"
+    ],
     "defines": [
         "TINYGLTF_NO_STB_IMAGE",
         "TINYGLTF_NO_STB_IMAGE_WRITE",

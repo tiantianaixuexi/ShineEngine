@@ -1,62 +1,46 @@
 #pragma once
 
 #include "EngineCore/log/LogSystem.h"
+#include "editor/main_editor/editor_commands.h"
 
-#include "editor/browers/AssetsBrower.h"
-#include "editor/log/LogUI.h"
-#include "editor/views/EditorView.h"
-#include "widget/shineButton.h"
+#include <memory>
 
-// 前向声明
-namespace shine::editor::views {
-class SceneHierarchyView;
-class PropertiesView;
-class ImageViewerView;
-class SettingsView;
-class MemoryProfiler;
-class SMainEditorToolbar;
-class DebugTextureView;
-} // namespace shine::editor::views
+namespace shine
+{
+    class EngineContext;
+}
+
+namespace shine::editor::main_editor
+{
+    class WindowRegistry;
+}
 
 namespace shine::editor::main_editor {
 
 REGISTER_LOG_GROUP(EditorLog)
 
-using namespace widget;
-
-class MainEditor {
+class MainEditor : public IMainEditorCommands {
 
 public:
     MainEditor(shine::EngineContext &context);
-    ~MainEditor();
+    ~MainEditor() override;
 
     bool mainDocker = true;
 
     void Init();
     void Render();
 
-    bool setAssetBorwerOpen();
-    bool setMemoryProfilerOpen();
-	bool setEngineSettingsOpen();
-    bool getMemoryProfilerOpen() const;
+    bool ToggleAssetBrowser() override;
+    bool ToggleMemoryProfiler() override;
+	bool ToggleEngineSettings() override;
+    bool ToggleLog() override;
+    bool ToggleSceneHierarchy() override;
+    bool TogglePlacementPalette() override;
+    bool IsMemoryProfilerOpen() const override;
 
 private:
     shine::EngineContext &m_Context;
-
-    assets_brower::AssetsBrower *assetsBrower = nullptr;
-    views::EditView        *editorView   = nullptr;
-
-    // 视图窗口
-    views::SMainEditorToolbar *mainEditorToolbar  = nullptr;
-    views::SceneHierarchyView *sceneHierarchyView = nullptr;
-    views::PropertiesView     *propertiesView     = nullptr;
-    views::ImageViewerView    *imageViewerView    = nullptr;
-    views::SettingsView       *settingsView       = nullptr;
-    views::MemoryProfiler     *memoryProfiler     = nullptr;
-    views::LogUI              *logUI              = nullptr;
-    views::DebugTextureView   *debugTextureView   = nullptr;
-
-    button::shineButton *myButton = nullptr;
+    std::unique_ptr<WindowRegistry> windowRegistry_;
 };
 
 } // namespace shine::editor::main_editor

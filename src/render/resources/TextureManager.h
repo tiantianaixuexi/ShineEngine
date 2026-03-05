@@ -4,8 +4,7 @@
 #include <unordered_map>
 #include <cstdint>
 #include "render/resources/texture_handle.h"
-#include "manager/AssetManager.h"
-// #include "util/singleton.h"
+#include "Engine/Macro/RuntimeEditorSplit.h"
 #include "EngineCore/subsystem.h"
 #include "EngineCore/engine_context.h"
 
@@ -55,36 +54,11 @@ namespace shine::render
         virtual void Shutdown(EngineContext& ctx) override;
 
         /**
-         * @brief 从AssetHandle创建纹理（从已加载的图片数据创建）
-         * @param assetHandle 资源句柄
-         * @return 纹理句柄，失败返回无效句柄
-         */
-        TextureHandle CreateTextureFromAsset(const manager::AssetHandle& assetHandle);
-
-        /**
          * @brief 从RGBA数据创建纹理
          * @param info 纹理创建信息
          * @return 纹理句柄，失败返回无效句柄
          */
         TextureHandle CreateTexture(const TextureCreateInfo& info);
-
-        /**
-         * @brief 从文件路径创建纹理（自动加载并创建）
-         * @param filePath 图片文件路径
-         * @return 纹理句柄，失败返回无效句柄
-         */
-        TextureHandle CreateTextureFromFile(const std::string& filePath);
-
-        /**
-         * @brief 从内存数据创建纹理（自动加载并创建）
-         * @param data 图片数据
-         * @param size 数据大小
-         * @param formatHint 格式提示（可选）
-         * @return 纹理句柄，失败返回无效句柄
-         */
-        TextureHandle CreateTextureFromMemory(const void* data, size_t size, const std::string& formatHint = "");
-
-
         TextureHandle CreateTextureFromImage(image::STexture& texture);
 
         /**
@@ -144,19 +118,8 @@ namespace shine::render
          */
         void GetTextureStats(size_t& count, size_t& totalMemory) const;
 
-        /**
-         * @brief 根据文件路径获取纹理句柄（如果已创建）
-         * @param filePath 文件路径
-         * @return 纹理句柄，如果不存在返回无效句柄
-         */
-        TextureHandle GetTextureHandleByPath(const std::string& filePath) const;
-
-        /**
-         * @brief 根据 AssetHandle 获取纹理句柄（如果已创建）
-         * @param assetHandle 资源句柄
-         * @return 纹理句柄，如果不存在返回无效句柄
-         */
-        TextureHandle GetTextureHandleByAsset(const manager::AssetHandle& assetHandle) const;
+        void BindDebugLabel(const TextureHandle& handle, const std::string& label);
+        TextureHandle FindTextureByDebugLabel(const std::string& label) const;
 
     private:
         /**
@@ -164,14 +127,19 @@ namespace shine::render
          */
         struct TextureData
         {
-            uint32_t textureId = 0;  // API特定的纹理ID
+            RUNTIME_DATA(uint32_t textureId = 0;)
+            RUNTIME_DATA(bool streamable = false;)
             int width = 0;
             int height = 0;
-            manager::AssetHandle assetHandle;  // 关联的资源句柄（如果有）
+            EDITOR_DATA(std::string importSettingsProfile;)
+            EDITOR_DATA(uint64_t thumbnailCacheKey = 0;)
+            EDITOR_DATA(std::string editorDebugLabel;)
+            RUNTIME_DATA(std::string runtimeDebugLabel;)
         };
 
         render::backend::IRenderBackend* renderBackend_ = nullptr;
         std::unordered_map<uint64_t, TextureData> textures_;
+        std::unordered_map<std::string, uint64_t> labelToTexture_;
         uint64_t nextHandleId_ = 1;
 
     private:

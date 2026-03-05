@@ -1,14 +1,13 @@
 #include "MainEditorToolbar.h"
 
 #include "imgui/imgui.h"
-#include "editor/mainEditor.h"
 #include "render/demo/EngineDemoScene.h"
 
 namespace shine::editor::views
 {
-	SMainEditorToolbar::SMainEditorToolbar(main_editor::MainEditor* _editor)
+	SMainEditorToolbar::SMainEditorToolbar(main_editor::IMainEditorCommands* commands)
 	{
-		_mainEditor = _editor;
+		commands_ = commands;
 	}
 
 	void SMainEditorToolbar::onInit()
@@ -69,20 +68,36 @@ namespace shine::editor::views
 			
 			if (ImGui::BeginMenu("编辑器UI"))
 			{
+				if(ImGui::MenuItem("场景层级视口", nullptr, &SceneHierarchyShow))
+				{
+					SceneHierarchyShow = commands_ ? commands_->ToggleSceneHierarchy() : SceneHierarchyShow;
+				}
+
 				if (ImGui::MenuItem("资源浏览器",nullptr,&AssetBorderShow))
 				{
-					AssetBorderShow = _mainEditor->setAssetBorwerOpen();
+					AssetBorderShow = commands_ ? commands_->ToggleAssetBrowser() : AssetBorderShow;
 				}
+
 				
                 if (ImGui::MenuItem("内存监控 (Memory Profiler)", nullptr, &MemoryProfilerShow))
                 {
 					
-                    MemoryProfilerShow = _mainEditor->setMemoryProfilerOpen();
+                    MemoryProfilerShow = commands_ ? commands_->ToggleMemoryProfiler() : MemoryProfilerShow;
                 }
 
 				if(ImGui::MenuItem("引擎设置", nullptr, &EngineSettingsShow))
 				{
-					EngineSettingsShow = _mainEditor->setEngineSettingsOpen();
+					EngineSettingsShow = commands_ ? commands_->ToggleEngineSettings() : EngineSettingsShow;
+				}
+
+				if(ImGui::MenuItem("日志", nullptr, &LogShow))
+				{
+					LogShow = commands_ ? commands_->ToggleLog() : LogShow;
+				}
+
+				if(ImGui::MenuItem("物品放置栏", nullptr, &PlacementPaletteShow))
+				{
+					PlacementPaletteShow = commands_ ? commands_->TogglePlacementPalette() : PlacementPaletteShow;
 				}
 
 				ImGui::EndMenu();

@@ -7,6 +7,7 @@ module shine.util.file_util;
 #else
 
 #include "file_util.ixx"
+#include "path_util.h"
 #include "shine_define.h"
 #include "fmt/format.h"
 
@@ -394,95 +395,6 @@ namespace shine::util
 	}
 
 #ifndef SHINE_PLATFORM_WASM
-	std::expected<std::string, std::string> get_file_suffix(STextView filename)
-#else
-	std::string get_file_suffix(STextView filename, bool* success)
-#endif
-	{
-		std::string filenameStr = filename.to_string();
-		const auto idx = filenameStr.rfind('.');
-		if (idx == std::string::npos || idx == 0 || idx == filenameStr.length() - 1)
-		{
-#ifndef SHINE_PLATFORM_WASM
-			return std::unexpected("文件没有扩展名");
-#else
-			if (success) *success = false;
-			return "";
-#endif
-		}
-#ifndef SHINE_PLATFORM_WASM
-		return filenameStr.substr(idx);
-#else
-		if (success) *success = true;
-		return filenameStr.substr(idx);
-#endif
-	}
-
-#ifndef SHINE_PLATFORM_WASM
-	std::expected<std::string, std::string> get_file_suffix(std::string_view filename)
-	{
-		return get_file_suffix(SString::from_utf8(filename));
-	}
-#else
-	std::string get_file_suffix(std::string_view filename, bool* success)
-	{
-		return get_file_suffix(SString::from_utf8(filename), success);
-	}
-#endif
-
-	std::string get_file_extension(STextView filename)
-	{
-		std::string filenameStr = filename.to_string();
-		const auto idx = filenameStr.rfind('.');
-		if (idx == std::string::npos || idx == 0 || idx == filenameStr.length() - 1)
-		{
-			return "";
-		}
-		// 返回不包含点号的扩展名
-		return filenameStr.substr(idx + 1);
-	}
-
-	std::string get_file_extension(std::string_view filename)
-	{
-		return get_file_extension(SString::from_utf8(filename));
-	}
-
-	std::string get_file_name(STextView filepath)
-	{
-		std::string pathStr = filepath.to_string();
-#ifdef SHINE_PLATFORM_WIN
-		size_t pos = pathStr.find_last_of("\\/");
-#else
-		size_t pos = pathStr.find_last_of('/');
-#endif
-		if (pos != std::string::npos)
-		{
-			return pathStr.substr(pos + 1);
-		}
-		return pathStr;
-	}
-
-	std::string get_file_name(std::string_view filepath)
-	{
-		return get_file_name(SString::from_utf8(filepath));
-	}
-
-	std::string get_file_directory(STextView filepath)
-	{
-		std::string pathStr = filepath.to_string();
-#ifdef SHINE_PLATFORM_WIN
-		size_t pos = pathStr.find_last_of("\\/");
-#else
-		size_t pos = pathStr.find_last_of('/');
-#endif
-		if (pos != std::string::npos)
-		{
-			return pathStr.substr(0, pos);
-		}
-		return "";
-	}
-
-#ifndef SHINE_PLATFORM_WASM
 	std::expected<std::string, std::string> read_file_text(std::string_view filePath)
 	{
 		return read_file_text(SString::from_utf8(filePath));
@@ -493,27 +405,6 @@ namespace shine::util
 		return read_file_text(SString::from_utf8(filePath), success);
 	}
 #endif
-
-	std::string get_file_directory(std::string_view filepath)
-	{
-		return get_file_directory(SString::from_utf8(filepath));
-	}
-
-	std::string get_file_stem(STextView filepath)
-	{
-		std::string name = get_file_name(filepath);
-		size_t pos = name.rfind('.');
-		if (pos != std::string::npos && pos > 0)
-		{
-			return name.substr(0, pos);
-		}
-		return name;
-	}
-
-	std::string get_file_stem(std::string_view filepath)
-	{
-		return get_file_stem(SString::from_utf8(filepath));
-	}
 
 	// ============================================================================
 	// 文件映射操作实现
@@ -1224,7 +1115,7 @@ namespace shine::util
 
 	bool CreateDirRecursive(STextView path)
 	{
-		std::string pathStr = NormalizePath(path);
+		std::string pathStr = normalize_path(path.to_string());
 		std::string currentPath;
 
 #ifdef SHINE_PLATFORM_WIN
@@ -1608,123 +1499,4 @@ namespace shine::util
 #endif
 	}
 
-	// ============================================================================
-	// 路径操作实现
-	// ============================================================================
-
-	std::string NormalizePath(const std::string& path)
-	{
-		std::string pathStr = path;
-#ifdef SHINE_PLATFORM_WIN
-		// 统一使用反斜杠
-		std::replace(pathStr.begin(), pathStr.end(), '/', '\\');
-		// 移除重复的分隔符
-		std::string result;
-		bool lastWasSep = false;
-		for (char c : pathStr)
-		{
-			if (c == '\\')
-			{
-				if (!lastWasSep)
-				{
-					result += c;
-					lastWasSep = true;
-				}
-			}
-			else
-			{
-				result += c;
-				lastWasSep = false;
-			}
-		}
-		return result;
-#else
-		// 统一使用正斜杠
-		std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
-		// 移除重复的分隔符
-		std::string result;
-		bool lastWasSep = false;
-		for (char c : pathStr)
-		{
-			if (c == '/')
-			{
-				if (!lastWasSep)
-				{
-					result += c;
-					lastWasSep = true;
-				}
-			}
-			else
-			{
-				result += c;
-				lastWasSep = false;
-			}
-		}
-		return result;
-#endif
-	}
-
-	std::string NormalizePath(STextView path)
-	{
-		return NormalizePath(path.to_string());
-	}
-
-	std::string JoinPath(const std::string& base, const std::string& part)
-	{
-		if (base.empty())
-		{
-			return part;
-		}
-
-		if (part.empty())
-		{
-			return base;
-		}
-
-#ifdef SHINE_PLATFORM_WIN
-		char lastChar = base.back();
-		if (lastChar != '\\' && lastChar != '/')
-		{
-			return base + "\\" + part;
-		}
-		return base + part;
-#else
-		char lastChar = base.back();
-		if (lastChar != '/')
-		{
-			return base + "/" + part;
-		}
-		return base + part;
-#endif
-	}
-
-	std::string JoinPath(STextView base, STextView part)
-	{
-		return JoinPath(base.to_string(), part.to_string());
-	}
-
-	bool IsAbsolutePath(STextView path)
-	{
-		std::string pathStr = path.to_string();
-#ifdef SHINE_PLATFORM_WIN
-		// Windows: C:\ 或 \\server\share 格式
-		return (pathStr.length() >= 3 && pathStr[1] == ':' && (pathStr[2] == '\\' || pathStr[2] == '/')) ||
-			(pathStr.length() >= 2 && pathStr[0] == '\\' && pathStr[1] == '\\');
-#else
-		// Unix: 以 / 开头
-		return !pathStr.empty() && pathStr[0] == '/';
-#endif
-	}
-
-	std::string GetAbsolutePath(STextView path)
-	{
-		if (IsAbsolutePath(path))
-		{
-			return NormalizePath(path);
-		}
-
-		std::string currentDir = GetCurrentDirectory();
-		std::string joined = JoinPath(currentDir, path.to_string());
-		return NormalizePath(joined);
-	}
 }

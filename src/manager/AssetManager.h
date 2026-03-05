@@ -2,13 +2,13 @@
 
 #include <string>
 #include <memory>
-#include <unordered_map>
 #include <vector>
-#include <filesystem>
 #include <expected>
+#include "Engine/Macro/RuntimeEditorSplit.h"
 #include "loader/core/loader.h"
-#include "loader/image/image_loader.h"
 #include "loader/model/model_loader.h"
+#include "manager/AssetInterfaces.h"
+#include "manager/runtime_asset.h"
 #include <cstdint>
 #include "EngineCore/subsystem.h"
 
@@ -22,35 +22,11 @@ namespace shine::image
 
 namespace shine::manager
 {
-    /**
-     * @brief 资源类型枚举
-     */
-    enum class EAssetType
-    {
-        Image,
-        Model,
-        Texture,
-        Audio,
-        Unknown
-    };
+    class AssetCatalogImpl;
+    class AssetImportPipelineImpl;
+    class AssetTextureBridgeImpl;
 
-    /**
-     * @brief 资源句柄（类似UE5的FAssetHandle）
-     */
-    struct AssetHandle
-    {
-        uint64_t id = 0;
-        EAssetType type = EAssetType::Unknown;
-        std::string path;
-
-        bool isValid() const { return id != 0; }
-    };
-
-    /**
-     * @brief 统一的资源管理器 - 类似UE5的AssetManager
-     * 只负责资源加载和生命周期管理，数据由加载器本身持有
-     */
-    class AssetManager : public shine::Subsystem
+    class AssetManager : public shine::Subsystem, public IAssetImportPipeline, public ITextureBridge, public IAssetCatalog, public IWorldAssetBridge, public IImageAssetProvider
     {
     public:
 
@@ -76,7 +52,7 @@ namespace shine::manager
          * @param filePath 图片文件路径
          * @return 资源句柄，失败返回无效句柄
          */
-        AssetHandle LoadTextureAsset(const std::string& filePath);
+        AssetHandle LoadTextureAsset(const std::string& filePath) override;
 
         /**
          * @brief 从内存加载图片资源
@@ -92,7 +68,7 @@ namespace shine::manager
          * @param handle 资源句柄
          * @return 图片加载器指针，失败返回nullptr
          */
-        loader::IImageLoader* GetImageLoader(const AssetHandle& handle) const;
+        loader::IImageLoader* GetImageLoader(const AssetHandle& handle) const override;
 
         /**
          * @brief 加载图片并创建 STexture 资源（便利方法，类似 UE5 的 LoadObject）
@@ -111,7 +87,7 @@ namespace shine::manager
          * @param filePath 模型文件路径
          * @return 资源句柄，失败返回无效句柄
          */
-        AssetHandle LoadModel(const std::string& filePath);
+        AssetHandle LoadModel(const std::string& filePath) override;
         AssetHandle LoadModel(const std::string& filePath, loader::IModelLoader::ProgressCallback progressCallback);
 
         /**
@@ -125,6 +101,15 @@ namespace shine::manager
         std::expected<loader::MeshData, std::string> GetModelMesh(const AssetHandle& handle, size_t meshIndex = 0) const;
         std::expected<loader::MeshData, std::string> LoadModelMesh(const std::string& filePath, size_t meshIndex = 0, loader::IModelLoader::ProgressCallback progressCallback = nullptr);
 
+        AssetHandle LoadMapAsset(const std::string& filePath) override;
+        gameplay::world::MapAsset* GetMapAsset(const AssetHandle& handle) const override;
+        IRuntimeAsset* GetRuntimeAsset(const AssetHandle& handle) const override;
+        AssetHandle RegisterRuntimeAsset(EAssetType type, const std::string& logicalPath, std::unique_ptr<IRuntimeAsset> asset);
+        TextureResourceHandle CreateTextureResource(const AssetHandle& imageAsset) override;
+        TextureResourceHandle CreateTextureResourceByPath(const std::string& filePath) override;
+        uint32_t GetTextureNativeId(const TextureResourceHandle& textureHandle) const override;
+        void ReleaseTextureResource(const TextureResourceHandle& textureHandle) override;
+
         // ========================================================================
         // 通用资源管理
         // ========================================================================
@@ -133,7 +118,7 @@ namespace shine::manager
          * @brief 卸载资源
          * @param handle 资源句柄
          */
-        void UnloadAsset(const AssetHandle& handle);
+        void UnloadAsset(const AssetHandle& handle) override;
 
         /**
          * @brief 卸载所有资源
@@ -145,52 +130,26 @@ namespace shine::manager
          * @param handle 资源句柄
          * @return true如果资源存在
          */
-        bool IsAssetLoaded(const AssetHandle& handle) const;
+        bool IsAssetLoaded(const AssetHandle& handle) const override;
 
         /**
          * @brief 根据文件路径获取资源句柄
          * @param filePath 文件路径
          * @return 资源句柄，如果不存在返回无效句柄
          */
-        AssetHandle GetAssetHandleByPath(const std::string& filePath) const;
+        AssetHandle GetAssetHandleByPath(const std::string& filePath) const override;
 
         /**
          * @brief 获取支持的图片格式列表
          */
         static std::vector<std::string> GetSupportedImageFormats();
 
-        /**
-         * @brief 获取支持的模型格式列表
-         */
         static std::vector<std::string> GetSupportedModelFormats();
 
     private:
-        /**
-         * @brief 根据文件扩展名检测资源类型
-         */
-        EAssetType DetectAssetType(const std::string& filePath) const;
-
-        /**
-         * @brief 创建图片加载器
-         */
-        std::unique_ptr<loader::IImageLoader> CreateImageLoader(const std::string& format) const;
-
-        /**
-         * @brief 创建模型加载器
-         */
-        std::unique_ptr<loader::IModelLoader> CreateModelLoader(const std::string& format) const;
-
-        /**
-         * @brief 从内存数据检测图片格式
-         */
-        std::string DetectImageFormat(const void* data, size_t size) const;
-
-        // 资源存储：只存储加载器，数据由加载器本身持有
-        std::unordered_map<uint64_t, std::unique_ptr<loader::IImageLoader>> imageLoaders_;
-        std::unordered_map<uint64_t, std::unique_ptr<loader::IModelLoader>> modelLoaders_;
-        std::unordered_map<std::string, uint64_t> pathToHandle_;  // 路径到句柄的映射
-
-        uint64_t nextHandleId_ = 1;
+        std::unique_ptr<AssetCatalogImpl> catalog_;
+        std::unique_ptr<AssetImportPipelineImpl> importPipeline_;
+        std::unique_ptr<AssetTextureBridgeImpl> textureBridge_;
 
     private:
         AssetManager(const AssetManager&) = delete;

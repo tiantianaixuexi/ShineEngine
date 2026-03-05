@@ -1,17 +1,21 @@
-﻿#pragma once
+#pragma once
 
 #include "loader/core/loader.h"
 #include "loader/model/model_loader.h"
+#include "EngineCore/log/LogSystem.h"
 #include <vector>
 #include <string>
 #include <expected>
 
 #include "math/vector.ixx"
 #include "math/vector2.h"
+
 #include "third/tinygltf/tiny_gltf.h"
 
 namespace shine::loader
 {
+    REGISTER_LOG_GROUP(GltfLoaderLog)
+
     std::expected<MeshData, std::string> LoadGltfMeshFromFile(std::string_view filePath, size_t meshIndex = 0, IModelLoader::ProgressCallback progressCallback = nullptr);
     std::expected<MeshData, std::string> LoadGltfMeshFromMemory(const void* data, size_t size, size_t meshIndex = 0, IModelLoader::ProgressCallback progressCallback = nullptr);
 
