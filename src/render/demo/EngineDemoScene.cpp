@@ -1,50 +1,59 @@
 #include "EngineDemoScene.h"
+#include "EngineCore/reflection/Reflection.h"
 #include "render/renderer_service.h"
+#include "gameplay/actor.h"
 #include "gameplay/object.h"
+#include "gameplay/world/world_service.h"
+#include "gameplay/component/ScriptComponent.h"
 #include "gameplay/component/StaticMeshComponent.h"
 #include "gameplay/component/TransformComponent.h"
-#include "gameplay/component/tickableComponent.h"
-#include "render/material.h"
 #include "render/pipeline/render_passes.h"
+#include "string/shine_string.h"
+
+#include <algorithm>
 
 namespace shine::render::demo
 {
-    class DemoRotationTickComponent : public gameplay::component::TickableComponent
+    class DemoReflectActor final : public shine::gameplay::StaticMeshActor
     {
     public:
-        void setAngularVelocity(float degreesPerSecond, float pitchScale)
+        int hp = 120;
+        float speedScale = 1.0f;
+        shine::SString title = shine::SString("ReflectDemoActor");
+
+        int GetHp() const
         {
-            m_DegreesPerSecond = degreesPerSecond;
-            m_PitchScale = pitchScale;
+            return hp;
         }
 
-    protected:
-        void onTick(float deltaTime) override
+        void SetHp(int value)
         {
-            auto* owner = getOwner();
-            if (!owner)
-            {
-                return;
-            }
-
-            auto* tr = owner->getComponent<gameplay::component::TransformComponent>();
-            if (!tr)
-            {
-                return;
-            }
-
-            m_RotationAngle += deltaTime * m_DegreesPerSecond;
-            auto rot = tr->getRotation();
-            rot.Yaw = m_RotationAngle;
-            rot.Pitch = m_RotationAngle * m_PitchScale;
-            tr->setRotation(rot);
+            hp = std::max(0, value);
         }
 
-    private:
-        float m_DegreesPerSecond = 50.0f;
-        float m_PitchScale = 0.35f;
-        float m_RotationAngle = 0.0f;
+        float MultiplySpeed(float factor)
+        {
+            speedScale *= factor;
+            return speedScale;
+        }
+
+        std::string GetTitleUtf8() const
+        {
+            return title.to_string();
+        }
     };
+
+    using DemoReflectActorReg = DemoReflectActor;
+    REFLECTION_STRUCT(DemoReflectActorReg)
+    {
+        REFLECT_FIELD(hp).ScriptRead().ScriptWrite();
+        REFLECT_FIELD(speedScale).ScriptRead().ScriptWrite();
+        REFLECT_FIELD(title).ScriptRead().ScriptWrite();
+        REFLECT_METHOD(GetHp).ScriptCallable();
+        REFLECT_METHOD(SetHp).ScriptCallable();
+        REFLECT_METHOD(MultiplySpeed).ScriptCallable();
+        REFLECT_METHOD(GetTitleUtf8).ScriptCallable();
+    }
 
     EngineDemoScene::EngineDemoScene(shine::EngineContext& context)
         : m_Context(context)
@@ -53,20 +62,30 @@ namespace shine::render::demo
 
     EngineDemoScene::~EngineDemoScene()
     {
-        auto* renderer = m_Context.GetSystem<shine::render::RendererService>();
-        if (renderer)
-        {
-            for (const auto& obj : m_Objects)
-            {
-                renderer->unregisterObject(obj.get());
-            }
-        }
-        m_Objects.clear();
     }
 
     void EngineDemoScene::Init()
     {
         auto* renderer = m_Context.GetSystem<shine::render::RendererService>();
+        auto* worldService = m_Context.GetSystem<shine::gameplay::world::WorldService>();
+        if (worldService)
+        {
+            worldService->createMapAsset("DemoMap");
+            auto* map = worldService->getActiveMap();
+            if (map)
+            {
+                map->getWorldSettings().gravityZ = -980.0f;
+                map->getWorldSettings().timeDilation = 1.0f;
+
+                auto& subLevel = worldService->ensureStreamingLevel("Gameplay_SubLevel_A");
+                subLevel.actorDefinitions = {
+                    {"SubLevelCube_A", gameplay::world::ActorArchetype::StaticMeshCube, {-4.0f, 0.3f, 0.2f}, {0.8f, 0.8f, 0.8f}},
+                    {"SubLevelSphere_A", gameplay::world::ActorArchetype::StaticMeshSphere, {-3.0f, -0.7f, 1.3f}, {0.6f, 0.6f, 0.6f}}
+                };
+                worldService->requestLoadLevelAsync("Gameplay_SubLevel_A");
+            }
+        }
+
         if (!renderer) return;
 
         // Setup Pipeline Passes (Refactored to Pass-based)
@@ -92,46 +111,39 @@ namespace shine::render::demo
             pipeline->AddPass(std::move(bloomPass));
         }
 
-        auto spawnMesh = [&](const std::string& name,
-                             const shine::math::FVector3f& pos,
-                             const shine::math::FVector3f& scale,
-                             bool sphere,
-                             const shine::math::FVector3f& base,
-                             const shine::math::FVector3f& emissiveColor,
-                             float emissiveIntensity)
+        auto sceneObj = std::make_unique<shine::gameplay::StaticMeshActor>();
+        sceneObj->setName("Changjing");
+        auto* sceneTransform = sceneObj->addComponent<shine::gameplay::component::TransformComponent>();
+        sceneTransform->setPosition({ 0.0f, -1.0f, 0.0f });
+        sceneTransform->setScale({ 0.4f, 0.4f, 0.4f });
+        auto* sceneMeshComp = sceneObj->addComponent<shine::gameplay::component::StaticMeshComponent>();
+        if (!sceneMeshComp->loadModelMesh("Content/model/changjing.glb", 0))
         {
-            auto obj = std::make_unique<shine::gameplay::SObject>();
-            obj->setName(name);
-            auto* transform = obj->addComponent<shine::gameplay::component::TransformComponent>();
-            transform->setPosition(pos);
-            transform->setScale(scale);
-            auto* meshComp = obj->addComponent<shine::gameplay::component::StaticMeshComponent>();
-            auto mesh = std::make_shared<shine::gameplay::StaticMesh>();
-            if (sphere) mesh->initSphereWithNormals(32, 20);
-            else mesh->initCubeWithNormals();
-            meshComp->setMesh(mesh);
-            auto mat = shine::render::Material::CreateFancyRimToon();
-            mat->setBaseColor(base.X, base.Y, base.Z);
-            mat->setEmissive(emissiveColor.X, emissiveColor.Y, emissiveColor.Z, emissiveIntensity);
-            meshComp->getMesh()->setMaterial(mat);
-            auto* tickComp = obj->addComponent<DemoRotationTickComponent>();
-            tickComp->setTickGroup(shine::gameplay::ETickGroup::Late);
-            tickComp->setAngularVelocity(50.0f, 0.35f);
-            renderer->registerObject(obj.get());
-            m_Objects.push_back(std::move(obj));
-        };
+            auto fallbackMesh = std::make_shared<shine::gameplay::StaticMesh>();
+            fallbackMesh->initCubeWithNormals();
+            sceneMeshComp->setMesh(fallbackMesh);
+        }
+        auto* scriptComp = sceneObj->addComponent<shine::gameplay::component::ScriptComponent>(
+            shine::STextView::from_literal("build/script/game.js")
+        );
+        scriptComp->setTickGroup(shine::gameplay::ETickGroup::Late);
+        if (worldService)
+        {
+            worldService->addActorToPersistentLevel(std::move(sceneObj));
+        }
 
-        spawnMesh("CubeA", { -2.0f, 0.0f, -0.6f }, { 0.9f, 0.9f, 0.9f }, false,
-                  { 0.12f, 0.05f, 0.05f }, { 1.0f, 0.15f, 0.1f }, 3.8f);
-        spawnMesh("CubeB", { 2.0f, 0.2f, 0.4f }, { 0.8f, 0.8f, 0.8f }, false,
-                  { 0.05f, 0.1f, 0.18f }, { 0.1f, 0.4f, 1.0f }, 3.4f);
-        spawnMesh("CubeC", { -0.2f, 1.1f, 0.9f }, { 0.7f, 0.7f, 0.7f }, false,
-                  { 0.1f, 0.05f, 0.18f }, { 0.6f, 0.2f, 1.0f }, 3.0f);
-        spawnMesh("SphereA", { 0.0f, 0.0f, -1.6f }, { 1.0f, 1.0f, 1.0f }, true,
-                  { 0.12f, 0.12f, 0.12f }, { 1.0f, 0.8f, 0.2f }, 3.6f);
-        spawnMesh("SphereB", { 0.6f, -1.2f, 1.6f }, { 0.7f, 0.7f, 0.7f }, true,
-                  { 0.05f, 0.12f, 0.07f }, { 0.2f, 1.0f, 0.35f }, 3.2f);
-        spawnMesh("SphereC", { -1.0f, -0.9f, 0.9f }, { 0.6f, 0.6f, 0.6f }, true,
-                  { 0.12f, 0.12f, 0.02f }, { 1.0f, 0.95f, 0.2f }, 2.8f);
+        auto demoActor = std::make_unique<DemoReflectActor>();
+        demoActor->setName("ReflectDemoActor");
+        auto* demoTransform = demoActor->addComponent<shine::gameplay::component::TransformComponent>();
+        demoTransform->setPosition({ 2.2f, 0.4f, 0.6f });
+        demoTransform->setScale({ 0.7f, 0.7f, 0.7f });
+        auto* demoMesh = demoActor->addComponent<shine::gameplay::component::StaticMeshComponent>();
+        auto meshData = std::make_shared<shine::gameplay::StaticMesh>();
+        meshData->initCubeWithNormals();
+        demoMesh->setMesh(meshData);
+        if (worldService)
+        {
+            worldService->addActorToPersistentLevel(std::move(demoActor));
+        }
     }
 }

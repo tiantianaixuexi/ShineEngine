@@ -33,14 +33,21 @@ public:
     
     Result<void> Register(TypeInfo info) {
         auto id = info.id;
+        const std::string name(info.name);
         
         // Check for duplicate registration
         if (registry_.find(id) != registry_.end()) {
             return MakeError(ErrorCode::TypeAlreadyRegistered, 
                            std::string("Type ") + std::string(info.name) + " already registered");
         }
+        if (nameRegistry_.find(name) != nameRegistry_.end()) {
+            return MakeError(ErrorCode::TypeAlreadyRegistered,
+                           std::string("Type name ") + name + " already registered");
+        }
         
-        registry_[id] = std::make_shared<TypeInfo>(std::move(info));
+        auto typeInfo = std::make_shared<TypeInfo>(std::move(info));
+        registry_[id] = typeInfo;
+        nameRegistry_[name] = typeInfo;
         return {};
     }
     
@@ -62,6 +69,12 @@ public:
         auto it = registry_.find(id);
         return (it != registry_.end()) ? it->second.get() : nullptr;
     }
+
+    [[gnu::always_inline]]
+    const TypeInfo* FindByNameFast(std::string_view typeName) const noexcept {
+        auto it = nameRegistry_.find(std::string(typeName));
+        return (it != nameRegistry_.end()) ? it->second.get() : nullptr;
+    }
     
     template <typename T>
     Result<const TypeInfo*> Find() const { 
@@ -74,6 +87,7 @@ public:
 private:
     TypeRegistry() = default;
     std::unordered_map<TypeId, std::shared_ptr<TypeInfo>> registry_;
+    std::unordered_map<std::string, std::shared_ptr<TypeInfo>> nameRegistry_;
 };
 
 } // namespace shine::reflection

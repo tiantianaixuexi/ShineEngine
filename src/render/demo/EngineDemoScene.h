@@ -1,9 +1,9 @@
 #pragma once
 
+#include <cstdint>
+
 #include "EngineCore/engine_context.h"
 #include "gameplay/object.h"
-#include <vector>
-#include <memory>
 
 namespace shine::render::demo
 {
@@ -17,6 +17,5 @@ namespace shine::render::demo
 
     private:
         shine::EngineContext& m_Context;
-        std::vector<std::unique_ptr<shine::gameplay::SObject>> m_Objects;
     };
 }
