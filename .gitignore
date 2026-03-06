@@ -22,6 +22,10 @@ Program/smallwasm/build-wasm/
 Program/smallwasm/web/dist/
 
 
+build-wasm/
+
+script/node_modules
+
 build_clang
 build_msvc
 build_gcc
