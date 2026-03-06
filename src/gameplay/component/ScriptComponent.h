@@ -18,6 +18,7 @@ namespace shine::gameplay::component
         [[nodiscard]] const shine::SString& getScriptPath() const noexcept;
 
         [[nodiscard]] bool isLoaded() const noexcept;
+        [[nodiscard]] shine::script::ScriptSystem::ScriptHandle getScriptHandle() const noexcept { return scriptHandle_; }
         void setTickEnabled(bool enabled);
 
         void onAttached() override;

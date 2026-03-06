@@ -3,12 +3,13 @@ declare function ReflectSetField(actorId: number, typeName: string, fieldName: s
 declare function ReflectCallMethod(actorId: number, typeName: string, methodName: string, ...args: (number | string | boolean)[]): unknown;
 
 type SFieldType = "float" | "int" | "bool" | "string";
+type SPropertyAccess = "ReadOnly" | "ReadWrite";
 type SClassConfig = string | { name: string };
-type SPropertyConfig = { type: SFieldType; name?: string };
+type SPropertyConfig = { type: SFieldType; name?: string; access?: SPropertyAccess; group?: string; visible?: boolean };
 type SFunctionConfig = { name?: string };
 type PropValue = number | string | boolean;
 
-type ScriptPropertyMeta = { name: string; type: SFieldType };
+type ScriptPropertyMeta = { name: string; type: SFieldType; access: SPropertyAccess; group?: string; visible?: boolean };
 type ScriptFunctionMeta = { name: string };
 type ScriptClassMeta = { name: string; properties: ScriptPropertyMeta[]; functions: ScriptFunctionMeta[] };
 type ScriptMetaRoot = { classes: ScriptClassMeta[] };
@@ -17,6 +18,7 @@ type ScriptReflectApi = {
     getField<T extends PropValue>(actorId: number, typeName: string, fieldName: string): T | undefined;
     setField(actorId: number, typeName: string, fieldName: string, value: PropValue): boolean;
     callMethod<T extends PropValue>(actorId: number, typeName: string, methodName: string, ...args: PropValue[]): T | undefined;
+    getMeta(): ScriptMetaRoot;
 };
 
 const __shineMetaByCtor = new WeakMap<Function, ScriptClassMeta>();
@@ -51,8 +53,10 @@ function SPROPERTY(config: SPropertyConfig): PropertyDecorator {
         const ctor = (target as { constructor: Function }).constructor;
         const meta = ensureClassMeta(ctor);
         const name = config.name ?? String(propertyKey);
+        const access = config.access ?? "ReadWrite";
+        const visible = config.visible ?? true;
         if (!meta.properties.some((item) => item.name === name)) {
-            meta.properties.push({ name, type: config.type });
+            meta.properties.push({ name, type: config.type, access, group: config.group, visible });
         }
         ensureClassExport(meta);
     };
@@ -88,6 +92,9 @@ const SReflect: ScriptReflectApi = {
             return undefined;
         }
         return ReflectCallMethod(actorId, typeName, methodName, ...args) as T | undefined;
+    },
+    getMeta(): ScriptMetaRoot {
+        return __shineMetaRoot;
     }
 };
 

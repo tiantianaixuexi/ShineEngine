@@ -1,11 +1,12 @@
 #include "MainEditorToolbar.h"
 
 #include "imgui/imgui.h"
+#include "editor/mainEditor.h"
 #include "render/demo/EngineDemoScene.h"
 
 namespace shine::editor::views
 {
-	SMainEditorToolbar::SMainEditorToolbar(main_editor::IMainEditorCommands* commands)
+	SMainEditorToolbar::SMainEditorToolbar(main_editor::MainEditor* commands)
 	{
 		commands_ = commands;
 	}
@@ -77,7 +78,6 @@ namespace shine::editor::views
 				{
 					AssetBorderShow = commands_ ? commands_->ToggleAssetBrowser() : AssetBorderShow;
 				}
-
 				
                 if (ImGui::MenuItem("内存监控 (Memory Profiler)", nullptr, &MemoryProfilerShow))
                 {
@@ -100,10 +100,20 @@ namespace shine::editor::views
 					PlacementPaletteShow = commands_ ? commands_->TogglePlacementPalette() : PlacementPaletteShow;
 				}
 
+				if(ImGui::MenuItem("调试渲染Pass", nullptr, &DebugTextureShow))
+				{
+					DebugTextureShow = commands_ ? commands_->ToggleDebugTexture() : DebugTextureShow;
+				}
+
+				if(ImGui::MenuItem("属性大纲",nullptr,&PropertyInspectorShow))
+				{
+					PropertyInspectorShow = commands_ ? commands_->TogglePropertyInspector() : PropertyInspectorShow;
+				}
+
 				ImGui::EndMenu();
 			}
-
-
+		
+			
 			ImGui::EndMainMenuBar();
 		}
 	}

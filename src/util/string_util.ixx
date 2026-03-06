@@ -269,6 +269,10 @@ namespace shine::util
          */
         [[nodiscard]] static bool ValidateUTF8(std::string_view str);
 
+        [[nodiscard]] static size_t UTF8ToUTF32(std::span<const unsigned char> src, std::span<unsigned int> dst);
+
+        [[nodiscard]] static size_t UTF32ToUTF8(std::span<const unsigned int> src, std::span<unsigned char> dst);
+
         // ===================== 路径处理 =====================
 
         /**
@@ -415,6 +419,10 @@ namespace shine::util
         }
 
 #ifdef _WIN32
+        [[nodiscard]] static std::string WstringToUTF8(std::wstring_view wstr);
+
+        [[nodiscard]] static std::wstring UTF8ToWstring(std::string_view u8str);
+
         /**
          * @brief 将UTF-8字符串转换为系统本机多字节编码(ANSI)
          * @param str UTF-8字符串视图

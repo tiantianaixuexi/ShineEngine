@@ -1,5 +1,10 @@
 #include "EditorView.h"
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
+#include "EngineCore/engine_context.h"
 #include "fmt/format.h"
 #include "gameplay/actor.h"
 #include "gameplay/camera.h"
@@ -23,6 +28,16 @@ EditView::~EditView() = default;
 void EditView::SetWorldPlacementService(shine::gameplay::world::IWorldActorPlacementService* worldPlacementService)
 {
     worldPlacementService_ = worldPlacementService;
+}
+
+void EditView::SetWorldHierarchyService(shine::gameplay::world::IWorldActorHierarchyService* worldHierarchyService)
+{
+    worldHierarchyService_ = worldHierarchyService;
+}
+
+void EditView::SetSelectedObject(shine::gameplay::SObject* obj)
+{
+    selectedObject_ = obj;
 }
 
 void EditView::onInit() {
@@ -88,6 +103,9 @@ void EditView::onRender() {
             ImGui::InvisibleButton("EditorViewportArea", rightSize);
         }
 
+        const ImVec2 viewportMin = ImGui::GetItemRectMin();
+        const ImVec2 viewportSize = ImGui::GetItemRectSize();
+
         if (ImGui::BeginDragDropTarget())
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SHINE_PLACE_ITEM"))
@@ -143,9 +161,111 @@ void EditView::onRender() {
                 cam->ProcessMouseScroll(io.MouseWheel);
             }
         }
+
+        if (is_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !is_operating)
+        {
+            selectedObject_ = PickObjectInViewport(viewportMin, viewportSize, ImGui::GetMousePos(), cam);
+        }
+
+        DrawSelectedObjectOutline(viewportMin, viewportSize, cam);
     }
 
     ImGui::End();
+}
+
+shine::gameplay::SObject* EditView::PickObjectInViewport(
+    const ImVec2& viewportMin,
+    const ImVec2& viewportSize,
+    const ImVec2& mousePos,
+    gameplay::Camera* cam
+) const
+{
+    if (!worldHierarchyService_ || !cam || viewportSize.x <= 1.0f || viewportSize.y <= 1.0f)
+    {
+        return nullptr;
+    }
+
+    const auto vp = cam->GetViewProjectionMatrixM();
+    const auto objects = worldHierarchyService_->getAllActorsSnapshot();
+    float nearestDistanceSq = std::numeric_limits<float>::max();
+    shine::gameplay::SObject* picked = nullptr;
+    constexpr float pickRadiusPx = 26.0f;
+    const float maxDistanceSq = pickRadiusPx * pickRadiusPx;
+
+    for (auto* obj : objects)
+    {
+        if (!obj)
+        {
+            continue;
+        }
+        auto* transform = obj->getComponent<shine::gameplay::component::TransformComponent>();
+        if (!transform)
+        {
+            continue;
+        }
+
+        const auto& position = transform->getPosition();
+        const math::FVector3d worldPos(position.X, position.Y, position.Z);
+        const auto ndc = vp.transformPoint(worldPos);
+        if (ndc.Z < -1.0 || ndc.Z > 1.0)
+        {
+            continue;
+        }
+
+        const float screenX = viewportMin.x + static_cast<float>((ndc.X * 0.5 + 0.5) * viewportSize.x);
+        const float screenY = viewportMin.y + static_cast<float>((1.0 - (ndc.Y * 0.5 + 0.5)) * viewportSize.y);
+        const float dx = mousePos.x - screenX;
+        const float dy = mousePos.y - screenY;
+        const float distanceSq = dx * dx + dy * dy;
+        if (distanceSq <= maxDistanceSq && distanceSq < nearestDistanceSq)
+        {
+            nearestDistanceSq = distanceSq;
+            picked = obj;
+        }
+    }
+
+    return picked;
+}
+
+void EditView::DrawSelectedObjectOutline(const ImVec2& viewportMin, const ImVec2& viewportSize, gameplay::Camera* cam) const
+{
+    if (!selectedObject_ || !cam || viewportSize.x <= 1.0f || viewportSize.y <= 1.0f)
+    {
+        return;
+    }
+    auto* transform = selectedObject_->getComponent<shine::gameplay::component::TransformComponent>();
+    if (!transform)
+    {
+        return;
+    }
+
+    const auto vp = cam->GetViewProjectionMatrixM();
+    const auto& position = transform->getPosition();
+    const auto& scale = transform->getScale();
+
+    const math::FVector3d worldPos(position.X, position.Y, position.Z);
+    const auto ndc = vp.transformPoint(worldPos);
+    if (ndc.Z < -1.0 || ndc.Z > 1.0)
+    {
+        return;
+    }
+
+    const float centerX = viewportMin.x + static_cast<float>((ndc.X * 0.5 + 0.5) * viewportSize.x);
+    const float centerY = viewportMin.y + static_cast<float>((1.0 - (ndc.Y * 0.5 + 0.5)) * viewportSize.y);
+
+    const float worldRadius = std::max({ std::abs(scale.X), std::abs(scale.Y), std::abs(scale.Z), 0.5f });
+    const math::FVector3d radiusPos = worldPos + cam->right * static_cast<double>(worldRadius);
+    const auto radiusNdc = vp.transformPoint(radiusPos);
+    const float radiusX = viewportMin.x + static_cast<float>((radiusNdc.X * 0.5 + 0.5) * viewportSize.x);
+    float radiusPx = std::abs(radiusX - centerX);
+    if (radiusPx < 14.0f)
+    {
+        radiusPx = 14.0f;
+    }
+
+    auto* drawList = ImGui::GetWindowDrawList();
+    const ImU32 outlineColor = IM_COL32(255, 208, 48, 255);
+    drawList->AddCircle(ImVec2(centerX, centerY), radiusPx, outlineColor, 40, 2.4f);
 }
 
 void EditView::SpawnPlacementActor(EPlacementItemType type, float scale, gameplay::Camera* cam)
@@ -168,6 +288,7 @@ void EditView::SpawnPlacementActor(EPlacementItemType type, float scale, gamepla
             static_cast<float>(spawnPos.Y),
             static_cast<float>(spawnPos.Z)
         });
+        selectedObject_ = actor.get();
         worldPlacementService_->addActorToPersistentLevel(std::move(actor));
         return;
     }
@@ -185,6 +306,7 @@ void EditView::SpawnPlacementActor(EPlacementItemType type, float scale, gamepla
     auto mesh = std::make_shared<shine::gameplay::StaticMesh>();
     mesh->initCubeWithNormals();
     meshComp->setMesh(mesh);
+    selectedObject_ = actor.get();
     worldPlacementService_->addActorToPersistentLevel(std::move(actor));
 }
 } // namespace shine::editor::EditorView

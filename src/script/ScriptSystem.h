@@ -2,12 +2,14 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
 #include <chrono>
 
 #include "EngineCore/log/LogSystem.h"
+#include "EngineCore/reflection/Script/ScriptValue.h"
 #include "EngineCore/subsystem.h"
 #include "string/shine_string.h"
 #include "string/shine_text_view.h"
@@ -38,6 +40,15 @@ namespace shine::script
     class ScriptSystem : public shine::Subsystem
     {
     public:
+        struct ScriptPropertyInspectorInfo
+        {
+            shine::SString name;
+            shine::SString type;
+            shine::SString access;
+            shine::SString group;
+            bool visible = true;
+        };
+
         struct ScriptHandle
         {
             uint32_t id = 0;
@@ -56,6 +67,10 @@ namespace shine::script
         bool UnloadScript(ScriptHandle handle);
         bool InvokeUpdate(ScriptHandle handle, float deltaSeconds, shine::gameplay::SObject* owner);
         bool SetScriptRuntimeEnabled(ScriptHandle handle, bool enabled, shine::gameplay::SObject* owner);
+        bool GetScriptPropertyInfos(ScriptHandle handle, std::vector<ScriptPropertyInspectorInfo>& outProperties) const;
+        [[nodiscard]] uint64_t GetScriptPropertyLayoutVersion(ScriptHandle handle) const;
+        bool GetScriptPropertyValue(ScriptHandle handle, shine::STextView propertyName, reflection::ScriptValue& outValue) const;
+        bool SetScriptPropertyValue(ScriptHandle handle, shine::STextView propertyName, const reflection::ScriptValue& value);
 
         [[nodiscard]] bool IsReady() const noexcept;
 
@@ -71,6 +86,9 @@ namespace shine::script
             {
                 shine::SString name;
                 shine::SString type;
+                shine::SString access;
+                shine::SString group;
+                bool visible = true;
             };
 
             shine::SString className;
@@ -81,6 +99,7 @@ namespace shine::script
             JSValue destroyFunc = JS_UNDEFINED;
             JSValue onEnableFunc = JS_UNDEFINED;
             JSValue onDisableFunc = JS_UNDEFINED;
+            JSValue scriptObject = JS_UNDEFINED;
             bool startCalled = false;
             bool enableNotified = false;
             bool scriptEnabled = true;
@@ -97,6 +116,7 @@ namespace shine::script
             std::vector<TimerEntry> timers;
             std::vector<FunctionMeta> functions;
             std::vector<PropertyMeta> properties;
+            uint64_t propertyLayoutVersion = 1;
             bool tickingTimers = false;
         };
 
@@ -140,5 +160,9 @@ namespace shine::script
         util::EventHandle<const util::watcher::FileChangeEvent&>::Handle fileWatchHandle_;
         std::filesystem::path scriptSourceRoot_;
         std::chrono::steady_clock::time_point lastTsCompileAt_{};
+        bool decoratorLibLoaded_ = false;
+        std::chrono::steady_clock::time_point lastReloadRequestAt_{};
+        std::wstring lastReloadPath_{};
+        std::unordered_map<std::wstring, uint64_t> sourceHashes_;
     };
 }

@@ -3,6 +3,11 @@
 #include "gameplay/object.h"
 #include "BaseView.h"
 
+namespace shine::script
+{
+    class ScriptSystem;
+}
+
 namespace shine::editor::views
 {
     /**
@@ -19,12 +24,15 @@ namespace shine::editor::views
         void onShutDown() override;
 
         void SetSelectedObject(shine::gameplay::SObject* obj);
+        void SetScriptSystem(shine::script::ScriptSystem* scriptSystem);
 
     private:
         void RenderObjectProperties(shine::gameplay::SObject* obj);
         void RenderComponentProperties(shine::gameplay::SObject* obj);
+        void RenderScriptProperties(shine::gameplay::SObject* obj);
         
         shine::gameplay::SObject* selectedObject_ = nullptr;
+        shine::script::ScriptSystem* scriptSystem_ = nullptr;
         bool isOpen_ = true;
     };
 }

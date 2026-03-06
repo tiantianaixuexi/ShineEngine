@@ -489,7 +489,7 @@ typedef struct png_color_16_struct
    png_uint_16 red;   /* for use in red green blue files */
    png_uint_16 green;
    png_uint_16 blue;
-   png_uint_16 gray;  /* for use in grayscale files */
+   png_uint_16 gray;  /*  灰度图 */
 } png_color_16;
 typedef png_color_16 * png_color_16p;
 typedef const png_color_16 * png_const_color_16p;

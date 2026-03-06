@@ -2,6 +2,8 @@
 
 module;
 
+#include "util/shine_define.h"
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -15,6 +17,7 @@ module shine.util.string_util;
 
 #include "string_util.ixx"
 #include "encoding_util.ixx"
+#include "util/shine_define.h"
 #include "Algorithm/FNV1a.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -423,6 +426,14 @@ namespace shine::util
         return true;
     }
 
+    size_t StringUtil::UTF8ToUTF32(std::span<const unsigned char> src, std::span<unsigned int> dst) {
+        return EncodingUtil::UTF8ToUTF32(src, dst);
+    }
+
+    size_t StringUtil::UTF32ToUTF8(std::span<const unsigned int> src, std::span<unsigned char> dst) {
+        return EncodingUtil::UTF32ToUTF8(src, dst);
+    }
+
     std::string StringUtil::ToPlatformPath(std::string_view path) {
 #ifdef _WIN32
         return ToWindowsPath(path);
@@ -484,6 +495,14 @@ namespace shine::util
     }
 
 #ifdef _WIN32
+    std::string StringUtil::WstringToUTF8(std::wstring_view wstr) {
+        return EncodingUtil::WstringToUTF8(wstr);
+    }
+
+    std::wstring StringUtil::UTF8ToWstring(std::string_view u8str) {
+        return EncodingUtil::UTF8ToWstring(u8str);
+    }
+
     std::string StringUtil::ToNativeEncoding(std::string_view str) {
         std::wstring wstr = EncodingUtil::UTF8ToWstring(str);
         if (wstr.empty() && !str.empty()) return {};

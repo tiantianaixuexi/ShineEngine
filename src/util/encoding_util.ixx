@@ -44,11 +44,21 @@ namespace shine::util
 
         [[nodiscard]] static size_t UTF8ToUTF32(const unsigned char* src, int srcLen, UTF32Char* dst);
 
+        [[nodiscard]] static size_t UTF8ToUTF32(std::span<const unsigned char> src, std::span<unsigned int> dst);
+
+        [[nodiscard]] static size_t UTF8ToUTF32(std::span<const unsigned char> src, std::span<UTF32Char> dst);
+
         [[nodiscard]] static size_t UTF32ToUTF8(std::span<const unsigned int> src, std::string& dst);
+
+        [[nodiscard]] static size_t UTF32ToUTF8(std::span<const unsigned int> src, std::span<unsigned char> dst);
 
         [[nodiscard]] static std::vector<char16_t> UTF8ToUTF16(std::string_view src);
 
+        [[nodiscard]] static size_t UTF8ToUTF16(std::span<const unsigned char> src, std::span<char16_t> dst);
+
         [[nodiscard]] static std::string UTF16ToUTF8(std::u16string_view src);
+
+        [[nodiscard]] static size_t UTF16ToUTF8(std::span<const char16_t> src, std::span<unsigned char> dst);
 
         [[nodiscard]] static int UTF32CharToUTF8(char32_t src, std::span<unsigned char, 4> dst);
 
@@ -73,7 +83,11 @@ namespace shine::util
 
         [[nodiscard]] static std::string WstringToUTF8(std::wstring_view wstr);
 
+        [[nodiscard]] static size_t WstringToUTF8(std::wstring_view wstr, std::span<char> dst);
+
         [[nodiscard]] static std::wstring UTF8ToWstring(std::string_view u8str);
+
+        [[nodiscard]] static size_t UTF8ToWstring(std::string_view u8str, std::span<wchar_t> dst);
 
         [[nodiscard]] static std::string UTF8ToWstring_Navtive(std::string_view u8str);
 

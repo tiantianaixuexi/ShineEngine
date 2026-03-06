@@ -1,11 +1,76 @@
 #include "util/EngineDirectoryService.h"
+#include "util/path_util.h"
+
+#include "fmt/base.h"
+
+#include <vector>
 
 namespace shine::util
 {
+    namespace
+    {
+        std::optional<std::filesystem::path> FindProjectRootFrom(const std::filesystem::path& startPath)
+        {
+            if (startPath.empty())
+            {
+                return std::nullopt;
+            }
+
+            std::error_code ec;
+            auto current = std::filesystem::absolute(startPath, ec);
+            if (ec)
+            {
+                return std::nullopt;
+            }
+
+            for (int depth = 0; depth < 8; ++depth)
+            {
+                const auto contentPath = current / "Content";
+                const auto configPath = current / "Config";
+                if (std::filesystem::exists(contentPath, ec) && !ec &&
+                    std::filesystem::exists(configPath, ec) && !ec)
+                {
+                    return current;
+                }
+
+                const auto parent = current.parent_path();
+                if (parent.empty() || parent == current)
+                {
+                    break;
+                }
+                current = parent;
+            }
+
+            return std::nullopt;
+        }
+
+        std::filesystem::path ResolveProjectRootDirectory()
+        {
+            std::vector<std::filesystem::path> candidateRoots;
+            candidateRoots.emplace_back(std::filesystem::current_path());
+            if (const auto executableDirectory = get_executable_directory();
+                executableDirectory.has_value() && !executableDirectory->empty())
+            {
+                candidateRoots.emplace_back(*executableDirectory);
+            }
+
+            for (const auto& candidate : candidateRoots)
+            {
+                if (auto resolved = FindProjectRootFrom(candidate); resolved.has_value())
+                {
+                    return *resolved;
+                }
+            }
+
+            return std::filesystem::absolute(std::filesystem::current_path());
+        }
+    }
+
     bool EngineDirectoryService::Init(EngineContext& ctx)
     {
         (void)ctx;
-        projectRootDirectory_ = std::filesystem::absolute(std::filesystem::current_path());
+        projectRootDirectory_ = ResolveProjectRootDirectory();
+        fmt::println("EngineDirectoryService: project root = {}", projectRootDirectory_.string());
         if (!RegisterDirectory("Content", "Content"))
         {
             return false;
@@ -18,6 +83,8 @@ namespace shine::util
         RegisterDirectory("Logs", "Logs");
         contentDirectory_ = GetDirectory("Content");
         configDirectory_ = GetDirectory("Config");
+        fmt::println("EngineDirectoryService: Content = {}", contentDirectory_.string());
+        fmt::println("EngineDirectoryService: Config = {}", configDirectory_.string());
         return true;
     }
 
@@ -40,7 +107,7 @@ namespace shine::util
         std::filesystem::path resolvedPath = directoryPath;
         if (!resolvedPath.is_absolute())
         {
-            resolvedPath = projectRootDirectory_ / resolvedPath;
+            resolvedPath = std::filesystem::path(join_path(projectRootDirectory_.string(), resolvedPath.string()));
         }
 
         std::error_code ec;

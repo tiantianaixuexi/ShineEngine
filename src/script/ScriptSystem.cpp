@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <cwctype>
 #include <string>
 
@@ -25,6 +26,59 @@ namespace shine::script
 {
     namespace
     {
+        constexpr auto kReadOnlyAccess = "ReadOnly";
+        constexpr auto kReadWriteAccess = "ReadWrite";
+
+        uint64_t HashScriptText(std::string_view text)
+        {
+            uint64_t hash = 1469598103934665603ull;
+            for (const unsigned char ch : text)
+            {
+                hash ^= static_cast<uint64_t>(ch);
+                hash *= 1099511628211ull;
+            }
+            return hash;
+        }
+
+        std::wstring MakeScriptPathKey(const std::filesystem::path& path)
+        {
+            std::error_code ec;
+            const auto normalized = std::filesystem::weakly_canonical(path, ec);
+            std::wstring key = (ec ? path : normalized).wstring();
+            std::transform(key.begin(), key.end(), key.begin(), ::towlower);
+            return key;
+        }
+
+        JSValue ResolveScriptObject(JSContext* context, JSValueConst globalObj)
+        {
+            JSValue scriptObj = JS_GetPropertyStr(context, globalObj, "__script");
+            if (JS_IsObject(scriptObj))
+            {
+                return scriptObj;
+            }
+            JS_FreeValue(context, scriptObj);
+
+            static constexpr const char* kResolveExpr = "(typeof __script !== 'undefined') ? __script : ((typeof globalThis !== 'undefined') ? globalThis.__script : undefined)";
+            scriptObj = JS_Eval(
+                context,
+                kResolveExpr,
+                std::strlen(kResolveExpr),
+                "<resolve_script_object>",
+                JS_EVAL_TYPE_GLOBAL
+            );
+            if (JS_IsException(scriptObj))
+            {
+                JS_FreeValue(context, scriptObj);
+                return JS_UNDEFINED;
+            }
+            if (!JS_IsObject(scriptObj))
+            {
+                JS_FreeValue(context, scriptObj);
+                return JS_UNDEFINED;
+            }
+            return scriptObj;
+        }
+
         class QuickJSScriptBridge final : public reflection::ScriptBridge
         {
         public:
@@ -252,6 +306,7 @@ namespace shine::script
     bool ScriptSystem::Init(EngineContext& ctx)
     {
         (void)ctx;
+        decoratorLibLoaded_ = false;
         ADD_LOG_CATEGORY_WITH_CONSOLE(ScriptSystemLog, "ScriptInit", true);
         ADD_LOG_CATEGORY_WITH_CONSOLE(ScriptSystemLog, "ScriptRuntime", true);
         ADD_LOG_CATEGORY_WITH_CONSOLE(ScriptSystemLog, "ScriptError", true);
@@ -289,7 +344,10 @@ namespace shine::script
 
         if (fileWatchService_ && !scriptSourceRoot_.empty())
         {
-            fileWatchService_->AddWatchDirectory(scriptSourceRoot_);
+            if (!fileWatchService_->AddWatchDirectory(scriptSourceRoot_))
+            {
+                SHINE_LOG_WARN(ScriptSystemLog, "ScriptInit", "添加脚本目录监听失败: {}", scriptSourceRoot_.string());
+            }
             fileWatchHandle_ = fileWatchService_->OnFileChanged.bind([this](const util::watcher::FileChangeEvent& event) {
                 OnFileChanged(event);
             });
@@ -379,6 +437,10 @@ namespace shine::script
         engineDirectoryService_ = nullptr;
         scriptSourceRoot_.clear();
         lastTsCompileAt_ = {};
+        decoratorLibLoaded_ = false;
+        sourceHashes_.clear();
+        lastReloadRequestAt_ = {};
+        lastReloadPath_.clear();
     }
 
     bool ScriptSystem::LoadScript(STextView scriptPath, ScriptHandle& outHandle)
@@ -403,7 +465,24 @@ namespace shine::script
             return false;
         }
 
+        entry.propertyLayoutVersion = 1;
         entry.path = shine::SString(resolvedPath.string());
+        sourceHashes_[MakeScriptPathKey(resolvedPath)] = HashScriptText(textResult.value());
+        if (!scriptSourceRoot_.empty())
+        {
+            std::wstring extensionLower = resolvedPath.extension().wstring();
+            std::transform(extensionLower.begin(), extensionLower.end(), extensionLower.begin(), ::towlower);
+            if (extensionLower == L".js")
+            {
+                std::filesystem::path sourceTsPath = scriptSourceRoot_ / resolvedPath.filename();
+                sourceTsPath.replace_extension(".ts");
+                const auto sourceTsResult = util::read_file_text(shine::SString(sourceTsPath.string()).view());
+                if (sourceTsResult.has_value())
+                {
+                    sourceHashes_[MakeScriptPathKey(sourceTsPath)] = HashScriptText(sourceTsResult.value());
+                }
+            }
+        }
 
         const uint32_t handleId = nextHandleId_++;
         auto [insertIt, inserted] = loadedScripts_.emplace(handleId, std::move(entry));
@@ -458,7 +537,9 @@ namespace shine::script
             return false;
         }
         ReleaseScriptEntry(it->second);
+        const uint64_t nextLayoutVersion = it->second.propertyLayoutVersion + 1;
         it->second = std::move(newEntry);
+        it->second.propertyLayoutVersion = nextLayoutVersion;
         it->second.path = shine::SString(resolvedPath.string());
         invokeScope_.owner = nullptr;
         if (!InvokeNoArg(reloadedHandle, it->second, it->second.initFunc, STextView::from_literal("Init")))
@@ -585,21 +666,45 @@ namespace shine::script
             }
         }
         const auto extension = changedPath.extension().wstring();
-        const auto utf8Path = util::EncodingUtil::WstringToUTF8(changedPath.wstring());
-        SHINE_LOG_INFO(ScriptSystemLog, "ScriptRuntime", "检测到脚本文件变更: {}", utf8Path);
 
         std::wstring extensionLower = extension;
         std::transform(extensionLower.begin(), extensionLower.end(), extensionLower.begin(), ::towlower);
         if (extensionLower == L".ts")
         {
+            const std::wstring changedKey = MakeScriptPathKey(changedPath);
+            const auto now = std::chrono::steady_clock::now();
+            if (!lastReloadPath_.empty() && lastReloadPath_ == changedKey)
+            {
+                const auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastReloadRequestAt_);
+                if (delta.count() < 200)
+                {
+                    return;
+                }
+            }
+            const auto sourceResult = util::read_file_text(shine::SString(changedPath.string()).view());
+            if (sourceResult.has_value())
+            {
+                const uint64_t sourceHash = HashScriptText(sourceResult.value());
+                if (const auto it = sourceHashes_.find(changedKey); it != sourceHashes_.end() && it->second == sourceHash)
+                {
+                    return;
+                }
+                sourceHashes_[changedKey] = sourceHash;
+            }
             if (CompileTypeScript())
             {
+                const auto utf8Path = util::EncodingUtil::WstringToUTF8(changedPath.wstring());
+                SHINE_LOG_INFO(ScriptSystemLog, "ScriptRuntime", "检测到脚本文件变更: {}", utf8Path);
+                lastReloadRequestAt_ = now;
+                lastReloadPath_ = changedKey;
                 ReloadAllLoadedScripts();
             }
             return;
         }
         if (extensionLower == L".js")
         {
+            const auto utf8Path = util::EncodingUtil::WstringToUTF8(changedPath.wstring());
+            SHINE_LOG_INFO(ScriptSystemLog, "ScriptRuntime", "检测到脚本文件变更: {}", utf8Path);
             ReloadAllLoadedScripts();
         }
     }
@@ -681,24 +786,105 @@ namespace shine::script
         {
             return;
         }
-        std::vector<uint32_t> handles;
-        handles.reserve(loadedScripts_.size());
+        struct ReloadTarget
+        {
+            uint32_t handleId = 0;
+            shine::SString path;
+        };
+
+        std::vector<ReloadTarget> targets;
+        targets.reserve(loadedScripts_.size());
         for (const auto& [handleId, entry] : loadedScripts_)
         {
-            (void)entry;
-            handles.push_back(handleId);
+            targets.push_back(ReloadTarget{
+                .handleId = handleId,
+                .path = entry.path
+            });
         }
-        for (const uint32_t handleId : handles)
+
+        for (auto& [handleId, entry] : loadedScripts_)
         {
-            if (ReloadScript(ScriptHandle{handleId}))
-            {
-                SHINE_LOG_INFO(ScriptSystemLog, "ScriptRuntime", "脚本热重载成功: handle={}", handleId);
-            }
-            else
-            {
-                SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "脚本热重载失败: handle={}", handleId);
-            }
+            invokeScope_.owner = nullptr;
+            InvokeNoArg(ScriptHandle{handleId}, entry, entry.destroyFunc, STextView::from_literal("Destroy"));
         }
+        for (auto& [handleId, entry] : loadedScripts_)
+        {
+            (void)handleId;
+            ReleaseScriptEntry(entry);
+        }
+        loadedScripts_.clear();
+
+        if (context_)
+        {
+            JS_FreeContext(context_);
+            context_ = nullptr;
+        }
+        context_ = JS_NewContext(runtime_);
+        decoratorLibLoaded_ = false;
+        if (!context_)
+        {
+            SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "脚本热重载失败: 无法重建 QuickJS Context");
+            return;
+        }
+        if (!InstallBindings())
+        {
+            SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "脚本热重载失败: 重建绑定失败");
+            return;
+        }
+
+        uint32_t maxHandleId = 0;
+        for (const auto& target : targets)
+        {
+            const std::filesystem::path resolvedPath = ResolveScriptPath(target.path.view());
+            const auto textResult = util::read_file_text(shine::SString(resolvedPath.string()).view());
+            if (!textResult.has_value())
+            {
+                SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "脚本热重载失败: handle={} 读取失败 {}", target.handleId, resolvedPath.string());
+                continue;
+            }
+
+            ScriptEntry newEntry;
+            if (!EvaluateScriptText(shine::SString(resolvedPath.string()).view(), textResult.value(), newEntry))
+            {
+                SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "脚本热重载失败: handle={}", target.handleId);
+                continue;
+            }
+
+            newEntry.path = shine::SString(resolvedPath.string());
+            sourceHashes_[MakeScriptPathKey(resolvedPath)] = HashScriptText(textResult.value());
+            if (!scriptSourceRoot_.empty())
+            {
+                std::wstring extensionLower = resolvedPath.extension().wstring();
+                std::transform(extensionLower.begin(), extensionLower.end(), extensionLower.begin(), ::towlower);
+                if (extensionLower == L".js")
+                {
+                    std::filesystem::path sourceTsPath = scriptSourceRoot_ / resolvedPath.filename();
+                    sourceTsPath.replace_extension(".ts");
+                    const auto sourceTsResult = util::read_file_text(shine::SString(sourceTsPath.string()).view());
+                    if (sourceTsResult.has_value())
+                    {
+                        sourceHashes_[MakeScriptPathKey(sourceTsPath)] = HashScriptText(sourceTsResult.value());
+                    }
+                }
+            }
+            auto [insertIt, inserted] = loadedScripts_.emplace(target.handleId, std::move(newEntry));
+            if (!inserted)
+            {
+                SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "脚本热重载失败: handle={} 插入失败", target.handleId);
+                continue;
+            }
+            invokeScope_.owner = nullptr;
+            if (!InvokeNoArg(ScriptHandle{target.handleId}, insertIt->second, insertIt->second.initFunc, STextView::from_literal("Init")))
+            {
+                ReleaseScriptEntry(insertIt->second);
+                loadedScripts_.erase(insertIt);
+                SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "脚本热重载失败: handle={} Init失败", target.handleId);
+                continue;
+            }
+            maxHandleId = (std::max)(maxHandleId, target.handleId);
+            SHINE_LOG_INFO(ScriptSystemLog, "ScriptRuntime", "脚本热重载成功: handle={}", target.handleId);
+        }
+        nextHandleId_ = (std::max)(nextHandleId_, maxHandleId + 1);
     }
 
     bool ScriptSystem::SetScriptRuntimeEnabled(ScriptHandle handle, bool enabled, shine::gameplay::SObject* owner)
@@ -747,6 +933,139 @@ namespace shine::script
             entry.enableNotified = false;
         }
         return true;
+    }
+
+    bool ScriptSystem::GetScriptPropertyInfos(ScriptHandle handle, std::vector<ScriptPropertyInspectorInfo>& outProperties) const
+    {
+        outProperties.clear();
+        if (!handle.IsValid())
+        {
+            return false;
+        }
+        const auto it = loadedScripts_.find(handle.id);
+        if (it == loadedScripts_.end())
+        {
+            return false;
+        }
+        outProperties.reserve(it->second.properties.size());
+        for (const auto& property : it->second.properties)
+        {
+            outProperties.push_back(ScriptPropertyInspectorInfo{
+                .name = property.name,
+                .type = property.type,
+                .access = property.access,
+                .group = property.group,
+                .visible = property.visible
+            });
+        }
+        return true;
+    }
+
+    uint64_t ScriptSystem::GetScriptPropertyLayoutVersion(ScriptHandle handle) const
+    {
+        if (!handle.IsValid())
+        {
+            return 0;
+        }
+        const auto it = loadedScripts_.find(handle.id);
+        if (it == loadedScripts_.end())
+        {
+            return 0;
+        }
+        return it->second.propertyLayoutVersion;
+    }
+
+    bool ScriptSystem::GetScriptPropertyValue(ScriptHandle handle, shine::STextView propertyName, reflection::ScriptValue& outValue) const
+    {
+        outValue = reflection::ScriptValue{};
+        if (!context_ || !handle.IsValid() || propertyName.empty())
+        {
+            return false;
+        }
+        const auto it = loadedScripts_.find(handle.id);
+        if (it == loadedScripts_.end())
+        {
+            return false;
+        }
+
+        QuickJSScriptBridge bridge(context_);
+        JSValue scriptObj = JS_UNDEFINED;
+        if (JS_IsObject(it->second.scriptObject))
+        {
+            scriptObj = JS_DupValue(context_, it->second.scriptObject);
+        }
+        if (!JS_IsObject(scriptObj))
+        {
+            JSValue globalObj = JS_GetGlobalObject(context_);
+            scriptObj = ResolveScriptObject(context_, globalObj);
+            JS_FreeValue(context_, globalObj);
+        }
+        if (!JS_IsObject(scriptObj))
+        {
+            JS_FreeValue(context_, scriptObj);
+            return false;
+        }
+
+        const shine::SString propertyNameText(propertyName);
+        JSValue jsValue = JS_GetPropertyStr(context_, scriptObj, propertyNameText.c_str());
+        outValue = bridge.FromJSValue(jsValue);
+        JS_FreeValue(context_, jsValue);
+        JS_FreeValue(context_, scriptObj);
+        return !outValue.IsEmpty();
+    }
+
+    bool ScriptSystem::SetScriptPropertyValue(ScriptHandle handle, shine::STextView propertyName, const reflection::ScriptValue& value)
+    {
+        if (!context_ || !handle.IsValid() || propertyName.empty())
+        {
+            return false;
+        }
+        const auto it = loadedScripts_.find(handle.id);
+        if (it == loadedScripts_.end())
+        {
+            return false;
+        }
+        const shine::SString propertyNameText(propertyName);
+        const auto propertyIt = std::find_if(
+            it->second.properties.begin(),
+            it->second.properties.end(),
+            [&](const ScriptEntry::PropertyMeta& item) { return item.name == propertyNameText; }
+        );
+        if (propertyIt == it->second.properties.end() || propertyIt->access == kReadOnlyAccess)
+        {
+            return false;
+        }
+
+        QuickJSScriptBridge bridge(context_);
+        JSValue scriptObj = JS_UNDEFINED;
+        if (JS_IsObject(it->second.scriptObject))
+        {
+            scriptObj = JS_DupValue(context_, it->second.scriptObject);
+        }
+        if (!JS_IsObject(scriptObj))
+        {
+            JSValue globalObj = JS_GetGlobalObject(context_);
+            scriptObj = ResolveScriptObject(context_, globalObj);
+            JS_FreeValue(context_, globalObj);
+            if (JS_IsObject(scriptObj))
+            {
+                if (!JS_IsUndefined(it->second.scriptObject))
+                {
+                    JS_FreeValue(context_, it->second.scriptObject);
+                }
+                it->second.scriptObject = JS_DupValue(context_, scriptObj);
+            }
+        }
+        if (!JS_IsObject(scriptObj))
+        {
+            JS_FreeValue(context_, scriptObj);
+            return false;
+        }
+
+        JSValue jsValue = bridge.ToJSValue(value);
+        const int result = JS_SetPropertyStr(context_, scriptObj, propertyNameText.c_str(), jsValue);
+        JS_FreeValue(context_, scriptObj);
+        return result >= 0;
     }
 
     shine::gameplay::SObject* ScriptSystem::FindActorById(int id) const
@@ -1208,6 +1527,7 @@ namespace shine::script
         outEntry.destroyFunc = JS_UNDEFINED;
         outEntry.onEnableFunc = JS_UNDEFINED;
         outEntry.onDisableFunc = JS_UNDEFINED;
+        outEntry.scriptObject = JS_UNDEFINED;
         outEntry.startCalled = false;
         outEntry.enableNotified = false;
         outEntry.scriptEnabled = true;
@@ -1222,24 +1542,46 @@ namespace shine::script
         const std::filesystem::path helperPath = resolvedPath.parent_path() / "shine_decorators.js";
         if (helperPath != resolvedPath && std::filesystem::exists(helperPath))
         {
-            const auto helperTextResult = util::read_file_text(shine::SString(helperPath.string()).view());
-            if (helperTextResult.has_value())
+            if (!decoratorLibLoaded_)
             {
-                const std::string helperPathString = helperPath.string();
-                JSValue helperEvalResult = JS_Eval(
+                const auto helperTextResult = util::read_file_text(shine::SString(helperPath.string()).view());
+                if (helperTextResult.has_value())
+                {
+                    const std::string helperPathString = helperPath.string();
+                    JSValue helperEvalResult = JS_Eval(
+                        context_,
+                        helperTextResult.value().data(),
+                        helperTextResult.value().size(),
+                        helperPathString.c_str(),
+                        JS_EVAL_TYPE_GLOBAL
+                    );
+                    if (JS_IsException(helperEvalResult))
+                    {
+                        ReportException(STextView::from_literal("EvaluateDecoratorLib"), shine::SString(helperPathString).view());
+                        JS_FreeValue(context_, helperEvalResult);
+                        return false;
+                    }
+                    JS_FreeValue(context_, helperEvalResult);
+                    decoratorLibLoaded_ = true;
+                }
+            }
+            else
+            {
+                static constexpr const char* kResetDecoratorMeta = "if (globalThis.__shine_meta && Array.isArray(globalThis.__shine_meta.classes)) { globalThis.__shine_meta.classes.length = 0; }";
+                JSValue resetMetaResult = JS_Eval(
                     context_,
-                    helperTextResult.value().data(),
-                    helperTextResult.value().size(),
-                    helperPathString.c_str(),
+                    kResetDecoratorMeta,
+                    std::strlen(kResetDecoratorMeta),
+                    "<reset_shine_meta>",
                     JS_EVAL_TYPE_GLOBAL
                 );
-                if (JS_IsException(helperEvalResult))
+                if (JS_IsException(resetMetaResult))
                 {
-                    ReportException(STextView::from_literal("EvaluateDecoratorLib"), shine::SString(helperPathString).view());
-                    JS_FreeValue(context_, helperEvalResult);
+                    ReportException(STextView::from_literal("ResetDecoratorMeta"), scriptPath);
+                    JS_FreeValue(context_, resetMetaResult);
                     return false;
                 }
-                JS_FreeValue(context_, helperEvalResult);
+                JS_FreeValue(context_, resetMetaResult);
             }
         }
 
@@ -1276,6 +1618,7 @@ namespace shine::script
         outEntry.destroyFunc = readLifecycleFunc("destroy", "Destroy");
         outEntry.onEnableFunc = readLifecycleFunc("onEnable", "OnEnable");
         outEntry.onDisableFunc = readLifecycleFunc("onDisable", "OnDisable");
+        outEntry.scriptObject = ResolveScriptObject(context_, globalObj);
         ParseScriptMetadata(outEntry, globalObj);
         JS_FreeValue(context_, globalObj);
         return true;
@@ -1331,13 +1674,22 @@ namespace shine::script
                                 }
                                 JSValue nameVal = JS_GetPropertyStr(context_, item, "name");
                                 JSValue typeVal = JS_GetPropertyStr(context_, item, "type");
+                                JSValue accessVal = JS_GetPropertyStr(context_, item, "access");
+                                JSValue groupVal = JS_GetPropertyStr(context_, item, "group");
+                                JSValue visibleVal = JS_GetPropertyStr(context_, item, "visible");
                                 const char* nameText = JS_IsString(nameVal) ? JS_ToCString(context_, nameVal) : nullptr;
                                 const char* typeText = JS_IsString(typeVal) ? JS_ToCString(context_, typeVal) : nullptr;
+                                const char* accessText = JS_IsString(accessVal) ? JS_ToCString(context_, accessVal) : nullptr;
+                                const char* groupText = JS_IsString(groupVal) ? JS_ToCString(context_, groupVal) : nullptr;
+                                const bool isVisible = JS_IsBool(visibleVal) ? (JS_ToBool(context_, visibleVal) != 0) : true;
                                 if (nameText && typeText)
                                 {
                                     entry.properties.push_back(ScriptEntry::PropertyMeta{
                                         .name = shine::SString(nameText),
-                                        .type = shine::SString(typeText)
+                                        .type = shine::SString(typeText),
+                                        .access = shine::SString(accessText ? accessText : kReadWriteAccess),
+                                        .group = shine::SString(groupText ? groupText : ""),
+                                        .visible = isVisible
                                     });
                                 }
                                 if (nameText)
@@ -1348,6 +1700,17 @@ namespace shine::script
                                 {
                                     JS_FreeCString(context_, typeText);
                                 }
+                                if (accessText)
+                                {
+                                    JS_FreeCString(context_, accessText);
+                                }
+                                if (groupText)
+                                {
+                                    JS_FreeCString(context_, groupText);
+                                }
+                                JS_FreeValue(context_, groupVal);
+                                JS_FreeValue(context_, visibleVal);
+                                JS_FreeValue(context_, accessVal);
                                 JS_FreeValue(context_, typeVal);
                                 JS_FreeValue(context_, nameVal);
                                 JS_FreeValue(context_, item);
@@ -1411,7 +1774,10 @@ namespace shine::script
                     {
                         entry.properties.push_back(ScriptEntry::PropertyMeta{
                             .name = shine::SString(nameText),
-                            .type = shine::SString(typeText)
+                            .type = shine::SString(typeText),
+                            .access = shine::SString(kReadWriteAccess),
+                            .group = shine::SString(""),
+                            .visible = true
                         });
                     }
                     if (nameText)
@@ -1440,6 +1806,30 @@ namespace shine::script
                 entry.properties.size(),
                 entry.functions.size()
             );
+
+            for (const auto& prop : entry.properties)
+            {
+                SHINE_LOG_INFO(
+                    ScriptSystemLog,
+                    "ScriptRuntime",
+                    "属性: name={} type={} access={} group={} visible={}",
+                    prop.name.to_string(),
+                    prop.type.to_string(),
+                    prop.access.to_string(),
+                    prop.group.to_string(),
+                    prop.visible
+                );
+            }
+
+            for (const auto& func : entry.functions)
+            {
+                SHINE_LOG_INFO(
+                    ScriptSystemLog,
+                    "ScriptRuntime",
+                    "函数: name={}",
+                    func.name.to_string()
+                );
+            }
         }
     }
 
@@ -1469,6 +1859,10 @@ namespace shine::script
         {
             JS_FreeValue(context_, entry.onDisableFunc);
         }
+        if (context_ && !JS_IsUndefined(entry.scriptObject))
+        {
+            JS_FreeValue(context_, entry.scriptObject);
+        }
         if (context_)
         {
             for (auto& timer : entry.timers)
@@ -1486,6 +1880,7 @@ namespace shine::script
         entry.destroyFunc = JS_UNDEFINED;
         entry.onEnableFunc = JS_UNDEFINED;
         entry.onDisableFunc = JS_UNDEFINED;
+        entry.scriptObject = JS_UNDEFINED;
         entry.startCalled = false;
         entry.enableNotified = false;
         entry.scriptEnabled = true;

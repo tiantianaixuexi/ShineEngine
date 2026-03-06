@@ -1,0 +1,8 @@
+{
+    "name": "glaze",
+    "dirs": [
+        "src/third/glaze/glaze.hpp"
+    ],
+    "type": "interface",
+    "comment": "glaze 序列化与反射头文件模块"
+}

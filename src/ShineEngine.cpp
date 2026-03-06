@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 #include "editor/mainEditor.h"
 #include "editor/asset/editor_asset_manager.h"
 #include "editor/asset/editor_runtime_asset_bridge.h"
-#include "editor/main_editor/editor_composition_root.h"
+#include "editor/main_editor/EditorCompositionRoot.h"
 
 #include "render/backend/render_backend.h"
 #include "render/debug/pass_texture_manager.h"
@@ -101,6 +101,7 @@ int main(int argc, char **argv) {
     context.Register(new manager::AssetManager());
     editor::main_editor::EditorCompositionRoot::RegisterEditorSystems(context);
     context.Register(new manager::CameraManager());
+    context.Register(new util::watcher::FileWatchService());
     context.Register(new script::ScriptSystem());
 
     context.Register(new editor::SEditorPlayer());
@@ -112,7 +113,6 @@ int main(int argc, char **argv) {
 
     context.Register(new gameplay::tick::TickManager());
     context.Register(new gameplay::world::WorldService());
-    context.Register(new util::watcher::FileWatchService());
 
     if (!context.InitAll()) {
         fmt::println("EngineContext::InitAll 失败");

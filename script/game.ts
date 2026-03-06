@@ -4,59 +4,54 @@ declare function SetInterval(cb: () => void, intervalMs: number): number;
 declare function ClearTimer(id: number): boolean;
 declare function SetScriptEnabled(enabled: boolean): boolean;
 declare function SetScriptTickInterval(intervalSeconds: number): boolean;
-type LocalFieldType = "float" | "int" | "bool" | "string";
-type LocalMetaRoot = { classes: Array<{ name: string; properties: Array<{ name: string; type: LocalFieldType }>; functions: Array<{ name: string }> }> };
-type LocalClassConfig = string | { name: string };
-type LocalPropertyConfig = { type: LocalFieldType; name?: string };
-type LocalFunctionConfig = { name?: string };
-const GMeta = (globalThis as Record<string, unknown>).__shine_meta as LocalMetaRoot;
-const GClass = (globalThis as Record<string, unknown>).SCLASS as (config: LocalClassConfig) => ClassDecorator;
-const GProperty = (globalThis as Record<string, unknown>).SPROPERTY as (config: LocalPropertyConfig) => PropertyDecorator;
-const GProeprty = (globalThis as Record<string, unknown>).SPROEPRTY as (config: LocalPropertyConfig) => PropertyDecorator;
-const GFunction = (globalThis as Record<string, unknown>).SFUNCTION as (config?: LocalFunctionConfig) => MethodDecorator;
 
-@GClass("DemoScriptActor")
+@SCLASS("DemoScriptActor")
 class DemoScriptActor {
-    @GProperty({ type: "float" })
+    @SPROPERTY({ type: "float", access: "ReadWrite", group: "移动" })
     motionScale = 1.0;
 
-    @GProperty({ type: "bool" })
+    @SPROPERTY({ type: "bool", access: "ReadWrite", group: "开关" })
     pulseEnabled = true;
 
-    @GProeprty({ type: "string" })
+    @SPROPERTY({ type: "float", access: "ReadWrite", group: "属性" })
+    hp = true;
+
+    @SPROPERTY({ type: "float", access: "ReadWrite", group: "属性", visible: false })
+    max_hp = true;
+
+    @SPROPERTY({ type: "string", access: "ReadOnly", group: "基础", visible: false })
     displayName = "DemoScriptActor";
 
     private timeAccum = 0.0;
     private pulseTimerId = 0;
 
-    @GFunction()
+    @SFUNCTION()
     Init() {
         Log("Init called");
     }
 
-    @GFunction()
+    @SFUNCTION()
     Start() {
         if (typeof SetScriptTickInterval === "function") {
             SetScriptTickInterval(0.033);
         }
-        Log(`SCLASS=${this.displayName} properties=${GMeta.classes[0]?.properties.length ?? 0} functions=${GMeta.classes[0]?.functions.length ?? 0}`);
+        Log(`SCLASS=${this.displayName}`);
         if (typeof SetInterval === "function") {
             this.pulseTimerId = SetInterval(() => {
                 Log(`timer tick t=${this.timeAccum.toFixed(2)} scale=${this.motionScale}`);
             }, 1000);
         }
-        if (typeof SetTimeout === "function") {
+
+        SetTimeout(() => {
+            Log("timeout fired");
+            SetScriptEnabled(false);
             SetTimeout(() => {
-                Log("timeout fired");
-                SetScriptEnabled(false);
-                SetTimeout(() => {
-                    SetScriptEnabled(true);
-                }, 1500);
-            }, 1800);
-        }
+                SetScriptEnabled(true);
+            }, 1500);
+        }, 1800);
     }
 
-    @GFunction()
+    @SFUNCTION()
     Update(dt: number) {
         this.timeAccum += dt * this.motionScale;
         if (!this.pulseEnabled) {
@@ -64,25 +59,26 @@ class DemoScriptActor {
         }
     }
 
-    @GFunction()
+    @SFUNCTION()
     Destroy() {
         ClearTimer(this.pulseTimerId);
         this.pulseTimerId = 0;
         Log("Destroy called");
     }
 
-    @GFunction()
+    @SFUNCTION()
     OnEnable() {
         Log("OnEnable called");
     }
 
-    @GFunction()
+    @SFUNCTION()
     OnDisable() {
         Log("OnDisable called");
     }
 }
 
 const __script = new DemoScriptActor();
+(globalThis as { __script?: DemoScriptActor }).__script = __script;
 
 function Init() { __script.Init(); }
 function Start() { __script.Start(); }

@@ -32,7 +32,6 @@
 //
 //  - jsonhpp: C++ JSON library.
 //  - base64: base64 decode/encode library.
-//  - stb_image: Image loading library.
 //
 #ifndef TINY_GLTF_H_
 #define TINY_GLTF_H_
@@ -46,6 +45,7 @@
 #include <functional>
 #include <limits>
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -1370,21 +1370,6 @@ using WriteImageDataFunction = std::function<bool(
     const FsCallbacks * /* fs_cb */, const URICallbacks * /* uri_cb */,
     std::string * /* out_uri */, void * /* user_pointer */)>;
 
-#ifndef TINYGLTF_NO_STB_IMAGE
-// Declaration of default image loader callback
-bool LoadImageData(Image *image, const int image_idx, std::string *err,
-                   std::string *warn, int req_width, int req_height,
-                   const unsigned char *bytes, int size, void *);
-#endif
-
-#ifndef TINYGLTF_NO_STB_IMAGE_WRITE
-// Declaration of default image writer callback
-bool WriteImageData(const std::string *basepath, const std::string *filename,
-                    const Image *image, bool embedImages,
-                    const FsCallbacks* fs_cb, const URICallbacks *uri_cb,
-                    std::string *out_uri, void *);
-#endif
-
 ///
 /// glTF Parser/Serializer context.
 ///
@@ -1612,21 +1597,11 @@ class TinyGLTF {
       // URI callback user data
       nullptr};
 
-  LoadImageDataFunction LoadImageData =
-#ifndef TINYGLTF_NO_STB_IMAGE
-      &tinygltf::LoadImageData;
-#else
-      nullptr;
-#endif
+  LoadImageDataFunction LoadImageData = nullptr;
   void *load_image_user_data_{nullptr};
   bool user_image_loader_{false};
 
-  WriteImageDataFunction WriteImageData =
-#ifndef TINYGLTF_NO_STB_IMAGE_WRITE
-      &tinygltf::WriteImageData;
-#else
-      nullptr;
-#endif
+  WriteImageDataFunction WriteImageData = nullptr;
   void *write_image_user_data_{nullptr};
 };
 
@@ -1710,35 +1685,11 @@ class TinyGLTF {
 #pragma GCC diagnostic ignored "-Wtype-limits"
 #endif  // __GNUC__
 
-#ifndef TINYGLTF_NO_INCLUDE_JSON
-#ifndef TINYGLTF_USE_RAPIDJSON
-#include "nlohmann/json.hpp"
-#else
-#ifndef TINYGLTF_NO_INCLUDE_RAPIDJSON
-#include "document.h"
-#include "prettywriter.h"
-#include "rapidjson.h"
-#include "stringbuffer.h"
-#include "writer.h"
-#endif
-#endif
-#endif
+#include "glaze/glaze.hpp"
 
 #ifdef TINYGLTF_ENABLE_DRACO
 #include "draco/compression/decode.h"
 #include "draco/core/decoder_buffer.h"
-#endif
-
-#ifndef TINYGLTF_NO_STB_IMAGE
-#ifndef TINYGLTF_NO_INCLUDE_STB_IMAGE
-#include "stb_image.h"
-#endif
-#endif
-
-#ifndef TINYGLTF_NO_STB_IMAGE_WRITE
-#ifndef TINYGLTF_NO_INCLUDE_STB_IMAGE_WRITE
-#include "stb_image_write.h"
-#endif
 #endif
 
 #ifdef __clang__
@@ -1799,86 +1750,22 @@ class TinyGLTF {
 
 namespace tinygltf {
 namespace detail {
-#ifdef TINYGLTF_USE_RAPIDJSON
-
-#ifdef TINYGLTF_USE_RAPIDJSON_CRTALLOCATOR
-// This uses the RapidJSON CRTAllocator.  It is thread safe and multiple
-// documents may be active at once.
-using json =
-    rapidjson::GenericValue<rapidjson::UTF8<>, rapidjson::CrtAllocator>;
-using json_iterator = json::MemberIterator;
-using json_const_iterator = json::ConstMemberIterator;
-using json_const_array_iterator = json const *;
-using JsonDocument =
-    rapidjson::GenericDocument<rapidjson::UTF8<>, rapidjson::CrtAllocator>;
-rapidjson::CrtAllocator s_CrtAllocator;  // stateless and thread safe
-rapidjson::CrtAllocator &GetAllocator() { return s_CrtAllocator; }
-#else
-// This uses the default RapidJSON MemoryPoolAllocator.  It is very fast, but
-// not thread safe. Only a single JsonDocument may be active at any one time,
-// meaning only a single gltf load/save can be active any one time.
-using json = rapidjson::Value;
-using json_iterator = json::MemberIterator;
-using json_const_iterator = json::ConstMemberIterator;
-using json_const_array_iterator = json const *;
-rapidjson::Document *s_pActiveDocument = nullptr;
-rapidjson::Document::AllocatorType &GetAllocator() {
-  assert(s_pActiveDocument);  // Root json node must be JsonDocument type
-  return s_pActiveDocument->GetAllocator();
-}
-
-#ifdef __clang__
-#pragma clang diagnostic push
-// Suppress JsonDocument(JsonDocument &&rhs) noexcept
-#pragma clang diagnostic ignored "-Wunused-member-function"
-#endif
-
-struct JsonDocument : public rapidjson::Document {
-  JsonDocument() {
-    assert(s_pActiveDocument ==
-           nullptr);  // When using default allocator, only one document can be
-                      // active at a time, if you need multiple active at once,
-                      // define TINYGLTF_USE_RAPIDJSON_CRTALLOCATOR
-    s_pActiveDocument = this;
-  }
-  JsonDocument(const JsonDocument &) = delete;
-  JsonDocument(JsonDocument &&rhs) noexcept
-      : rapidjson::Document(std::move(rhs)) {
-    s_pActiveDocument = this;
-    rhs.isNil = true;
-  }
-  ~JsonDocument() {
-    if (!isNil) {
-      s_pActiveDocument = nullptr;
-    }
-  }
-
- private:
-  bool isNil = false;
-};
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-#endif  // TINYGLTF_USE_RAPIDJSON_CRTALLOCATOR
-
-#else
-using nlohmann::json;
-using json_iterator = json::iterator;
-using json_const_iterator = json::const_iterator;
-using json_const_array_iterator = json_const_iterator;
+using json = glz::generic_u64;
+using json_iterator = json::object_t::iterator;
+using json_const_iterator = json::object_t::const_iterator;
+using json_const_array_iterator = json::array_t::const_iterator;
 using JsonDocument = json;
-#endif
 
 void JsonParse(JsonDocument &doc, const char *str, size_t length,
                bool throwExc = false) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  (void)throwExc;
-  doc.Parse(str, length);
-#else
-  doc = detail::json::parse(str, str + length, nullptr, throwExc);
-#endif
+  std::string_view input(str, length);
+  auto ec = glz::read_json(doc, input);
+  if (ec) {
+    if (throwExc) {
+      throw std::runtime_error(glz::format_error(ec, input));
+    }
+    doc = JsonDocument{};
+  }
 }
 }  // namespace detail
 }  // namespace tinygltf
@@ -2591,257 +2478,16 @@ void TinyGLTF::SetImageLoader(LoadImageDataFunction func, void *user_data) {
 }
 
 void TinyGLTF::RemoveImageLoader() {
-  LoadImageData =
-#ifndef TINYGLTF_NO_STB_IMAGE
-      &tinygltf::LoadImageData;
-#else
-      nullptr;
-#endif
-
+  LoadImageData = nullptr;
   load_image_user_data_ = nullptr;
   user_image_loader_ = false;
 }
-
-#ifndef TINYGLTF_NO_STB_IMAGE
-bool LoadImageData(Image *image, const int image_idx, std::string *err,
-                   std::string *warn, int req_width, int req_height,
-                   const unsigned char *bytes, int size, void *user_data) {
-  (void)warn;
-
-  LoadImageDataOption option;
-  if (user_data) {
-    option = *reinterpret_cast<LoadImageDataOption *>(user_data);
-  }
-
-  int w = 0, h = 0, comp = 0, req_comp = 0;
-
-  // Try to decode image header
-  if (!stbi_info_from_memory(bytes, size, &w, &h, &comp)) {
-    // On failure, if we load images as is, we just warn.
-    std::string* msgOut = option.as_is ? warn : err;
-    if (msgOut) {
-      (*msgOut) +=
-        "Unknown image format. STB cannot decode image header for image[" +
-        std::to_string(image_idx) + "] name = \"" + image->name + "\".\n";
-    }
-    if (!option.as_is) {
-      // If we decode images, error out.
-      return false;
-    } else {
-      // If we load images as is, we copy the image data,
-      // set all image properties to invalid, and report success.
-      image->width = image->height = image->component = -1;
-      image->bits = image->pixel_type = -1;
-      image->image.resize(static_cast<size_t>(size));
-      std::copy(bytes, bytes + size, image->image.begin());
-      return true;
-    }
-  }
-
-  int bits = 8;
-  int pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
-
-  if (stbi_is_16_bit_from_memory(bytes, size)) {
-    bits = 16;
-    pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
-  }
-
-  // preserve_channels true: Use channels stored in the image file.
-  // false: force 32-bit textures for common Vulkan compatibility. It appears
-  // that some GPU drivers do not support 24-bit images for Vulkan
-  req_comp = (option.preserve_channels || option.as_is) ? 0 : 4;
-
-  unsigned char* data = nullptr;
-  // Perform image decoding if requested
-  if (!option.as_is) {
-    // If the image is marked as 16 bit per channel, attempt to decode it as such first.
-    // If that fails, we are going to attempt to load it as 8 bit per channel image.
-    if (bits == 16) {
-      data = reinterpret_cast<unsigned char *>(stbi_load_16_from_memory(bytes, size, &w, &h, &comp, req_comp));
-    }
-    // Load as 8 bit per channel data
-    if (!data) {
-      data = stbi_load_from_memory(bytes, size, &w, &h, &comp, req_comp);
-      if (!data) {
-        if (err) {
-          (*err) +=
-            "Unknown image format. STB cannot decode image data for image[" +
-            std::to_string(image_idx) + "] name = \"" + image->name + "\".\n";
-        }
-        return false;
-      }
-      // If we were succesful, mark as 8 bit
-      bits = 8;
-      pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
-    }
-  }
-
-  if ((w < 1) || (h < 1)) {
-    stbi_image_free(data);
-    if (err) {
-      (*err) += "Invalid image data for image[" + std::to_string(image_idx) +
-                "] name = \"" + image->name + "\"\n";
-    }
-    return false;
-  }
-
-  if (req_width > 0) {
-    if (req_width != w) {
-      stbi_image_free(data);
-      if (err) {
-        (*err) += "Image width mismatch for image[" +
-                  std::to_string(image_idx) + "] name = \"" + image->name +
-                  "\"\n";
-      }
-      return false;
-    }
-  }
-
-  if (req_height > 0) {
-    if (req_height != h) {
-      stbi_image_free(data);
-      if (err) {
-        (*err) += "Image height mismatch. for image[" +
-                  std::to_string(image_idx) + "] name = \"" + image->name +
-                  "\"\n";
-      }
-      return false;
-    }
-  }
-
-  if (req_comp != 0) {
-    // loaded data has `req_comp` channels(components)
-    comp = req_comp;
-  }
-
-  image->width = w;
-  image->height = h;
-  image->component = comp;
-  image->bits = bits;
-  image->pixel_type = pixel_type;
-  image->as_is = option.as_is;
-
-  if (option.as_is) {
-    // Store the original image data
-    image->image.resize(static_cast<size_t>(size));
-    std::copy(bytes, bytes + size, image->image.begin());
-  }
-  else {
-    // Store the decoded image data
-    image->image.resize(static_cast<size_t>(w * h * comp) * size_t(bits / 8));
-    std::copy(data, data + w * h * comp * (bits / 8), image->image.begin());
-  }
-
-  stbi_image_free(data);
-  return true;
-}
-#endif
 
 void TinyGLTF::SetImageWriter(WriteImageDataFunction func, void *user_data) {
   WriteImageData = std::move(func);
   write_image_user_data_ = user_data;
 }
 
-#ifndef TINYGLTF_NO_STB_IMAGE_WRITE
-static void WriteToMemory_stbi(void *context, void *data, int size) {
-  std::vector<unsigned char> *buffer =
-      reinterpret_cast<std::vector<unsigned char> *>(context);
-
-  unsigned char *pData = reinterpret_cast<unsigned char *>(data);
-
-  buffer->insert(buffer->end(), pData, pData + size);
-}
-
-bool WriteImageData(const std::string *basepath, const std::string *filename,
-                    const Image *image, bool embedImages,
-                    const FsCallbacks* fs_cb, const URICallbacks *uri_cb,
-                    std::string *out_uri, void *) {
-  // Early out on empty images, report the original uri if the image was not written.
-  if (image->image.empty()) {
-    *out_uri = *filename;
-    return true;
-  }
-
-  const std::string ext = GetFilePathExtension(*filename);
-
-  // Write image to temporary buffer
-  std::string header;
-  std::vector<unsigned char> data;
-
-  // If the image data is already encoded, take it as is
-  if (image->as_is) {
-      data = image->image;
-  }
-
-  if (ext == "png") {
-    if (!image->as_is) {
-      if ((image->bits != 8) ||
-          (image->pixel_type != TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)) {
-          // Unsupported pixel format
-          return false;
-      }
-
-      if (!stbi_write_png_to_func(WriteToMemory_stbi, &data, image->width,
-                                  image->height, image->component,
-                                  &image->image[0], 0)) {
-        return false;
-      }
-    }
-    header = "data:image/png;base64,";
-  } else if (ext == "jpg") {
-    if (!image->as_is &&
-        !stbi_write_jpg_to_func(WriteToMemory_stbi, &data, image->width,
-                                image->height, image->component,
-                                &image->image[0], 100)) {
-      return false;
-    }
-    header = "data:image/jpeg;base64,";
-  } else if (ext == "bmp") {
-    if (!image->as_is &&
-        !stbi_write_bmp_to_func(WriteToMemory_stbi, &data, image->width,
-                                image->height, image->component,
-                                &image->image[0])) {
-      return false;
-    }
-    header = "data:image/bmp;base64,";
-  } else if (!embedImages) {
-    // Error: can't output requested format to file
-    return false;
-  }
-
-  if (embedImages) {
-    // Embed base64-encoded image into URI
-    if (data.size()) {
-      *out_uri = header + base64_encode(&data[0],
-                                        static_cast<unsigned int>(data.size()));
-    } else {
-      // Throw error?
-    }
-  } else {
-    // Write image to disc
-    if ((fs_cb != nullptr) && (fs_cb->WriteWholeFile != nullptr)) {
-      const std::string imagefilepath = JoinPath(*basepath, *filename);
-      std::string writeError;
-      if (!fs_cb->WriteWholeFile(&writeError, imagefilepath, data,
-                              fs_cb->user_data)) {
-        // Could not write image file to disc; Throw error ?
-        return false;
-      }
-    } else {
-      // Throw error?
-    }
-    if (uri_cb->encode) {
-      if (!uri_cb->encode(*filename, "image", out_uri, uri_cb->user_data)) {
-        return false;
-      }
-    } else {
-      *out_uri = *filename;
-    }
-  }
-
-  return true;
-}
-#endif
 
 bool TinyGLTF::SetURICallbacks(URICallbacks callbacks, std::string* err) {
   if (callbacks.decode == nullptr) {
@@ -3438,319 +3084,142 @@ bool DecodeDataURI(std::vector<unsigned char> *out, std::string &mime_type,
 
 namespace detail {
 bool GetInt(const detail::json &o, int &val) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  if (!o.IsDouble()) {
-    if (o.IsInt()) {
-      val = o.GetInt();
-      return true;
-    } else if (o.IsUint()) {
-      val = static_cast<int>(o.GetUint());
-      return true;
-    } else if (o.IsInt64()) {
-      val = static_cast<int>(o.GetInt64());
-      return true;
-    } else if (o.IsUint64()) {
-      val = static_cast<int>(o.GetUint64());
-      return true;
-    }
-  }
-
-  return false;
-#else
-  auto type = o.type();
-
-  if ((type == detail::json::value_t::number_integer) ||
-      (type == detail::json::value_t::number_unsigned)) {
+  if (o.holds<int64_t>()) {
     val = static_cast<int>(o.get<int64_t>());
     return true;
   }
-
-  return false;
-#endif
-}
-
-#ifdef TINYGLTF_USE_RAPIDJSON
-bool GetDouble(const detail::json &o, double &val) {
-  if (o.IsDouble()) {
-    val = o.GetDouble();
+  if (o.holds<uint64_t>()) {
+    val = static_cast<int>(o.get<uint64_t>());
     return true;
   }
-
   return false;
 }
-#endif
 
 bool GetNumber(const detail::json &o, double &val) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  if (o.IsNumber()) {
-    val = o.GetDouble();
-    return true;
-  }
-
-  return false;
-#else
   if (o.is_number()) {
-    val = o.get<double>();
+    val = o.as<double>();
     return true;
   }
-
   return false;
-#endif
 }
 
 bool GetString(const detail::json &o, std::string &val) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  if (o.IsString()) {
-    val = o.GetString();
-    return true;
-  }
-
-  return false;
-#else
-  if (o.type() == detail::json::value_t::string) {
+  if (o.is_string()) {
     val = o.get<std::string>();
     return true;
   }
-
   return false;
-#endif
 }
 
 bool IsArray(const detail::json &o) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  return o.IsArray();
-#else
   return o.is_array();
-#endif
 }
 
 detail::json_const_array_iterator ArrayBegin(const detail::json &o) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  return o.Begin();
-#else
-  return o.begin();
-#endif
+  return o.get_array().begin();
 }
 
 detail::json_const_array_iterator ArrayEnd(const detail::json &o) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  return o.End();
-#else
-  return o.end();
-#endif
+  return o.get_array().end();
 }
 
 bool IsObject(const detail::json &o) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  return o.IsObject();
-#else
   return o.is_object();
-#endif
 }
 
 detail::json_const_iterator ObjectBegin(const detail::json &o) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  return o.MemberBegin();
-#else
-  return o.begin();
-#endif
+  return o.get_object().begin();
 }
 
 detail::json_const_iterator ObjectEnd(const detail::json &o) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  return o.MemberEnd();
-#else
-  return o.end();
-#endif
+  return o.get_object().end();
 }
 
-// Making this a const char* results in a pointer to a temporary when
-// TINYGLTF_USE_RAPIDJSON is off.
 std::string GetKey(detail::json_const_iterator &it) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  return it->name.GetString();
-#else
-  return it.key().c_str();
-#endif
+  return it->first;
 }
 
 bool FindMember(const detail::json &o, const char *member,
                 detail::json_const_iterator &it) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  if (!o.IsObject()) {
+  if (!o.is_object()) {
     return false;
   }
-  it = o.FindMember(member);
-  return it != o.MemberEnd();
-#else
-  it = o.find(member);
-  return it != o.end();
-#endif
+  it = o.get_object().find(member);
+  return it != o.get_object().end();
 }
 
 bool FindMember(detail::json &o, const char *member,
                 detail::json_iterator &it) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  if (!o.IsObject()) {
+  if (!o.is_object()) {
     return false;
   }
-  it = o.FindMember(member);
-  return it != o.MemberEnd();
-#else
-  it = o.find(member);
-  return it != o.end();
-#endif
+  it = o.get_object().find(member);
+  return it != o.get_object().end();
 }
 
 void Erase(detail::json &o, detail::json_iterator &it) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  o.EraseMember(it);
-#else
-  o.erase(it);
-#endif
+  o.get_object().erase(it);
 }
 
 bool IsEmpty(const detail::json &o) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  return o.ObjectEmpty();
-#else
-  return o.empty();
-#endif
+  return o.get_object().empty();
 }
 
 const detail::json &GetValue(detail::json_const_iterator &it) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  return it->value;
-#else
-  return it.value();
-#endif
+  return it->second;
 }
 
 detail::json &GetValue(detail::json_iterator &it) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  return it->value;
-#else
-  return it.value();
-#endif
+  return it->second;
 }
 
 std::string JsonToString(const detail::json &o, int spacing = -1) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  using namespace rapidjson;
-  StringBuffer buffer;
-  if (spacing == -1) {
-    Writer<StringBuffer> writer(buffer);
-    // TODO: Better error handling.
-    // https://github.com/syoyo/tinygltf/issues/332
-    if (!o.Accept(writer)) {
-      return "tiny_gltf::JsonToString() failed rapidjson conversion";
-    }
-  } else {
-    PrettyWriter<StringBuffer> writer(buffer);
-    writer.SetIndent(' ', uint32_t(spacing));
-    if (!o.Accept(writer)) {
-      return "tiny_gltf::JsonToString() failed rapidjson conversion";
-    }
+  (void)spacing;
+  auto dumped = o.dump();
+  if (!dumped) {
+    return "tiny_gltf::JsonToString() failed glaze conversion";
   }
-  return buffer.GetString();
-#else
-  return o.dump(spacing);
-#endif
+  return *dumped;
 }
 
 }  // namespace detail
 
 static bool ParseJsonAsValue(Value *ret, const detail::json &o) {
   Value val{};
-#ifdef TINYGLTF_USE_RAPIDJSON
-  using rapidjson::Type;
-  switch (o.GetType()) {
-    case Type::kObjectType: {
-      Value::Object value_object;
-      for (auto it = o.MemberBegin(); it != o.MemberEnd(); ++it) {
-        Value entry;
-        ParseJsonAsValue(&entry, it->value);
-        if (entry.Type() != NULL_TYPE)
-          value_object.emplace(detail::GetKey(it), std::move(entry));
+  if (o.is_object()) {
+    Value::Object value_object;
+    for (auto it = o.get_object().begin(); it != o.get_object().end(); ++it) {
+      Value entry;
+      ParseJsonAsValue(&entry, it->second);
+      if (entry.Type() != NULL_TYPE) {
+        value_object.emplace(it->first, std::move(entry));
       }
-      if (value_object.size() > 0) val = Value(std::move(value_object));
-    } break;
-    case Type::kArrayType: {
-      Value::Array value_array;
-      value_array.reserve(o.Size());
-      for (auto it = o.Begin(); it != o.End(); ++it) {
-        Value entry;
-        ParseJsonAsValue(&entry, *it);
-        if (entry.Type() != NULL_TYPE)
-          value_array.emplace_back(std::move(entry));
+    }
+    if (value_object.size() > 0) {
+      val = Value(std::move(value_object));
+    }
+  } else if (o.is_array()) {
+    Value::Array value_array;
+    value_array.reserve(o.get_array().size());
+    for (auto it = o.get_array().begin(); it != o.get_array().end(); ++it) {
+      Value entry;
+      ParseJsonAsValue(&entry, *it);
+      if (entry.Type() != NULL_TYPE) {
+        value_array.emplace_back(std::move(entry));
       }
-      if (value_array.size() > 0) val = Value(std::move(value_array));
-    } break;
-    case Type::kStringType:
-      val = Value(std::string(o.GetString()));
-      break;
-    case Type::kFalseType:
-    case Type::kTrueType:
-      val = Value(o.GetBool());
-      break;
-    case Type::kNumberType:
-      if (!o.IsDouble()) {
-        int i = 0;
-        detail::GetInt(o, i);
-        val = Value(i);
-      } else {
-        double d = 0.0;
-        detail::GetDouble(o, d);
-        val = Value(d);
-      }
-      break;
-    case Type::kNullType:
-      break;
-      // all types are covered, so no `case default`
+    }
+    if (value_array.size() > 0) {
+      val = Value(std::move(value_array));
+    }
+  } else if (o.is_string()) {
+    val = Value(o.get<std::string>());
+  } else if (o.is_boolean()) {
+    val = Value(o.get<bool>());
+  } else if (o.holds<uint64_t>() || o.holds<int64_t>()) {
+    val = Value(static_cast<int>(o.as<int64_t>()));
+  } else if (o.holds<double>()) {
+    val = Value(o.get<double>());
   }
-#else
-  switch (o.type()) {
-    case detail::json::value_t::object: {
-      Value::Object value_object;
-      for (auto it = o.begin(); it != o.end(); it++) {
-        Value entry;
-        ParseJsonAsValue(&entry, it.value());
-        if (entry.Type() != NULL_TYPE)
-          value_object.emplace(it.key(), std::move(entry));
-      }
-      if (value_object.size() > 0) val = Value(std::move(value_object));
-    } break;
-    case detail::json::value_t::array: {
-      Value::Array value_array;
-      value_array.reserve(o.size());
-      for (auto it = o.begin(); it != o.end(); it++) {
-        Value entry;
-        ParseJsonAsValue(&entry, it.value());
-        if (entry.Type() != NULL_TYPE)
-          value_array.emplace_back(std::move(entry));
-      }
-      if (value_array.size() > 0) val = Value(std::move(value_array));
-    } break;
-    case detail::json::value_t::string:
-      val = Value(o.get<std::string>());
-      break;
-    case detail::json::value_t::boolean:
-      val = Value(o.get<bool>());
-      break;
-    case detail::json::value_t::number_integer:
-    case detail::json::value_t::number_unsigned:
-      val = Value(static_cast<int>(o.get<int64_t>()));
-      break;
-    case detail::json::value_t::number_float:
-      val = Value(o.get<double>());
-      break;
-    case detail::json::value_t::null:
-    case detail::json::value_t::discarded:
-    case detail::json::value_t::binary:
-      // default:
-      break;
-  }
-#endif
   const bool isNotNull = val.Type() != NULL_TYPE;
 
   if (ret) *ret = std::move(val);
@@ -3790,17 +3259,10 @@ static bool ParseBooleanProperty(bool *ret, std::string *err,
 
   bool isBoolean;
   bool boolValue = false;
-#ifdef TINYGLTF_USE_RAPIDJSON
-  isBoolean = value.IsBool();
-  if (isBoolean) {
-    boolValue = value.GetBool();
-  }
-#else
   isBoolean = value.is_boolean();
   if (isBoolean) {
     boolValue = value.get<bool>();
   }
-#endif
   if (!isBoolean) {
     if (required) {
       if (err) {
@@ -3877,21 +3339,14 @@ static bool ParseUnsignedProperty(size_t *ret, std::string *err,
 
   size_t uValue = 0;
   bool isUValue;
-#ifdef TINYGLTF_USE_RAPIDJSON
   isUValue = false;
-  if (value.IsUint()) {
-    uValue = value.GetUint();
+  if (value.holds<uint64_t>()) {
+    uValue = static_cast<size_t>(value.get<uint64_t>());
     isUValue = true;
-  } else if (value.IsUint64()) {
-    uValue = value.GetUint64();
+  } else if (value.holds<int64_t>() && (value.get<int64_t>() >= 0)) {
+    uValue = static_cast<size_t>(value.get<int64_t>());
     isUValue = true;
   }
-#else
-  isUValue = value.is_number_unsigned();
-  if (isUValue) {
-    uValue = value.get<size_t>();
-  }
-#endif
   if (!isUValue) {
     if (required) {
       if (err) {
@@ -6964,72 +6419,40 @@ bool TinyGLTF::LoadBinaryFromFile(Model *model, std::string *err,
 ///////////////////////
 namespace detail {
 detail::json JsonFromString(const char *s) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  return detail::json(s, detail::GetAllocator());
-#else
-  return detail::json(s);
-#endif
+  return detail::json(std::string_view(s));
 }
 
 void JsonAssign(detail::json &dest, const detail::json &src) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  dest.CopyFrom(src, detail::GetAllocator());
-#else
   dest = src;
-#endif
 }
 
 void JsonAddMember(detail::json &o, const char *key, detail::json &&value) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  if (!o.IsObject()) {
-    o.SetObject();
+  if (!o.is_object()) {
+    o = detail::json::object_t{};
   }
-
-  // Issue 420.
-  // AddMember may create duplicated key, so use [] API when a key already
-  // exists.
-  // https://github.com/Tencent/rapidjson/issues/771#issuecomment-254386863
-  detail::json_const_iterator it;
-  if (detail::FindMember(o, key, it)) {
-    o[key] = std::move(value);  // replace
-  } else {
-    o.AddMember(detail::json(key, detail::GetAllocator()), std::move(value),
-                detail::GetAllocator());
-  }
-#else
   o[key] = std::move(value);
-#endif
 }
 
 void JsonPushBack(detail::json &o, detail::json &&value) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  o.PushBack(std::move(value), detail::GetAllocator());
-#else
-  o.push_back(std::move(value));
-#endif
+  if (!o.is_array()) {
+    o = detail::json::array_t{};
+  }
+  o.get_array().push_back(std::move(value));
 }
 
 bool JsonIsNull(const detail::json &o) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  return o.IsNull();
-#else
   return o.is_null();
-#endif
 }
 
 void JsonSetObject(detail::json &o) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  o.SetObject();
-#else
-  o = o.object({});
-#endif
+  o = detail::json::object_t{};
 }
 
 void JsonReserveArray(detail::json &o, size_t s) {
-#ifdef TINYGLTF_USE_RAPIDJSON
-  o.SetArray();
-  o.Reserve(static_cast<rapidjson::SizeType>(s), detail::GetAllocator());
-#endif
+  if (!o.is_array()) {
+    o = detail::json::array_t{};
+  }
+  o.get_array().reserve(s);
   (void)(o);
   (void)(s);
 }
@@ -7045,15 +6468,6 @@ static void SerializeNumberProperty(const std::string &key, T number,
   // obj[key] = static_cast<double>(number);
   detail::JsonAddMember(obj, key.c_str(), detail::json(number));
 }
-
-#ifdef TINYGLTF_USE_RAPIDJSON
-template <>
-void SerializeNumberProperty(const std::string &key, size_t number,
-                             detail::json &obj) {
-  detail::JsonAddMember(obj, key.c_str(),
-                        detail::json(static_cast<uint64_t>(number)));
-}
-#endif
 
 template <typename T>
 static void SerializeNumberArrayProperty(const std::string &key,
@@ -7089,54 +6503,6 @@ static void SerializeStringArrayProperty(const std::string &key,
 
 static bool ValueToJson(const Value &value, detail::json *ret) {
   detail::json obj;
-#ifdef TINYGLTF_USE_RAPIDJSON
-  switch (value.Type()) {
-    case REAL_TYPE:
-      obj.SetDouble(value.Get<double>());
-      break;
-    case INT_TYPE:
-      obj.SetInt(value.Get<int>());
-      break;
-    case BOOL_TYPE:
-      obj.SetBool(value.Get<bool>());
-      break;
-    case STRING_TYPE:
-      obj.SetString(value.Get<std::string>().c_str(), detail::GetAllocator());
-      break;
-    case ARRAY_TYPE: {
-      obj.SetArray();
-      obj.Reserve(static_cast<rapidjson::SizeType>(value.ArrayLen()),
-                  detail::GetAllocator());
-      for (unsigned int i = 0; i < value.ArrayLen(); ++i) {
-        Value elementValue = value.Get(int(i));
-        detail::json elementJson;
-        if (ValueToJson(value.Get(int(i)), &elementJson))
-          obj.PushBack(std::move(elementJson), detail::GetAllocator());
-      }
-      break;
-    }
-    case BINARY_TYPE:
-      // TODO
-      // obj = detail::json(value.Get<std::vector<unsigned char>>());
-      return false;
-      break;
-    case OBJECT_TYPE: {
-      obj.SetObject();
-      Value::Object objMap = value.Get<Value::Object>();
-      for (auto &it : objMap) {
-        detail::json elementJson;
-        if (ValueToJson(it.second, &elementJson)) {
-          obj.AddMember(detail::json(it.first.c_str(), detail::GetAllocator()),
-                        std::move(elementJson), detail::GetAllocator());
-        }
-      }
-      break;
-    }
-    case NULL_TYPE:
-    default:
-      return false;
-  }
-#else
   switch (value.Type()) {
     case REAL_TYPE:
       obj = detail::json(value.Get<double>());
@@ -7151,24 +6517,26 @@ static bool ValueToJson(const Value &value, detail::json *ret) {
       obj = detail::json(value.Get<std::string>());
       break;
     case ARRAY_TYPE: {
+      obj = detail::json::array_t{};
+      obj.get_array().reserve(value.ArrayLen());
       for (size_t i = 0; i < value.ArrayLen(); ++i) {
-        Value elementValue = value.Get(i);
         detail::json elementJson;
-        if (ValueToJson(value.Get(i), &elementJson))
-          obj.push_back(elementJson);
+        if (ValueToJson(value.Get(i), &elementJson)) {
+          obj.get_array().push_back(std::move(elementJson));
+        }
       }
       break;
     }
     case BINARY_TYPE:
-      // TODO
-      // obj = json(value.Get<std::vector<unsigned char>>());
       return false;
-      break;
     case OBJECT_TYPE: {
+      obj = detail::json::object_t{};
       Value::Object objMap = value.Get<Value::Object>();
       for (auto &it : objMap) {
         detail::json elementJson;
-        if (ValueToJson(it.second, &elementJson)) obj[it.first] = elementJson;
+        if (ValueToJson(it.second, &elementJson)) {
+          obj[it.first] = std::move(elementJson);
+        }
       }
       break;
     }
@@ -7176,7 +6544,6 @@ static bool ValueToJson(const Value &value, detail::json *ret) {
     default:
       return false;
   }
-#endif
   if (ret) *ret = std::move(obj);
   return true;
 }

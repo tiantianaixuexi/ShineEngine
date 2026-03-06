@@ -22,6 +22,7 @@ namespace shine::editor::views
 
         void SetSelectedObject(shine::gameplay::SObject* obj);
         shine::gameplay::SObject* GetSelectedObject() const { return selectedObject_; }
+        bool HasSelection() const { return selectedObject_ != nullptr; }
 
     private:
         void refreshObjects();

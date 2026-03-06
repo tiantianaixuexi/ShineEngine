@@ -5,9 +5,10 @@
     ],
     "type": "interface",
     "deps": [
-        "nlohmann"
+        "glaze"
     ],
     "defines": [
+        "TINYGLTF_USE_GLAZE",
         "TINYGLTF_NO_STB_IMAGE",
         "TINYGLTF_NO_STB_IMAGE_WRITE",
         "TINYGLTF_NO_FS",

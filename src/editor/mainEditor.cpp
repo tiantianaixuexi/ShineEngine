@@ -1,6 +1,6 @@
 #include "mainEditor.h"
 
-#include "editor/main_editor/window_registry.h"
+#include "editor/main_editor/WindowRegistry.h"
 
 namespace shine::editor::main_editor {
 
@@ -20,6 +20,7 @@ namespace shine::editor::main_editor {
 	MainEditor::~MainEditor() = default;
 
 	void MainEditor::Init() {
+        
 		SHINE_LOG_INFO(EditorLog, "init", "[MainEditor] Init Start");
         windowRegistry_ = std::make_unique<WindowRegistry>();
         windowRegistry_->Init(this);
@@ -34,7 +35,7 @@ namespace shine::editor::main_editor {
         }
 	}
 
-	bool MainEditor::ToggleAssetBrowser()
+	bool MainEditor::ToggleAssetBrowserImpl()
 	{
         if (!windowRegistry_)
         {
@@ -43,7 +44,16 @@ namespace shine::editor::main_editor {
 		return windowRegistry_->ToggleAssetBrowser();
 	}
 
-    bool MainEditor::ToggleMemoryProfiler()
+    bool MainEditor::TogglePropertyInspectorImpl()
+    {
+        if(!windowRegistry_)
+        {
+            return false;
+        }
+        return windowRegistry_->TogglePropertyInspector();
+    }    
+
+    bool MainEditor::ToggleMemoryProfilerImpl()
     {
         if (!windowRegistry_)
         {
@@ -52,7 +62,7 @@ namespace shine::editor::main_editor {
         return windowRegistry_->ToggleMemoryProfiler();
     }
 
-	bool MainEditor::ToggleEngineSettings()
+	bool MainEditor::ToggleEngineSettingsImpl()
 	{
         if (!windowRegistry_)
         {
@@ -61,7 +71,7 @@ namespace shine::editor::main_editor {
 		return windowRegistry_->ToggleEngineSettings();
 	}
 
-    bool MainEditor::ToggleLog()
+    bool MainEditor::ToggleLogImpl()
     {
         if (!windowRegistry_)
         {
@@ -70,7 +80,7 @@ namespace shine::editor::main_editor {
         return windowRegistry_->ToggleLog();
     }
 
-    bool MainEditor::ToggleSceneHierarchy()
+    bool MainEditor::ToggleSceneHierarchyImpl()
     {
         if (!windowRegistry_)
         {
@@ -79,7 +89,7 @@ namespace shine::editor::main_editor {
         return windowRegistry_->ToggleSceneHierarchy();
     }
 
-    bool MainEditor::TogglePlacementPalette()
+    bool MainEditor::TogglePlacementPaletteImpl()
     {
         if (!windowRegistry_)
         {
@@ -88,7 +98,16 @@ namespace shine::editor::main_editor {
         return windowRegistry_->TogglePlacementPalette();
     }
 
-    bool MainEditor::IsMemoryProfilerOpen() const
+    bool MainEditor::ToggleDebugTextureImpl()
+    {
+        if (!windowRegistry_)
+        {
+            return false;
+        }
+        return windowRegistry_->ToggleDebugTexture();
+    }
+
+    bool MainEditor::IsMemoryProfilerOpenImpl() const
     {
         if (!windowRegistry_)
         {

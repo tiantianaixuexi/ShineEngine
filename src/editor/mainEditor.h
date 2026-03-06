@@ -19,24 +19,72 @@ namespace shine::editor::main_editor {
 
 REGISTER_LOG_GROUP(EditorLog)
 
-class MainEditor : public IMainEditorCommands {
+class MainEditor : public MainEditorCommandsCRTP<MainEditor> {
 
 public:
     MainEditor(shine::EngineContext &context);
-    ~MainEditor() override;
+    ~MainEditor();
 
     bool mainDocker = true;
 
     void Init();
     void Render();
 
-    bool ToggleAssetBrowser() override;
-    bool ToggleMemoryProfiler() override;
-	bool ToggleEngineSettings() override;
-    bool ToggleLog() override;
-    bool ToggleSceneHierarchy() override;
-    bool TogglePlacementPalette() override;
-    bool IsMemoryProfilerOpen() const override;
+    bool ToggleAssetBrowserImpl();
+    bool ToggleMemoryProfilerImpl();
+	bool ToggleEngineSettingsImpl();
+    bool ToggleLogImpl();
+    bool ToggleSceneHierarchyImpl();
+    bool TogglePlacementPaletteImpl();
+    bool ToggleDebugTextureImpl();
+    bool TogglePropertyInspectorImpl();
+    bool IsMemoryProfilerOpenImpl() const;
+
+    bool ToggleAssetBrowser()
+    {
+        return MainEditorCommandsCRTP<MainEditor>::ToggleAssetBrowser();
+    }
+
+    bool ToggleMemoryProfiler()
+    {
+        return MainEditorCommandsCRTP<MainEditor>::ToggleMemoryProfiler();
+    }
+
+    bool ToggleEngineSettings()
+    {
+        return MainEditorCommandsCRTP<MainEditor>::ToggleEngineSettings();
+    }
+
+    bool ToggleLog()
+    {
+        return MainEditorCommandsCRTP<MainEditor>::ToggleLog();
+    }
+
+    bool ToggleSceneHierarchy()
+    {
+        return MainEditorCommandsCRTP<MainEditor>::ToggleSceneHierarchy();
+    }
+
+    bool TogglePlacementPalette()
+    {
+        return MainEditorCommandsCRTP<MainEditor>::TogglePlacementPalette();
+    }
+
+    bool ToggleDebugTexture()
+    {
+        return MainEditorCommandsCRTP<MainEditor>::ToggleDebugTexture();
+    }
+
+    bool TogglePropertyInspector()
+    {
+        return MainEditorCommandsCRTP<MainEditor>::TogglePropertyInspector();
+    }
+    bool IsMemoryProfilerOpen() const
+    {
+        return MainEditorCommandsCRTP<MainEditor>::IsMemoryProfilerOpen();
+    }
+
+
 
 private:
     shine::EngineContext &m_Context;
