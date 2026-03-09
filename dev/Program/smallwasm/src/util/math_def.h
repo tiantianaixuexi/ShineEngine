@@ -27,6 +27,10 @@ SHINE_INLINE_VAR constexpr float two_pi = 6.28318530717958647692f;
 #define min(x,y) __builtin_elementwise_min(x,y)
 #define max(x,y) __builtin_elementwise_max(x,y)
 #define fma(a,b,c) __builtin_elementwise_fma(a,b,c)
+#define fmax(a,b) __builtin_fmaximum_num(a,b)
+
+#define clampi(a,b,c)   (a < b) ? b : (a > c) ? c : a
+
 
 #define floor(x) __builtin_elementwise_floor(x)
 #define ceil(x) __builtin_elementwise_ceil(x)
@@ -36,23 +40,3 @@ SHINE_INLINE_VAR constexpr float two_pi = 6.28318530717958647692f;
 #define tri_wave(x) (1.0f - fabs(frac(x) - 0.5f) * 4.0f)
 
 #define tri(x) fma(tri_wave(x),0.5f,0.5f)
-
-namespace shine::math
-{
-
-
-
-    // inline float tri_wave(float x) {
-    //     float f = frac(x);
-    //     float t = fabs( f - 0.5f );
-    //     return 1.0f - t * 4.0f;
-    // }
-
-    // inline float tri01(float x) {
-    //     // map tri_wave [-1..1] to [0..1]
-    //     return fma(tri_wave(x), 0.5f, 0.5f);
-    // }
-
-
-
-}

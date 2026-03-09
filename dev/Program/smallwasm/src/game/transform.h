@@ -36,7 +36,6 @@ public:
     markDirty();
   }
 
-  // Compute world position by walking Node parents and accumulating their Transform.
   inline void worldXY(float& outX, float& outY) const noexcept {
     float outZ = 0.0f;
     worldXYZ(outX, outY, outZ);

@@ -26,7 +26,7 @@ public:
 
 
   explicit Node(const char* debugName = nullptr) noexcept : Object(debugName) {}
-  virtual ~Node() {
+  __attribute__((noinline)) virtual ~Node() {
         // 1. Destroy components (Forward order)
         for (auto* c : components) {
             if (c) {
@@ -57,27 +57,27 @@ public:
   }
 
   // ---- Node child ops (Scene graph) ----
-  inline void attachChild(Node* n) noexcept {
+  __attribute__((noinline)) void attachChild(Node* n) noexcept {
     if (!n) return;
     n->parent = this;
     children.push_back(n);
     markTransformDirty(n);
   }
 
-  inline void removeChild(Node* n) noexcept {
+  __attribute__((noinline)) void removeChild(Node* n) noexcept {
     if (!n) return;
     children.erase_first_unordered(n);
   }
 
   template<typename T, typename... Args>
-  inline T* addChildNode(Args&&... args) noexcept {
+  T* addChildNode(Args&&... args) noexcept {
     T* n = new T((Args&&)args...);
     attachChild(n);
     return n;
   }
 
   // ---- Component ops (mounted to Node) ----
-  inline void attachComponent(Component* c) noexcept {
+  __attribute__((noinline)) void attachComponent(Component* c) noexcept {
     if (!c) return;
     c->node = this;
     c->parent = nullptr;
@@ -87,14 +87,14 @@ public:
     c->onAttach();
   }
 
-  inline void removeComponent(Component* c) noexcept {
+  __attribute__((noinline)) void removeComponent(Component* c) noexcept {
     if (!c) return;
     components.erase_first_unordered(c);
     m_cachedType = nullptr;
     m_cachedComp = nullptr;
   }
 
-  inline void markTree() noexcept {
+  __attribute__((noinline)) void markTree() noexcept {
     gcMark();
     for (auto& c : components) {
       //if (c) c->markTree();
@@ -105,7 +105,7 @@ public:
   }
 
   template<typename T, typename... Args>
-  inline T* addComponent(Args&&... args) noexcept {
+  T* addComponent(Args&&... args) noexcept {
     T* c = new T((Args&&)args...);
     c->template setTypeId<T>(); // Auto-register type ID
     attachComponent(c);
@@ -113,7 +113,7 @@ public:
   }
 
   template<typename T>
-  inline T* getComponent() noexcept {
+  __attribute__((noinline)) T* getComponent() noexcept {
     const ComponentTypeId want = ComponentType<T>::id();
     if (likely(m_cachedType == want && m_cachedComp)) return (T*)m_cachedComp;
     for (unsigned int i = 0; i < components.size(); ++i) {

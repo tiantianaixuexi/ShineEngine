@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../Container/SArray.h"
 #include "../Container/SVector.h"
 
 namespace shine {
@@ -74,6 +73,11 @@ public:
             ++count;
         }
 
+        SHINE_FORCE_INLINE void push2(int op, int a) { push(op, a, 0, 0, 0, 0, 0, 0); }
+        SHINE_FORCE_INLINE void push3(int op, int a, int b) { push(op, a, b, 0, 0, 0, 0, 0); }
+        SHINE_FORCE_INLINE void push4(int op, int a, int b, int c) { push(op, a, b, c, 0, 0, 0, 0); }
+        SHINE_FORCE_INLINE void push5(int op, int a, int b, int c, int d) { push(op, a, b, c, d, 0, 0, 0); }
+
         SHINE_FORCE_INLINE void commit() {
             if (!owner) return;
             owner->commit_pass(write, count);
@@ -111,7 +115,7 @@ public:
     CommandBuffer() = default;
 private:
     
-    static constexpr int MAX_CMDS = 1024;
+    static constexpr int MAX_CMDS = 128;
     // 8 ints per command
     int m_cmds[MAX_CMDS * 8];
     int* m_write = m_cmds;
