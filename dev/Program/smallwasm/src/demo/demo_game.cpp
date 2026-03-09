@@ -114,6 +114,88 @@ static void demo_rc_draw_rect_tex_ex(void* /*user*/, int texId, const shine::gam
 //    g_demo_ui_list.push_back(e);
 // }
 
+static void demo_on_btn_click(shine::ui::Button*) { LOG("button clicked"); }
+static void demo_on_btn_hover(shine::ui::Button*) { LOG("button Hover"); }
+static void demo_on_btn_unhover(shine::ui::Button*) { LOG("button UnHover"); }
+
+static __attribute__((noinline)) void demo_init_shaders(DemoGame* g, int ctx) {
+    g->prog = gl_create_program_from_source(ctx, kVS, kFS);
+    g->vbo = gl_create_buffer(ctx);
+    g->vao_basic = gl_create_vertex_array(ctx);
+    
+    gl_bind_vertex_array(ctx, g->vao_basic);
+    gl_setup_attribs_basic(ctx, g->vbo);
+    gl_bind_vertex_array(ctx, 0);
+
+    g->prog_inst = gl_create_program_instanced(ctx, 
+        gl_create_shader(ctx, GL_VERTEX_SHADER, (int)kVS_INST, sizeof(kVS_INST)-1),
+        gl_create_shader(ctx, GL_FRAGMENT_SHADER, (int)kFS, sizeof(kFS)-1)
+    );
+    static SHINE_CONSTINIT const float q[] = {
+        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+         1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+         1.0f,  1.0f, 0.0f, 0.0f, 0.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+         1.0f,  1.0f, 0.0f, 0.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f, 0.0f, 0.0f
+    };
+    g->vbo_inst_base = gl_create_buffer(ctx);
+    gl_bind_buffer(ctx, GL_ARRAY_BUFFER, g->vbo_inst_base);
+    gl_buffer_data_f32(ctx, GL_ARRAY_BUFFER, ptr_i32(q), 30, GL_DYNAMIC_DRAW);
+
+    g->vbo_inst_data = gl_create_buffer(ctx);
+    g->vao_inst = gl_create_vertex_array(ctx);
+    
+    gl_bind_vertex_array(ctx, g->vao_inst);
+    gl_setup_attribs_instanced(ctx, g->vbo_inst_base, g->vbo_inst_data);
+    gl_bind_vertex_array(ctx, 0);
+}
+
+static __attribute__((noinline)) void demo_init_scene(DemoGame* g, int ctx) {
+    g->player = g->scene.root.addChildNode<shine::game::Node>("Player");
+    g->weapon = g->player->addChildNode<shine::game::Node>("Weapon");
+
+    auto* tPlayer = g->player->addComponent<shine::game::Transform>();
+    tPlayer->setPosition(0.0f, 0.0f);
+    tPlayer->setSize(0.35f, 0.35f);
+    auto* sPlayer = g->player->addComponent<shine::game::SpriteRenderer>();
+    sPlayer->texId = js_create_texture_checker(ctx, 64);
+
+    auto* tWeapon = g->weapon->addComponent<shine::game::Transform>();
+    tWeapon->setPosition(0.45f, 0.05f);
+    tWeapon->setSize(0.22f, 0.12f);
+    auto* sWeapon = g->weapon->addComponent<shine::game::SpriteRenderer>();
+    sWeapon->texId = 0; 
+    sWeapon->r = 0.9f; sWeapon->g = 0.2f; sWeapon->b = 0.2f;
+
+    g->weapon->addComponent<KillOnClick>();
+}
+
+static __attribute__((noinline)) void demo_init_ui(DemoGame* g, int ctx) {
+    shine::ui::UIManager::instance().clear();
+
+    g->btn = shine::ui::Button::create();
+    g->btn->bindOnClick(demo_on_btn_click);
+    g->btn->bindHoverEvent(demo_on_btn_hover);
+    g->btn->bindUnHoverEvent(demo_on_btn_unhover);
+    g->btn->setBgUrl("../asset/金币.png");
+    g->btn->setAlignment(0.5f, 0.5f);
+    g->btn->setLayoutRel(0.5f, 0.5f, 0.0f, 0.0f, 0.18f, 0.09f);
+    g->btn->setLayoutPx(0.5f,0.5f,-50.f,50.f,100.f,100.f);
+    shine::ui::UIManager::instance().add(g->btn);
+
+    g->btn_mode = shine::ui::Button::create();
+    g->btn_mode->bindOnClick(demo_on_mode_click);
+    g->btn_mode->setLayoutRel(0.0f, 0.0f, 12.0f, 12.0f, 0.20f, 0.08f);
+    shine::ui::UIManager::instance().add(g->btn_mode);
+
+    g->img = new shine::ui::Image();
+    g->img->setAlignment(1.0f, 1.0f);
+    g->img->setLayoutRel(1.0f, 1.0f, -12.0f, -12.0f, 0.30f, 0.22f);
+    g->img->texId = js_create_texture_checker(ctx, 64);
+    shine::ui::UIManager::instance().add(g->img);
+}
+
 void DemoGame::onInit() {
 
     g_demo_game = this;
@@ -126,91 +208,11 @@ void DemoGame::onInit() {
     rc.drawRectTexEx = demo_rc_draw_rect_tex_ex;
     pipeline.add_default_passes();
 
-    // Init raw shaders
-    prog = gl_create_program_from_source(ctx, kVS, kFS);
-    vbo = gl_create_buffer(ctx);
-    vao_basic = gl_create_vertex_array(ctx);
-    
-    
-    // Bind VAO before setting up attribs!
-    gl_bind_vertex_array(ctx, vao_basic);
-    gl_setup_attribs_basic(ctx, vbo);
-    gl_bind_vertex_array(ctx, 0);
-
-    // Init instanced shaders
-    prog_inst = gl_create_program_instanced(ctx, 
-        gl_create_shader(ctx, GL_VERTEX_SHADER, (int)kVS_INST, sizeof(kVS_INST)-1),
-        gl_create_shader(ctx, GL_FRAGMENT_SHADER, (int)kFS, sizeof(kFS)-1)
-    );
-    // Base quad for instances
-    static SHINE_CONSTINIT const float q[] = {
-        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-         1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-         1.0f,  1.0f, 0.0f, 0.0f, 0.0f,
-        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-         1.0f,  1.0f, 0.0f, 0.0f, 0.0f,
-        -1.0f,  1.0f, 0.0f, 0.0f, 0.0f
-    };
-    vbo_inst_base = gl_create_buffer(ctx);
-    gl_bind_buffer(ctx, GL_ARRAY_BUFFER, vbo_inst_base);
-    gl_buffer_data_f32(ctx, GL_ARRAY_BUFFER, ptr_i32(q), 30, GL_DYNAMIC_DRAW);
-
-    vbo_inst_data = gl_create_buffer(ctx);
-    vao_inst = gl_create_vertex_array(ctx);
-    
-    gl_bind_vertex_array(ctx, vao_inst);
-    gl_setup_attribs_instanced(ctx, vbo_inst_base, vbo_inst_data);
-    gl_bind_vertex_array(ctx, 0);
-
+    demo_init_shaders(this, ctx);
     ensure_buffer(1500); // Default buffer for raw demo
     ensure_instanced(500); // default
-
-    // Scene setup
-    // player = scene.createNode("Player");
-    // Scene helper missing, using root directly.
-    player = scene.root.addChildNode<shine::game::Node>("Player");
-    weapon = player->addChildNode<shine::game::Node>("Weapon");
-
-    auto* tPlayer = player->addComponent<shine::game::Transform>();
-    tPlayer->setPosition(0.0f, 0.0f);
-    tPlayer->setSize(0.35f, 0.35f);
-    auto* sPlayer = player->addComponent<shine::game::SpriteRenderer>();
-    sPlayer->texId = js_create_texture_checker(ctx, 64);
-
-    auto* tWeapon = weapon->addComponent<shine::game::Transform>();
-    tWeapon->setPosition(0.45f, 0.05f);
-    tWeapon->setSize(0.22f, 0.12f);
-    auto* sWeapon = weapon->addComponent<shine::game::SpriteRenderer>();
-    sWeapon->texId = 0; 
-    sWeapon->r = 0.9f; sWeapon->g = 0.2f; sWeapon->b = 0.2f;
-
-    //sWeapon->attachChild(new PulseColor(sWeapon));
-    weapon->addComponent<KillOnClick>();
-
-    // UI setup
-    shine::ui::UIManager::instance().clear();
-
-    btn = shine::ui::Button::create();
-    btn->bindOnClick([](shine::ui::Button*){ LOG("button clicked"); });
-    btn->bindHoverEvent([](shine::ui::Button*) { LOG("button Hover"); });
-    btn->bindUnHoverEvent([](shine::ui::Button*) { LOG("button UnHover"); });
-    btn->setBgUrl("../asset/金币.png");
-    btn->setAlignment(0.5f, 0.5f);
-    btn->setLayoutRel(0.5f, 0.5f, 0.0f, 0.0f, 0.18f, 0.09f);
-    btn->setLayoutPx(0.5f,0.5f,-50.f,50.f,100.f,100.f);
-    shine::ui::UIManager::instance().add(btn);
-
-    btn_mode = shine::ui::Button::create();
-    btn_mode->bindOnClick(demo_on_mode_click);
-    btn_mode->setLayoutRel(0.0f, 0.0f, 12.0f, 12.0f, 0.20f, 0.08f);
-    shine::ui::UIManager::instance().add(btn_mode);
-
-    img = new shine::ui::Image();
-    img->setAlignment(1.0f, 1.0f);
-    img->setLayoutRel(1.0f, 1.0f, -12.0f, -12.0f, 0.30f, 0.22f);
-    img->texId = js_create_texture_checker(ctx, 64);
-    shine::ui::UIManager::instance().add(img);
-
+    demo_init_scene(this, ctx);
+    demo_init_ui(this, ctx);
 }
 
 void DemoGame::onResize(int w, int h) {
@@ -270,7 +272,7 @@ void DemoGame::ensure_buffer(int count) {
     // x,y,r,g,b per vertex; 3 vertices per tri
     //const unsigned int floats_per_tri = 3u * 5u;
     const unsigned int total = 15u * count;
-    buf = shine::wasm::SArray<float>(total);
+    buf = FLOAT_ARRAY(total);
     tri_count = count;
 }
 
@@ -278,7 +280,7 @@ void DemoGame::ensure_instanced(int count) {
     if (count < 1) count = 1;
     if (count > 20000) count = 20000;
     inst_count = count;
-    inst = shine::wasm::SArray<float>((unsigned int)count * 6u);
+    inst = FLOAT_ARRAY((unsigned int)count * 6u);
 }
 
 void DemoGame::update_vertices(float t) {
@@ -308,8 +310,6 @@ void DemoGame::update_vertices(float t) {
     
     // Hoist variables to avoid repeated stack allocation
     float cx, cy, r, g;
-    float cx_size, cx_nsize, cy_size, cy_nsize;
-    float sx_cx, sx_cx_size, sx_cx_nsize;
 
     // Strength reduction state
     float cx_linear_base = base_pos_off;
@@ -340,21 +340,12 @@ void DemoGame::update_vertices(float t) {
             cy = cy_base_row + cos(cos_arg) * 0.05f;
             r = r_val;
             
-            cx_size = cx + size;
-            cx_nsize = cx - size;
-            cy_size = cy + size;
-            cy_nsize = cy - size;
+            float px0 = cx * sx, px1 = (cx - size) * sx, px2 = (cx + size) * sx;
+            float py0 = cy + size, py1 = cy - size, py2 = cy - size;
             
-            sx_cx = cx * sx;
-            sx_cx_size = cx_size * sx;
-            sx_cx_nsize = cx_nsize * sx;
-
-            // Vertex 1
-            *outp++ = sx_cx; *outp++ = cy_size; *outp++ = r; *outp++ = g; *outp++ = b;
-            // Vertex 2
-            *outp++ = sx_cx_nsize; *outp++ = cy_nsize; *outp++ = r; *outp++ = g; *outp++ = b;
-            // Vertex 3
-            *outp++ = sx_cx_size; *outp++ = cy_nsize; *outp++ = r; *outp++ = g; *outp++ = b;
+            *outp++ = px0; *outp++ = py0; *outp++ = r; *outp++ = g; *outp++ = b;
+            *outp++ = px1; *outp++ = py1; *outp++ = r; *outp++ = g; *outp++ = b;
+            *outp++ = px2; *outp++ = py2; *outp++ = r; *outp++ = g; *outp++ = b;
 
             // Advance linear/incremental values
             cx_linear += cell;
@@ -386,30 +377,28 @@ void DemoGame::update_instances(float t) {
     const float k5 = 0.019f;
 
     float* outp = inst.data();
-    for (int i = 0; i < n; ++i) {
-        int gx = i % grid;
-        int gy = i / grid;
-        float fi = (float)i;
-        
-        float cx = -1.0f + (gx + 0.5f) * cell;
+    int i = 0;
+    for (int gy = 0; gy < grid && i < n; ++gy) {
         float cy = -1.0f + (gy + 0.5f) * cell;
-        
-        // Inline tri_wave/tri01 logic manually if needed, or trust compiler inliner
-        // Simplified for size:
-        float dx = sin(t + fi * k0) * offset_scale; // replaced tri_wave with sin for size? no, keep math
-        float dy = sin(t + fi * k1) * offset_scale;
-        float sc = scale_base + scale_var * (0.5f + 0.5f * sin(t + fi * k2));
+        for (int gx = 0; gx < grid && i < n; ++gx, ++i) {
+            float fi = (float)i;
+            float cx = -1.0f + (gx + 0.5f) * cell;
+            
+            float dx = sin(t + fi * k0) * offset_scale;
+            float dy = sin(t + fi * k1) * offset_scale;
+            float sc = scale_base + scale_var * (0.5f + 0.5f * sin(t + fi * k2));
 
-        float r = 0.5f + 0.5f * sin(t + fi * k3);
-        float g = 0.5f + 0.5f * sin(t + fi * k4 + 2.0f);
-        float b = 0.5f + 0.5f * sin(t + fi * k5 + 4.0f);
+            float r = 0.5f + 0.5f * sin(t + fi * k3);
+            float g = 0.5f + 0.5f * sin(t + fi * k4 + 2.0f);
+            float b = 0.5f + 0.5f * sin(t + fi * k5 + 4.0f);
 
-        *outp++ = cx + dx;
-        *outp++ = cy + dy;
-        *outp++ = sc;
-        *outp++ = r;
-        *outp++ = g;
-        *outp++ = b;
+            *outp++ = cx + dx;
+            *outp++ = cy + dy;
+            *outp++ = sc;
+            *outp++ = r;
+            *outp++ = g;
+            *outp++ = b;
+        }
     }
 }
 

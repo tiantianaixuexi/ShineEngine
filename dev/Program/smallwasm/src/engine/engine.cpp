@@ -78,11 +78,11 @@ void Engine::frame(float t) {
     CommandBuffer::Pass pass = g_cmd_buffer.begin_pass();
 
     // Set Viewport
-    pass.push(CMD_VIEWPORT, 0, 0, m_width, m_height, 0, 0, 0);
+    pass.push5(CMD_VIEWPORT, 0, 0, m_width, m_height);
 
     // Default Clear
-    pass.push(CMD_CLEAR_COLOR, f2i(0.07f), f2i(0.07f), f2i(0.07f), f2i(1.0f), 0, 0, 0);
-    pass.push(CMD_CLEAR, GL_COLOR_BUFFER_BIT, 0, 0, 0, 0, 0, 0);
+    pass.push5(CMD_CLEAR_COLOR, f2i(0.07f), f2i(0.07f), f2i(0.07f), f2i(1.0f));
+    pass.push2(CMD_CLEAR, GL_COLOR_BUFFER_BIT);
 
     // Game Update & Render
     if (m_game) {

@@ -148,7 +148,7 @@ set(SMALLWASM_LD_FLAGS
 --no-entry --export-memory --allow-undefined
 --export=malloc --export=free
 --export=init --export=frame --export=resize --export=pointer
---export=on_tex_loaded --export=on_tex_failed --export=gl_create_program_from_source
+--export=on_tex_loaded --export=on_tex_failed --export=gl_create_program_from_source --export=my_strlen
 --gc-sections --lto-O2
 )
 
@@ -211,6 +211,7 @@ set(TEX_SRC  "${CMAKE_CURRENT_LIST_DIR}/src/graphics/texture_manager.cpp")
 set(UI_SRC   "${CMAKE_CURRENT_LIST_DIR}/src/ui/ui_manager.cpp")
 set(ENG_SRC  "${CMAKE_CURRENT_LIST_DIR}/src/engine/engine.cpp")
 set(DEMO_SRC "${CMAKE_CURRENT_LIST_DIR}/src/demo/demo_game.cpp")
+set(COMPAT_SRC "${CMAKE_CURRENT_LIST_DIR}/src/util/wasm_compat.cpp")
 
 set(GL_OBJ   "${CMAKE_BINARY_DIR}/gl_ctx.o")
 set(GAPI_OBJ "${CMAKE_BINARY_DIR}/gl_api.o")
@@ -222,6 +223,7 @@ set(TEX_OBJ  "${CMAKE_BINARY_DIR}/texture_manager.o")
 set(UI_OBJ   "${CMAKE_BINARY_DIR}/ui_manager.o")
 set(ENG_OBJ  "${CMAKE_BINARY_DIR}/engine.o")
 set(DEMO_OBJ "${CMAKE_BINARY_DIR}/demo_game.o")
+set(COMPAT_OBJ "${CMAKE_BINARY_DIR}/wasm_compat.o")
 
 set(GL_RAW   "${TMP_DIR}/output.gl.raw.wasm")
 set(GL_WASM  "${DIST_DIR}/output.gl.wasm")
@@ -258,9 +260,15 @@ DEPENDS ${TEX_SRC})
 add_custom_command(OUTPUT ${UI_OBJ}
 COMMAND ${SMALLWASM_CLANG} ${SMALLWASM_CXX_FLAGS} -c ${UI_SRC} -o ${UI_OBJ}
 DEPENDS ${UI_SRC})
+
 add_custom_command(OUTPUT ${ENG_OBJ}
 COMMAND ${SMALLWASM_CLANG} ${SMALLWASM_CXX_FLAGS} -c ${ENG_SRC} -o ${ENG_OBJ}
 DEPENDS ${ENG_SRC})
+
+add_custom_command(OUTPUT ${COMPAT_OBJ}
+COMMAND ${SMALLWASM_CLANG} ${SMALLWASM_CXX_FLAGS} -c ${COMPAT_SRC} -o ${COMPAT_OBJ}
+DEPENDS ${COMPAT_SRC})
+
 add_custom_command(OUTPUT ${DEMO_OBJ}
 COMMAND ${SMALLWASM_CLANG} ${SMALLWASM_CXX_FLAGS} -c ${DEMO_SRC} -o ${DEMO_OBJ}
 DEPENDS ${DEMO_SRC})
@@ -275,10 +283,10 @@ add_custom_command(
 OUTPUT "${GL_RAW}"
 COMMAND "${SMALLWASM_WASM_LD}" ${SMALLWASM_LD_FLAGS} ${SMALLWASM_LD_STRIP} --Map=${GL_MAP}
 "${GL_OBJ}" "${GAPI_OBJ}" "${RT_OBJ}" "${OBJ_OBJ}" "${CMD_OBJ}"
-"${R2D_OBJ}" "${TEX_OBJ}" "${UI_OBJ}" "${ENG_OBJ}" "${DEMO_OBJ}"
+"${R2D_OBJ}" "${TEX_OBJ}" "${UI_OBJ}" "${ENG_OBJ}"  "${COMPAT_OBJ}" "${DEMO_OBJ}" 
 -o "${GL_RAW}"
 DEPENDS "${GL_OBJ}" "${GAPI_OBJ}" "${RT_OBJ}" "${OBJ_OBJ}" "${CMD_OBJ}"
-"${R2D_OBJ}" "${TEX_OBJ}" "${UI_OBJ}" "${ENG_OBJ}" "${DEMO_OBJ}"
+"${R2D_OBJ}" "${TEX_OBJ}" "${UI_OBJ}" "${ENG_OBJ}" "${COMPAT_OBJ}"  "${DEMO_OBJ}" 
 VERBATIM
 )
 

@@ -5,12 +5,15 @@
 // TL).
 // Put all the "boilerplate" here so other headers can stay clean.
 
+// Builtin types from Clang (work under -nostdlib).
+
+
 
 namespace shine::wasm {
 
-// Builtin types from Clang (work under -nostdlib).
 using size_t = __SIZE_TYPE__;
 using uintptr_t = __UINTPTR_TYPE__;
+
 
 // The module provides malloc/free (we implement them in wasm_runtime.cpp).
 extern "C" void* malloc(size_t);
@@ -25,7 +28,11 @@ static inline void raw_free(void* p) noexcept { shine::wasm::free(p); }
 #define raw_memcmp(dst, src, n) __builtin_memcmp(dst,src,n)
 
 
-#define raw_strlen(s) __builtin_strlen(s)
+//#define raw_strlen(s) __builtin_strlen(s)
+
+extern "C" shine::wasm::size_t my_strlen(const char* s);
+
+#define raw_strlen(s) shine::wasm::my_strlen(s)
 
 #define ptr_i32(p) static_cast<unsigned int>(reinterpret_cast<shine::wasm::uintptr_t>(p))
 
@@ -53,7 +60,10 @@ static inline void raw_free(void* p) noexcept { shine::wasm::free(p); }
 
 void* raw_realloc(void* p, size_t oldSize, size_t newSize) noexcept;
 void svector_reserve_impl(void** pointer_ref, unsigned int* cap_ref, unsigned int length, unsigned int newCap, unsigned int elemSize);
-
+void svector_grow_impl(void** pointer_ref, unsigned int* cap_ref, unsigned int length, unsigned int needCap, unsigned int elemSize);
+void svector_push_back_impl(void** pointer_ref, unsigned int* cap_ref, unsigned int* length_ref, const void* elem_data, unsigned int elemSize);
+bool svector_erase_unordered_at_impl(void* pointer, unsigned int* length_ref, unsigned int idx, unsigned int elemSize);
+bool svector_erase_first_unordered_impl(void* pointer, unsigned int* length_ref, const void* elem_data, unsigned int elemSize);
 
 } // namespace shine::wasm
 

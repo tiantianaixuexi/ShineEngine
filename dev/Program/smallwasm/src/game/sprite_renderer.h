@@ -24,19 +24,18 @@ public:
 
   void onRender(RenderContext& rc, float /*t*/) override {
     if (!node) return;
-    if (rc.pass == renderer::PASS_DEPTH) {
-      if (!depthOnly) return;
-    } else if (rc.pass == renderer::PASS_OPAQUE) {
-      if (transparent || emissive) return;
-    } else if (rc.pass == renderer::PASS_TRANSPARENT) {
-      if (!transparent) return;
-    } else if (rc.pass == renderer::PASS_EMISSIVE) {
-      if (!emissive) return;
-    } else if (rc.pass == renderer::PASS_BASE_COLOR || rc.pass == renderer::PASS_UNLIT) {
-      if (transparent || emissive) return;
-    } else {
-      return;
+    bool shouldRender = false;
+    switch (rc.pass) {
+      case renderer::PASS_DEPTH: shouldRender = depthOnly; break;
+      case renderer::PASS_OPAQUE:
+      case renderer::PASS_BASE_COLOR:
+      case renderer::PASS_UNLIT: shouldRender = !(transparent || emissive); break;
+      case renderer::PASS_TRANSPARENT: shouldRender = transparent; break;
+      case renderer::PASS_EMISSIVE: shouldRender = emissive; break;
+      default: break;
     }
+    if (!shouldRender) return;
+
     Transform* tr = node->getComponent<Transform>();
     if (!tr) return;
 
@@ -57,12 +56,14 @@ public:
     if (transparent) depthKey = 65535u - depthKey;
     unsigned int sortKey = (layer << 24) | (mat << 16) | depthKey;
 
-    if (texId != 0) {
-      if (rc.drawRectTexEx) rc.drawRectTexEx(rc.user, texId, rect, sortKey);
-      else if (rc.drawRectTex) rc.drawRectTex(rc.user, texId, rect);
-    } else {
-      if (rc.drawRectColEx) rc.drawRectColEx(rc.user, rect, color, sortKey);
-      else if (rc.drawRectCol) rc.drawRectCol(rc.user, rect, color);
+    if (rc.drawRectTexEx && texId != 0) {
+      rc.drawRectTexEx(rc.user, texId, rect, sortKey);
+    } else if (rc.drawRectColEx) {
+      rc.drawRectColEx(rc.user, rect, color, sortKey);
+    } else if (texId != 0 && rc.drawRectTex) {
+      rc.drawRectTex(rc.user, texId, rect);
+    } else if (rc.drawRectCol) {
+      rc.drawRectCol(rc.user, rect, color);
     }
   }
 };
