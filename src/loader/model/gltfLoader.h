@@ -36,7 +36,7 @@ namespace shine::loader
         virtual const char* getName() const override { return "gltfLoader"; }
         virtual const char* getVersion() const override { return "1.0.0"; }
 
-        bool isLoaded() const noexcept override { return _loaded; }
+
         std::vector<MeshData> extractMeshData() const override;
         std::expected<MeshData, std::string> extractMeshDataByIndex(size_t meshIndex) const;
         size_t getMeshCount() const noexcept override;
@@ -53,7 +53,6 @@ namespace shine::loader
 
     private:
         tinygltf::Model _model;
-        bool _loaded = false;
         std::string _basePath;
     };
 }

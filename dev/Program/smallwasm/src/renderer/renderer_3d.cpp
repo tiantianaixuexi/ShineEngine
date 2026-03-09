@@ -248,30 +248,30 @@ static void apply_material(const Renderer3D::FrameUniforms& frame, const Rendere
     lastHash = h;
     if (mat.program != curProg) {
         curProg = mat.program;
-        pass.push(shine::graphics::CMD_USE_PROGRAM, curProg, 0, 0, 0, 0, 0, 0);
+        pass.push2(shine::graphics::CMD_USE_PROGRAM, curProg);
     }
 
     if (mat.boneTex != 0) {
         if (curActiveTex != 1) {
-            pass.push(shine::graphics::CMD_ACTIVE_TEXTURE, 1, 0, 0, 0, 0, 0, 0);
+            pass.push2(shine::graphics::CMD_ACTIVE_TEXTURE, 1);
             curActiveTex = 1;
         }
         if (mat.boneTex != curTex) {
             curTex = mat.boneTex;
-            pass.push(shine::graphics::CMD_BIND_TEXTURE, GL_TEXTURE_2D, curTex, 0, 0, 0, 0, 0);
+            pass.push3(shine::graphics::CMD_BIND_TEXTURE, GL_TEXTURE_2D, curTex);
         }
         if (mat.uBoneTexLoc >= 0) {
-            pass.push(shine::graphics::CMD_UNIFORM1I, mat.uBoneTexLoc, 1, 0, 0, 0, 0, 0);
+            pass.push3(shine::graphics::CMD_UNIFORM1I, mat.uBoneTexLoc, 1);
         }
     }
 
     if (curActiveTex != 0) {
-        pass.push(shine::graphics::CMD_ACTIVE_TEXTURE, 0, 0, 0, 0, 0, 0, 0);
+        pass.push2(shine::graphics::CMD_ACTIVE_TEXTURE, 0);
         curActiveTex = 0;
     }
     if (mat.texture0 != curTex) {
         curTex = mat.texture0;
-        if (curTex != 0) pass.push(shine::graphics::CMD_BIND_TEXTURE, GL_TEXTURE_2D, curTex, 0, 0, 0, 0, 0);
+        if (curTex != 0) pass.push3(shine::graphics::CMD_BIND_TEXTURE, GL_TEXTURE_2D, curTex);
     }
     if (mat.uColorLoc >= 0) {
         pass.push(shine::graphics::CMD_UNIFORM4F, mat.uColorLoc,
@@ -285,16 +285,16 @@ static void apply_material(const Renderer3D::FrameUniforms& frame, const Rendere
     }
     (void)frame;
     if (mat.uBoneTexLoc >= 0) {
-        pass.push(shine::graphics::CMD_UNIFORM1I, mat.uBoneTexLoc, mat.boneTex ? 1 : 0, 0, 0, 0, 0, 0);
+        pass.push3(shine::graphics::CMD_UNIFORM1I, mat.uBoneTexLoc, mat.boneTex ? 1 : 0);
     }
     if (mat.uBoneCountLoc >= 0) {
-        pass.push(shine::graphics::CMD_UNIFORM1I, mat.uBoneCountLoc, mat.boneCount, 0, 0, 0, 0, 0);
+        pass.push3(shine::graphics::CMD_UNIFORM1I, mat.uBoneCountLoc, mat.boneCount);
     }
 }
 
 void Renderer3D::push_frame_ubo(shine::graphics::CommandBuffer::Pass& pass) {
     if (m_frameUbo == 0) return;
-    pass.push(shine::graphics::CMD_BIND_BUFFER, GL_UNIFORM_BUFFER, m_frameUbo, 0, 0, 0, 0, 0);
+    pass.push3(shine::graphics::CMD_BIND_BUFFER, GL_UNIFORM_BUFFER, m_frameUbo);
     if (m_frameDirty) {
         for (int i = 0; i < 16; ++i) m_framePacked[i] = m_frame.view[i];
         for (int i = 0; i < 16; ++i) m_framePacked[16 + i] = m_frame.proj[i];
@@ -303,7 +303,7 @@ void Renderer3D::push_frame_ubo(shine::graphics::CommandBuffer::Pass& pass) {
         pass.push(shine::graphics::CMD_BUFFER_DATA_F32, GL_UNIFORM_BUFFER, ptr_i32(m_framePacked), 40, GL_DYNAMIC_DRAW, 0, 0, 0);
         m_frameDirty = false;
     }
-    pass.push(shine::graphics::CMD_BIND_BUFFER_BASE, GL_UNIFORM_BUFFER, m_frameUboBinding, m_frameUbo, 0, 0, 0, 0);
+    pass.push4(shine::graphics::CMD_BIND_BUFFER_BASE, GL_UNIFORM_BUFFER, m_frameUboBinding, m_frameUbo);
 }
 
 void Renderer3D::flush_list(shine::wasm::SVector<DrawItem>& list, bool descending, shine::graphics::CommandBuffer::Pass& pass) {
@@ -324,9 +324,9 @@ void Renderer3D::flush_list(shine::wasm::SVector<DrawItem>& list, bool descendin
         apply_material(m_frame, *mat, curProg, curTex, curActiveTex, lastMat, lastHash, pass);
         if (mesh->vao != curVao) {
             curVao = mesh->vao;
-            pass.push(shine::graphics::CMD_BIND_VAO, curVao, 0, 0, 0, 0, 0, 0);
+            pass.push2(shine::graphics::CMD_BIND_VAO, curVao);
         }
-        pass.push(shine::graphics::CMD_DRAW_ARRAYS, mesh->primitive, 0, mesh->vertexCount, 0, 0, 0, 0);
+        pass.push4(shine::graphics::CMD_DRAW_ARRAYS, mesh->primitive, 0, mesh->vertexCount);
     }
 }
 

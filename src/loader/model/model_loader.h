@@ -61,7 +61,7 @@ namespace shine::loader
          * @brief 检查是否已加载
          * @return true 如果已加载
          */
-        virtual bool isLoaded() const noexcept = 0;
+        bool isLoaded() const noexcept  { return isLoader; }
 
         /**
          * @brief 提取网格数据（转换为项目内部格式）
@@ -84,6 +84,8 @@ namespace shine::loader
         {
             _progressCallback = nullptr;
         }
+
+        bool isLoader = false;
 
     protected:
         void notifyProgress(float progress, std::string_view stage) const

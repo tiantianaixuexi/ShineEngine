@@ -5,7 +5,7 @@
 #include "../ui/button.h"
 #include "../ui/image.h"
 #include "../engine/engine.h"
-#include "../Container/SArray.h"
+#include "../Container/ArrayForward.h"
 #include "../renderer/render_pipeline.h"
 
 // Demo Game Implementation
@@ -45,11 +45,11 @@ public:
 
     // Tri demo
     int tri_count = 0;
-    shine::wasm::SArray<float> buf;
+    FLOAT_ARRAY buf;
 
     // Instanced demo
     int inst_count = 0;
-    shine::wasm::SArray<float> inst;
+    FLOAT_ARRAY inst;
 
     // Shader vars for raw demo (not part of Renderer2D yet)
     int prog = 0;

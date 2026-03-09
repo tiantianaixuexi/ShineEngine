@@ -58,6 +58,8 @@ int main(int argc, char **argv) {
 #include "render/debug/pass_texture_manager.h"
 #include "script/ScriptSystem.h"
 
+#include "loader/model/objLoader.h"
+
 #define TRACY_ENABLE
 #include "tracy/tracy/Tracy.hpp"
 
@@ -89,6 +91,8 @@ int main(int argc, char **argv) {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
 #endif
+
+    shine::loader::ObjMesh::read("E:\\kitty mod.obj");
 
     shine::EngineContext context;
 

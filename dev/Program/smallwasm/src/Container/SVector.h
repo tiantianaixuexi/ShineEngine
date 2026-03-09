@@ -16,16 +16,6 @@ namespace shine::wasm
 		unsigned int cap = 0;
 		void* pointer = nullptr;
 
-		inline unsigned int grow_cap(unsigned int cur, unsigned int need) noexcept
-		{
-			unsigned int n = cur ? cur : 8u;
-			while (n < need) {
-				unsigned int half = n >> 1;
-				n = n + (half ? half : 1u);
-			}
-			return n;
-		}
-
 	public:
 		SVector() noexcept = default;
 
@@ -108,10 +98,14 @@ namespace shine::wasm
 			shine::wasm::svector_reserve_impl(&pointer, &cap, length, newCap, sizeof(T));
 		}
 
+		inline void _grow_to(unsigned int need) noexcept {
+			shine::wasm::svector_grow_impl(&pointer, &cap, length, need, sizeof(T));
+		}
+
 		inline void resize(unsigned int newSize) noexcept
 		{
 			if (newSize <= length) { length = newSize; return; }
-			if (unlikely(newSize > cap)) reserve(grow_cap(cap, newSize));
+			if (unlikely(newSize > cap)) _grow_to(newSize);
 
 			// Value-initialize new tail.
 			T* p = data();
@@ -124,14 +118,14 @@ namespace shine::wasm
 		inline void resize_uninitialized(unsigned int newSize) noexcept
 		{
 			if (newSize <= length) { length = newSize; return; }
-			if (unlikely(newSize > cap)) reserve(grow_cap(cap, newSize));
+			if (unlikely(newSize > cap)) _grow_to(newSize);
 			length = newSize;
 		}
 
 		inline void push_back(const T& v) noexcept
 		{
 			const unsigned int n = length + 1u;
-			if (unlikely(n > cap)) reserve(grow_cap(cap, n));
+			if (unlikely(n > cap)) _grow_to(n);
 			static_cast<T*>(pointer)[length] = v;
 			length = n;
 		}
@@ -140,7 +134,7 @@ namespace shine::wasm
 		inline void emplace_back(Args&&... args) noexcept
 		{
 			const unsigned int n = length + 1u;
-			if (unlikely(n > cap)) reserve(grow_cap(cap, n));
+			if (unlikely(n > cap)) _grow_to(n);
 			::new (static_cast<T*>(pointer) + length) T((Args&&)args...);
 			length = n;
 		}

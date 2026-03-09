@@ -262,4 +262,46 @@ void svector_reserve_impl(void** pointer_ref, unsigned int* cap_ref, unsigned in
     *cap_ref = newCap;
 }
 
+void svector_grow_impl(void** pointer_ref, unsigned int* cap_ref, unsigned int length, unsigned int needCap, unsigned int elemSize) {
+    unsigned int n = *cap_ref ? *cap_ref : 8u;
+    while (n < needCap) {
+        unsigned int half = n >> 1;
+        n = n + (half ? half : 1u);
+    }
+    svector_reserve_impl(pointer_ref, cap_ref, length, n, elemSize);
+}
+
+void svector_push_back_impl(void** pointer_ref, unsigned int* cap_ref, unsigned int* length_ref, const void* elem_data, unsigned int elemSize) {
+    unsigned int len = *length_ref;
+    unsigned int n = len + 1;
+    if (n > *cap_ref) {
+        svector_grow_impl(pointer_ref, cap_ref, len, n, elemSize);
+    }
+    raw_memcpy(static_cast<char*>(*pointer_ref) + len * elemSize, elem_data, elemSize);
+    *length_ref = n;
+}
+
+bool svector_erase_unordered_at_impl(void* pointer, unsigned int* length_ref, unsigned int idx, unsigned int elemSize) {
+    unsigned int len = *length_ref;
+    if (idx >= len) return false;
+    if (len > 1u && idx != (len - 1u)) {
+        raw_memcpy(static_cast<char*>(pointer) + idx * elemSize, 
+                   static_cast<char*>(pointer) + (len - 1u) * elemSize, 
+                   elemSize);
+    }
+    *length_ref = len - 1u;
+    return true;
+}
+
+bool svector_erase_first_unordered_impl(void* pointer, unsigned int* length_ref, const void* elem_data, unsigned int elemSize) {
+    unsigned int len = *length_ref;
+    char* p = static_cast<char*>(pointer);
+    for (unsigned int i = 0; i < len; ++i) {
+        if (raw_memcmp(p + i * elemSize, elem_data, elemSize) == 0) {
+            return svector_erase_unordered_at_impl(pointer, length_ref, i, elemSize);
+        }
+    }
+    return false;
+}
+
 } // namespace shine::wasm
