@@ -543,7 +543,7 @@ namespace shine::loader
         }
 
         unload();
-        _loaded = false;
+        isLoader = false;
         _basePath.clear();
 
         setState(EAssetLoadState::PARSING_DATA);
@@ -565,7 +565,7 @@ namespace shine::loader
         }
 
         setState(EAssetLoadState::COMPLETE);
-        _loaded = true;
+        isLoader = true;
         notifyProgress(1.0f, "加载完成");
         return true;
     }
@@ -583,7 +583,7 @@ namespace shine::loader
         }
 
         unload();
-        _loaded = false;
+        isLoader = false;
         _basePath = std::string(util::StringUtil::GetDirectory(filePath));
 
         auto fileResult = util::read_full_file(filePath);
@@ -613,7 +613,7 @@ namespace shine::loader
         }
 
         setState(EAssetLoadState::COMPLETE);
-        _loaded = true;
+        isLoader = true;
         notifyProgress(1.0f, "加载完成");
         return true;
     }
@@ -621,7 +621,7 @@ namespace shine::loader
     void gltfLoader::unload()
     {
         _model = tinygltf::Model();
-        _loaded = false;
+        isLoader = false;
         _basePath.clear();
         setState(EAssetLoadState::NONE);
     }
@@ -784,13 +784,13 @@ namespace shine::loader
     {
         ensure_gltf_loader_log_categories();
         std::vector<MeshData> result;
-        if (!_loaded || _model.scenes.empty() || _model.nodes.empty() || _model.meshes.empty())
+        if (!isLoader || _model.scenes.empty() || _model.nodes.empty() || _model.meshes.empty())
         {
             SHINE_LOG_WARN(
                 GltfLoaderLog,
                 "extract",
                 "extract empty, loaded={} scenes={} nodes={} meshes={}",
-                _loaded,
+                isLoader,
                 _model.scenes.size(),
                 _model.nodes.size(),
                 _model.meshes.size());
@@ -885,7 +885,7 @@ namespace shine::loader
 
     size_t gltfLoader::getMeshCount() const noexcept
     {
-        if (!_loaded)
+        if (!isLoader)
         {
             return 0;
         }
@@ -894,7 +894,7 @@ namespace shine::loader
 
     std::vector<int> gltfLoader::getSceneRootNodes(int sceneIndex) const
     {
-        if (!_loaded || sceneIndex < 0 || sceneIndex >= static_cast<int>(_model.scenes.size()))
+        if (!isLoader || sceneIndex < 0 || sceneIndex >= static_cast<int>(_model.scenes.size()))
         {
             return {};
         }

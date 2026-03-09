@@ -2,135 +2,153 @@
 
 #include "loader/core/loader.h"
 #include "loader/model/model_loader.h"
-#include <vector>
+#include <filesystem>
+#include <sstream>
 #include <string>
 #include <unordered_map>
-#include <sstream>
+#include <vector>
+
+namespace shine::loader {
+
+// 变量声明
+struct ObjTexture {
+    std::string name{};
+    std::string path{};
+};
+
+struct ObjMaterial {
+    std::string name;
+
+    float Ka[3] = {0.0f, 0.0f, 0.0f}; // ambient
+    float Kd[3] = {1.0f, 1.0f, 1.0f}; // diffuse
+    float Ks[3] = {0.0f, 0.0f, 0.0f}; // specular
+    float Ke[3] = {0.0f, 0.0f, 0.0f}; // emission
+    float Kt[3] = {0.0f, 0.0f, 0.0f}; // transmittance
+    float Ns    = 1.0f;               // shininess
+    float Ni    = 1.0f;               // index of refraction
+    float Tf[3] = {1.0f, 1.0f, 1.0f}; // transmission filter
+    float d     = 1.0f;               // dissolve (alpha)
+    int   illum = 1;                  // illumination model
+
+    bool fallback = false; // true if material not from mtllib
+
+    // texture indices into Mesh::textures (0 = none/default)
+    std::size_t map_Ka   = 0;
+    std::size_t map_Kd   = 0;
+    std::size_t map_Ks   = 0;
+    std::size_t map_Ke   = 0;
+    std::size_t map_Kt   = 0;
+    std::size_t map_Ns   = 0;
+    std::size_t map_Ni   = 0;
+    std::size_t map_d    = 0;
+    std::size_t map_bump = 0;
+};
+
+// ----------------------------------------------------------------------------
+// Index (face vertex)
+// ----------------------------------------------------------------------------
+struct ObjIndex {
+    std::uint32_t p = 0; // position index (1‑based, 0 means not present)
+    std::uint32_t t = 0; // texcoord index
+    std::uint32_t n = 0; // normal index
+};
+
+struct ObjGroup {
+    std::string name{};
+
+    std::size_t face_count   = 0; // number of faces in this group
+    std::size_t face_offset  = 0; // first face index in Mesh::face_vertices etc.
+    std::size_t index_offset = 0; // first index in Mesh::indices
+};
+
+// ----------------------------------------------------------------------------
+// Mesh
+// ----------------------------------------------------------------------------
+class ObjMesh {
+public:
+    // ----- vertex data ------------------------------------------------------
+    std::vector<float> positions; // 3 floats per vertex
+    std::vector<float> texcoords; // 2 floats per texcoord
+    std::vector<float> normals;   // 3 floats per normal
+    std::vector<float> colors;    // 3 floats per colour (optional)
+
+    // ----- face data --------------------------------------------------------
+    std::vector<std::uint32_t> face_vertices;  // vertices per face
+    std::vector<std::uint32_t> face_materials; // material index per face
+    std::vector<std::uint8_t>  face_lines;     // 1 if line, 0 if face
+
+    // ----- index data -------------------------------------------------------
+    std::vector<ObjIndex> indices; // one per face vertex
+
+    // ----- materials --------------------------------------------------------
+    std::vector<ObjMaterial> materials;
+
+    // ----- textures ---------------------------------------------------------
+    std::vector<ObjTexture> textures;
+
+    // ----- groups and objects ------------------------------------------------
+    std::vector<ObjGroup> objects;
+    std::vector<ObjGroup> groups;
+
+    // ----- convenience queries ----------------------------------------------
+    [[nodiscard]] std::size_t position_count() const noexcept { return positions.size() / 3; }
+    [[nodiscard]] std::size_t texcoord_count() const noexcept { return texcoords.size() / 2; }
+    [[nodiscard]] std::size_t normal_count() const noexcept { return normals.size() / 3; }
+    [[nodiscard]] std::size_t color_count() const noexcept { return colors.size() / 3; }
+    [[nodiscard]] std::size_t face_count() const noexcept { return face_vertices.size(); }
+    [[nodiscard]] std::size_t index_count() const noexcept { return indices.size(); }
+    [[nodiscard]] std::size_t material_count() const noexcept { return materials.size(); }
+    [[nodiscard]] std::size_t texture_count() const noexcept { return textures.size(); }
+    [[nodiscard]] std::size_t object_count() const noexcept { return objects.size(); }
+    [[nodiscard]] std::size_t group_count() const noexcept { return groups.size(); }
+
+    // ----- load from file ---------------------------------------------------
+    bool load(const std::filesystem::path &path);
+
+    bool parse_mtllib(ObjMesh& mesh,
+                  const std::filesystem::path& mtl_path,
+                  const std::filesystem::path& base_path);
+
+    // ----- factory ----------------------------------------------------------
+    static std::unique_ptr<ObjMesh> read(const std::filesystem::path &path);
+
+    // ----- default ctor / move only -----------------------------------------
+    ObjMesh()                           = default;
+    ~ObjMesh()                          = default;
+    ObjMesh(const ObjMesh &)            = delete;
+    ObjMesh &operator=(const ObjMesh &) = delete;
+    ObjMesh(ObjMesh &&)                 = default;
+    ObjMesh &operator=(ObjMesh &&)      = default;
+};
+
+class objLoader : public IModelLoader {
+
+public:
+    objLoader() {
+        addSupportedExtension("obj");
+    }
+
+    virtual ~objLoader() = default;
+    virtual bool loadFromMemory(const void *data, size_t size) override;
+    virtual bool loadFromFile(const char *filePath) override;
+    void         unload() override;
+
+    // 实现基类方法
+    virtual const char *getName() const override { return "objLoader"; }
+    virtual const char *getVersion() const override { return "1.0.0"; }
+
+    // ========================================================================
+    // IModelLoader 接口实现
+    // ========================================================================
+
+    std::vector<MeshData> extractMeshData() const override;
+    size_t                getMeshCount() const noexcept override;
 
 
-namespace shine::loader
-{
 
-    class objLoader : public IModelLoader
-    {
+private:
+    ObjMesh Mesh{};
 
-    public:
-           
-        objLoader() {
-            addSupportedExtension("obj");
-        }
-    
-        virtual ~objLoader() = default; 
-        virtual bool loadFromMemory(const void* data, size_t size) override;
-        virtual bool loadFromFile(const char* filePath) override;
-        void unload() override;
+};
 
-        // 实现基类方法
-        virtual const char* getName() const override { return "objLoader"; }
-        virtual const char* getVersion() const override { return "1.0.0"; }
-
-        // ========================================================================
-        // IModelLoader 接口实现
-        // ========================================================================
-
-        bool isLoaded() const noexcept override { return _loaded; }
-        std::vector<MeshData> extractMeshData() const override;
-        size_t getMeshCount() const noexcept override;
-        
-        // 获取组/对象数量
-        size_t getGroupCount() const { return _model.groups.size(); }
-        
-        // 获取材质数量
-        size_t getMaterialCount() const { return _model.materials.size(); }
-
-    private:
-        // OBJ 文件格式结构
-        struct ObjVertex {
-            float x = 0.0f;
-            float y = 0.0f;
-            float z = 0.0f;
-            float w = 1.0f;  // 可选，默认1.0
-        };
-
-        struct ObjTexCoord {
-            float u = 0.0f;
-            float v = 0.0f;
-            float w = 0.0f;  // 可选，默认0.0
-        };
-
-        struct ObjNormal {
-            float x = 0.0f;
-            float y = 0.0f;
-            float z = 0.0f;
-        };
-
-        struct ObjFace {
-            std::vector<int> vertexIndices;      // 顶点索引（从1开始，OBJ格式）
-            std::vector<int> texCoordIndices;    // 纹理坐标索引（从1开始）
-            std::vector<int> normalIndices;      // 法线索引（从1开始）
-            int materialIndex = -1;              // 材质索引
-        };
-
-        struct ObjGroup {
-            std::string name;
-            std::vector<ObjFace> faces;
-            int materialIndex = -1;
-        };
-
-        struct ObjMaterial {
-            std::string name;
-            float ambient[3] = {0.2f, 0.2f, 0.2f};
-            float diffuse[3] = {0.8f, 0.8f, 0.8f};
-            float specular[3] = {0.0f, 0.0f, 0.0f};
-            float emissive[3] = {0.0f, 0.0f, 0.0f};
-            float shininess = 0.0f;
-            float transparency = 1.0f;
-            float refraction = 1.0f;
-            float dissolve = 1.0f;
-            int illuminationModel = 0;
-            
-            // 纹理路径
-            std::string ambientMap;
-            std::string diffuseMap;
-            std::string specularMap;
-            std::string normalMap;
-            std::string bumpMap;
-        };
-
-        struct ObjModel {
-            std::vector<ObjVertex> vertices;
-            std::vector<ObjTexCoord> texCoords;
-            std::vector<ObjNormal> normals;
-            std::vector<ObjGroup> groups;
-            std::unordered_map<std::string, ObjMaterial> materials;
-            std::unordered_map<std::string, int> materialNameToIndex;  // 材质名称到索引的稳定映射
-            std::string mtlLibPath;  // 材质库文件路径
-        };
-
-        // 内部方法
-        bool parseOBJ(const char* data, size_t size, const char* basePath = nullptr);
-        bool parseMTL(const char* filePath);
-        void parseLine(const std::string_view& line, const char* basePath = nullptr);
-        void parseFace(const std::string_view& line);
-        void parseVertex(const std::string_view& line);
-        void parseTexCoord(const std::string_view& line);
-        void parseNormal(const std::string_view& line);
-        void parseGroup(const std::string_view& line);
-        void parseUseMaterial(const std::string_view& line);
-        void parseMaterialLib(const std::string_view& line, const char* basePath);
-        
-        // 辅助函数
-        std::vector<std::string_view> splitString(const std::string_view& str, char delimiter);
-        float parseFloat(const std::string_view& str);
-        int parseInt(const std::string_view& str);
-        void trimWhitespace(std::string_view& str);
-        
-        // 数据成员
-        ObjModel _model;
-        bool _loaded = false;
-        std::string _basePath;  // OBJ 文件的基础路径（用于加载 MTL 文件）
-        int _currentMaterialIndex = -1;  // 当前使用的材质索引
-    };
-
-}
-
+} // namespace shine::loader
