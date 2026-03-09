@@ -83,6 +83,7 @@ inline bool parse_float(const char*& ptr, float& out) noexcept
     if (ec != std::errc())
         return false;
     ptr = end;
+    return true;
 }
 
 
