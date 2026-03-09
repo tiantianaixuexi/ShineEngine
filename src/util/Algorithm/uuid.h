@@ -173,7 +173,7 @@ namespace {
     std::atomic<std::uint16_t> g_clock_sequence{0};
 }
 
-inline [[nodiscard]] UUID UUID::GenerateV4() noexcept {
+ [[nodiscard]] inline UUID UUID::GenerateV4() noexcept {
     UUID uuid;
     auto& rnd = GetThreadRandom();
     
@@ -200,7 +200,7 @@ inline [[nodiscard]] UUID UUID::GenerateV4() noexcept {
     return uuid;
 }
 
-inline [[nodiscard]] UUID UUID::GenerateV7() noexcept {
+ [[nodiscard]] inline UUID UUID::GenerateV7() noexcept {
     UUID uuid;
     auto& rnd = GetThreadRandom();
     
@@ -246,7 +246,7 @@ inline [[nodiscard]] UUID UUID::GenerateV7() noexcept {
 }
 
 // C++23 使用 std::expected 替代 optional
-inline [[nodiscard]] std::expected<UUID, int> UUID::FromString(std::string_view str) noexcept {
+[[nodiscard]] inline std::expected<UUID, int> UUID::FromString(std::string_view str) noexcept {
     // C++23 使用 std::ranges 或直接处理
     std::array<char, 32> clean{};
     std::size_t j = 0;
@@ -279,7 +279,7 @@ inline [[nodiscard]] std::expected<UUID, int> UUID::FromString(std::string_view 
 }
 
 
-inline [[nodiscard]] std::string UUID::ToString() const {
+[[nodiscard]] inline std::string UUID::ToString() const {
 
         return fmt::format("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
             m_data[0], m_data[1], m_data[2], m_data[3],
@@ -290,7 +290,7 @@ inline [[nodiscard]] std::string UUID::ToString() const {
         );
 }
 
-inline [[nodiscard]] std::string UUID::ToStringCompact() const {
+ [[nodiscard]] inline  std::string UUID::ToStringCompact() const {
         static constexpr char hex[] = "0123456789abcdef";
         std::string result(32, '0');
         
@@ -301,7 +301,7 @@ inline [[nodiscard]] std::string UUID::ToStringCompact() const {
         return result;
 }
 
-inline [[nodiscard]] std::string UUID::ToShortString() const {
+[[nodiscard]] inline  std::string UUID::ToShortString() const {
 
         return fmt::format("{:02x}{:02x}{:02x}{:02x}", 
             m_data[0], m_data[1], m_data[2], m_data[3]);

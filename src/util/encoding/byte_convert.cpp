@@ -14,6 +14,7 @@ module shine.byte_convert;
 #include "fmt/format.h"
 
 #include <string>
+#include <cstdint>
 
 #endif
 

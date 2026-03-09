@@ -119,13 +119,13 @@ struct constexpr_str {
 
     // ==================== 静态常量 ====================
 
-    static constexpr size_t capacity = N;
-    static constexpr size_t size_v = N - 1U;
+    static constexpr std::size_t capacity = N;
+    static constexpr std::size_t size_v = N - 1U;
     static constexpr bool empty_v = (N == 1U);
-    static constexpr size_t npos = static_cast<size_t>(-1);
+    static constexpr std::size_t npos = static_cast<std::size_t>(-1);
 
     // 提供 size() 和 empty() 函数
-    [[nodiscard]] constexpr size_t size() const noexcept { return size_v; }
+    [[nodiscard]] constexpr std::size_t size() const noexcept { return size_v; }
     [[nodiscard]] constexpr bool empty() const noexcept { return empty_v; }
 
     // ==================== 编译期哈希 ====================
@@ -547,7 +547,8 @@ consteval auto split() {
 template <constexpr_str S, constexpr_str Delim>
 consteval auto split_by() {
     constexpr auto pos = S.find(static_cast<std::string_view>(Delim));
-    if constexpr (pos == constexpr_str::npos) {
+    // fix gcc not can use constexpr_str::npos
+    if constexpr (pos == decltype(S)::npos) {
         return std::pair{S, constexpr_str{""}};
     } else {
         constexpr auto suffix_size = S.size_v - pos - Delim.size_v;
