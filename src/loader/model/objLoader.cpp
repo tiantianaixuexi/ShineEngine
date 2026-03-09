@@ -13,7 +13,7 @@
 #include "math/vector2.h"
 #include "math/rotator.h"
 
-#include "util/timer/function_timer.h"
+#include "util/timer/FunctionTimer.h"
 #include "util/file_util.ixx"
 #include "util/string_util.ixx"
 

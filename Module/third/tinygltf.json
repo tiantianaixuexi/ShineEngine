@@ -5,15 +5,13 @@
     ],
     "type": "interface",
     "deps": [
+        "draco",
         "glaze"
     ],
     "defines": [
         "TINYGLTF_USE_GLAZE",
-        "TINYGLTF_NO_STB_IMAGE",
-        "TINYGLTF_NO_STB_IMAGE_WRITE",
+        "TINYGLTF_ENABLE_DRACO",
         "TINYGLTF_NO_FS",
-        "TINYGLTF_NO_INCLUDE_STB_IMAGE",
-        "TINYGLTF_NO_INCLUDE_STB_IMAGE_WRITE",
         "TINYGLTF_NO_EXTERNAL_IMAGE"
     ],
     "comment": "glTF 2.0 加载第三方库, https://github.com/syoyo/tinygltf"

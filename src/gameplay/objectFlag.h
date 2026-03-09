@@ -15,6 +15,7 @@ namespace shine::gameplay
         OF_Pointer     = 1u << 4,
         OF_PendingKill = 1u << 5,
         OF_GCMark      = 1u << 6,
+        OF_Selected    = 1u << 7,
     };
 }
 

@@ -77,6 +77,7 @@ namespace shine::editor::main_editor
         sceneHierarchyView_->onInit();
 
         propertiesView_ = std::make_unique<views::PropertiesView>();
+        propertiesView_->SetWorldHierarchyService(worldHierarchyService);
         propertiesView_->SetScriptSystem(scriptSystem);
         propertiesView_->onInit();
 
@@ -125,11 +126,8 @@ namespace shine::editor::main_editor
 
         mainEditorToolbar_->RenderBase();
         assetsBrower_->RenderBase();
-        editorView_->SetSelectedObject(sceneHierarchyView_->GetSelectedObject());
         editorView_->RenderBase();
-        sceneHierarchyView_->SetSelectedObject(editorView_->GetSelectedObject());
         sceneHierarchyView_->RenderBase();
-        propertiesView_->SetSelectedObject(sceneHierarchyView_->GetSelectedObject());
         propertiesView_->RenderBase();
         imageViewerView_->Render();
         settingsView_->RenderBase();

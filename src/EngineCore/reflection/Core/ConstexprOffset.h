@@ -99,11 +99,9 @@ inline constexpr std::string_view member_name() {
 // 运行时计算偏移量 - 使用参数而非模板参数
 template <typename C, typename M>
 inline std::size_t compute_offset(M C::* ptr) {
-    // 使用原始方法
-    alignas(alignof(C)) char buf[sizeof(C)];
-    auto* fake = reinterpret_cast<C*>(buf);
-    auto* addr = &(fake->*ptr);
-    return reinterpret_cast<char*>(addr) - reinterpret_cast<char*>(fake);
+    // 零开销计算，避免栈分配
+    return static_cast<std::size_t>(
+        reinterpret_cast<const char*>(&(reinterpret_cast<C*>(0)->*ptr)) - reinterpret_cast<const char*>(0));
 }
 
 

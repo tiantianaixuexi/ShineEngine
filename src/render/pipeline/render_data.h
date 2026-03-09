@@ -38,6 +38,9 @@ namespace shine::render
         // 场景对象列表
         std::vector<shine::gameplay::SObject*> sceneObjects;
 
+        // 选中对象
+        shine::gameplay::SObject* selectedObject = nullptr;
+
         // 视口信息
         struct Viewport
         {

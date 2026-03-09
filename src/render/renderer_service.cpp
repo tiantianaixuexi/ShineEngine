@@ -128,6 +128,8 @@ namespace shine::render
             }
         }
 
+        data.selectedObject = gameplay::world::WorldService::get().getSelectedObject();
+
         if (const auto it = m_Viewports.find(handle); it != m_Viewports.end())
         {
             data.viewport.handle = handle;

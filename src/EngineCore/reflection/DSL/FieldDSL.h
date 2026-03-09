@@ -24,11 +24,8 @@ struct MemberPtrInfo<M C::*> { using ClassType = C; using MemberType = M; };
 // Compute member offset from member pointer (MSVC-compatible)
 template <typename C, typename M>
 inline std::size_t ComputeOffset(M C::* ptr) {
-    alignas(alignof(C)) char buf[sizeof(C)]{};
-    auto* fake = reinterpret_cast<C*>(buf);
-    auto* addr = &(fake->*ptr);
     return static_cast<std::size_t>(
-        reinterpret_cast<const char*>(addr) - reinterpret_cast<const char*>(fake));
+        reinterpret_cast<const char*>(&(reinterpret_cast<C*>(0)->*ptr)) - reinterpret_cast<const char*>(0));
 }
 
 namespace DSL {

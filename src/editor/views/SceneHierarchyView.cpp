@@ -25,7 +25,9 @@ void SceneHierarchyView::onInit() {
 void SceneHierarchyView::onShutDown() {
     visibleObjects_.clear();
     contextObject_ = nullptr;
-    selectedObject_ = nullptr;
+    if (worldService_) {
+        worldService_->clearSelection();
+    }
 }
 
 void SceneHierarchyView::onRender() {
@@ -50,23 +52,30 @@ void SceneHierarchyView::onRender() {
     }
 
     ImGui::SameLine();
-    const bool canDelete = selectedObject_ && isEditorOwned(selectedObject_);
+    const auto selectedObjects = worldService_ ? worldService_->getSelectedObjectsSnapshot() : std::vector<shine::gameplay::SObject*>{};
+    const bool canDelete = std::any_of(selectedObjects.begin(), selectedObjects.end(), [this](const shine::gameplay::SObject* obj) {
+        return isEditorOwned(obj);
+    });
     if (!canDelete) {
         ImGui::BeginDisabled();
     }
     if (ImGui::Button("删除选中")) {
-        deleteObject(selectedObject_);
+        deleteSelectedObjects();
     }
     if (!canDelete) {
         ImGui::EndDisabled();
     }
 
     refreshObjects();
-    if (ImGui::TreeNodeEx("SceneRoot", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow)) {
+    if (ImGui::TreeNodeEx("SceneRoot", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth)) {
         for (int i = 0; i < static_cast<int>(visibleObjects_.size()); ++i) {
             RenderObjectNode(visibleObjects_[i], i);
         }
         ImGui::TreePop();
+    }
+
+    if (worldService_ && ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered()) {
+        worldService_->clearSelection();
     }
 
     if (ImGui::BeginPopup("SceneRenamePopup")) {
@@ -124,7 +133,7 @@ void SceneHierarchyView::RenderObjectNode(shine::gameplay::SObject* obj, int ind
         return;
     }
 
-    const bool isSelected = (selectedObject_ == obj);
+    const bool isSelected = worldService_ && worldService_->isSelected(obj);
     const std::string displayName = obj->getName().empty() ? fmt::format("Object_{}", index) : obj->getName();
     const std::string label = fmt::format("{} [{}]", displayName, obj->getClassName());
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
@@ -133,7 +142,17 @@ void SceneHierarchyView::RenderObjectNode(shine::gameplay::SObject* obj, int ind
     }
     ImGui::TreeNodeEx(reinterpret_cast<void*>(obj), flags, "%s", label.c_str());
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-        selectedObject_ = obj;
+        if (worldService_) {
+            if (ImGui::GetIO().KeyCtrl) {
+                worldService_->toggleSelectedObject(obj);
+            } else {
+                worldService_->setSelectedObject(obj);
+            }
+        }
+    } else if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+        if (worldService_) {
+            worldService_->setSelectedObject(obj);
+        }
     }
 
     if (ImGui::BeginPopupContextItem()) {
@@ -163,8 +182,9 @@ void SceneHierarchyView::createEmptyActor() {
     auto actor = std::make_unique<shine::gameplay::EmptyActor>();
     actor->setName(fmt::format("EmptyActor_{}", nextEmptyActorId_++));
     actor->addComponent<shine::gameplay::component::TransformComponent>();
-    selectedObject_ = actor.get();
+    auto* actorPtr = actor.get();
     worldService_->addActorToPersistentLevel(std::move(actor));
+    worldService_->setSelectedObject(actorPtr);
 }
 
 void SceneHierarchyView::createStaticMeshActor() {
@@ -179,8 +199,19 @@ void SceneHierarchyView::createStaticMeshActor() {
     auto mesh = std::make_shared<shine::gameplay::StaticMesh>();
     mesh->initCubeWithNormals();
     meshComp->setMesh(mesh);
-    selectedObject_ = actor.get();
+    auto* actorPtr = actor.get();
     worldService_->addActorToPersistentLevel(std::move(actor));
+    worldService_->setSelectedObject(actorPtr);
+}
+
+void SceneHierarchyView::deleteSelectedObjects() {
+    if (!worldService_) {
+        return;
+    }
+    const auto selectedObjects = worldService_->getSelectedObjectsSnapshot();
+    for (auto* obj : selectedObjects) {
+        deleteObject(obj);
+    }
 }
 
 void SceneHierarchyView::deleteObject(shine::gameplay::SObject* obj) {
@@ -190,13 +221,10 @@ void SceneHierarchyView::deleteObject(shine::gameplay::SObject* obj) {
     if (worldService_) {
         worldService_->removeActor(obj);
     }
-    if (selectedObject_ == obj) {
-        selectedObject_ = nullptr;
-    }
 }
 
 void SceneHierarchyView::SetSelectedObject(shine::gameplay::SObject* obj) {
-    selectedObject_ = obj;
+    if (worldService_) worldService_->setSelectedObject(obj);
 }
 
 bool SceneHierarchyView::isEditorOwned(const shine::gameplay::SObject* obj) const {

@@ -15,8 +15,53 @@
 #include "MethodDSL.h"
 #include <string_view>
 #include <type_traits>
+#include <vector>
+#include <map>
+#include <set>
+#include <unordered_map>
+#include <unordered_set>
+#include <array>
 
 namespace shine::reflection {
+
+// Traits detection
+template<typename T> struct is_sequence_container : std::false_type {};
+template<typename T> struct is_associative_container : std::false_type {};
+template<typename T> struct container_trait_provider { static const void* get() { return nullptr; } };
+
+template<typename T, typename A> struct is_sequence_container<std::vector<T, A>> : std::true_type {};
+template<typename T, typename A> struct container_trait_provider<std::vector<T, A>> { static const void* get() { return &ListThunks<std::vector<T, A>>::GetTrait(); } };
+
+template<typename K, typename V, typename C, typename A> struct is_associative_container<std::map<K, V, C, A>> : std::true_type {};
+template<typename K, typename V, typename C, typename A> struct container_trait_provider<std::map<K, V, C, A>> { static const void* get() { return &MapThunks<std::map<K, V, C, A>>::GetTrait(); } };
+
+template<typename K, typename V, typename H, typename E, typename A> struct is_associative_container<std::unordered_map<K, V, H, E, A>> : std::true_type {};
+template<typename K, typename V, typename H, typename E, typename A> struct container_trait_provider<std::unordered_map<K, V, H, E, A>> { static const void* get() { return &MapThunks<std::unordered_map<K, V, H, E, A>>::GetTrait(); } };
+
+template<typename T, typename C, typename A> struct is_associative_container<std::set<T, C, A>> : std::true_type {};
+template<typename T, typename C, typename A> struct container_trait_provider<std::set<T, C, A>> { static const void* get() { return &SetThunks<std::set<T, C, A>>::GetTrait(); } };
+
+template<typename T, typename H, typename E, typename A> struct is_associative_container<std::unordered_set<T, H, E, A>> : std::true_type {};
+template<typename T, typename H, typename E, typename A> struct container_trait_provider<std::unordered_set<T, H, E, A>> { static const void* get() { return &SetThunks<std::unordered_set<T, H, E, A>>::GetTrait(); } };
+
+// For std::array we need ArrayThunks
+template <typename ArrayType>
+struct ArrayThunks {
+    static std::size_t GetSize(const void* p) { return std::tuple_size_v<ArrayType>; }
+    static void* GetElement(void* p, std::size_t i) { return &(*static_cast<ArrayType*>(p))[i]; }
+    static const void* GetElementConst(const void* p, std::size_t i) { return &(*static_cast<const ArrayType*>(p))[i]; }
+    static void Resize(void* p, std::size_t) { /* no-op */ }
+    static const SequenceTrait& GetTrait() {
+        static const SequenceTrait trait{
+            GetTypeId<typename ArrayType::value_type>(),
+            &GetSize, &GetElement, &GetElementConst, &Resize
+        };
+        return trait;
+    }
+};
+
+template<typename T, std::size_t N> struct is_sequence_container<std::array<T, N>> : std::true_type {};
+template<typename T, std::size_t N> struct container_trait_provider<std::array<T, N>> { static const void* get() { return &ArrayThunks<std::array<T, N>>::GetTrait(); } };
 
 // =============================================================================
 // TypeBuilder — runtime DSL builder
@@ -91,11 +136,20 @@ struct TypeBuilder {
 
         FieldInfo f{};
         f.name      = node.name;
+        f.nameHash  = Hash(node.name);
         f.typeId    = GetTypeId<MType>();
         f.offset    = ComputeOffset<CType, MType>(MemberPtr);
         f.size      = sizeof(MType);
         f.alignment = alignof(MType);
         f.isPod     = std::is_trivially_copyable_v<MType>;
+
+        if constexpr (is_sequence_container<MType>::value) {
+            f.containerType = ContainerType::Sequence;
+            f.containerTrait = container_trait_provider<MType>::get();
+        } else if constexpr (is_associative_container<MType>::value) {
+            f.containerType = ContainerType::Associative;
+            f.containerTrait = container_trait_provider<MType>::get();
+        }
 
         // Optimized getter/setter - 零间接调用
         f.getterFn = [](const void* inst, void* out) {
@@ -160,8 +214,10 @@ struct TypeBuilder {
 
         MethodInfo m{};
         m.name       = node.name;
+        m.nameHash   = Hash(node.name);
         m.returnType = GetTypeId<typename Traits::ReturnType>();
         m.owner      = nullptr;   // patched after TypeInfo is complete
+        m.paramTypes.reserve(Traits::Arity);
 
         // Record parameter types
         [&]<std::size_t... I>(std::index_sequence<I...>) {
@@ -177,11 +233,11 @@ struct TypeBuilder {
             [&]<std::size_t... I>(std::index_sequence<I...>) {
                 if constexpr (std::is_void_v<typename Traits::ReturnType>) {
                     (obj->*MethodPtr)(
-                        *static_cast<std::tuple_element_t<I, typename Traits::ParamTuple>*>(
+                        *static_cast<std::remove_reference_t<std::tuple_element_t<I, typename Traits::ParamTuple>>*>(
                             args ? args[I] : nullptr)...);
                 } else {
                     auto result = (obj->*MethodPtr)(
-                        *static_cast<std::tuple_element_t<I, typename Traits::ParamTuple>*>(
+                        *static_cast<std::remove_reference_t<std::tuple_element_t<I, typename Traits::ParamTuple>>*>(
                             args ? args[I] : nullptr)...);
                     if (ret) *static_cast<typename Traits::ReturnType*>(ret) = result;
                 }
@@ -204,7 +260,7 @@ struct TypeBuilder {
 };
 
 // =============================================================================
-// FastMethodCall — Optimized method invocation with template specialization
+// FastMethodCall — Optimized method invocation with C++ index sequences
 // =============================================================================
 
 namespace detail {
@@ -213,8 +269,7 @@ namespace detail {
 template<typename T>
 using RemoveRef = std::remove_reference_t<T>;
 
-// 便捷函数模板 - 使用模板参数传递方法指针，支持 0-4 参数
-// 注意：不支持引用类型的参数，需要使用指针或值类型
+// 便捷函数模板 - 使用模板参数传递方法指针，支持任意参数
 template<auto MethodPtr>
 [[gnu::always_inline]] inline void FastMethodCall(void* inst, void** args, void* ret) {
     using MP = decltype(MethodPtr);
@@ -224,59 +279,18 @@ template<auto MethodPtr>
     
     auto* obj = static_cast<ClassType*>(inst);
     
-    constexpr size_t Arity = Traits::Arity;
-    
-    if constexpr (Arity == 0) {
+    [&]<std::size_t... I>(std::index_sequence<I...>) {
         if constexpr (std::is_void_v<ReturnType>) {
-            (obj->*MethodPtr)();
+            (obj->*MethodPtr)(
+                *static_cast<RemoveRef<std::tuple_element_t<I, typename Traits::ParamTuple>>*>(
+                    args ? args[I] : nullptr)...);
         } else {
-            if (ret) *static_cast<ReturnType*>(ret) = (obj->*MethodPtr)();
+            auto result = (obj->*MethodPtr)(
+                *static_cast<RemoveRef<std::tuple_element_t<I, typename Traits::ParamTuple>>*>(
+                    args ? args[I] : nullptr)...);
+            if (ret) *static_cast<ReturnType*>(ret) = result;
         }
-    } else if constexpr (Arity == 1) {
-        using P0 = RemoveRef<std::tuple_element_t<0, typename Traits::ParamTuple>>;
-        auto* p0 = args ? static_cast<P0*>(args[0]) : nullptr;
-        if constexpr (std::is_void_v<ReturnType>) {
-            (obj->*MethodPtr)(*p0);
-        } else {
-            if (ret) *static_cast<ReturnType*>(ret) = (obj->*MethodPtr)(*p0);
-        }
-    } else if constexpr (Arity == 2) {
-        using P0 = RemoveRef<std::tuple_element_t<0, typename Traits::ParamTuple>>;
-        using P1 = RemoveRef<std::tuple_element_t<1, typename Traits::ParamTuple>>;
-        auto* p0 = args ? static_cast<P0*>(args[0]) : nullptr;
-        auto* p1 = args ? static_cast<P1*>(args[1]) : nullptr;
-        if constexpr (std::is_void_v<ReturnType>) {
-            (obj->*MethodPtr)(*p0, *p1);
-        } else {
-            if (ret) *static_cast<ReturnType*>(ret) = (obj->*MethodPtr)(*p0, *p1);
-        }
-    } else if constexpr (Arity == 3) {
-        using P0 = RemoveRef<std::tuple_element_t<0, typename Traits::ParamTuple>>;
-        using P1 = RemoveRef<std::tuple_element_t<1, typename Traits::ParamTuple>>;
-        using P2 = RemoveRef<std::tuple_element_t<2, typename Traits::ParamTuple>>;
-        auto* p0 = args ? static_cast<P0*>(args[0]) : nullptr;
-        auto* p1 = args ? static_cast<P1*>(args[1]) : nullptr;
-        auto* p2 = args ? static_cast<P2*>(args[2]) : nullptr;
-        if constexpr (std::is_void_v<ReturnType>) {
-            (obj->*MethodPtr)(*p0, *p1, *p2);
-        } else {
-            if (ret) *static_cast<ReturnType*>(ret) = (obj->*MethodPtr)(*p0, *p1, *p2);
-        }
-    } else if constexpr (Arity == 4) {
-        using P0 = RemoveRef<std::tuple_element_t<0, typename Traits::ParamTuple>>;
-        using P1 = RemoveRef<std::tuple_element_t<1, typename Traits::ParamTuple>>;
-        using P2 = RemoveRef<std::tuple_element_t<2, typename Traits::ParamTuple>>;
-        using P3 = RemoveRef<std::tuple_element_t<3, typename Traits::ParamTuple>>;
-        auto* p0 = args ? static_cast<P0*>(args[0]) : nullptr;
-        auto* p1 = args ? static_cast<P1*>(args[1]) : nullptr;
-        auto* p2 = args ? static_cast<P2*>(args[2]) : nullptr;
-        auto* p3 = args ? static_cast<P3*>(args[3]) : nullptr;
-        if constexpr (std::is_void_v<ReturnType>) {
-            (obj->*MethodPtr)(*p0, *p1, *p2, *p3);
-        } else {
-            if (ret) *static_cast<ReturnType*>(ret) = (obj->*MethodPtr)(*p0, *p1, *p2, *p3);
-        }
-    }
+    }(std::make_index_sequence<Traits::Arity>{});
 }
 
 } // namespace detail

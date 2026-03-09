@@ -1,6 +1,6 @@
 #include "asset_base.h"
 #include <algorithm>
-#include "util/timer/timer_util.h"
+#include "util/timer/TimerUtil.h"
 
 namespace shine::editor::asset
 {

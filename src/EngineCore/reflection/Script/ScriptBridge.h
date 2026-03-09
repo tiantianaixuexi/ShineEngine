@@ -20,6 +20,8 @@
 
 namespace shine::reflection {
 
+struct FieldInfo; // Forward decl
+
 // =============================================================================
 // ScriptBridge — abstract conversion interface
 // =============================================================================
@@ -28,6 +30,14 @@ struct ScriptBridge {
     virtual ~ScriptBridge() = default;
     virtual ScriptValue ToScript(const void*, TypeId)                    const { return {}; }
     virtual void        FromScript(const ScriptValue&, void*, TypeId)    const {}
+    
+    virtual ScriptValue ToScriptField(const void* ptr, const FieldInfo* field) const {
+        if (!field) return {};
+        return ToScript(ptr, field->typeId);
+    }
+    virtual void        FromScriptField(const ScriptValue& val, void* ptr, const FieldInfo* field) const {
+        if (field) FromScript(val, ptr, field->typeId);
+    }
 };
 
 // =============================================================================

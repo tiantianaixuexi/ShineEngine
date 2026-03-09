@@ -1,4 +1,4 @@
-#define TINYGLTF_IMPLEMENTATION
+﻿#define TINYGLTF_IMPLEMENTATION
 #include "gltfLoader.h"
 
 #include <functional>
@@ -12,7 +12,7 @@
 #include "math/vector.ixx"
 #include "math/quat.h"
 
-#include "util/timer/function_timer.h"
+#include "util/timer/FunctionTimer.h"
 #include "util/file_util.ixx"
 #include "util/image_util.h"
 #include "util/path_util.h"

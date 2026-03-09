@@ -17,6 +17,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <map>
+#include <memory>
 #include <set>
 #include <variant>
 #include <vector>
@@ -147,6 +148,10 @@ ENABLE_ENUM_FLAGS(FunctionFlags)
 
 namespace shine::reflection {
 
+using PropertyFlags = ::PropertyFlags;
+using FunctionFlags = ::FunctionFlags;
+using ContainerType = ::ContainerType;
+
 
 // =============================================================================
 // UI Schema types — for editor integration via std::visit
@@ -216,6 +221,8 @@ struct MapTrait {
     TypeId       valueType                         = 0;
     std::size_t  (*GetSize)(const void*)           = nullptr;
     void         (*Clear)(void*)                   = nullptr;
+    void         (*Iterate)(const void*, void*, void(*)(const void*, const void*, void*)) = nullptr;
+    void         (*InsertKV)(void*, const void*, const void*) = nullptr;
 };
 
 // =============================================================================
@@ -295,6 +302,7 @@ struct FieldInfo {
     PropertyFlags     flags    = PropertyFlags::None;
     UI::Schema        uiSchema = UI::None{};
     std::string_view  name;
+    uint32_t          nameHash = 0;
     MetadataContainer metadata;
 
     // ---- Accessors ----------------------------------------------------------
@@ -371,6 +379,7 @@ struct FieldInfo {
 
 struct MethodInfo {
     std::string_view    name;
+    uint32_t            nameHash      = 0;
     InvokeFn            invokeFn      = nullptr;
     TypeId              returnType    = 0;
     std::vector<TypeId> paramTypes;
@@ -378,6 +387,13 @@ struct MethodInfo {
     FunctionFlags       flags         = FunctionFlags::None;
     MetadataContainer   metadata;
     const TypeInfo*     owner         = nullptr;
+    mutable const TypeInfo*               cachedReturnTypeInfo = nullptr;
+    mutable std::vector<const TypeInfo*>  cachedParamTypeInfos;
+    mutable std::vector<std::size_t>      cachedParamOffsets;
+    mutable std::size_t                   cachedReturnOffset = 0;
+    mutable std::size_t                   cachedFrameSize = 0;
+    mutable std::size_t                   cachedFrameAlignment = alignof(std::max_align_t);
+    mutable bool                          callCacheValid = false;
 
     void Invoke(void* inst, void** args, void* ret) const {
         if (invokeFn) invokeFn(inst, args, ret);
@@ -394,6 +410,11 @@ struct MethodInfo {
 // TypeInfo — complete runtime type descriptor
 // =============================================================================
 
+struct EnumEntry {
+    int64_t value = 0;
+    std::string_view name;
+};
+
 struct TypeInfo {
     TypeId              id        = 0;
     std::string_view    name;
@@ -404,73 +425,59 @@ struct TypeInfo {
 
     std::vector<FieldInfo>  fields;
     std::vector<MethodInfo> methods;
+    std::vector<EnumEntry>  enumEntries;
     
-    // Fast lookup maps for performance
-    mutable std::unordered_map<uint32_t, const FieldInfo*> fieldLookupCache_;
-    mutable std::unordered_map<uint32_t, const MethodInfo*> methodLookupCache_;
-    mutable bool lookupCacheBuilt_ = false;
-
-    struct EnumEntry { int64_t value; std::string_view name; };
-    std::vector<EnumEntry> enumEntries;
+    // Fast lookup sorted indices for performance
+    struct LookupEntry { uint32_t hash; uint32_t index; };
+    std::vector<LookupEntry> fieldLookup_;
+    std::vector<LookupEntry> methodLookup_;
+    bool lookupSorted_ = false;
 
     const FieldInfo* FindField(std::string_view fieldName) const {
-        // Build cache on first access
-        if (!lookupCacheBuilt_) {
-            BuildLookupCache();
-        }
+        uint32_t hash = Hash(fieldName);
+        auto it = std::ranges::lower_bound(fieldLookup_, hash, {}, &LookupEntry::hash);
         
-        // Fast hash-based lookup - 使用编译期 FNV-1a 哈希以保持一致性
-        uint32_t hash = static_cast<uint32_t>(Hash(fieldName));
-        auto it = fieldLookupCache_.find(hash);
-        if (it != fieldLookupCache_.end() && it->second->name == fieldName) {
-            return it->second;
-        }
-        
-        // Fallback to linear search (should rarely happen)
-        for (const auto& f : fields)
+        // Handle collisions and multiple matches (rare)
+        while (it != fieldLookup_.end() && it->hash == hash) {
+            const auto& f = fields[it->index];
             if (f.name == fieldName) return &f;
+            ++it;
+        }
         return nullptr;
     }
     
     const MethodInfo* FindMethod(std::string_view methodName) const {
-        // Build cache on first access
-        if (!lookupCacheBuilt_) {
-            BuildLookupCache();
-        }
+        uint32_t hash = Hash(methodName);
+        auto it = std::ranges::lower_bound(methodLookup_, hash, {}, &LookupEntry::hash);
         
-        // Fast hash-based lookup - 使用编译期 FNV-1a 哈希以保持一致性
-        uint32_t hash = static_cast<uint32_t>(Hash(methodName));
-        auto it = methodLookupCache_.find(hash);
-        if (it != methodLookupCache_.end() && it->second->name == methodName) {
-            return it->second;
-        }
-        
-        // Fallback to linear search (should rarely happen)
-        for (const auto& m : methods)
+        while (it != methodLookup_.end() && it->hash == hash) {
+            const auto& m = methods[it->index];
             if (m.name == methodName) return &m;
+            ++it;
+        }
         return nullptr;
     }
     
-private:
-    void BuildLookupCache() const {
-        if (lookupCacheBuilt_) return;
-        
-        // Build field lookup cache - 使用编译期 FNV-1a 哈希
-        for (const auto& field : fields) {
-            uint32_t hash = static_cast<uint32_t>(Hash(field.name));
-            fieldLookupCache_[hash] = &field;
-        }
-        
-        // Build method lookup cache - 使用编译期 FNV-1a 哈希
-        for (const auto& method : methods) {
-            uint32_t hash = static_cast<uint32_t>(Hash(method.name));
-            methodLookupCache_[hash] = &method;
-        }
-        
-        lookupCacheBuilt_ = true;
-    }
-    
 public:
+    void BuildLookup() {
+        if (lookupSorted_) return;
+        
+        fieldLookup_.clear();
+        fieldLookup_.reserve(fields.size());
+        for (uint32_t i = 0; i < (uint32_t)fields.size(); ++i) {
+            fieldLookup_.push_back({Hash(fields[i].name), i});
+        }
+        std::ranges::sort(fieldLookup_, {}, &LookupEntry::hash);
+            
+        methodLookup_.clear();
+        methodLookup_.reserve(methods.size());
+        for (uint32_t i = 0; i < (uint32_t)methods.size(); ++i) {
+            methodLookup_.push_back({Hash(methods[i].name), i});
+        }
+        std::ranges::sort(methodLookup_, {}, &LookupEntry::hash);
+        
+        lookupSorted_ = true;
+    }
 
     std::size_t GetFieldCount()  const { return fields.size(); }
     std::size_t GetMethodCount() const { return methods.size(); }
@@ -553,12 +560,24 @@ struct MapThunks {
         return static_cast<const Map*>(p)->contains(*static_cast<const KeyType*>(key));
     }
 
+    static void Iterate(const void* p, void* userData, void(*cb)(const void*, const void*, void*)) {
+        for (const auto& [k, v] : *static_cast<const Map*>(p)) {
+            cb(&k, &v, userData);
+        }
+    }
+    
+    static void InsertKV(void* p, const void* k, const void* v) {
+        (*static_cast<Map*>(p))[*static_cast<const KeyType*>(k)] = *static_cast<const ValueType*>(v);
+    }
+
     static const MapTrait& GetTrait() {
         static const MapTrait trait{
             GetTypeId<KeyType>(),
             GetTypeId<ValueType>(),
             &GetSize,
-            &Clear
+            &Clear,
+            &Iterate,
+            &InsertKV
         };
         return trait;
     }
@@ -592,13 +611,25 @@ struct SetThunks {
         static_cast<Set*>(p)->erase(*static_cast<const ValueType*>(value));
     }
 
+    static void Iterate(const void* p, void* userData, void(*cb)(const void*, const void*, void*)) {
+        for (const auto& k : *static_cast<const Set*>(p)) {
+            cb(&k, &k, userData);
+        }
+    }
+    
+    static void InsertKV(void* p, const void*, const void* v) {
+        static_cast<Set*>(p)->insert(*static_cast<const ValueType*>(v));
+    }
+
     // Set 使用与 Map 相同的 trait 结构，但 keyType == valueType
     static const MapTrait& GetTrait() {
         static const MapTrait trait{
             GetTypeId<ValueType>(),
             GetTypeId<ValueType>(),
             &GetSize,
-            &Clear
+            &Clear,
+            &Iterate,
+            &InsertKV
         };
         return trait;
     }

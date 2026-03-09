@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "editor/views/placement/PlacementPayload.h"
+#include "gameplay/world/WorldServiceInterfaces.h"
 #include "render/renderer_service.h"
 #include "BaseView.h"
 
@@ -23,7 +24,6 @@ namespace shine::gameplay
 namespace shine::gameplay::world
 {
     class IWorldActorPlacementService;
-    class IWorldActorHierarchyService;
 }
 
 namespace shine::editor::views
@@ -39,7 +39,7 @@ namespace shine::editor::views
         void SetWorldPlacementService(shine::gameplay::world::IWorldActorPlacementService* worldPlacementService);
         void SetWorldHierarchyService(shine::gameplay::world::IWorldActorHierarchyService* worldHierarchyService);
         void SetSelectedObject(shine::gameplay::SObject* obj);
-        [[nodiscard]] shine::gameplay::SObject* GetSelectedObject() const { return selectedObject_; }
+        [[nodiscard]] shine::gameplay::SObject* GetSelectedObject() const { return worldHierarchyService_ ? worldHierarchyService_->getSelectedObject() : nullptr; }
         void onInit()    override;
         void onRender()  override; // Note: Removed const to allow updating renderer state
         void onShutDown() override;
@@ -60,7 +60,6 @@ namespace shine::editor::views
         uint64_t nextPlacedActorId_ = 1;
         shine::gameplay::world::IWorldActorPlacementService* worldPlacementService_ = nullptr;
         shine::gameplay::world::IWorldActorHierarchyService* worldHierarchyService_ = nullptr;
-        shine::gameplay::SObject* selectedObject_ = nullptr;
 
         std::unique_ptr<shine::render::demo::EngineDemoScene> m_DemoScene;
     };

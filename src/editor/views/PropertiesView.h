@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gameplay/object.h"
+#include "gameplay/world/WorldServiceInterfaces.h"
 #include "BaseView.h"
 
 namespace shine::script
@@ -23,7 +24,7 @@ namespace shine::editor::views
         void onRender()  override; 
         void onShutDown() override;
 
-        void SetSelectedObject(shine::gameplay::SObject* obj);
+        void SetWorldHierarchyService(shine::gameplay::world::IWorldActorHierarchyService* worldHierarchyService);
         void SetScriptSystem(shine::script::ScriptSystem* scriptSystem);
 
     private:
@@ -31,7 +32,7 @@ namespace shine::editor::views
         void RenderComponentProperties(shine::gameplay::SObject* obj);
         void RenderScriptProperties(shine::gameplay::SObject* obj);
         
-        shine::gameplay::SObject* selectedObject_ = nullptr;
+        shine::gameplay::world::IWorldActorHierarchyService* worldHierarchyService_ = nullptr;
         shine::script::ScriptSystem* scriptSystem_ = nullptr;
         bool isOpen_ = true;
     };

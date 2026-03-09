@@ -1,0 +1,23 @@
+{
+    "name": "draco",
+    "type": "third",
+    "dirs":[
+        "src/third/draco/"
+    ],
+    "link": {
+        "debug": {
+            "lib": [
+                "dracod.lib"
+            ]
+        },
+        "release": {
+            "lib": [
+                "draco.lib"
+            ]
+        }
+    },
+  "defines": [
+    "FMT_HEADER_ONLY"
+  ],
+    "comment": "QuickJS JavaScript引擎静态库"
+}

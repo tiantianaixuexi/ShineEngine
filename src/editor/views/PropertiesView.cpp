@@ -18,7 +18,6 @@ namespace shine::editor::views
 {
 
     void PropertiesView::onShutDown() {
-        selectedObject_ = nullptr;
     }
     void PropertiesView::onInit() {
         SetName("属性编辑器");
@@ -27,23 +26,23 @@ namespace shine::editor::views
     {
         if(ImGui::Begin(name.c_str(), &isOpen))
         {
-
-            if (selectedObject_ == nullptr)
+            auto* selectedObject = worldHierarchyService_ ? worldHierarchyService_->getSelectedObject() : nullptr;
+            if (selectedObject == nullptr)
             {
                 ImGui::Text("未选择任何对象");
             }
             else
             {
-                RenderObjectProperties(selectedObject_);
+                RenderObjectProperties(selectedObject);
             }
         }
                     
         ImGui::End();
     }
 
-    void PropertiesView::SetSelectedObject(shine::gameplay::SObject* obj)
+    void PropertiesView::SetWorldHierarchyService(shine::gameplay::world::IWorldActorHierarchyService* worldHierarchyService)
     {
-        selectedObject_ = obj;
+        worldHierarchyService_ = worldHierarchyService;
     }
 
     void PropertiesView::SetScriptSystem(shine::script::ScriptSystem* scriptSystem)

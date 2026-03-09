@@ -21,20 +21,20 @@ namespace shine::editor::views
         void onRender() override;
 
         void SetSelectedObject(shine::gameplay::SObject* obj);
-        shine::gameplay::SObject* GetSelectedObject() const { return selectedObject_; }
-        bool HasSelection() const { return selectedObject_ != nullptr; }
+        shine::gameplay::SObject* GetSelectedObject() const { return worldService_ ? worldService_->getSelectedObject() : nullptr; }
+        bool HasSelection() const { return GetSelectedObject() != nullptr; }
 
     private:
         void refreshObjects();
         void RenderObjectNode(shine::gameplay::SObject* obj, int index);
         void createEmptyActor();
         void createStaticMeshActor();
+        void deleteSelectedObjects();
         void deleteObject(shine::gameplay::SObject* obj);
         bool isEditorOwned(const shine::gameplay::SObject* obj) const;
 
         shine::gameplay::world::IWorldActorHierarchyService* worldService_ = nullptr;
         std::vector<shine::gameplay::SObject*> visibleObjects_;
-        shine::gameplay::SObject* selectedObject_ = nullptr;
         shine::gameplay::SObject* contextObject_ = nullptr;
         char searchBuffer_[128]{};
         char renameBuffer_[128]{};

@@ -2,6 +2,8 @@
 
 #include <array>
 #include <algorithm>
+#include <ranges>
+#include <iterator>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -45,7 +47,7 @@ namespace shine::script
             std::error_code ec;
             const auto normalized = std::filesystem::weakly_canonical(path, ec);
             std::wstring key = (ec ? path : normalized).wstring();
-            std::transform(key.begin(), key.end(), key.begin(), ::towlower);
+            for (auto& c : key) c = static_cast<wchar_t>(std::towlower(static_cast<wint_t>(c)));
             return key;
         }
 
@@ -89,150 +91,174 @@ namespace shine::script
 
             reflection::ScriptValue ToScript(const void* nativePtr, reflection::TypeId typeId) const override
             {
-                if (!nativePtr)
-                {
-                    return {};
-                }
+                if (!nativePtr) return {};
+
+                // Use a simple switch on common type IDs for performance
+                // These are compile-time constants from GetTypeId<T>()
                 if (typeId == reflection::GetTypeId<bool>())
-                {
                     return reflection::ScriptValue{*static_cast<const bool*>(nativePtr)};
-                }
-                if (typeId == reflection::GetTypeId<int>() ||
-                    typeId == reflection::GetTypeId<int32_t>())
-                {
+                if (typeId == reflection::GetTypeId<int>() || typeId == reflection::GetTypeId<int32_t>())
                     return reflection::ScriptValue{static_cast<int>(*static_cast<const int32_t*>(nativePtr))};
-                }
                 if (typeId == reflection::GetTypeId<uint32_t>())
-                {
                     return reflection::ScriptValue{static_cast<int>(*static_cast<const uint32_t*>(nativePtr))};
-                }
                 if (typeId == reflection::GetTypeId<float>())
-                {
                     return reflection::ScriptValue{*static_cast<const float*>(nativePtr)};
-                }
                 if (typeId == reflection::GetTypeId<double>())
-                {
                     return reflection::ScriptValue{*static_cast<const double*>(nativePtr)};
-                }
                 if (typeId == reflection::GetTypeId<std::string>())
-                {
                     return reflection::ScriptValue{*static_cast<const std::string*>(nativePtr)};
-                }
                 if (typeId == reflection::GetTypeId<shine::SString>())
-                {
                     return reflection::ScriptValue{static_cast<const shine::SString*>(nativePtr)->to_string()};
-                }
+                
                 return {};
+            }
+
+            reflection::ScriptValue ToScriptField(const void* nativePtr, const reflection::FieldInfo* field) const override
+            {
+                if (!nativePtr || !field) return {};
+                
+                if (field->containerType == reflection::ContainerType::Sequence && field->containerTrait) {
+                    auto* trait = static_cast<const reflection::SequenceTrait*>(field->containerTrait);
+                    auto arr = std::make_shared<reflection::ScriptArray>();
+                    size_t size = trait->GetSize(nativePtr);
+                    for (size_t i = 0; i < size; ++i) {
+                        const void* elemPtr = trait->GetElementConst(nativePtr, i);
+                        arr->elements.push_back(ToScript(elemPtr, trait->elementType));
+                    }
+                    return reflection::ScriptValue{reflection::ScriptValue::ArrayWrapper{arr}};
+                }
+                
+                if (field->containerType == reflection::ContainerType::Associative && field->containerTrait) {
+                    auto* trait = static_cast<const reflection::MapTrait*>(field->containerTrait);
+                    auto map = std::make_shared<reflection::ScriptMap>();
+                    
+                    struct IterData {
+                        const QuickJSScriptBridge* bridge;
+                        reflection::TypeId keyType;
+                        reflection::TypeId valType;
+                        std::shared_ptr<reflection::ScriptMap> map;
+                    };
+                    IterData data{this, trait->keyType, trait->valueType, map};
+                    
+                    if (trait->Iterate) {
+                        trait->Iterate(nativePtr, &data, [](const void* k, const void* v, void* ud) {
+                            auto* d = static_cast<IterData*>(ud);
+                            auto keyVal = d->bridge->ToScript(k, d->keyType);
+                            std::string keyStr;
+                            if (std::holds_alternative<std::string>(keyVal.data)) {
+                                keyStr = std::get<std::string>(keyVal.data);
+                            } else if (std::holds_alternative<int>(keyVal.data)) {
+                                keyStr = std::to_string(std::get<int>(keyVal.data));
+                            } else if (std::holds_alternative<float>(keyVal.data)) {
+                                keyStr = std::to_string(std::get<float>(keyVal.data));
+                            } else if (std::holds_alternative<double>(keyVal.data)) {
+                                keyStr = std::to_string(std::get<double>(keyVal.data));
+                            }
+                            d->map->elements[keyStr] = d->bridge->ToScript(v, d->valType);
+                        });
+                    }
+                    return reflection::ScriptValue{reflection::ScriptValue::MapWrapper{map}};
+                }
+                
+                return ToScript(nativePtr, field->typeId);
             }
 
             void FromScript(const reflection::ScriptValue& scriptVal, void* outNativePtr, reflection::TypeId targetType) const override
             {
-                if (!outNativePtr)
-                {
+                if (!outNativePtr) return;
+
+                const auto& value = scriptVal.data;
+                auto try_get_double = [&]() -> double {
+                    if (std::holds_alternative<double>(value)) return std::get<double>(value);
+                    if (std::holds_alternative<int>(value)) return static_cast<double>(std::get<int>(value));
+                    if (std::holds_alternative<float>(value)) return static_cast<double>(std::get<float>(value));
+                    return 0.0;
+                };
+
+                if (targetType == reflection::GetTypeId<bool>()) {
+                    *static_cast<bool*>(outNativePtr) = std::holds_alternative<bool>(value) ? std::get<bool>(value) : false;
+                } else if (targetType == reflection::GetTypeId<int>() || targetType == reflection::GetTypeId<int32_t>()) {
+                    *static_cast<int32_t*>(outNativePtr) = static_cast<int32_t>(try_get_double());
+                } else if (targetType == reflection::GetTypeId<uint32_t>()) {
+                    *static_cast<uint32_t*>(outNativePtr) = static_cast<uint32_t>(std::max(0.0, try_get_double()));
+                } else if (targetType == reflection::GetTypeId<float>()) {
+                    *static_cast<float*>(outNativePtr) = static_cast<float>(try_get_double());
+                } else if (targetType == reflection::GetTypeId<double>()) {
+                    *static_cast<double*>(outNativePtr) = try_get_double();
+                } else if (targetType == reflection::GetTypeId<std::string>()) {
+                    if (std::holds_alternative<std::string>(value))
+                        *static_cast<std::string*>(outNativePtr) = std::get<std::string>(value);
+                    else
+                        static_cast<std::string*>(outNativePtr)->clear();
+                } else if (targetType == reflection::GetTypeId<shine::SString>()) {
+                    if (std::holds_alternative<std::string>(value))
+                        *static_cast<shine::SString*>(outNativePtr) = shine::SString(std::get<std::string>(value));
+                    else
+                        *static_cast<shine::SString*>(outNativePtr) = shine::SString();
+                }
+            }
+
+            void FromScriptField(const reflection::ScriptValue& scriptVal, void* outNativePtr, const reflection::FieldInfo* field) const override
+            {
+                if (!outNativePtr || !field) return;
+
+                if (field->containerType == reflection::ContainerType::Sequence && field->containerTrait) {
+                    if (std::holds_alternative<reflection::ScriptValue::ArrayWrapper>(scriptVal.data)) {
+                        auto arr = std::get<reflection::ScriptValue::ArrayWrapper>(scriptVal.data).ptr;
+                        if (arr) {
+                            auto* trait = static_cast<const reflection::SequenceTrait*>(field->containerTrait);
+                            if (trait->Resize) {
+                                trait->Resize(outNativePtr, arr->elements.size());
+                                for (size_t i = 0; i < arr->elements.size(); ++i) {
+                                    void* elemPtr = trait->GetElement(outNativePtr, i);
+                                    FromScript(arr->elements[i], elemPtr, trait->elementType);
+                                }
+                            }
+                        }
+                    }
+                    return;
+                }
+                
+                if (field->containerType == reflection::ContainerType::Associative && field->containerTrait) {
+                    if (std::holds_alternative<reflection::ScriptValue::MapWrapper>(scriptVal.data)) {
+                        auto map = std::get<reflection::ScriptValue::MapWrapper>(scriptVal.data).ptr;
+                        if (map) {
+                            auto* trait = static_cast<const reflection::MapTrait*>(field->containerTrait);
+                            if (trait->Clear && trait->InsertKV) {
+                                trait->Clear(outNativePtr);
+                                
+                                // Temporary buffers for key and value since we don't know their types statically
+                                alignas(16) char keyBuf[128];
+                                alignas(16) char valBuf[128];
+                                
+                                const auto* kType = reflection::TypeRegistry::Get().FindFast(trait->keyType);
+                                const auto* vType = reflection::TypeRegistry::Get().FindFast(trait->valueType);
+                                
+                                void* kPtr = (kType && kType->size <= sizeof(keyBuf)) ? keyBuf : std::malloc(kType ? kType->size : 8);
+                                void* vPtr = (vType && vType->size <= sizeof(valBuf)) ? valBuf : std::malloc(vType ? vType->size : 8);
+                                
+                                for (const auto& [k, v] : map->elements) {
+                                    if (kType && !kType->isPod) reflection::Construct(kPtr, trait->keyType);
+                                    if (vType && !vType->isPod) reflection::Construct(vPtr, trait->valueType);
+                                    
+                                    FromScript(reflection::ScriptValue{k}, kPtr, trait->keyType);
+                                    FromScript(v, vPtr, trait->valueType);
+                                    
+                                    trait->InsertKV(outNativePtr, kPtr, vPtr);
+                                    
+                                    if (kType && !kType->isPod) reflection::Destruct(kPtr, trait->keyType);
+                                    if (vType && !vType->isPod) reflection::Destruct(vPtr, trait->valueType);
+                                }
+                                
+                                if (kPtr != keyBuf) std::free(kPtr);
+                                if (vPtr != valBuf) std::free(vPtr);
+                            }
+                        }
+                    }
                     return;
                 }
 
-                const auto& value = scriptVal.data;
-                if (targetType == reflection::GetTypeId<bool>())
-                {
-                    *static_cast<bool*>(outNativePtr) = std::holds_alternative<bool>(value) ? std::get<bool>(value) : false;
-                    return;
-                }
-                if (targetType == reflection::GetTypeId<int>() || targetType == reflection::GetTypeId<int32_t>())
-                {
-                    if (std::holds_alternative<int>(value))
-                    {
-                        *static_cast<int32_t*>(outNativePtr) = static_cast<int32_t>(std::get<int>(value));
-                    }
-                    else if (std::holds_alternative<double>(value))
-                    {
-                        *static_cast<int32_t*>(outNativePtr) = static_cast<int32_t>(std::get<double>(value));
-                    }
-                    else
-                    {
-                        *static_cast<int32_t*>(outNativePtr) = 0;
-                    }
-                    return;
-                }
-                if (targetType == reflection::GetTypeId<uint32_t>())
-                {
-                    if (std::holds_alternative<int>(value))
-                    {
-                        *static_cast<uint32_t*>(outNativePtr) = static_cast<uint32_t>(std::max<int>(0, std::get<int>(value)));
-                    }
-                    else if (std::holds_alternative<double>(value))
-                    {
-                        *static_cast<uint32_t*>(outNativePtr) = static_cast<uint32_t>(std::max<double>(0.0, std::get<double>(value)));
-                    }
-                    else
-                    {
-                        *static_cast<uint32_t*>(outNativePtr) = 0;
-                    }
-                    return;
-                }
-                if (targetType == reflection::GetTypeId<float>())
-                {
-                    if (std::holds_alternative<int>(value))
-                    {
-                        *static_cast<float*>(outNativePtr) = static_cast<float>(std::get<int>(value));
-                    }
-                    else if (std::holds_alternative<float>(value))
-                    {
-                        *static_cast<float*>(outNativePtr) = std::get<float>(value);
-                    }
-                    else if (std::holds_alternative<double>(value))
-                    {
-                        *static_cast<float*>(outNativePtr) = static_cast<float>(std::get<double>(value));
-                    }
-                    else
-                    {
-                        *static_cast<float*>(outNativePtr) = 0.0f;
-                    }
-                    return;
-                }
-                if (targetType == reflection::GetTypeId<double>())
-                {
-                    if (std::holds_alternative<int>(value))
-                    {
-                        *static_cast<double*>(outNativePtr) = static_cast<double>(std::get<int>(value));
-                    }
-                    else if (std::holds_alternative<float>(value))
-                    {
-                        *static_cast<double*>(outNativePtr) = static_cast<double>(std::get<float>(value));
-                    }
-                    else if (std::holds_alternative<double>(value))
-                    {
-                        *static_cast<double*>(outNativePtr) = std::get<double>(value);
-                    }
-                    else
-                    {
-                        *static_cast<double*>(outNativePtr) = 0.0;
-                    }
-                    return;
-                }
-                if (targetType == reflection::GetTypeId<std::string>())
-                {
-                    if (std::holds_alternative<std::string>(value))
-                    {
-                        *static_cast<std::string*>(outNativePtr) = std::get<std::string>(value);
-                    }
-                    else
-                    {
-                        static_cast<std::string*>(outNativePtr)->clear();
-                    }
-                    return;
-                }
-                if (targetType == reflection::GetTypeId<shine::SString>())
-                {
-                    if (std::holds_alternative<std::string>(value))
-                    {
-                        *static_cast<shine::SString*>(outNativePtr) = shine::SString(std::get<std::string>(value));
-                    }
-                    else
-                    {
-                        *static_cast<shine::SString*>(outNativePtr) = shine::SString();
-                    }
-                }
+                FromScript(scriptVal, outNativePtr, field->typeId);
             }
 
             reflection::ScriptValue FromJSValue(JSValueConst value) const
@@ -263,6 +289,44 @@ namespace shine::script
                     JS_FreeCString(context_, str);
                     return reflection::ScriptValue{std::move(text)};
                 }
+                if (JS_IsArray(value))
+                {
+                    auto arr = std::make_shared<reflection::ScriptArray>();
+                    JSValue lengthVal = JS_GetPropertyStr(context_, value, "length");
+                    uint32_t length = 0;
+                    JS_ToUint32(context_, &length, lengthVal);
+                    JS_FreeValue(context_, lengthVal);
+                    for (uint32_t i = 0; i < length; ++i)
+                    {
+                        JSValue elemVal = JS_GetPropertyUint32(context_, value, i);
+                        arr->elements.push_back(FromJSValue(elemVal));
+                        JS_FreeValue(context_, elemVal);
+                    }
+                    return reflection::ScriptValue{reflection::ScriptValue::ArrayWrapper{arr}};
+                }
+                if (JS_IsObject(value) && !JS_IsFunction(context_, value))
+                {
+                    auto map = std::make_shared<reflection::ScriptMap>();
+                    JSPropertyEnum *tab;
+                    uint32_t len;
+                    if (JS_GetOwnPropertyNames(context_, &tab, &len, value, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) == 0)
+                    {
+                        for (uint32_t i = 0; i < len; ++i)
+                        {
+                            const char* key = JS_AtomToCString(context_, tab[i].atom);
+                            if (key)
+                            {
+                                JSValue propVal = JS_GetProperty(context_, value, tab[i].atom);
+                                map->elements[key] = FromJSValue(propVal);
+                                JS_FreeValue(context_, propVal);
+                                JS_FreeCString(context_, key);
+                            }
+                            JS_FreeAtom(context_, tab[i].atom);
+                        }
+                        js_free(context_, tab);
+                    }
+                    return reflection::ScriptValue{reflection::ScriptValue::MapWrapper{map}};
+                }
                 return {};
             }
 
@@ -291,6 +355,29 @@ namespace shine::script
                 if (std::holds_alternative<std::string>(value.data))
                 {
                     return JS_NewString(context_, std::get<std::string>(value.data).c_str());
+                }
+                if (std::holds_alternative<reflection::ScriptValue::ArrayWrapper>(value.data))
+                {
+                    auto arr = std::get<reflection::ScriptValue::ArrayWrapper>(value.data).ptr;
+                    if (!arr) return JS_NewArray(context_);
+                    JSValue jsArray = JS_NewArray(context_);
+                    uint32_t i = 0;
+                    for (const auto& elem : arr->elements)
+                    {
+                        JS_SetPropertyUint32(context_, jsArray, i++, ToJSValue(elem));
+                    }
+                    return jsArray;
+                }
+                if (std::holds_alternative<reflection::ScriptValue::MapWrapper>(value.data))
+                {
+                    auto map = std::get<reflection::ScriptValue::MapWrapper>(value.data).ptr;
+                    if (!map) return JS_NewObject(context_);
+                    JSValue jsObj = JS_NewObject(context_);
+                    for (const auto& [k, v] : map->elements)
+                    {
+                        JS_SetPropertyStr(context_, jsObj, k.c_str(), ToJSValue(v));
+                    }
+                    return jsObj;
                 }
                 return JS_UNDEFINED;
             }
@@ -476,8 +563,7 @@ namespace shine::script
             {
                 std::filesystem::path sourceTsPath = scriptSourceRoot_ / resolvedPath.filename();
                 sourceTsPath.replace_extension(".ts");
-                const auto sourceTsResult = util::read_file_text(shine::SString(sourceTsPath.string()).view());
-                if (sourceTsResult.has_value())
+                if (const auto sourceTsResult = util::read_file_text(shine::SString(sourceTsPath.string()).view()))
                 {
                     sourceHashes_[MakeScriptPathKey(sourceTsPath)] = HashScriptText(sourceTsResult.value());
                 }
@@ -656,10 +742,10 @@ namespace shine::script
         const auto normalizedRoot = std::filesystem::weakly_canonical(scriptSourceRoot_, pathEc);
         if (!normalizedRoot.empty())
         {
-            auto changedText = normalizedChanged.wstring();
-            auto rootText = normalizedRoot.wstring();
-            std::transform(changedText.begin(), changedText.end(), changedText.begin(), ::towlower);
-            std::transform(rootText.begin(), rootText.end(), rootText.begin(), ::towlower);
+            std::wstring changedText = normalizedChanged.wstring();
+            std::wstring rootText = normalizedRoot.wstring();
+            for (auto& c : changedText) c = static_cast<wchar_t>(std::towlower(static_cast<wint_t>(c)));
+            for (auto& c : rootText) c = static_cast<wchar_t>(std::towlower(static_cast<wint_t>(c)));
             if (changedText.rfind(rootText, 0) != 0)
             {
                 return;
@@ -668,21 +754,19 @@ namespace shine::script
         const auto extension = changedPath.extension().wstring();
 
         std::wstring extensionLower = extension;
-        std::transform(extensionLower.begin(), extensionLower.end(), extensionLower.begin(), ::towlower);
+        for (auto& c : extensionLower) c = static_cast<wchar_t>(std::towlower(static_cast<wint_t>(c)));
         if (extensionLower == L".ts")
         {
             const std::wstring changedKey = MakeScriptPathKey(changedPath);
             const auto now = std::chrono::steady_clock::now();
             if (!lastReloadPath_.empty() && lastReloadPath_ == changedKey)
             {
-                const auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastReloadRequestAt_);
-                if (delta.count() < 200)
+                if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastReloadRequestAt_).count() < 200)
                 {
                     return;
                 }
             }
-            const auto sourceResult = util::read_file_text(shine::SString(changedPath.string()).view());
-            if (sourceResult.has_value())
+            if (const auto sourceResult = util::read_file_text(shine::SString(changedPath.string()).view()))
             {
                 const uint64_t sourceHash = HashScriptText(sourceResult.value());
                 if (const auto it = sourceHashes_.find(changedKey); it != sourceHashes_.end() && it->second == sourceHash)
@@ -701,6 +785,7 @@ namespace shine::script
             }
             return;
         }
+
         if (extensionLower == L".js")
         {
             const auto utf8Path = util::EncodingUtil::WstringToUTF8(changedPath.wstring());
@@ -719,8 +804,7 @@ namespace shine::script
         const auto now = std::chrono::steady_clock::now();
         if (lastTsCompileAt_.time_since_epoch().count() != 0)
         {
-            const auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastTsCompileAt_);
-            if (delta.count() < 300)
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastTsCompileAt_).count() < 300)
             {
                 return false;
             }
@@ -790,16 +874,14 @@ namespace shine::script
         {
             uint32_t handleId = 0;
             shine::SString path;
+            uint64_t oldVersion = 0;
         };
 
         std::vector<ReloadTarget> targets;
         targets.reserve(loadedScripts_.size());
         for (const auto& [handleId, entry] : loadedScripts_)
         {
-            targets.push_back(ReloadTarget{
-                .handleId = handleId,
-                .path = entry.path
-            });
+            targets.push_back({handleId, entry.path, entry.propertyLayoutVersion});
         }
 
         for (auto& [handleId, entry] : loadedScripts_)
@@ -807,10 +889,9 @@ namespace shine::script
             invokeScope_.owner = nullptr;
             InvokeNoArg(ScriptHandle{handleId}, entry, entry.destroyFunc, STextView::from_literal("Destroy"));
         }
-        for (auto& [handleId, entry] : loadedScripts_)
+        for (auto& pair : loadedScripts_)
         {
-            (void)handleId;
-            ReleaseScriptEntry(entry);
+            ReleaseScriptEntry(pair.second);
         }
         loadedScripts_.clear();
 
@@ -837,7 +918,7 @@ namespace shine::script
         {
             const std::filesystem::path resolvedPath = ResolveScriptPath(target.path.view());
             const auto textResult = util::read_file_text(shine::SString(resolvedPath.string()).view());
-            if (!textResult.has_value())
+            if (!textResult)
             {
                 SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "脚本热重载失败: handle={} 读取失败 {}", target.handleId, resolvedPath.string());
                 continue;
@@ -851,20 +932,15 @@ namespace shine::script
             }
 
             newEntry.path = shine::SString(resolvedPath.string());
+            newEntry.propertyLayoutVersion = target.oldVersion + 1; // Preserve and increment version
             sourceHashes_[MakeScriptPathKey(resolvedPath)] = HashScriptText(textResult.value());
-            if (!scriptSourceRoot_.empty())
+            if (!scriptSourceRoot_.empty() && resolvedPath.extension() == L".js")
             {
-                std::wstring extensionLower = resolvedPath.extension().wstring();
-                std::transform(extensionLower.begin(), extensionLower.end(), extensionLower.begin(), ::towlower);
-                if (extensionLower == L".js")
+                std::filesystem::path sourceTsPath = scriptSourceRoot_ / resolvedPath.filename();
+                sourceTsPath.replace_extension(".ts");
+                if (const auto sourceTsResult = util::read_file_text(shine::SString(sourceTsPath.string()).view()))
                 {
-                    std::filesystem::path sourceTsPath = scriptSourceRoot_ / resolvedPath.filename();
-                    sourceTsPath.replace_extension(".ts");
-                    const auto sourceTsResult = util::read_file_text(shine::SString(sourceTsPath.string()).view());
-                    if (sourceTsResult.has_value())
-                    {
-                        sourceHashes_[MakeScriptPathKey(sourceTsPath)] = HashScriptText(sourceTsResult.value());
-                    }
+                    sourceHashes_[MakeScriptPathKey(sourceTsPath)] = HashScriptText(sourceTsResult.value());
                 }
             }
             auto [insertIt, inserted] = loadedScripts_.emplace(target.handleId, std::move(newEntry));
@@ -893,6 +969,7 @@ namespace shine::script
         {
             return false;
         }
+        
         const auto it = loadedScripts_.find(handle.id);
         if (it == loadedScripts_.end())
         {
@@ -948,16 +1025,17 @@ namespace shine::script
             return false;
         }
         outProperties.reserve(it->second.properties.size());
-        for (const auto& property : it->second.properties)
+        for (const auto& p : it->second.properties)
         {
-            outProperties.push_back(ScriptPropertyInspectorInfo{
-                .name = property.name,
-                .type = property.type,
-                .access = property.access,
-                .group = property.group,
-                .visible = property.visible
-            });
+            outProperties.push_back({p.name, p.type, p.access, p.group, p.visible});
         }
+
+        // Sort properties by group then by name for a better out-of-order user experience
+        std::sort(outProperties.begin(), outProperties.end(), [](const auto& a, const auto& b) {
+            if (a.group != b.group) return a.group.view() < b.group.view();
+            return a.name.view() < b.name.view();
+        });
+
         return true;
     }
 
@@ -1025,12 +1103,10 @@ namespace shine::script
         {
             return false;
         }
+
         const shine::SString propertyNameText(propertyName);
-        const auto propertyIt = std::find_if(
-            it->second.properties.begin(),
-            it->second.properties.end(),
-            [&](const ScriptEntry::PropertyMeta& item) { return item.name == propertyNameText; }
-        );
+        const auto propertyIt = std::ranges::find_if(it->second.properties,
+            [&](const auto& p) { return p.name == propertyNameText; });
         if (propertyIt == it->second.properties.end() || propertyIt->access == kReadOnlyAccess)
         {
             return false;
@@ -1247,27 +1323,19 @@ namespace shine::script
         int timerId = 0;
         JS_ToInt32(ctx, &timerId, argv[0]);
         const auto it = scope->system->loadedScripts_.find(scope->handle.id);
-        if (it == scope->system->loadedScripts_.end())
-        {
-            return JS_NewBool(ctx, false);
-        }
+        if (it == scope->system->loadedScripts_.end()) return JS_NewBool(ctx, false);
 
         auto& timers = it->second.timers;
-        for (size_t i = 0; i < timers.size(); ++i)
+        auto timerIt = std::find_if(timers.begin(), timers.end(), [&](const auto& t) { return t.id == static_cast<uint32_t>(timerId); });
+        if (timerIt != timers.end())
         {
-            if (timers[i].id == static_cast<uint32_t>(timerId))
+            if (it->second.tickingTimers) timerIt->cancelled = true;
+            else
             {
-                if (it->second.tickingTimers)
-                {
-                    timers[i].cancelled = true;
-                }
-                else
-                {
-                    JS_FreeValue(ctx, timers[i].callback);
-                    timers.erase(timers.begin() + static_cast<long long>(i));
-                }
-                return JS_NewBool(ctx, true);
+                JS_FreeValue(ctx, timerIt->callback);
+                timers.erase(timerIt);
             }
+            return JS_NewBool(ctx, true);
         }
         return JS_NewBool(ctx, false);
     }
@@ -1319,50 +1387,39 @@ namespace shine::script
     {
         (void)thisVal;
         auto* scope = static_cast<InvokeScope*>(JS_GetContextOpaque(ctx));
-        if (!scope || !scope->system || argc < 3)
-        {
-            return JS_UNDEFINED;
-        }
+        if (!scope || !scope->system || argc < 3) return JS_UNDEFINED;
 
         int32_t actorId = 0;
         JS_ToInt32(ctx, &actorId, argv[0]);
         const char* typeName = JS_ToCString(ctx, argv[1]);
         const char* fieldName = JS_ToCString(ctx, argv[2]);
-        if (!typeName || !fieldName)
-        {
-            if (typeName)
-            {
-                JS_FreeCString(ctx, typeName);
-            }
-            if (fieldName)
-            {
-                JS_FreeCString(ctx, fieldName);
-            }
+        if (!typeName || !fieldName) {
+            if (typeName) JS_FreeCString(ctx, typeName);
+            if (fieldName) JS_FreeCString(ctx, fieldName);
             return JS_UNDEFINED;
         }
 
         auto* actor = scope->system->FindActorById(actorId);
         const auto* typeInfo = reflection::TypeRegistry::Get().FindByNameFast(typeName);
         const auto* fieldInfo = typeInfo ? typeInfo->FindField(fieldName) : nullptr;
-        if (!actor || !fieldInfo)
-        {
+        if (!actor || !fieldInfo) {
             JS_FreeCString(ctx, fieldName);
             JS_FreeCString(ctx, typeName);
             return JS_UNDEFINED;
         }
 
-        auto valueBuffer = std::make_unique<char[]>(fieldInfo->size);
-        if (!fieldInfo->isPod)
-        {
-            reflection::Construct(valueBuffer.get(), fieldInfo->typeId);
-        }
-        fieldInfo->Get(actor, valueBuffer.get());
+        // Optimization: Use stack buffer for small types to avoid heap allocation
+        alignas(16) char stackBuffer[64];
+        void* valueBuffer = (fieldInfo->size <= sizeof(stackBuffer)) ? stackBuffer : std::malloc(fieldInfo->size);
+        
+        if (!fieldInfo->isPod) reflection::Construct(valueBuffer, fieldInfo->typeId);
+        fieldInfo->Get(actor, valueBuffer);
+        
         QuickJSScriptBridge bridge(ctx);
-        JSValue result = bridge.ToJSValue(bridge.ToScript(valueBuffer.get(), fieldInfo->typeId));
-        if (!fieldInfo->isPod)
-        {
-            reflection::Destruct(valueBuffer.get(), fieldInfo->typeId);
-        }
+        JSValue result = bridge.ToJSValue(bridge.ToScript(valueBuffer, fieldInfo->typeId));
+        
+        if (!fieldInfo->isPod) reflection::Destruct(valueBuffer, fieldInfo->typeId);
+        if (valueBuffer != stackBuffer) std::free(valueBuffer);
 
         JS_FreeCString(ctx, fieldName);
         JS_FreeCString(ctx, typeName);
@@ -1373,33 +1430,22 @@ namespace shine::script
     {
         (void)thisVal;
         auto* scope = static_cast<InvokeScope*>(JS_GetContextOpaque(ctx));
-        if (!scope || !scope->system || argc < 4)
-        {
-            return JS_NewBool(ctx, false);
-        }
+        if (!scope || !scope->system || argc < 4) return JS_NewBool(ctx, false);
 
         int32_t actorId = 0;
         JS_ToInt32(ctx, &actorId, argv[0]);
         const char* typeName = JS_ToCString(ctx, argv[1]);
         const char* fieldName = JS_ToCString(ctx, argv[2]);
-        if (!typeName || !fieldName)
-        {
-            if (typeName)
-            {
-                JS_FreeCString(ctx, typeName);
-            }
-            if (fieldName)
-            {
-                JS_FreeCString(ctx, fieldName);
-            }
+        if (!typeName || !fieldName) {
+            if (typeName) JS_FreeCString(ctx, typeName);
+            if (fieldName) JS_FreeCString(ctx, fieldName);
             return JS_NewBool(ctx, false);
         }
 
         auto* actor = scope->system->FindActorById(actorId);
         const auto* typeInfo = reflection::TypeRegistry::Get().FindByNameFast(typeName);
         const auto* fieldInfo = typeInfo ? typeInfo->FindField(fieldName) : nullptr;
-        if (!actor || !fieldInfo || !fieldInfo->setterFn)
-        {
+        if (!actor || !fieldInfo || !fieldInfo->setterFn) {
             JS_FreeCString(ctx, fieldName);
             JS_FreeCString(ctx, typeName);
             return JS_NewBool(ctx, false);
@@ -1407,17 +1453,16 @@ namespace shine::script
 
         QuickJSScriptBridge bridge(ctx);
         reflection::ScriptValue value = bridge.FromJSValue(argv[3]);
-        auto valueBuffer = std::make_unique<char[]>(fieldInfo->size);
-        if (!fieldInfo->isPod)
-        {
-            reflection::Construct(valueBuffer.get(), fieldInfo->typeId);
-        }
-        bridge.FromScript(value, valueBuffer.get(), fieldInfo->typeId);
-        fieldInfo->Set(actor, valueBuffer.get());
-        if (!fieldInfo->isPod)
-        {
-            reflection::Destruct(valueBuffer.get(), fieldInfo->typeId);
-        }
+        
+        alignas(16) char stackBuffer[64];
+        void* valueBuffer = (fieldInfo->size <= sizeof(stackBuffer)) ? stackBuffer : std::malloc(fieldInfo->size);
+        
+        if (!fieldInfo->isPod) reflection::Construct(valueBuffer, fieldInfo->typeId);
+        bridge.FromScript(value, valueBuffer, fieldInfo->typeId);
+        fieldInfo->Set(actor, valueBuffer);
+        
+        if (!fieldInfo->isPod) reflection::Destruct(valueBuffer, fieldInfo->typeId);
+        if (valueBuffer != stackBuffer) std::free(valueBuffer);
 
         JS_FreeCString(ctx, fieldName);
         JS_FreeCString(ctx, typeName);
@@ -1867,10 +1912,7 @@ namespace shine::script
         {
             for (auto& timer : entry.timers)
             {
-                if (!JS_IsUndefined(timer.callback))
-                {
-                    JS_FreeValue(context_, timer.callback);
-                }
+                if (!JS_IsUndefined(timer.callback)) JS_FreeValue(context_, timer.callback);
             }
         }
         entry.timers.clear();

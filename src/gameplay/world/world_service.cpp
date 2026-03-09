@@ -12,6 +12,66 @@
 
 namespace shine::gameplay::world
 {
+    void WorldService::clearSelection()
+    {
+        for (uint32_t objectId : selectedObjectIds_)
+        {
+            const auto it = actorIndex_.find(objectId);
+            if (it != actorIndex_.end() && it->second)
+            {
+                it->second->setFlag(shine::gameplay::EObjectFlags::OF_Selected, false);
+            }
+        }
+        selectedObjectIds_.clear();
+        selectedObjectId_ = 0;
+    }
+
+    void WorldService::setSelectedObject(shine::gameplay::SObject* obj)
+    {
+        clearSelection();
+        addSelectionInternal(obj);
+    }
+
+    void WorldService::toggleSelectedObject(shine::gameplay::SObject* obj)
+    {
+        if (!obj)
+        {
+            return;
+        }
+        if (isSelected(obj))
+        {
+            removeSelectionInternal(obj);
+            return;
+        }
+        addSelectionInternal(obj);
+    }
+
+    bool WorldService::isSelected(const shine::gameplay::SObject* obj) const
+    {
+        return obj && std::find(selectedObjectIds_.begin(), selectedObjectIds_.end(), obj->getObjectId()) != selectedObjectIds_.end();
+    }
+
+    shine::gameplay::SObject* WorldService::getSelectedObject() const
+    {
+        const auto it = actorIndex_.find(selectedObjectId_);
+        return it == actorIndex_.end() ? nullptr : it->second;
+    }
+
+    std::vector<shine::gameplay::SObject*> WorldService::getSelectedObjectsSnapshot() const
+    {
+        std::vector<shine::gameplay::SObject*> selectedObjects;
+        selectedObjects.reserve(selectedObjectIds_.size());
+        for (uint32_t objectId : selectedObjectIds_)
+        {
+            const auto it = actorIndex_.find(objectId);
+            if (it != actorIndex_.end() && it->second)
+            {
+                selectedObjects.push_back(it->second);
+            }
+        }
+        return selectedObjects;
+    }
+
     WorldService& WorldService::get()
     {
         return *EngineContext::Get().GetSystem<WorldService>();
@@ -21,6 +81,7 @@ namespace shine::gameplay::world
     {
         auto* assetManager = ctx.GetSystem<manager::AssetManager>();
         worldAssetBridge_ = static_cast<manager::IWorldAssetBridge*>(assetManager);
+        clearSelection();
         actorIndex_.clear();
         return worldAssetBridge_ != nullptr;
     }
@@ -32,6 +93,7 @@ namespace shine::gameplay::world
         {
             worldAssetBridge_->UnloadAsset(activeMapHandle_);
         }
+        clearSelection();
         activeMapHandle_ = {};
         worldAssetBridge_ = nullptr;
         actorIndex_.clear();
@@ -44,6 +106,7 @@ namespace shine::gameplay::world
             activeMapHandle_ = {};
             return;
         }
+        clearSelection();
         const std::string mapPath = "memory://map/" + mapName + ".map";
         activeMapHandle_ = worldAssetBridge_->LoadMapAsset(mapPath);
         auto* map = worldAssetBridge_->GetMapAsset(activeMapHandle_);
@@ -69,6 +132,7 @@ namespace shine::gameplay::world
         {
             return false;
         }
+        clearSelection();
         activeMapHandle_ = mapHandle;
         rebuildActorIndex();
         return true;
@@ -122,6 +186,15 @@ namespace shine::gameplay::world
         if (!map || !actor)
         {
             return false;
+        }
+
+        if (getSelectedObject() == actor)
+        {
+            removeSelectionInternal(actor);
+        }
+        else if (isSelected(actor))
+        {
+            removeSelectionInternal(actor);
         }
 
         auto eraseFrom = [actor](std::vector<std::unique_ptr<shine::gameplay::SActor>>& actors)
@@ -244,6 +317,7 @@ namespace shine::gameplay::world
         level->loadedActors.clear();
         level->state = LevelAsset::StreamingState::Unloaded;
         rebuildActorIndex();
+        pruneSelection();
         return true;
     }
 
@@ -278,6 +352,7 @@ namespace shine::gameplay::world
             }
             level.state = LevelAsset::StreamingState::Loaded;
             rebuildActorIndex();
+            pruneSelection();
         }
     }
 
@@ -298,6 +373,7 @@ namespace shine::gameplay::world
                 indexActorVector(level.loadedActors);
             }
         }
+        pruneSelection();
     }
 
     void WorldService::indexActorVector(const std::vector<std::unique_ptr<shine::gameplay::SActor>>& actors)
@@ -309,6 +385,47 @@ namespace shine::gameplay::world
                 actorIndex_[actor->getObjectId()] = actor.get();
             }
         }
+    }
+
+    void WorldService::addSelectionInternal(shine::gameplay::SObject* obj)
+    {
+        if (!obj)
+        {
+            selectedObjectId_ = 0;
+            return;
+        }
+        if (isSelected(obj))
+        {
+            selectedObjectId_ = obj->getObjectId();
+            return;
+        }
+        obj->setFlag(shine::gameplay::EObjectFlags::OF_Selected, true);
+        selectedObjectIds_.push_back(obj->getObjectId());
+        selectedObjectId_ = obj->getObjectId();
+    }
+
+    void WorldService::removeSelectionInternal(shine::gameplay::SObject* obj)
+    {
+        if (!obj)
+        {
+            return;
+        }
+        obj->setFlag(shine::gameplay::EObjectFlags::OF_Selected, false);
+        selectedObjectIds_.erase(
+            std::remove(selectedObjectIds_.begin(), selectedObjectIds_.end(), obj->getObjectId()),
+            selectedObjectIds_.end());
+        selectedObjectId_ = selectedObjectIds_.empty() ? 0 : selectedObjectIds_.back();
+    }
+
+    void WorldService::pruneSelection()
+    {
+        selectedObjectIds_.erase(
+            std::remove_if(selectedObjectIds_.begin(), selectedObjectIds_.end(), [this](uint32_t objectId)
+            {
+                return !actorIndex_.contains(objectId);
+            }),
+            selectedObjectIds_.end());
+        selectedObjectId_ = selectedObjectIds_.empty() ? 0 : selectedObjectIds_.back();
     }
 
     std::unique_ptr<shine::gameplay::SActor> WorldService::instantiateActor(const ActorSpawnDefinition& definition) const

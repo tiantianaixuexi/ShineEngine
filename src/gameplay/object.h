@@ -61,6 +61,8 @@ namespace shine::gameplay
             }
         }
 
+        [[nodiscard]] bool hasFlag(EObjectFlags flag) const noexcept { return (m_Flags & flag) == flag; }
+
    
         // 名字管理
         [[nodiscard]] const std::string& getName() const noexcept { return _name; }

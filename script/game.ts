@@ -16,8 +16,14 @@ class DemoScriptActor {
     @SPROPERTY({ type: "float", access: "ReadWrite", group: "属性" })
     hp = true;
 
-    @SPROPERTY({ type: "float", access: "ReadWrite", group: "属性", visible: false })
+    @SPROPERTY({ type: "float", access: "ReadWrite", group: "属性", visible: true })
     max_hp = true;
+
+    @SPROPERTY({ type: "array", access: "ReadWrite", group: "属性" })
+    items: number[] = [1, 2, 3];
+
+    @SPROPERTY({ type: "map", access: "ReadWrite", group: "属性" })
+    properties: Record<string, string> = { "speed": "fast" };
 
     @SPROPERTY({ type: "string", access: "ReadOnly", group: "基础", visible: false })
     displayName = "DemoScriptActor";
@@ -31,14 +37,14 @@ class DemoScriptActor {
     }
 
     @SFUNCTION()
-    Start() {
+    Start() { 
         if (typeof SetScriptTickInterval === "function") {
             SetScriptTickInterval(0.033);
         }
         Log(`SCLASS=${this.displayName}`);
         if (typeof SetInterval === "function") {
             this.pulseTimerId = SetInterval(() => {
-                Log(`timer tick t=${this.timeAccum.toFixed(2)} scale=${this.motionScale}`);
+                //Log(`timer tick t=${this.timeAccum.toFixed(2)} scale=${this.motionScale}`);
             }, 1000);
         }
 

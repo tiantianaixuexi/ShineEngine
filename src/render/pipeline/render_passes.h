@@ -11,7 +11,7 @@
 #include "render/debug/debug_texture_sink.h"
 #include "EngineCore/engine_context.h"
 #include "scriptable_render_context.h"
-#include "util/timer/function_timer.h"
+#include "util/timer/FunctionTimer.h"
 #include <algorithm>
 #include <vector>
 #include <string>

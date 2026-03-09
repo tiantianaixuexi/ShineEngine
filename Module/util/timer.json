@@ -2,10 +2,10 @@
     "name": "timer",
     "type": "static",
     "files": [
-      "src/util/timer/function_timer.h",
-      "src/util/timer/function_timer.cpp",
-      "src/util/timer/timer_util.h",
-      "src/util/timer/timer_util.cpp"
+      "src/util/timer/FunctionTimer.h",
+      "src/util/timer/FunctionTimer.cpp",
+      "src/util/timer/TimerUtil.h",
+      "src/util/timer/TimerUtil.cpp"
     ],
     "deps": ["fmt"],
     "comment": "计时器工具"

@@ -33,6 +33,13 @@ namespace shine::gameplay::world
         std::vector<shine::gameplay::SObject*> getAllActorsSnapshot() const;
         shine::gameplay::SObject* findActorById(uint32_t objectId) const noexcept;
 
+        void clearSelection() override;
+        void setSelectedObject(shine::gameplay::SObject* obj) override;
+        void toggleSelectedObject(shine::gameplay::SObject* obj) override;
+        shine::gameplay::SObject* getSelectedObject() const override;
+        std::vector<shine::gameplay::SObject*> getSelectedObjectsSnapshot() const override;
+        bool isSelected(const shine::gameplay::SObject* obj) const override;
+
         LevelAsset& ensureStreamingLevel(const std::string& levelName);
         bool requestLoadLevelAsync(const std::string& levelName);
         bool requestUnloadLevel(const std::string& levelName);
@@ -42,10 +49,15 @@ namespace shine::gameplay::world
         std::unique_ptr<shine::gameplay::SActor> instantiateActor(const ActorSpawnDefinition& definition) const;
         void rebuildActorIndex();
         void indexActorVector(const std::vector<std::unique_ptr<shine::gameplay::SActor>>& actors);
+        void addSelectionInternal(shine::gameplay::SObject* obj);
+        void removeSelectionInternal(shine::gameplay::SObject* obj);
+        void pruneSelection();
 
     private:
         manager::IWorldAssetBridge* worldAssetBridge_ = nullptr;
         manager::AssetHandle activeMapHandle_;
         std::unordered_map<uint32_t, shine::gameplay::SObject*> actorIndex_;
+        uint32_t selectedObjectId_ = 0;
+        std::vector<uint32_t> selectedObjectIds_;
     };
 }

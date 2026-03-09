@@ -12,7 +12,7 @@
 #include "manager/AssetCatalogImpl.h"
 #include "util/file_util.ixx"
 #include "util/string_util.ixx"
-#include "util/timer/function_timer.h"
+#include "util/timer/FunctionTimer.h"
 
 namespace shine::manager
 {
