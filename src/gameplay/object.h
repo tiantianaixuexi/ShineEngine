@@ -63,9 +63,10 @@ namespace shine::gameplay
 
         [[nodiscard]] bool hasFlag(EObjectFlags flag) const noexcept { return (m_Flags & flag) == flag; }
 
-   
+
         // 名字管理
         [[nodiscard]] const std::string& getName() const noexcept { return _name; }
+        [[nodiscard]] std::string& getRefName() noexcept { return _name ;}
         void setName(const std::string& name) { _name = name; }
         [[nodiscard]] uint32_t getObjectId() const noexcept { return objectId_; }
 

@@ -28,6 +28,9 @@ class DemoScriptActor {
     @SPROPERTY({ type: "string", access: "ReadOnly", group: "基础", visible: false })
     displayName = "DemoScriptActor";
 
+    @SPROPERTY({ type: "array", access: "ReadWrite", group: "属性" })
+    skills: string[] = ["slash", "kick"];
+
     private timeAccum = 0.0;
     private pulseTimerId = 0;
 

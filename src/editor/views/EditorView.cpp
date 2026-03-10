@@ -97,7 +97,8 @@ void EditView::onRender() {
             // Render View
             renderer->renderView(Viewport, cam);
 
-            ImGui::Image(renderer->getViewportTexture(Viewport), rightSize);
+            // OpenGL 纹理原点在左下角，ImGui 在左上角，需要翻转 Y 轴
+            ImGui::Image(renderer->getViewportTexture(Viewport), rightSize, ImVec2(0, 1), ImVec2(1, 0));
         } else 
         {
             ImGui::InvisibleButton("EditorViewportArea", rightSize);

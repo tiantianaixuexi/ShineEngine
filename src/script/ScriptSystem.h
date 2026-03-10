@@ -92,7 +92,8 @@ namespace shine::script
             };
 
             shine::SString className;
-            shine::SString path;
+            shine::SString path;           // 编译后的 .js 文件路径（用于执行）
+            shine::SString sourcePath;    // 源 .ts 文件路径（用于编辑器显示、调试）
             JSValue initFunc = JS_UNDEFINED;
             JSValue startFunc = JS_UNDEFINED;
             JSValue updateFunc = JS_UNDEFINED;

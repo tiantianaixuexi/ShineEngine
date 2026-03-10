@@ -15,19 +15,11 @@
 #include <cstring>
 #include <string_view>
 #include <type_traits>
-#include <unordered_map>
-#include <map>
-#include <memory>
-#include <set>
 #include <variant>
 #include <vector>
 #include <source_location>
 #include "util/EnumFlags.h"
 #include "constexpr/constexpr_vector.h"
-#include "constexpr/constexpr_str.h"
-#include "Core/ConstexprOffset.h"
-#include "compiler_hints.h"
-
 namespace shine::reflection {
 
 // =============================================================================
@@ -243,7 +235,7 @@ struct CompileTimeAccessor {
     static constexpr std::size_t offset = reinterpret_cast<std::uintptr_t>(
     &(reinterpret_cast<const Owner*>(0)->*Member)
 );
-    
+
     static void Get(const void* inst, void* out) {
         const auto& val = static_cast<const Owner*>(inst)->*Member;
         if constexpr (std::is_trivially_copyable_v<T>)
@@ -251,7 +243,7 @@ struct CompileTimeAccessor {
         else
             *static_cast<T*>(out) = val;
     }
-    
+
     static void Set(void* inst, const void* in) {
         auto& ref = static_cast<Owner*>(inst)->*Member;
         if constexpr (std::is_trivially_copyable_v<T>)
@@ -308,13 +300,13 @@ struct FieldInfo {
     // ---- Accessors ----------------------------------------------------------
 
     // Optimized accessor (零间接调用)
-    void Get(const void* inst, void* out) const { 
-        if (getterFn) getterFn(inst, out); 
+    void Get(const void* inst, void* out) const {
+        if (getterFn) getterFn(inst, out);
     }
-    void Set(void* inst, const void* in) const { 
-        if (setterFn) setterFn(inst, in); 
+    void Set(void* inst, const void* in) const {
+        if (setterFn) setterFn(inst, in);
     }
-    
+
     // Compile-time inline accessor - 零开销！
     template <typename T, typename Owner, T Owner::*Member>
     void CTGet(const void* inst, void* out) const {
@@ -324,7 +316,7 @@ struct FieldInfo {
         else
             *static_cast<T*>(out) = val;
     }
-    
+
     template <typename T, typename Owner, T Owner::*Member>
     void CTSet(void* inst, const void* in) const {
         auto& ref = static_cast<Owner*>(inst)->*Member;
@@ -333,7 +325,7 @@ struct FieldInfo {
         else
             ref = *static_cast<const T*>(in);
     }
-    
+
     void OnChange(void* inst, const void* old)  const { if (onChangeFn) onChangeFn(inst, old); }
     bool Equals(const void* a, const void* b)   const { return equalsFn ? equalsFn(a, b, size) : false; }
     void Copy(void* dst, const void* src)       const { if (copyFn) copyFn(dst, src, size); }
@@ -421,12 +413,12 @@ struct TypeInfo {
     std::size_t         size      = 0;
     std::size_t         alignment = 0;
     bool                isEnum    = false;
-    bool                isPod     = false;
+    bool                isPod     = false;  // 是否可平凡复制类型
 
     std::vector<FieldInfo>  fields;
     std::vector<MethodInfo> methods;
     std::vector<EnumEntry>  enumEntries;
-    
+
     // Fast lookup sorted indices for performance
     struct LookupEntry { uint32_t hash; uint32_t index; };
     std::vector<LookupEntry> fieldLookup_;
@@ -436,7 +428,7 @@ struct TypeInfo {
     const FieldInfo* FindField(std::string_view fieldName) const {
         uint32_t hash = Hash(fieldName);
         auto it = std::ranges::lower_bound(fieldLookup_, hash, {}, &LookupEntry::hash);
-        
+
         // Handle collisions and multiple matches (rare)
         while (it != fieldLookup_.end() && it->hash == hash) {
             const auto& f = fields[it->index];
@@ -445,11 +437,11 @@ struct TypeInfo {
         }
         return nullptr;
     }
-    
+
     const MethodInfo* FindMethod(std::string_view methodName) const {
         uint32_t hash = Hash(methodName);
         auto it = std::ranges::lower_bound(methodLookup_, hash, {}, &LookupEntry::hash);
-        
+
         while (it != methodLookup_.end() && it->hash == hash) {
             const auto& m = methods[it->index];
             if (m.name == methodName) return &m;
@@ -457,25 +449,25 @@ struct TypeInfo {
         }
         return nullptr;
     }
-    
+
 public:
     void BuildLookup() {
         if (lookupSorted_) return;
-        
+
         fieldLookup_.clear();
         fieldLookup_.reserve(fields.size());
         for (uint32_t i = 0; i < (uint32_t)fields.size(); ++i) {
             fieldLookup_.push_back({Hash(fields[i].name), i});
         }
         std::ranges::sort(fieldLookup_, {}, &LookupEntry::hash);
-            
+
         methodLookup_.clear();
         methodLookup_.reserve(methods.size());
         for (uint32_t i = 0; i < (uint32_t)methods.size(); ++i) {
             methodLookup_.push_back({Hash(methods[i].name), i});
         }
         std::ranges::sort(methodLookup_, {}, &LookupEntry::hash);
-        
+
         lookupSorted_ = true;
     }
 
@@ -523,15 +515,15 @@ template <typename Map>
 struct MapThunks {
     using KeyType = typename Map::key_type;
     using ValueType = typename Map::mapped_type;
-    
+
     static std::size_t GetSize(const void* p) {
         return static_cast<const Map*>(p)->size();
     }
-    
+
     static void Clear(void* p) {
         static_cast<Map*>(p)->clear();
     }
-    
+
     static void* Find(void* p, const void* key) {
         auto it = static_cast<Map*>(p)->find(*static_cast<const KeyType*>(key));
         if (it != static_cast<Map*>(p)->end()) {
@@ -539,7 +531,7 @@ struct MapThunks {
         }
         return nullptr;
     }
-    
+
     static const void* FindConst(const void* p, const void* key) {
         auto it = static_cast<const Map*>(p)->find(*static_cast<const KeyType*>(key));
         if (it != static_cast<const Map*>(p)->end()) {
@@ -547,15 +539,15 @@ struct MapThunks {
         }
         return nullptr;
     }
-    
+
     static void Insert(void* p, const void* key, const void* value) {
         (*static_cast<Map*>(p))[*static_cast<const KeyType*>(key)] = *static_cast<const ValueType*>(value);
     }
-    
+
     static void Erase(void* p, const void* key) {
         static_cast<Map*>(p)->erase(*static_cast<const KeyType*>(key));
     }
-    
+
     static bool Contains(const void* p, const void* key) {
         return static_cast<const Map*>(p)->contains(*static_cast<const KeyType*>(key));
     }
@@ -565,7 +557,7 @@ struct MapThunks {
             cb(&k, &v, userData);
         }
     }
-    
+
     static void InsertKV(void* p, const void* k, const void* v) {
         (*static_cast<Map*>(p))[*static_cast<const KeyType*>(k)] = *static_cast<const ValueType*>(v);
     }
@@ -590,23 +582,23 @@ struct MapThunks {
 template <typename Set>
 struct SetThunks {
     using ValueType = typename Set::value_type;
-    
+
     static std::size_t GetSize(const void* p) {
         return static_cast<const Set*>(p)->size();
     }
-    
+
     static void Clear(void* p) {
         static_cast<Set*>(p)->clear();
     }
-    
+
     static bool Contains(const void* p, const void* value) {
         return static_cast<const Set*>(p)->contains(*static_cast<const ValueType*>(value));
     }
-    
+
     static void Insert(void* p, const void* value) {
         static_cast<Set*>(p)->insert(*static_cast<const ValueType*>(value));
     }
-    
+
     static void Erase(void* p, const void* value) {
         static_cast<Set*>(p)->erase(*static_cast<const ValueType*>(value));
     }
@@ -616,7 +608,7 @@ struct SetThunks {
             cb(&k, &k, userData);
         }
     }
-    
+
     static void InsertKV(void* p, const void*, const void* v) {
         static_cast<Set*>(p)->insert(*static_cast<const ValueType*>(v));
     }
@@ -647,7 +639,7 @@ struct ConstexprFieldInfo {
     size_t size;
     size_t alignment;
     bool isPod;
-    
+
     // 编译期字段构建助手
     template<typename T>
     consteval static ConstexprFieldInfo Create(const char* field_name) {
@@ -671,10 +663,10 @@ struct ConstexprTypeInfo {
     size_t alignment;
     bool isEnum;
     bool isPod;
-    
+
     // 使用原始constexpr容器
     shine::constexpr_::constexpr_vector<ConstexprFieldInfo, 16> fields;
-    
+
     // 编译期类型信息构建
     consteval static ConstexprTypeInfo Create(const char* type_name = "unknown") {
         return ConstexprTypeInfo{
@@ -686,7 +678,7 @@ struct ConstexprTypeInfo {
             std::is_trivially_copyable_v<T>
         };
     }
-    
+
     // 添加字段
     template<typename FieldType>
     consteval ConstexprTypeInfo& AddField(const char* field_name) {
@@ -695,7 +687,7 @@ struct ConstexprTypeInfo {
         }
         return *this;
     }
-    
+
     // 编译期字段查找（使用简单的字符串比较）
     constexpr const ConstexprFieldInfo* FindField(const char* field_name) const {
         for (size_t i = 0; i < fields.size(); ++i) {
@@ -711,7 +703,7 @@ struct ConstexprTypeInfo {
         }
         return nullptr;
     }
-    
+
     // 获取字段数量
     constexpr size_t GetFieldCount() const {
         return fields.size();
@@ -728,7 +720,7 @@ struct AutoConstexprRegistration {
     static consteval auto Register() {
         // 编译期构建类型信息
         auto ct_info = ConstexprTypeInfo<T>::Create();
-        
+
         // 返回编译期信息（运行时注册将在其他地方处理）
         return ct_info;
     }

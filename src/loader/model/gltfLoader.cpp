@@ -572,7 +572,6 @@ namespace shine::loader
 
     bool gltfLoader::loadFromFile(const char* filePath)
     {
-        util::FunctionTimer timer("gltfLoader::loadFromFile");
         setState(EAssetLoadState::READING_FILE);
         notifyProgress(0.0f, "读取文件");
 

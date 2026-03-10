@@ -1,0 +1,854 @@
+[
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DENGINE_LOG_API=\"\" -DFMT_HEADER_ONLY -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\engine_log.dir\\src\\EngineCore\\log\\LogSystem.cpp.obj -c E:\\c++\\ShineEngine\\src\\EngineCore\\log\\LogSystem.cpp",
+  "file": "E:/c++/ShineEngine/src/EngineCore/log/LogSystem.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/engine_log.dir/src/EngineCore/log/LogSystem.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_EXE=1 -DBUILD_INTERFACE=1 -DENGINELAUNCHER_API=__declspec(dllexport) -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DIMGUI_API=\"\" -DLAUNCHER_BUILD -DLOG_UI_API=\"\" -DPATH_UTIL_API=\"\" -DPLATFORM_WINDOWS=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\EngineLauncher.dir\\dev\\Program\\launch\\launcher.cpp.obj -c E:\\c++\\ShineEngine\\dev\\Program\\launch\\launcher.cpp",
+  "file": "E:/c++/ShineEngine/dev/Program/launch/launcher.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/EngineLauncher.dir/dev/Program/launch/launcher.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_EXE=1 -DBUILD_INTERFACE=1 -DENGINELAUNCHER_API=__declspec(dllexport) -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DIMGUI_API=\"\" -DLAUNCHER_BUILD -DLOG_UI_API=\"\" -DPATH_UTIL_API=\"\" -DPLATFORM_WINDOWS=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\EngineLauncher.dir\\dev\\Program\\launch\\launcher_gui.cpp.obj -c E:\\c++\\ShineEngine\\dev\\Program\\launch\\launcher_gui.cpp",
+  "file": "E:/c++/ShineEngine/dev/Program/launch/launcher_gui.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/EngineLauncher.dir/dev/Program/launch/launcher_gui.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DFMT_HEADER_ONLY -DIMGUI_API=\"\" -DLOG_UI_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\log_ui.dir\\src\\editor\\log\\LogUI.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\log\\LogUI.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/log/LogUI.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/log_ui.dir/src/editor/log/LogUI.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DBYTE_CONVERT_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DJPEG_API=\"\" -DLOADER_API=\"\" -DNOMINMAX -DPATH_UTIL_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DTIMER_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\jpeg.dir\\src\\image\\jpeg.cpp.obj -c E:\\c++\\ShineEngine\\src\\image\\jpeg.cpp",
+  "file": "E:/c++/ShineEngine/src/image/jpeg.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/jpeg.dir/src/image/jpeg.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DLOADER_API=\"\" -DNOMINMAX -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DTIMER_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\png.dir\\src\\image\\png.cpp.obj -c E:\\c++\\ShineEngine\\src\\image\\png.cpp",
+  "file": "E:/c++/ShineEngine/src/image/png.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/png.dir/src/image/png.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DLOADER_API=\"\" -DMATH_API=\"\" -DPATH_UTIL_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\gltf_loader.dir\\src\\loader\\model\\gltfLoader.cpp.obj -c E:\\c++\\ShineEngine\\src\\loader\\model\\gltfLoader.cpp",
+  "file": "E:/c++/ShineEngine/src/loader/model/gltfLoader.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/gltf_loader.dir/src/loader/model/gltfLoader.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLOADER_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\loader.dir\\src\\loader\\core\\loader.cpp.obj -c E:\\c++\\ShineEngine\\src\\loader\\core\\loader.cpp",
+  "file": "E:/c++/ShineEngine/src/loader/core/loader.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/loader.dir/src/loader/core/loader.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DMATH_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\math.dir\\src\\math\\mathUtil.cpp.obj -c E:\\c++\\ShineEngine\\src\\math\\mathUtil.cpp",
+  "file": "E:/c++/ShineEngine/src/math/mathUtil.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/math.dir/src/math/mathUtil.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DMATH_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\math.dir\\src\\math\\matrix.cpp.obj -c E:\\c++\\ShineEngine\\src\\math\\matrix.cpp",
+  "file": "E:/c++/ShineEngine/src/math/matrix.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/math.dir/src/math/matrix.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DMATH_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\math.dir\\src\\math\\quat.cpp.obj -c E:\\c++\\ShineEngine\\src\\math\\quat.cpp",
+  "file": "E:/c++/ShineEngine/src/math/quat.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/math.dir/src/math/quat.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DFMT_HEADER_ONLY -DMEMORY_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\memory.dir\\src\\memory\\memory.cpp.obj -c E:\\c++\\ShineEngine\\src\\memory\\memory.cpp",
+  "file": "E:/c++/ShineEngine/src/memory/memory.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/memory.dir/src/memory/memory.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DFMT_HEADER_ONLY -DMEMORY_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\memory.dir\\src\\memory\\memory_backend.cpp.obj -c E:\\c++\\ShineEngine\\src\\memory\\memory_backend.cpp",
+  "file": "E:/c++/ShineEngine/src/memory/memory_backend.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/memory.dir/src/memory/memory_backend.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DFMT_HEADER_ONLY -DMEMORY_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\memory.dir\\src\\memory\\ue_binned2_port.cpp.obj -c E:\\c++\\ShineEngine\\src\\memory\\ue_binned2_port.cpp",
+  "file": "E:/c++/ShineEngine/src/memory/ue_binned2_port.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/memory.dir/src/memory/ue_binned2_port.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_EXE=1 -DBUILD_INTERFACE=1 -DCONSTEXPRCONTAINERTEST_API=__declspec(dllexport) -DFMT_HEADER_ONLY -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\ConstexprContainerTest.dir\\dev\\test\\ConstexprContainerTest\\main.cpp.obj -c E:\\c++\\ShineEngine\\dev\\test\\ConstexprContainerTest\\main.cpp",
+  "file": "E:/c++/ShineEngine/dev/test/ConstexprContainerTest/main.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/ConstexprContainerTest.dir/dev/test/ConstexprContainerTest/main.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_EXE=1 -DBUILD_INTERFACE=1 -DFMT_HEADER_ONLY -DPLATFORM_WINDOWS=1 -DREFLECTIONTEST_API=__declspec(dllexport) -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DTEST_BUILD -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\ReflectionTest.dir\\dev\\test\\ReflectionTest\\ReflectionTest.cpp.obj -c E:\\c++\\ShineEngine\\dev\\test\\ReflectionTest\\ReflectionTest.cpp",
+  "file": "E:/c++/ShineEngine/dev/test/ReflectionTest/ReflectionTest.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/ReflectionTest.dir/dev/test/ReflectionTest/ReflectionTest.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_EXE=1 -DRUNTIMEEDITORSPLITTEST_API=__declspec(dllexport) -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DTEST_BUILD -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\RuntimeEditorSplitTest.dir\\dev\\test\\RuntimeEditorSplitTest\\main.cpp.obj -c E:\\c++\\ShineEngine\\dev\\test\\RuntimeEditorSplitTest\\main.cpp",
+  "file": "E:/c++/ShineEngine/dev/test/RuntimeEditorSplitTest/main.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/RuntimeEditorSplitTest.dir/dev/test/RuntimeEditorSplitTest/main.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_EXE=1 -DBUILD_INTERFACE=1 -DFMT_HEADER_ONLY -DPLATFORM_WINDOWS=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSIMPLEPERFTEST_API=__declspec(dllexport) -DSTB_IMAGE_IMPLEMENTATION -DTEST_BUILD -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\SimplePerfTest.dir\\dev\\test\\SimplePerfTest\\string_test.cpp.obj -c E:\\c++\\ShineEngine\\dev\\test\\SimplePerfTest\\string_test.cpp",
+  "file": "E:/c++/ShineEngine/dev/test/SimplePerfTest/string_test.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/SimplePerfTest.dir/dev/test/SimplePerfTest/string_test.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_LIB=1 -DPLATFORM_WASM=1 -DPLATFORM_WINDOWS=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DTEXTURE_API=__declspec(dllexport) -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\texture.dir\\src\\image\\Texture.cpp.obj -c E:\\c++\\ShineEngine\\src\\image\\Texture.cpp",
+  "file": "E:/c++/ShineEngine/src/image/Texture.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/texture.dir/src/image/Texture.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_THIRD=1 -DFMT_HEADER_ONLY -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\draco.dir\\module_dummy\\draco_dummy.cpp.obj -c E:\\c++\\ShineEngine\\build_clang\\module_dummy\\draco_dummy.cpp",
+  "file": "E:/c++/ShineEngine/build_clang/module_dummy/draco_dummy.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/draco.dir/module_dummy/draco_dummy.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_THIRD=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\fast_float.dir\\module_dummy\\fast_float_dummy.cpp.obj -c E:\\c++\\ShineEngine\\build_clang\\module_dummy\\fast_float_dummy.cpp",
+  "file": "E:/c++/ShineEngine/build_clang/module_dummy/fast_float_dummy.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/fast_float.dir/module_dummy/fast_float_dummy.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DIMGUI_API=\"\" -DIMGUI_DEFINE_MATH_OPERATORS -DPLATFORM_WINDOWS=1 -DSHINE_IMGUI -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\imgui.dir\\src\\third\\imgui\\backends\\imgui_impl_dx12.cpp.obj -c E:\\c++\\ShineEngine\\src\\third\\imgui\\backends\\imgui_impl_dx12.cpp",
+  "file": "E:/c++/ShineEngine/src/third/imgui/backends/imgui_impl_dx12.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/imgui.dir/src/third/imgui/backends/imgui_impl_dx12.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DIMGUI_API=\"\" -DIMGUI_DEFINE_MATH_OPERATORS -DPLATFORM_WINDOWS=1 -DSHINE_IMGUI -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\imgui.dir\\src\\third\\imgui\\backends\\imgui_impl_opengl3.cpp.obj -c E:\\c++\\ShineEngine\\src\\third\\imgui\\backends\\imgui_impl_opengl3.cpp",
+  "file": "E:/c++/ShineEngine/src/third/imgui/backends/imgui_impl_opengl3.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/imgui.dir/src/third/imgui/backends/imgui_impl_opengl3.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DIMGUI_API=\"\" -DIMGUI_DEFINE_MATH_OPERATORS -DPLATFORM_WINDOWS=1 -DSHINE_IMGUI -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\imgui.dir\\src\\third\\imgui\\backends\\imgui_impl_win32.cpp.obj -c E:\\c++\\ShineEngine\\src\\third\\imgui\\backends\\imgui_impl_win32.cpp",
+  "file": "E:/c++/ShineEngine/src/third/imgui/backends/imgui_impl_win32.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/imgui.dir/src/third/imgui/backends/imgui_impl_win32.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DIMGUI_API=\"\" -DIMGUI_DEFINE_MATH_OPERATORS -DPLATFORM_WINDOWS=1 -DSHINE_IMGUI -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\imgui.dir\\src\\third\\imgui\\imgui.cpp.obj -c E:\\c++\\ShineEngine\\src\\third\\imgui\\imgui.cpp",
+  "file": "E:/c++/ShineEngine/src/third/imgui/imgui.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/imgui.dir/src/third/imgui/imgui.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DIMGUI_API=\"\" -DIMGUI_DEFINE_MATH_OPERATORS -DPLATFORM_WINDOWS=1 -DSHINE_IMGUI -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\imgui.dir\\src\\third\\imgui\\imgui_demo.cpp.obj -c E:\\c++\\ShineEngine\\src\\third\\imgui\\imgui_demo.cpp",
+  "file": "E:/c++/ShineEngine/src/third/imgui/imgui_demo.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/imgui.dir/src/third/imgui/imgui_demo.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DIMGUI_API=\"\" -DIMGUI_DEFINE_MATH_OPERATORS -DPLATFORM_WINDOWS=1 -DSHINE_IMGUI -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\imgui.dir\\src\\third\\imgui\\imgui_draw.cpp.obj -c E:\\c++\\ShineEngine\\src\\third\\imgui\\imgui_draw.cpp",
+  "file": "E:/c++/ShineEngine/src/third/imgui/imgui_draw.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/imgui.dir/src/third/imgui/imgui_draw.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DIMGUI_API=\"\" -DIMGUI_DEFINE_MATH_OPERATORS -DPLATFORM_WINDOWS=1 -DSHINE_IMGUI -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\imgui.dir\\src\\third\\imgui\\imgui_stdlib.cpp.obj -c E:\\c++\\ShineEngine\\src\\third\\imgui\\imgui_stdlib.cpp",
+  "file": "E:/c++/ShineEngine/src/third/imgui/imgui_stdlib.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/imgui.dir/src/third/imgui/imgui_stdlib.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DIMGUI_API=\"\" -DIMGUI_DEFINE_MATH_OPERATORS -DPLATFORM_WINDOWS=1 -DSHINE_IMGUI -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\imgui.dir\\src\\third\\imgui\\imgui_tables.cpp.obj -c E:\\c++\\ShineEngine\\src\\third\\imgui\\imgui_tables.cpp",
+  "file": "E:/c++/ShineEngine/src/third/imgui/imgui_tables.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/imgui.dir/src/third/imgui/imgui_tables.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DIMGUI_API=\"\" -DIMGUI_DEFINE_MATH_OPERATORS -DPLATFORM_WINDOWS=1 -DSHINE_IMGUI -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\imgui.dir\\src\\third\\imgui\\imgui_widgets.cpp.obj -c E:\\c++\\ShineEngine\\src\\third\\imgui\\imgui_widgets.cpp",
+  "file": "E:/c++/ShineEngine/src/third/imgui/imgui_widgets.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/imgui.dir/src/third/imgui/imgui_widgets.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\png.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\png.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/png.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/png.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngerror.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngerror.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngerror.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngerror.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngget.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngget.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngget.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngget.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngmem.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngmem.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngmem.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngmem.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngpread.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngpread.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngpread.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngpread.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngread.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngread.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngread.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngread.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngrio.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngrio.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngrio.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngrio.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngrtran.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngrtran.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngrtran.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngrtran.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngrutil.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngrutil.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngrutil.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngrutil.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngset.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngset.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngset.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngset.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngtrans.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngtrans.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngtrans.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngtrans.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngwio.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngwio.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngwio.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngwio.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngwrite.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngwrite.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngwrite.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngwrite.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngwtran.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngwtran.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngwtran.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngwtran.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DLIBPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\libpng.dir\\src\\third\\libpng\\pngwutil.c.obj -c E:\\c++\\ShineEngine\\src\\third\\libpng\\pngwutil.c",
+  "file": "E:/c++/ShineEngine/src/third/libpng/pngwutil.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/libpng.dir/src/third/libpng/pngwutil.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DMIMALLOC_API=\"\" -DMI_STATIC_LIB -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -IE:/c++/ShineEngine/src/third/mimalloc -IE:/c++/ShineEngine/src/third/mimalloc/src -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\mimalloc.dir\\src\\third\\mimalloc\\src\\static.c.obj -c E:\\c++\\ShineEngine\\src\\third\\mimalloc\\src\\static.c",
+  "file": "E:/c++/ShineEngine/src/third/mimalloc/src/static.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/mimalloc.dir/src/third/mimalloc/src/static.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_THIRD=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\quickjs.dir\\module_dummy\\quickjs_dummy.cpp.obj -c E:\\c++\\ShineEngine\\build_clang\\module_dummy\\quickjs_dummy.cpp",
+  "file": "E:/c++/ShineEngine/build_clang/module_dummy/quickjs_dummy.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/quickjs.dir/module_dummy/quickjs_dummy.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_SHARED=1 -DPLATFORM_WINDOWS=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DTRACY_API=__declspec(dllexport) -DTRACY_ENABLE -DTRACY_EXPORTS -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\tracy.dir\\src\\third\\tracy\\TracyClient.cpp.obj -c E:\\c++\\ShineEngine\\src\\third\\tracy\\TracyClient.cpp",
+  "file": "E:/c++/ShineEngine/src/third/tracy/TracyClient.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/tracy.dir/src/third/tracy/TracyClient.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DPLATFORM_WINDOWS=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DYYJSON_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\yyjson.dir\\src\\third\\yyjson\\yyjson.cpp.obj -c E:\\c++\\ShineEngine\\src\\third\\yyjson\\yyjson.cpp",
+  "file": "E:/c++/ShineEngine/src/third/yyjson/yyjson.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/yyjson.dir/src/third/yyjson/yyjson.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\adler32.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\adler32.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/adler32.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/adler32.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\compress.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\compress.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/compress.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/compress.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\crc32.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\crc32.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/crc32.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/crc32.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\deflate.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\deflate.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/deflate.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/deflate.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\gzclose.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\gzclose.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/gzclose.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/gzclose.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\gzlib.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\gzlib.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/gzlib.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/gzlib.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\gzread.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\gzread.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/gzread.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/gzread.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\gzwrite.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\gzwrite.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/gzwrite.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/gzwrite.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\infback.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\infback.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/infback.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/infback.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\inffast.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\inffast.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/inffast.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/inffast.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\inflate.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\inflate.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/inflate.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/inflate.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\inftrees.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\inftrees.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/inftrees.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/inftrees.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\trees.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\trees.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/trees.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/trees.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\uncompr.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\uncompr.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/uncompr.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/uncompr.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -std=gnu17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\zlib.dir\\src\\third\\zlib\\zutil.c.obj -c E:\\c++\\ShineEngine\\src\\third\\zlib\\zutil.c",
+  "file": "E:/c++/ShineEngine/src/third/zlib/zutil.c",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/zlib.dir/src/third/zlib/zutil.c.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_STATIC=1 -DPLATFORM_WASM=1 -DPLATFORM_WINDOWS=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\base64.dir\\src\\util\\Algorithm\\base64.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\Algorithm\\base64.cpp",
+  "file": "E:/c++/ShineEngine/src/util/Algorithm/base64.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/base64.dir/src/util/Algorithm/base64.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DBYTE_CONVERT_API=\"\" -DFMT_HEADER_ONLY -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\byte_convert.dir\\src\\util\\encoding\\byte_convert.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\encoding\\byte_convert.cpp",
+  "file": "E:/c++/ShineEngine/src/util/encoding/byte_convert.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/byte_convert.dir/src/util/encoding/byte_convert.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DPATH_UTIL_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\file_util.dir\\src\\util\\file_util.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\file_util.cpp",
+  "file": "E:/c++/ShineEngine/src/util/file_util.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/file_util.dir/src/util/file_util.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DPATH_UTIL_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\path_util.dir\\src\\util\\path_util.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\path_util.cpp",
+  "file": "E:/c++/ShineEngine/src/util/path_util.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/path_util.dir/src/util/path_util.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DBUILD_THIRD=1 -DFMT_HEADER_ONLY -DNOMINMAX -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\string_util.dir\\src\\util\\string_util.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\string_util.cpp",
+  "file": "E:/c++/ShineEngine/src/util/string_util.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/string_util.dir/src/util/string_util.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DTHREAD_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\thread.dir\\src\\util\\thread\\thread_pool.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\thread\\thread_pool.cpp",
+  "file": "E:/c++/ShineEngine/src/util/thread/thread_pool.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/thread.dir/src/util/thread/thread_pool.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DTHREAD_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\thread.dir\\src\\util\\thread\\task_scheduler.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\thread\\task_scheduler.cpp",
+  "file": "E:/c++/ShineEngine/src/util/thread/task_scheduler.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/thread.dir/src/util/thread/task_scheduler.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DFMT_HEADER_ONLY -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DTIMER_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\timer.dir\\src\\util\\timer\\FunctionTimer.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\timer\\FunctionTimer.cpp",
+  "file": "E:/c++/ShineEngine/src/util/timer/FunctionTimer.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/timer.dir/src/util/timer/FunctionTimer.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DFMT_HEADER_ONLY -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DTIMER_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\timer.dir\\src\\util\\timer\\TimerUtil.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\timer\\TimerUtil.cpp",
+  "file": "E:/c++/ShineEngine/src/util/timer/TimerUtil.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/timer.dir/src/util/timer/TimerUtil.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_STATIC=1 -DBUILD_THIRD=1 -DFMT_HEADER_ONLY -DPATH_UTIL_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DURL_UTIL_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\url_util.dir\\src\\util\\encoding\\url_util.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\encoding\\url_util.cpp",
+  "file": "E:/c++/ShineEngine/src/util/encoding/url_util.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/url_util.dir/src/util/encoding/url_util.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBUILD_EDITOR -DBUILD_STATIC=1 -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DWASM_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\wasm.dir\\src\\wasm\\SVector.cpp.obj -c E:\\c++\\ShineEngine\\src\\wasm\\SVector.cpp",
+  "file": "E:/c++/ShineEngine/src/wasm/SVector.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/wasm.dir/src/wasm/SVector.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\EngineCore\\asset\\asset_base.cpp.obj -c E:\\c++\\ShineEngine\\src\\EngineCore\\asset\\asset_base.cpp",
+  "file": "E:/c++/ShineEngine/src/EngineCore/asset/asset_base.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/EngineCore/asset/asset_base.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\EngineCore\\engine_context.cpp.obj -c E:\\c++\\ShineEngine\\src\\EngineCore\\engine_context.cpp",
+  "file": "E:/c++/ShineEngine/src/EngineCore/engine_context.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/EngineCore/engine_context.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\EngineCore\\reflection\\Memory\\ReflectionMemory.cpp.obj -c E:\\c++\\ShineEngine\\src\\EngineCore\\reflection\\Memory\\ReflectionMemory.cpp",
+  "file": "E:/c++/ShineEngine/src/EngineCore/reflection/Memory/ReflectionMemory.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/EngineCore/reflection/Memory/ReflectionMemory.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\ShineEngine.cpp.obj -c E:\\c++\\ShineEngine\\src\\ShineEngine.cpp",
+  "file": "E:/c++/ShineEngine/src/ShineEngine.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/ShineEngine.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\asset\\AssetDirectoryService.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\asset\\AssetDirectoryService.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/asset/AssetDirectoryService.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/asset/AssetDirectoryService.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\asset\\editor_asset_manager.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\asset\\editor_asset_manager.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/asset/editor_asset_manager.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/asset/editor_asset_manager.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\asset\\editor_runtime_asset_bridge.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\asset\\editor_runtime_asset_bridge.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/asset/editor_runtime_asset_bridge.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/asset/editor_runtime_asset_bridge.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\browers\\AssetsBorwer.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\browers\\AssetsBorwer.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/browers/AssetsBorwer.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/browers/AssetsBorwer.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\browers\\AssetsItem.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\browers\\AssetsItem.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/browers/AssetsItem.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/browers/AssetsItem.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\editorPlayer\\Selection\\editor_selection.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\editorPlayer\\Selection\\editor_selection.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/editorPlayer/Selection/editor_selection.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/editorPlayer/Selection/editor_selection.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\editorPlayer\\editor_play.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\editorPlayer\\editor_play.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/editorPlayer/editor_play.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/editorPlayer/editor_play.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\mainEditor.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\mainEditor.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/mainEditor.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/mainEditor.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\main_editor\\EditorCompositionRoot.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\main_editor\\EditorCompositionRoot.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/main_editor/EditorCompositionRoot.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/main_editor/EditorCompositionRoot.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\main_editor\\WindowRegistry.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\main_editor\\WindowRegistry.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/main_editor/WindowRegistry.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/main_editor/WindowRegistry.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\util\\FpsControlView.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\util\\FpsControlView.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/util/FpsControlView.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/util/FpsControlView.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\util\\InspectorBuilder.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\util\\InspectorBuilder.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/util/InspectorBuilder.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/util/InspectorBuilder.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\util\\PropertyDrawer.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\util\\PropertyDrawer.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/util/PropertyDrawer.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/util/PropertyDrawer.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\views\\DebugTextureView.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\views\\DebugTextureView.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/views/DebugTextureView.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/views/DebugTextureView.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\views\\EditorView.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\views\\EditorView.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/views/EditorView.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/views/EditorView.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\views\\ImageViewerView.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\views\\ImageViewerView.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/views/ImageViewerView.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/views/ImageViewerView.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\views\\MainEditor\\MainEditorToolbar.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\views\\MainEditor\\MainEditorToolbar.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/views/MainEditor/MainEditorToolbar.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/views/MainEditor/MainEditorToolbar.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\views\\Profiler\\MemoryProfiler.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\views\\Profiler\\MemoryProfiler.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/views/Profiler/MemoryProfiler.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/views/Profiler/MemoryProfiler.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\views\\PropertiesView.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\views\\PropertiesView.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/views/PropertiesView.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/views/PropertiesView.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\views\\SceneHierarchyView.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\views\\SceneHierarchyView.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/views/SceneHierarchyView.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/views/SceneHierarchyView.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\views\\SettingsView.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\views\\SettingsView.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/views/SettingsView.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/views/SettingsView.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\editor\\views\\placement\\PlacementPaletteView.cpp.obj -c E:\\c++\\ShineEngine\\src\\editor\\views\\placement\\PlacementPaletteView.cpp",
+  "file": "E:/c++/ShineEngine/src/editor/views/placement/PlacementPaletteView.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/editor/views/placement/PlacementPaletteView.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\gameplay\\actor.cpp.obj -c E:\\c++\\ShineEngine\\src\\gameplay\\actor.cpp",
+  "file": "E:/c++/ShineEngine/src/gameplay/actor.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/gameplay/actor.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\gameplay\\camera.cpp.obj -c E:\\c++\\ShineEngine\\src\\gameplay\\camera.cpp",
+  "file": "E:/c++/ShineEngine/src/gameplay/camera.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/gameplay/camera.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\gameplay\\component\\ScriptComponent.cpp.obj -c E:\\c++\\ShineEngine\\src\\gameplay\\component\\ScriptComponent.cpp",
+  "file": "E:/c++/ShineEngine/src/gameplay/component/ScriptComponent.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/gameplay/component/ScriptComponent.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\gameplay\\component\\StaticMeshComponent.cpp.obj -c E:\\c++\\ShineEngine\\src\\gameplay\\component\\StaticMeshComponent.cpp",
+  "file": "E:/c++/ShineEngine/src/gameplay/component/StaticMeshComponent.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/gameplay/component/StaticMeshComponent.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\gameplay\\mesh\\StaticMesh.cpp.obj -c E:\\c++\\ShineEngine\\src\\gameplay\\mesh\\StaticMesh.cpp",
+  "file": "E:/c++/ShineEngine/src/gameplay/mesh/StaticMesh.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/gameplay/mesh/StaticMesh.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\gameplay\\object.cpp.obj -c E:\\c++\\ShineEngine\\src\\gameplay\\object.cpp",
+  "file": "E:/c++/ShineEngine/src/gameplay/object.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/gameplay/object.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\gameplay\\scene\\scene.cpp.obj -c E:\\c++\\ShineEngine\\src\\gameplay\\scene\\scene.cpp",
+  "file": "E:/c++/ShineEngine/src/gameplay/scene/scene.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/gameplay/scene/scene.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\gameplay\\tick\\tick_function.cpp.obj -c E:\\c++\\ShineEngine\\src\\gameplay\\tick\\tick_function.cpp",
+  "file": "E:/c++/ShineEngine/src/gameplay/tick/tick_function.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/gameplay/tick/tick_function.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\gameplay\\world.cpp.obj -c E:\\c++\\ShineEngine\\src\\gameplay\\world.cpp",
+  "file": "E:/c++/ShineEngine/src/gameplay/world.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/gameplay/world.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\gameplay\\world\\WorldServiceLocator.cpp.obj -c E:\\c++\\ShineEngine\\src\\gameplay\\world\\WorldServiceLocator.cpp",
+  "file": "E:/c++/ShineEngine/src/gameplay/world/WorldServiceLocator.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/gameplay/world/WorldServiceLocator.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\gameplay\\world\\map_asset.cpp.obj -c E:\\c++\\ShineEngine\\src\\gameplay\\world\\map_asset.cpp",
+  "file": "E:/c++/ShineEngine/src/gameplay/world/map_asset.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/gameplay/world/map_asset.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\gameplay\\world\\world_service.cpp.obj -c E:\\c++\\ShineEngine\\src\\gameplay\\world\\world_service.cpp",
+  "file": "E:/c++/ShineEngine/src/gameplay/world/world_service.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/gameplay/world/world_service.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\loader\\model\\objLoader.cpp.obj -c E:\\c++\\ShineEngine\\src\\loader\\model\\objLoader.cpp",
+  "file": "E:/c++/ShineEngine/src/loader/model/objLoader.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/loader/model/objLoader.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\manager\\AssetCatalogImpl.cpp.obj -c E:\\c++\\ShineEngine\\src\\manager\\AssetCatalogImpl.cpp",
+  "file": "E:/c++/ShineEngine/src/manager/AssetCatalogImpl.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/manager/AssetCatalogImpl.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\manager\\AssetImportPipelineImpl.cpp.obj -c E:\\c++\\ShineEngine\\src\\manager\\AssetImportPipelineImpl.cpp",
+  "file": "E:/c++/ShineEngine/src/manager/AssetImportPipelineImpl.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/manager/AssetImportPipelineImpl.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\manager\\AssetManager.cpp.obj -c E:\\c++\\ShineEngine\\src\\manager\\AssetManager.cpp",
+  "file": "E:/c++/ShineEngine/src/manager/AssetManager.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/manager/AssetManager.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\manager\\AssetTextureBridgeImpl.cpp.obj -c E:\\c++\\ShineEngine\\src\\manager\\AssetTextureBridgeImpl.cpp",
+  "file": "E:/c++/ShineEngine/src/manager/AssetTextureBridgeImpl.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/manager/AssetTextureBridgeImpl.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\manager\\CameraManager.cpp.obj -c E:\\c++\\ShineEngine\\src\\manager\\CameraManager.cpp",
+  "file": "E:/c++/ShineEngine/src/manager/CameraManager.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/manager/CameraManager.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\manager\\InputManager.cpp.obj -c E:\\c++\\ShineEngine\\src\\manager\\InputManager.cpp",
+  "file": "E:/c++/ShineEngine/src/manager/InputManager.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/manager/InputManager.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\manager\\PluginsManager.cpp.obj -c E:\\c++\\ShineEngine\\src\\manager\\PluginsManager.cpp",
+  "file": "E:/c++/ShineEngine/src/manager/PluginsManager.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/manager/PluginsManager.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\manager\\runtime_asset_registry.cpp.obj -c E:\\c++\\ShineEngine\\src\\manager\\runtime_asset_registry.cpp",
+  "file": "E:/c++/ShineEngine/src/manager/runtime_asset_registry.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/manager/runtime_asset_registry.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\platform\\InitWindows.cpp.obj -c E:\\c++\\ShineEngine\\src\\platform\\InitWindows.cpp",
+  "file": "E:/c++/ShineEngine/src/platform/InitWindows.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/platform/InitWindows.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\platform\\WindowsInfo.cpp.obj -c E:\\c++\\ShineEngine\\src\\platform\\WindowsInfo.cpp",
+  "file": "E:/c++/ShineEngine/src/platform/WindowsInfo.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/platform/WindowsInfo.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\render\\backend\\opengl\\opengl3_backend.cpp.obj -c E:\\c++\\ShineEngine\\src\\render\\backend\\opengl\\opengl3_backend.cpp",
+  "file": "E:/c++/ShineEngine/src/render/backend/opengl/opengl3_backend.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/render/backend/opengl/opengl3_backend.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\render\\backend\\render_backend_factory.cpp.obj -c E:\\c++\\ShineEngine\\src\\render\\backend\\render_backend_factory.cpp",
+  "file": "E:/c++/ShineEngine/src/render/backend/render_backend_factory.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/render/backend/render_backend_factory.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\render\\demo\\EngineDemoScene.cpp.obj -c E:\\c++\\ShineEngine\\src\\render\\demo\\EngineDemoScene.cpp",
+  "file": "E:/c++/ShineEngine/src/render/demo/EngineDemoScene.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/render/demo/EngineDemoScene.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\render\\pipeline\\command_buffer.cpp.obj -c E:\\c++\\ShineEngine\\src\\render\\pipeline\\command_buffer.cpp",
+  "file": "E:/c++/ShineEngine/src/render/pipeline/command_buffer.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/render/pipeline/command_buffer.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\render\\pipeline\\render_pipeline.cpp.obj -c E:\\c++\\ShineEngine\\src\\render\\pipeline\\render_pipeline.cpp",
+  "file": "E:/c++/ShineEngine/src/render/pipeline/render_pipeline.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/render/pipeline/render_pipeline.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\render\\pipeline\\render_pipeline_asset.cpp.obj -c E:\\c++\\ShineEngine\\src\\render\\pipeline\\render_pipeline_asset.cpp",
+  "file": "E:/c++/ShineEngine/src/render/pipeline/render_pipeline_asset.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/render/pipeline/render_pipeline_asset.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\render\\pipeline\\scriptable_render_context.cpp.obj -c E:\\c++\\ShineEngine\\src\\render\\pipeline\\scriptable_render_context.cpp",
+  "file": "E:/c++/ShineEngine/src/render/pipeline/scriptable_render_context.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/render/pipeline/scriptable_render_context.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\render\\renderer_service.cpp.obj -c E:\\c++\\ShineEngine\\src\\render\\renderer_service.cpp",
+  "file": "E:/c++/ShineEngine/src/render/renderer_service.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/render/renderer_service.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\render\\resources\\TextureManager.cpp.obj -c E:\\c++\\ShineEngine\\src\\render\\resources\\TextureManager.cpp",
+  "file": "E:/c++/ShineEngine/src/render/resources/TextureManager.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/render/resources/TextureManager.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\script\\ScriptSystem.cpp.obj -c E:\\c++\\ShineEngine\\src\\script\\ScriptSystem.cpp",
+  "file": "E:/c++/ShineEngine/src/script/ScriptSystem.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/script/ScriptSystem.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\util\\EngineDirectoryService.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\EngineDirectoryService.cpp",
+  "file": "E:/c++/ShineEngine/src/util/EngineDirectoryService.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/util/EngineDirectoryService.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\util\\encoding\\huffman_decoder.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\encoding\\huffman_decoder.cpp",
+  "file": "E:/c++/ShineEngine/src/util/encoding/huffman_decoder.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/util/encoding/huffman_decoder.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\util\\encoding\\huffman_tree.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\encoding\\huffman_tree.cpp",
+  "file": "E:/c++/ShineEngine/src/util/encoding/huffman_tree.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/util/encoding/huffman_tree.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\util\\encoding_util.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\encoding_util.cpp",
+  "file": "E:/c++/ShineEngine/src/util/encoding_util.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/util/encoding_util.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\util\\image_util.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\image_util.cpp",
+  "file": "E:/c++/ShineEngine/src/util/image_util.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/util/image_util.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\util\\thread\\job_executor.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\thread\\job_executor.cpp",
+  "file": "E:/c++/ShineEngine/src/util/thread/job_executor.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/util/thread/job_executor.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\util\\watcher\\FileWatchService.cpp.obj -c E:\\c++\\ShineEngine\\src\\util\\watcher\\FileWatchService.cpp",
+  "file": "E:/c++/ShineEngine/src/util/watcher/FileWatchService.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/util/watcher/FileWatchService.cpp.obj"
+},
+{
+  "directory": "E:/c++/ShineEngine/build_clang",
+  "command": "F:\\c++\\clang\\bin\\clang++.exe -DBASE64_API=\"\" -DBUILD_EDITOR -DBUILD_INTERFACE=1 -DBUILD_THIRD=1 -DBYTE_CONVERT_API=\"\" -DENGINE_LOG_API=\"\" -DFILE_UTIL_API=\"\" -DFMT_HEADER_ONLY -DGLTF_LOADER_API=\"\" -DIMGUI_API=\"\" -DJPEG_API=\"\" -DLIBPNG_API=\"\" -DLOADER_API=\"\" -DLOG_UI_API=\"\" -DMATH_API=\"\" -DMEMORY_API=\"\" -DMIMALLOC_API=\"\" -DPATH_UTIL_API=\"\" -DPNG_API=\"\" -DSHINE_MODULE_EXPORT=\"\" -DSHINE_OPENGL -DSTB_IMAGE_IMPLEMENTATION -DSTRING_UTIL_API=\"\" -DTEXTURE_API=__declspec(dllimport) -DTHREAD_API=\"\" -DTIMER_API=\"\" -DTINYGLTF_ENABLE_DRACO -DTINYGLTF_NO_EXTERNAL_IMAGE -DTINYGLTF_NO_FS -DTINYGLTF_USE_GLAZE -DTRACY_API=__declspec(dllimport) -DTRACY_IMPORTS -DURL_UTIL_API=\"\" -DWASM_API=\"\" -DYYJSON_API=\"\" -DZLIB_API=\"\" -IE:/c++/ShineEngine/src -IE:/c++/ShineEngine/src/util -IE:/c++/ShineEngine/src/third -O0 -g -O0 -DDEBUG -std=c++23 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -g -Xclang -gcodeview -Wall -Wextra -Wno-unused-parameter -fms-extensions -fms-compatibility -o CMakeFiles\\MainEngine.dir\\src\\widget\\shineButton.cpp.obj -c E:\\c++\\ShineEngine\\src\\widget\\shineButton.cpp",
+  "file": "E:/c++/ShineEngine/src/widget/shineButton.cpp",
+  "output": "E:/c++/ShineEngine/build_clang/CMakeFiles/MainEngine.dir/src/widget/shineButton.cpp.obj"
+}
+]

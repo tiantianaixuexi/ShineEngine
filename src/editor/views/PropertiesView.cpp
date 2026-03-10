@@ -1,18 +1,25 @@
 #include "PropertiesView.h"
-#include "EngineCore/engine_context.h"
-#include "imgui/imgui.h"
-#include "fmt/format.h"
-#include "EngineCore/reflection/Reflection.h"
-#include "gameplay/component/ScriptComponent.h"
-#include "script/ScriptSystem.h"
-#include "../util/InspectorBuilder.h"
+
 #include <cfloat>
 #include <cstdint>
 #include <string>
-#include <typeinfo>
 #include <unordered_map>
 #include <variant>
 #include <vector>
+
+
+
+#include "imgui/imgui.h"
+#include "imgui/imgui_stdlib.h"
+
+
+#include "fmt/format.h"
+
+
+#include "script/ScriptSystem.h"
+
+#include "EngineCore/engine_context.h"
+#include "gameplay/component/ScriptComponent.h"
 
 namespace shine::editor::views
 {
@@ -36,7 +43,7 @@ namespace shine::editor::views
                 RenderObjectProperties(selectedObject);
             }
         }
-                    
+
         ImGui::End();
     }
 
@@ -55,15 +62,8 @@ namespace shine::editor::views
         if (obj == nullptr)
             return;
 
-        // Basic Info (Name/Active/Visible)
-        // Ideally, SObject itself should be reflected so we can just call DrawInspector(obj).
-        // For now, keep this manual part or assume SObject fields are not reflected yet.
-        
-        char nameBuffer[256];
-        strncpy_s(nameBuffer, obj->getName().c_str(), sizeof(nameBuffer) - 1);
-        nameBuffer[sizeof(nameBuffer) - 1] = '\0';
-        if (ImGui::InputText("名称", nameBuffer, sizeof(nameBuffer))) {
-            obj->setName(nameBuffer);
+        if (ImGui::InputText("名称", obj->getRefName().data(), obj->getRefName().length())) {
+            obj->setName(obj->getRefName());
         }
 
         bool active = obj->isActive();
@@ -94,38 +94,27 @@ namespace shine::editor::views
             }
             else
             {
-                for (size_t i = 0; i < components.size(); ++i)
-                {
-                    auto* comp = components[i].get();
-                    if (!comp) continue;
+                for(auto& comp :components){
 
-                    // Use RTTI or Reflection to get the component name
-                    // Assuming we have TypeId for components via Reflection
-                    // If Component is Reflected, we can find its TypeInfo.
-                    
-                    // Fallback to RTTI name if no TypeInfo found (though InspectorBuilder requires TypeInfo)
-                    // Let's try to find TypeInfo using a helper (requires Component to have GetTypeId or similar)
-                    // For now, use typeid name for header, and assume we can't draw fields unless reflected.
-                    
-                    std::string compName = typeid(*comp).name(); 
+                    std::string compName = typeid(*comp).name();
                     // Clean up "class " prefix if present (MSVC)
                     if (compName.starts_with("class ")) compName = compName.substr(6);
                     if (compName.starts_with("struct ")) compName = compName.substr(7);
 
-                    if (ImGui::TreeNode((void*)comp, "%s", compName.c_str())) {
-                        
+                    if (ImGui::TreeNode((void*)comp.get(), "%s", compName.c_str())) {
+
                         // Try to find TypeInfo via TypeRegistry
                         // This relies on component classes having registered reflection with matching names or IDs
                         // Since we don't have the compile-time type T here, we need runtime lookup.
                         // Assuming we can get TypeId from instance or name.
                         // If components don't have virtual GetTypeId(), we are stuck unless we use RTTI hash map.
-                        
+
                         // Workaround: We can't easily get TypeInfo from base pointer without virtual GetTypeId().
                         // Let's assume for this task that we just print a placeholder or try to use a hypothetical lookup.
                         // ImGui::Text("Inspector logic here...");
-                        
+
                         // FUTURE: util::InspectorBuilder::DrawInspector(comp, typeInfo);
-                        
+
                         ImGui::TreePop();
                     }
                 }
@@ -317,19 +306,243 @@ namespace shine::editor::views
                     newValue = reflection::ScriptValue(floatValue);
                 }
             }
+            else if (property.type.sv() == "array")
+            {
+                // 数组类型：可展开编辑
+                if (std::holds_alternative<reflection::ScriptValue::ArrayWrapper>(value.data))
+                {
+                    auto arrWrapper = std::get<reflection::ScriptValue::ArrayWrapper>(value.data);
+                    auto& arr = arrWrapper.ptr;
+                    if (!arr) arr = std::make_shared<reflection::ScriptArray>();
+
+                    const std::string treeNodeLabel = fmt::format("[{}] {}", arr->elements.size(), nameText);
+                    ImGui::PushID(nameText.c_str());
+                    if (ImGui::TreeNode(treeNodeLabel.c_str()))
+                    {
+                        // 添加/删除按钮
+                        if (!isReadOnly)
+                        {
+                            if (ImGui::Button("+ Add"))
+                            {
+                                // Initialize with a default value based on the first element if it exists, otherwise default to string
+                                if (!arr->elements.empty())
+                                {
+                                    arr->elements.push_back(arr->elements.back());
+                                }
+                                else
+                                {
+                                    arr->elements.emplace_back(std::string(""));
+                                }
+                                changed = true;
+                            }
+                            ImGui::SameLine();
+                            if (arr->elements.size() > 0 && ImGui::Button("- Remove Last"))
+                            {
+                                arr->elements.pop_back();
+                                changed = true;
+                            }
+                        }
+
+                        // 编辑每个元素
+                        for (size_t i = 0; i < arr->elements.size(); ++i)
+                        {
+                            const std::string elemLabel = fmt::format("[{}]##{}_{}", i, nameText, i);
+                            auto& elem = arr->elements[i];
+
+                            if (std::holds_alternative<std::string>(elem.data))
+                            {
+                                std::string text = std::get<std::string>(elem.data);
+                                if (ImGui::InputText(elemLabel.c_str(), &text, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
+                                {
+                                    elem = reflection::ScriptValue(text);
+                                    changed = true;
+                                }
+                            }
+                            else if (std::holds_alternative<int>(elem.data))
+                            {
+                                int intVal = std::get<int>(elem.data);
+                                if (ImGui::InputInt(elemLabel.c_str(), &intVal, 1, 10, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
+                                {
+                                    elem = reflection::ScriptValue(intVal);
+                                    changed = true;
+                                }
+                            }
+                            else if (std::holds_alternative<float>(elem.data))
+                            {
+                                float floatVal = std::get<float>(elem.data);
+                                if (ImGui::DragFloat(elemLabel.c_str(), &floatVal, 0.01f, 0, 0, "%.3f", isReadOnly ? ImGuiSliderFlags_NoInput : 0))
+                                {
+                                    elem = reflection::ScriptValue(floatVal);
+                                    changed = true;
+                                }
+                            }
+                            else if (std::holds_alternative<bool>(elem.data))
+                            {
+                                bool boolVal = std::get<bool>(elem.data);
+                                if (ImGui::Checkbox(elemLabel.c_str(), &boolVal))
+                                {
+                                    elem = reflection::ScriptValue(boolVal);
+                                    changed = true;
+                                }
+                            }
+                            else
+                            {
+                                ImGui::TextDisabled("%s: (unsupported type)", elemLabel.c_str());
+                            }
+                        }
+
+                        if (changed)
+                        {
+                            newValue = reflection::ScriptValue(arrWrapper);
+                        }
+                        ImGui::TreePop();
+                    }
+                    ImGui::PopID();
+                    // 未展开时显示大小
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("[%zu]", arr->elements.size());
+                }
+                else
+                {
+                    ImGui::TextDisabled("[]");
+                }
+            }
+            else if (property.type.sv() == "map")
+            {
+                // Map类型：可展开编辑
+                if (std::holds_alternative<reflection::ScriptValue::MapWrapper>(value.data))
+                {
+                    auto mapWrapper = std::get<reflection::ScriptValue::MapWrapper>(value.data);
+                    auto& map = mapWrapper.ptr;
+                    if (!map) map = std::make_shared<reflection::ScriptMap>();
+
+                    const std::string treeNodeLabel = fmt::format("{{{}}} {}", map->elements.size(), nameText);
+                    ImGui::PushID(nameText.c_str());
+                    if (ImGui::TreeNode(treeNodeLabel.c_str()))
+                    {
+                        // 添加新键值对
+                        static std::string newKeyBuffer{};
+                        if (!isReadOnly)
+                        {
+                            ImGui::PushID("new_key_input");
+                            ImGui::SetNextItemWidth(100);
+                            ImGui::InputText("##newKey", newKeyBuffer, sizeof(newKeyBuffer));
+                            ImGui::SameLine();
+                            if (ImGui::Button("+ Add Key"))
+                            {
+                                if (newKeyBuffer[0] != '\0')
+                                {
+                                    if (map->elements.find(newKeyBuffer) == map->elements.end())
+                                    {
+                                        map->elements[newKeyBuffer] = reflection::ScriptValue(std::string(""));
+                                        changed = true;
+                                        newKeyBuffer.clear();
+                                    }
+                                }
+                            }
+                            ImGui::PopID();
+                        }
+
+                        // 编辑每个键值对
+                        std::vector<std::string> keysToRemove;
+                        for (auto& [key, val] : map->elements)
+                        {
+                            ImGui::PushID(key.c_str());
+
+                            // 键名 + 删除按钮
+                            ImGui::Text("%s", key.c_str());
+                            if (!isReadOnly)
+                            {
+                                ImGui::SameLine();
+                                if (ImGui::SmallButton("X"))
+                                {
+                                    keysToRemove.push_back(key);
+                                }
+                            }
+                            ImGui::SameLine();
+
+                            // 值编辑
+                            const std::string valLabel = fmt::format("##val_{}", key);
+                            if (std::holds_alternative<std::string>(val.data))
+                            {
+                                char buffer[256];
+                                strncpy_s(buffer, std::get<std::string>(val.data).c_str(), sizeof(buffer) - 1);
+                                buffer[sizeof(buffer) - 1] = '\0';
+                                if (ImGui::InputText(valLabel.c_str(), buffer, sizeof(buffer), isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
+                                {
+                                    val = reflection::ScriptValue(std::string(buffer));
+                                    changed = true;
+                                }
+                            }
+                            else if (std::holds_alternative<int>(val.data))
+                            {
+                                int intVal = std::get<int>(val.data);
+                                if (ImGui::InputInt(valLabel.c_str(), &intVal, 1, 10, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
+                                {
+                                    val = reflection::ScriptValue(intVal);
+                                    changed = true;
+                                }
+                            }
+                            else if (std::holds_alternative<float>(val.data))
+                            {
+                                float floatVal = std::get<float>(val.data);
+                                if (ImGui::DragFloat(valLabel.c_str(), &floatVal, 0.01f, 0, 0, "%.3f", isReadOnly ? ImGuiSliderFlags_NoInput : 0))
+                                {
+                                    val = reflection::ScriptValue(floatVal);
+                                    changed = true;
+                                }
+                            }
+                            else if (std::holds_alternative<bool>(val.data))
+                            {
+                                bool boolVal = std::get<bool>(val.data);
+                                if (ImGui::Checkbox(valLabel.c_str(), &boolVal))
+                                {
+                                    val = reflection::ScriptValue(boolVal);
+                                    changed = true;
+                                }
+                            }
+                            else
+                            {
+                                ImGui::TextDisabled("(unsupported type)");
+                            }
+
+                            ImGui::PopID();
+                        }
+
+                        // 删除标记的键
+                        for (const auto& keyToRemove : keysToRemove)
+                        {
+                            map->elements.erase(keyToRemove);
+                            changed = true;
+                        }
+
+                        if (changed)
+                        {
+                            newValue = reflection::ScriptValue(mapWrapper);
+                        }
+                        ImGui::TreePop();
+                    }
+                    ImGui::PopID();
+                    // 未展开时显示大小
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("{%zu}", map->elements.size());
+                }
+                else
+                {
+                    ImGui::TextDisabled("{}");
+                }
+            }
             else
             {
-                char textBuffer[256]{};
+                static std::string text{};
                 if (std::holds_alternative<std::string>(value.data))
                 {
-                    const auto& text = std::get<std::string>(value.data);
-                    strncpy_s(textBuffer, text.c_str(), sizeof(textBuffer) - 1);
-                    textBuffer[sizeof(textBuffer) - 1] = '\0';
+                    text = std::get<std::string>(value.data);
                 }
-                changed = ImGui::InputText(valueLabel.c_str(), textBuffer, sizeof(textBuffer));
+                changed = ImGui::InputText(valueLabel.c_str(), text.data(), text.length());
                 if (changed)
                 {
-                    newValue = reflection::ScriptValue(std::string(textBuffer));
+                    newValue = reflection::ScriptValue(text);
                 }
             }
 

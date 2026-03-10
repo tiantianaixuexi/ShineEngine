@@ -117,14 +117,14 @@ namespace shine::render::demo
         sceneTransform->setPosition({ 0.0f, -1.0f, 0.0f });
         sceneTransform->setScale({ 0.4f, 0.4f, 0.4f });
         auto* sceneMeshComp = sceneObj->addComponent<shine::gameplay::component::StaticMeshComponent>();
-        if (!sceneMeshComp->loadModelMesh("Content/model/changjing.glb", 0))
+        if (!sceneMeshComp->loadModelMesh("Content/model/hellowkiti.glb", 0))
         {
             auto fallbackMesh = std::make_shared<shine::gameplay::StaticMesh>();
             fallbackMesh->initCubeWithNormals();
             sceneMeshComp->setMesh(fallbackMesh);
         }
         auto* scriptComp = sceneObj->addComponent<shine::gameplay::component::ScriptComponent>(
-            shine::STextView::from_literal("build/script/game.js")
+            shine::STextView::from_literal("build/script/game.ts")
         );
         scriptComp->setTickGroup(shine::gameplay::ETickGroup::Late);
         if (worldService)

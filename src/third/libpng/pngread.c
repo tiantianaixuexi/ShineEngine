@@ -1372,7 +1372,13 @@ png_image_begin_read_from_file(png_imagep image, const char *file_name)
    {
       if (file_name != NULL)
       {
-         FILE *fp = fopen(file_name, "rb");
+         FILE *fp = NULL;
+         errno_t  _err = fopen_s(&fp,file_name, "rb");
+         if(_err != 0)
+         {
+            return png_image_error(image,
+             "open file error");
+         }
 
          if (fp != NULL)
          {

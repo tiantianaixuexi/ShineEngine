@@ -10,15 +10,16 @@
 // C++23 / MSVC
 // =============================================================================
 
+#include <algorithm>
+#include <cstddef>
+#include <new>
+
 #include "../ReflectionCore.h"
 #include "../TypeRegistry.h"
 #include "../Script/ScriptValue.h"
 #include "../Script/ScriptBridge.h"
 #include "../Core/TypeView.h"
-#include <algorithm>
-#include <cstddef>
-#include <memory>
-#include <new>
+
 
 namespace shine::reflection {
 
@@ -111,12 +112,12 @@ struct ScriptView : TypeView {
         return TypeRegistry::Get().FindFast(id);
     }
 
-    const FieldInfo*  GetFieldInfo(std::string_view n) const { return typeInfo->FindField(n); }
-    const FieldInfo*  GetFieldInfo(std::size_t i)      const {
+     [[nodiscard]] const FieldInfo*  GetFieldInfo(std::string_view n) const { return typeInfo->FindField(n); }
+     [[nodiscard]] const FieldInfo*  GetFieldInfo(std::size_t i)      const {
         return i < typeInfo->fields.size() ? &typeInfo->fields[i] : nullptr;
     }
-    const MethodInfo* GetMethodInfo(std::string_view n) const { return typeInfo->FindMethod(n); }
-    const MethodInfo* GetMethodInfo(std::size_t i)      const {
+     [[nodiscard]] const MethodInfo* GetMethodInfo(std::string_view n) const { return typeInfo->FindMethod(n); }
+     [[nodiscard]] const MethodInfo* GetMethodInfo(std::size_t i)      const {
         return i < typeInfo->methods.size() ? &typeInfo->methods[i] : nullptr;
     }
 
@@ -184,11 +185,11 @@ struct ScriptView : TypeView {
         }
 
         method->Invoke(instance, rawArgs.data(), retPtr);
-        
+
         ScriptValue result = (retPtr && method->cachedReturnTypeInfo)
             ? bridge.ToScript(retPtr, method->returnType)
             : ScriptValue{};
-        
+
         // Cleanup
         if (retPtr && method->cachedReturnTypeInfo && !method->cachedReturnTypeInfo->isPod)
             Destruct(retPtr, method->cachedReturnTypeInfo->id);
@@ -196,7 +197,7 @@ struct ScriptView : TypeView {
             if (!method->cachedParamTypeInfos[i]->isPod)
                 Destruct(rawArgs[i], method->cachedParamTypeInfos[i]->id);
         }
-        
+
         return result;
     }
 

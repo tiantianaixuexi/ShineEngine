@@ -262,12 +262,12 @@ if not defined FOUND_EXE call :log_warning "Executable not found: %T_NAME%"
 goto :eof
 
 :cmd_run
-call :build_generic "MainEngine" "Debug" "TRUE"
+call :build_generic "MainEngine" "%MODULE_CONFIG%" "TRUE"
 goto end_script
 
 :cmd_x64
-call :build_generic "MainEngine" "Debug" "FALSE"
-call :run_executable "MainEngine" "Debug"
+call :build_generic "MainEngine" "%MODULE_CONFIG%" "FALSE"
+call :run_executable "MainEngine" "%MODULE_CONFIG%"
 goto end_script
 
 :cmd_release

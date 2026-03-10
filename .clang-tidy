@@ -1,0 +1,19 @@
+Checks: >
+  modernize-*,
+  performance-*,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-owning-memory,
+  -modernize-use-trailing-return-type
+WarningsAsErrors: >
+  modernize-*,
+  performance-*,
+  cppcoreguidelines-*
+HeaderFilterRegex: '^(src|dev/test)/.*'
+FormatStyle: file
+CheckOptions:
+  - key:             cppcoreguidelines-pro-type-member-init.HaltOnNoCtor
+    value:           '0'
+  - key:             performance-move-const-arg.CheckTriviallyCopyableMove
+    value:           '0'

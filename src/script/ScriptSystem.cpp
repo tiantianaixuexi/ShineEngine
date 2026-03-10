@@ -1,22 +1,19 @@
-#include "script/ScriptSystem.h"
+#include "ScriptSystem.h"
 
 #include <array>
 #include <algorithm>
-#include <ranges>
-#include <iterator>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <cwctype>
 #include <string>
 
+#include "EngineCore/reflection/Script/ScriptBridge.h"
+#include "EngineCore/reflection/TypeRegistry.h"
+#include "EngineCore/reflection/Views/ScriptView.h"
 #include "EngineCore/engine_context.h"
-#include "EngineCore/reflection/Reflection.h"
-#include "gameplay/actor.h"
+#include "EngineCore/reflection/ReflectionCore.h"
 #include "gameplay/component/ScriptComponent.h"
-#include "gameplay/component/StaticMeshComponent.h"
-#include "gameplay/component/TransformComponent.h"
-#include "gameplay/mesh/StaticMesh.h"
 #include "gameplay/object.h"
 #include "gameplay/world/world_service.h"
 #include "util/EngineDirectoryService.h"
@@ -24,11 +21,14 @@
 #include "util/file_util.ixx"
 #include "util/watcher/FileWatchService.h"
 
+
 namespace shine::script
 {
+
+
     namespace
     {
-        constexpr auto kReadOnlyAccess = "ReadOnly";
+        constexpr auto kReadOnlyAccess  = "ReadOnly";
         constexpr auto kReadWriteAccess = "ReadWrite";
 
         uint64_t HashScriptText(std::string_view text)
@@ -49,6 +49,61 @@ namespace shine::script
             std::wstring key = (ec ? path : normalized).wstring();
             for (auto& c : key) c = static_cast<wchar_t>(std::towlower(static_cast<wint_t>(c)));
             return key;
+        }
+
+        // 从 JavaScript 路径计算 TypeScript 源路径
+        // build/script/game.js -> script/game.ts
+        // 支持相对路径和绝对路径，支持正斜杠和反斜杠
+        shine::SString ComputeSourcePathFromJs(const std::filesystem::path& jsPath)
+        {
+            std::string pathStr = jsPath.string();
+            // 替换 .js 为 .ts
+            if (pathStr.size() >= 3 && pathStr.substr(pathStr.size() - 3) == ".js")
+            {
+                pathStr.resize(pathStr.size() - 3);
+                pathStr += ".ts";
+            }
+            // 替换 build/script 路径段为 script（支持正斜杠和反斜杠）
+            const std::string buildPrefixFwd = "build/script/";
+            const std::string buildPrefixBkwd = "build\\script\\";
+            const std::string scriptPrefixFwd = "script/";
+            const std::string scriptPrefixBkwd = "script\\";
+
+            size_t pos = pathStr.find(buildPrefixFwd);
+            if (pos != std::string::npos)
+            {
+                pathStr = pathStr.substr(0, pos) + scriptPrefixFwd + pathStr.substr(pos + buildPrefixFwd.size());
+            }
+            else
+            {
+                pos = pathStr.find(buildPrefixBkwd);
+                if (pos != std::string::npos)
+                {
+                    pathStr = pathStr.substr(0, pos) + scriptPrefixBkwd + pathStr.substr(pos + buildPrefixBkwd.size());
+                }
+            }
+            return shine::SString(pathStr);
+        }
+
+        // 从 TypeScript 源路径计算 JavaScript 路径
+        // script/game.ts -> build/script/game.js
+        shine::SString ComputeJsPathFromSource(const std::filesystem::path& tsPath)
+        {
+            std::string pathStr = tsPath.string();
+            // 替换 .ts 为 .js
+            if (pathStr.size() >= 3 && pathStr.substr(pathStr.size() - 3) == ".ts")
+            {
+                pathStr.resize(pathStr.size() - 3);
+                pathStr += ".js";
+            }
+            // 如果路径以 script/ 开头，替换为 build/script/
+            const std::string scriptPrefix = "script/";
+            const std::string buildPrefix = "build/script/";
+            if (pathStr.starts_with(scriptPrefix) == 0)
+            {
+                pathStr = buildPrefix + pathStr.substr(scriptPrefix.size());
+            }
+            return shine::SString(pathStr);
         }
 
         JSValue ResolveScriptObject(JSContext* context, JSValueConst globalObj)
@@ -109,14 +164,14 @@ namespace shine::script
                     return reflection::ScriptValue{*static_cast<const std::string*>(nativePtr)};
                 if (typeId == reflection::GetTypeId<shine::SString>())
                     return reflection::ScriptValue{static_cast<const shine::SString*>(nativePtr)->to_string()};
-                
+
                 return {};
             }
 
             reflection::ScriptValue ToScriptField(const void* nativePtr, const reflection::FieldInfo* field) const override
             {
                 if (!nativePtr || !field) return {};
-                
+
                 if (field->containerType == reflection::ContainerType::Sequence && field->containerTrait) {
                     auto* trait = static_cast<const reflection::SequenceTrait*>(field->containerTrait);
                     auto arr = std::make_shared<reflection::ScriptArray>();
@@ -127,11 +182,11 @@ namespace shine::script
                     }
                     return reflection::ScriptValue{reflection::ScriptValue::ArrayWrapper{arr}};
                 }
-                
+
                 if (field->containerType == reflection::ContainerType::Associative && field->containerTrait) {
                     auto* trait = static_cast<const reflection::MapTrait*>(field->containerTrait);
                     auto map = std::make_shared<reflection::ScriptMap>();
-                    
+
                     struct IterData {
                         const QuickJSScriptBridge* bridge;
                         reflection::TypeId keyType;
@@ -139,7 +194,7 @@ namespace shine::script
                         std::shared_ptr<reflection::ScriptMap> map;
                     };
                     IterData data{this, trait->keyType, trait->valueType, map};
-                    
+
                     if (trait->Iterate) {
                         trait->Iterate(nativePtr, &data, [](const void* k, const void* v, void* ud) {
                             auto* d = static_cast<IterData*>(ud);
@@ -159,7 +214,7 @@ namespace shine::script
                     }
                     return reflection::ScriptValue{reflection::ScriptValue::MapWrapper{map}};
                 }
-                
+
                 return ToScript(nativePtr, field->typeId);
             }
 
@@ -218,7 +273,7 @@ namespace shine::script
                     }
                     return;
                 }
-                
+
                 if (field->containerType == reflection::ContainerType::Associative && field->containerTrait) {
                     if (std::holds_alternative<reflection::ScriptValue::MapWrapper>(scriptVal.data)) {
                         auto map = std::get<reflection::ScriptValue::MapWrapper>(scriptVal.data).ptr;
@@ -226,32 +281,35 @@ namespace shine::script
                             auto* trait = static_cast<const reflection::MapTrait*>(field->containerTrait);
                             if (trait->Clear && trait->InsertKV) {
                                 trait->Clear(outNativePtr);
-                                
+
                                 // Temporary buffers for key and value since we don't know their types statically
                                 alignas(16) char keyBuf[128];
                                 alignas(16) char valBuf[128];
-                                
-                                const auto* kType = reflection::TypeRegistry::Get().FindFast(trait->keyType);
-                                const auto* vType = reflection::TypeRegistry::Get().FindFast(trait->valueType);
-                                
-                                void* kPtr = (kType && kType->size <= sizeof(keyBuf)) ? keyBuf : std::malloc(kType ? kType->size : 8);
-                                void* vPtr = (vType && vType->size <= sizeof(valBuf)) ? valBuf : std::malloc(vType ? vType->size : 8);
-                                
+
+
+                                const reflection::TypeInfo* kType = reflection::TypeRegistry::Get().FindFast(trait->keyType);
+                                const reflection::TypeInfo* vType = reflection::TypeRegistry::Get().FindFast(trait->valueType);
+
+                                void* kPtr = (kType->size <= 128) ? keyBuf : new char[kType->size];
+                                void* vPtr = (vType->size <= 128) ? valBuf : new char[vType->size];
+
                                 for (const auto& [k, v] : map->elements) {
-                                    if (kType && !kType->isPod) reflection::Construct(kPtr, trait->keyType);
-                                    if (vType && !vType->isPod) reflection::Construct(vPtr, trait->valueType);
-                                    
+
+                                    // 判断是否是可平凡复制类型
+                                    if (kType->isPod) reflection::Construct(kPtr, trait->keyType);
+                                    if (vType->isPod) reflection::Construct(vPtr, trait->valueType);
+
                                     FromScript(reflection::ScriptValue{k}, kPtr, trait->keyType);
                                     FromScript(v, vPtr, trait->valueType);
-                                    
+
                                     trait->InsertKV(outNativePtr, kPtr, vPtr);
-                                    
+
                                     if (kType && !kType->isPod) reflection::Destruct(kPtr, trait->keyType);
                                     if (vType && !vType->isPod) reflection::Destruct(vPtr, trait->valueType);
                                 }
-                                
-                                if (kPtr != keyBuf) std::free(kPtr);
-                                if (vPtr != valBuf) std::free(vPtr);
+
+                                if (kPtr != &keyBuf[0]) delete[] kPtr;
+                                if (vPtr != &valBuf[0]) delete[] vPtr;
                             }
                         }
                     }
@@ -307,8 +365,8 @@ namespace shine::script
                 if (JS_IsObject(value) && !JS_IsFunction(context_, value))
                 {
                     auto map = std::make_shared<reflection::ScriptMap>();
-                    JSPropertyEnum *tab;
-                    uint32_t len;
+                    JSPropertyEnum *tab = nullptr;
+                    uint32_t len = 0;
                     if (JS_GetOwnPropertyNames(context_, &tab, &len, value, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) == 0)
                     {
                         for (uint32_t i = 0; i < len; ++i)
@@ -539,7 +597,22 @@ namespace shine::script
         }
 
         const std::filesystem::path resolvedPath = ResolveScriptPath(scriptPath);
-        const auto textResult = util::read_file_text(shine::SString(resolvedPath.string()).view());
+        auto textResult = util::read_file_text(shine::SString(resolvedPath.string()).view());
+
+        // 如果 .js 文件不存在，尝试自动编译 TypeScript
+        if (!textResult.has_value())
+        {
+            const std::filesystem::path sourceTsPath = ComputeSourcePathFromJs(resolvedPath).to_string();
+            if (std::filesystem::exists(sourceTsPath))
+            {
+                SHINE_LOG_INFO(ScriptSystemLog, "ScriptRuntime", "JS文件不存在，自动编译 TypeScript: {}", sourceTsPath.string());
+                if (CompileTypeScript())
+                {
+                    textResult = util::read_file_text(shine::SString(resolvedPath.string()).view());
+                }
+            }
+        }
+
         if (!textResult.has_value())
         {
             SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "读取脚本失败: {} error={}", resolvedPath.string(), textResult.error());
@@ -554,6 +627,7 @@ namespace shine::script
 
         entry.propertyLayoutVersion = 1;
         entry.path = shine::SString(resolvedPath.string());
+        entry.sourcePath = ComputeSourcePathFromJs(resolvedPath);
         sourceHashes_[MakeScriptPathKey(resolvedPath)] = HashScriptText(textResult.value());
         if (!scriptSourceRoot_.empty())
         {
@@ -586,7 +660,7 @@ namespace shine::script
         }
         outHandle.id = handleId;
 
-        SHINE_LOG_INFO(ScriptSystemLog, "ScriptRuntime", "加载脚本成功: {} handle={}", resolvedPath.string(), handleId);
+        SHINE_LOG_INFO(ScriptSystemLog, "ScriptRuntime", "加载脚本成功: {} (source: {}) handle={}", resolvedPath.string(), entry.sourcePath.to_string(), handleId);
         return true;
     }
 
@@ -627,6 +701,7 @@ namespace shine::script
         it->second = std::move(newEntry);
         it->second.propertyLayoutVersion = nextLayoutVersion;
         it->second.path = shine::SString(resolvedPath.string());
+        it->second.sourcePath = ComputeSourcePathFromJs(resolvedPath);
         invokeScope_.owner = nullptr;
         if (!InvokeNoArg(reloadedHandle, it->second, it->second.initFunc, STextView::from_literal("Init")))
         {
@@ -932,6 +1007,7 @@ namespace shine::script
             }
 
             newEntry.path = shine::SString(resolvedPath.string());
+            newEntry.sourcePath = ComputeSourcePathFromJs(resolvedPath);
             newEntry.propertyLayoutVersion = target.oldVersion + 1; // Preserve and increment version
             sourceHashes_[MakeScriptPathKey(resolvedPath)] = HashScriptText(textResult.value());
             if (!scriptSourceRoot_.empty() && resolvedPath.extension() == L".js")
@@ -969,7 +1045,7 @@ namespace shine::script
         {
             return false;
         }
-        
+
         const auto it = loadedScripts_.find(handle.id);
         if (it == loadedScripts_.end())
         {
@@ -1411,13 +1487,13 @@ namespace shine::script
         // Optimization: Use stack buffer for small types to avoid heap allocation
         alignas(16) char stackBuffer[64];
         void* valueBuffer = (fieldInfo->size <= sizeof(stackBuffer)) ? stackBuffer : std::malloc(fieldInfo->size);
-        
+
         if (!fieldInfo->isPod) reflection::Construct(valueBuffer, fieldInfo->typeId);
         fieldInfo->Get(actor, valueBuffer);
-        
+
         QuickJSScriptBridge bridge(ctx);
         JSValue result = bridge.ToJSValue(bridge.ToScript(valueBuffer, fieldInfo->typeId));
-        
+
         if (!fieldInfo->isPod) reflection::Destruct(valueBuffer, fieldInfo->typeId);
         if (valueBuffer != stackBuffer) std::free(valueBuffer);
 
@@ -1453,14 +1529,14 @@ namespace shine::script
 
         QuickJSScriptBridge bridge(ctx);
         reflection::ScriptValue value = bridge.FromJSValue(argv[3]);
-        
+
         alignas(16) char stackBuffer[64];
         void* valueBuffer = (fieldInfo->size <= sizeof(stackBuffer)) ? stackBuffer : std::malloc(fieldInfo->size);
-        
+
         if (!fieldInfo->isPod) reflection::Construct(valueBuffer, fieldInfo->typeId);
         bridge.FromScript(value, valueBuffer, fieldInfo->typeId);
         fieldInfo->Set(actor, valueBuffer);
-        
+
         if (!fieldInfo->isPod) reflection::Destruct(valueBuffer, fieldInfo->typeId);
         if (valueBuffer != stackBuffer) std::free(valueBuffer);
 
@@ -1543,7 +1619,9 @@ namespace shine::script
             JSCFunction* function;
             int argc;
         };
-        static constexpr std::array bindings{
+
+        static constexpr std::array bindings =
+        {
             BindingDef{ "Log", &ScriptSystem::JsLog, 1 },
             BindingDef{ "SetTimeout", &ScriptSystem::JsSetTimeout, 2 },
             BindingDef{ "SetInterval", &ScriptSystem::JsSetInterval, 2 },
@@ -1554,6 +1632,7 @@ namespace shine::script
             BindingDef{ "ReflectSetField", &ScriptSystem::JsReflectSetField, 4 },
             BindingDef{ "ReflectCallMethod", &ScriptSystem::JsReflectCallMethod, 3 }
         };
+
         for (const auto& binding : bindings)
         {
             JSValue function = JS_NewCFunction(context_, binding.function, binding.name, binding.argc);
