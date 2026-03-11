@@ -740,18 +740,6 @@ namespace shine::util
 #endif
 	}
 
-#ifndef SHINE_PLATFORM_WASM
-	std::expected<FileMapView, std::string> read_full_file(std::string_view filePath)
-	{
-		return read_full_file(SString::from_utf8(filePath));
-	}
-#else
-	FileMapView read_full_file(std::string_view filePath, bool* success)
-	{
-		return read_full_file(SString::from_utf8(filePath), success);
-	}
-#endif
-
 	// ============================================================================
 	// 文件读写操作实现
 	// ============================================================================
@@ -1115,8 +1103,8 @@ namespace shine::util
 
 	bool CreateDirRecursive(STextView path)
 	{
-		std::string pathStr = normalize_path(path.to_string());
-		std::string currentPath;
+		std::string pathStr = normalize_path(SString::from_view(path)).to_string();
+		std::string currentPath {};
 
 #ifdef SHINE_PLATFORM_WIN
 		size_t start = 0;
@@ -1315,7 +1303,7 @@ namespace shine::util
 			info.name = findData.cFileName;
 			info.path = dirPathStr + "\\" + findData.cFileName;
 			info.type = (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? EFileFolderType::DIRECTORY : EFileFolderType::FILE;
-			info.size = (info.type == EFileFolderType::FILE) ? 
+			info.size = (info.type == EFileFolderType::FILE) ?
 				(static_cast<uint64_t>(findData.nFileSizeHigh) << 32) | findData.nFileSizeLow : 0;
 
 			ULARGE_INTEGER ul;
@@ -1399,7 +1387,7 @@ namespace shine::util
 		// Or if pure WASM, it might be different. Assuming same structure as above but with success pointer
 		// But wait, the original code had different branches.
 		// Original code for WASM handled success pointer in return.
-		
+
 		// Wait, the original code had mixed #ifdefs inside the function.
 		// I should verify if WASM platform uses `opendir` or what.
 		// The original code:
@@ -1411,7 +1399,7 @@ namespace shine::util
 		#endif
 		*/
 		// Yes, WASM (Emscripten) supports dirent.h.
-		
+
 		DIR* dir = opendir(dirPathStr.c_str());
 		if (!dir)
 		{

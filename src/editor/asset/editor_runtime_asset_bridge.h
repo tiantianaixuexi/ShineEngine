@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "EngineCore/subsystem.h"
-#include "editor_asset_manager.h"
+#include "Manager/editor_asset_manager.h"
 #include "manager/AssetManager.h"
 
 namespace shine::gameplay::world

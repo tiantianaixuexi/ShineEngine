@@ -482,6 +482,7 @@ namespace shine::editor::views
                                     val = reflection::ScriptValue(intVal);
                                     changed = true;
                                 }
+
                             }
                             else if (std::holds_alternative<float>(val.data))
                             {

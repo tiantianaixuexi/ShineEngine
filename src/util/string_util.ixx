@@ -4,444 +4,549 @@ module;
 
 export module shine.util.string_util;
 
-import <string>;
+import <array>;
+
+import <cstdint>;
 import <span>;
+import <string_view>;
 import <unordered_map>;
 import <vector>;
-import <functional>;
-import <cstdint>;
+
+import "string/shine_string.h";
+import "string/shine_text_view.h";
 
 #else
 
 #pragma once
 
-#include <string>
+#include <array>
+
+#include <cstdint>
 #include <span>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
-#include <functional>
-#include <cstdint>
+
+#include "string/shine_string.h"
+#include "string/shine_text_view.h"
 
 #endif
 
 namespace shine::util
 {
-
-
     class StringUtil
     {
     public:
-        // ===================== 字符串处理与查找 =====================
+        // ===================== Common string algorithms =====================
 
-        /**
-         * @brief 移除与前缀匹配的前缀字符
-         * @param str 输入字符串
-         * @param prefix 要移除的前缀
-         * @return 移除前缀后的字符串
-         */
-        [[nodiscard]] static std::string TrimStart(std::string_view str, std::string_view prefix);
-
-        /**
-         * @brief 移除与后缀匹配的后缀字符
-         * @param str 输入字符串
-         * @param suffix 要移除的后缀
-         * @return 移除后缀后的字符串
-         */
-        [[nodiscard]] static std::string TrimEnd(std::string_view str, std::string_view suffix);
-
-        /**
-         * @brief 检查字符串是否以特定后缀结尾
-         * @param str        输入字符串
-         * @param suffix     要检查的后缀
-         * @param IgnoreCase 是否忽略大小写
-         * @return 如果str以suffix结尾，则为true
-         */
-        [[nodiscard]] static bool EndsWith(std::string_view str, std::string_view suffix, bool IgnoreCase = true);
-
-        /**
-         * @brief 检查字符串是否以特定前缀开头
-         * @param str 输入字符串
-         * @param prefix 要检查的前缀
-         * @return 如果str以prefix开头，则为true
-         */
-        [[nodiscard]] static bool StartsWith(std::string_view str, std::string_view prefix, bool IgnoreCase = true);
-
-        /**
-         * @brief 按分隔符分割字符串
-         * @param str 输入字符串视图
-         * @param delim 分隔符字符
-         * @return 字符串向量
-         */
-        [[nodiscard]] static std::vector<std::string> Split(std::string_view str, char delim);
-
-        /**
-         * @brief 将字符串转换为小写
-         * @param str 输入字符串视图
-         * @return 小写字符串
-         */
-        [[nodiscard]] static std::string ToLower(std::string_view str);
-
-        /**
-         * @brief 将字符串转换为大写
-         * @param str 输入字符串视图
-         * @return 大写字符串
-         */
-        [[nodiscard]] static std::string ToUpper(std::string_view str);
-
-        /**
-         * @brief 替换字符串中所有出现的子串
-         * @param str 输入字符串视图
-         * @param from 要替换的子串
-         * @param to 替换成的子串视图
-         * @return 完成所有替换的字符串
-         */
-        [[nodiscard]] static std::string ReplaceAll(std::string_view str, std::string_view from, std::string_view to);
-
-        /**
-         * @brief 检查字符串是否包含子串（在C++23中使用string_view::contains）
-         * @param str 输入字符串视图
-         * @param substr 要查找的子串
-         * @return 如果在str中找到substr则为true
-         */
-        [[nodiscard]] static bool Contains(std::string_view str, std::string_view substr);
-
-        /**
-         * @brief 从字符串中移除前后空格和制表符
-         * @param str 输入字符串视图
-         * @return 保留空格后的字符串
-         */
-        [[nodiscard]] static std::string Trim(std::string_view str);
-
-        /**
-         * @brief 将字符串分割为基于换行符的行(\r或\n)
-         * @param text 输入字符串视图
-         * @return 每行一个字符串的向量
-         */
-        [[nodiscard]] static std::vector<std::string> SplitLines(std::string_view text);
-
-        /**
-         * @brief 正则表达式替换
-         * @param str 输入字符串视图
-         * @param pattern 正则表达式模式字符串视图
-         * @param replacement 替换内容字符串视图
-         * @return 完成替换的字符串
-         */
-        [[nodiscard]] static std::string RegexReplace(std::string_view str, std::string_view pattern, std::string_view replacement);
-
-        /**
-         * @brief 简单通配符匹配(*, ?)
-         * @param str 要匹配的字符串
-         * @param pattern 匹配模式
-         * @return 如果匹配则为true
-         */
-        [[nodiscard]] static bool WildcardMatch(std::string_view str, std::string_view pattern);
-
-        // ===================== UTF-8 字符操作 =====================
-
-        /**
-         * @brief 检查字节是否为UTF-8起始字节（非续接字节）
-         * @param c 字节值
-         * @return 如果是起始字节则为true
-         */
-        [[nodiscard]] static constexpr bool IsUTF8StartByte(unsigned char c) noexcept
+        [[nodiscard]] static SString TrimStart(STextView str, STextView prefix)
         {
-            return (c & 0xC0) != 0x80;
+            if (prefix.empty() || !str.starts_with(prefix))
+            {
+                return SString::from_view(str);
+            }
+            return SString::from_view(str.substr(prefix.size()));
         }
 
-        /**
-         * @brief 获取UTF-8字符的字节长度（根据首字节判断）
-         * @param c 首字节
-         * @return 字节长度（1-4），无效时返回0
-         */
-        [[nodiscard]] static constexpr int UTF8CharLen(unsigned char c) noexcept
+        [[nodiscard]] static SString TrimEnd(STextView str, STextView suffix)
         {
-            if (c < 0x80) return 1;
-            if ((c & 0xE0) == 0xC0) return 2;
-            if ((c & 0xF0) == 0xE0) return 3;
-            if ((c & 0xF8) == 0xF0) return 4;
-            return 0;
+            if (suffix.empty() || !str.ends_with(suffix))
+            {
+                return SString::from_view(str);
+            }
+            return SString::from_view(str.substr(0, str.size() - suffix.size()));
         }
 
-        /**
-         * @brief 将UTF-8编码的字符解码为UTF-32码点
-         * @param p 指向UTF-8字节序列的指针
-         * @param avail 可用字节数
-         * @return {码点, 消耗字节数}，无效时返回 {U+FFFD, 1}
-         */
-        [[nodiscard]] static constexpr std::pair<char32_t, int> UTF8ToUTF32Char(const char* p, size_t avail) noexcept
+        [[nodiscard]] static bool EndsWith(STextView str, STextView suffix, bool IgnoreCase = true)
         {
-            if (avail == 0) return {0, 0};
-            unsigned char c = static_cast<unsigned char>(p[0]);
-            if (c < 0x80) return {static_cast<char32_t>(c), 1};
-            if ((c & 0xE0) == 0xC0 && avail >= 2) {
-                char32_t cp = ((c & 0x1F) << 6) | (static_cast<unsigned char>(p[1]) & 0x3F);
-                return {cp, 2};
+            if (!IgnoreCase)
+            {
+                return str.ends_with(suffix);
             }
-            if ((c & 0xF0) == 0xE0 && avail >= 3) {
-                char32_t cp = ((c & 0x0F) << 12) | ((static_cast<unsigned char>(p[1]) & 0x3F) << 6)
-                    | (static_cast<unsigned char>(p[2]) & 0x3F);
-                return {cp, 3};
+
+            if (str.size() < suffix.size())
+            {
+                return false;
             }
-            if ((c & 0xF8) == 0xF0 && avail >= 4) {
-                char32_t cp = ((c & 0x07) << 18) | ((static_cast<unsigned char>(p[1]) & 0x3F) << 12)
-                    | ((static_cast<unsigned char>(p[2]) & 0x3F) << 6) | (static_cast<unsigned char>(p[3]) & 0x3F);
-                return {cp, 4};
+
+            const STextView tail = str.substr(str.size() - suffix.size(), suffix.size());
+            for (std::size_t i = 0; i < suffix.size(); ++i)
+            {
+                if (ToLowerAscii(static_cast<unsigned char>(tail[i])) !=
+                    ToLowerAscii(static_cast<unsigned char>(suffix[i])))
+                {
+                    return false;
+                }
             }
-            return {0xFFFD, 1}; // replacement char
+            return true;
         }
 
-        /**
-         * @brief 解码一个UTF-8码点，并移动迭代器
-         * @param it 迭代器引用（会被前进）
-         * @param end 结束位置
-         * @return 解码的UTF-32码点
-         */
-        static constexpr char32_t DecodeCodePoint(const char*& it, const char* end) noexcept
+        [[nodiscard]] static bool StartsWith(STextView str, STextView prefix, bool IgnoreCase = true)
         {
-            if (it >= end) return 0;
-            auto [cp, len] = UTF8ToUTF32Char(it, static_cast<size_t>(end - it));
-            it += len;
-            return cp;
+            if (!IgnoreCase)
+            {
+                return str.starts_with(prefix);
+            }
+
+            if (str.size() < prefix.size())
+            {
+                return false;
+            }
+
+            const STextView head = str.substr(0, prefix.size());
+            for (std::size_t i = 0; i < prefix.size(); ++i)
+            {
+                if (ToLowerAscii(static_cast<unsigned char>(head[i])) !=
+                    ToLowerAscii(static_cast<unsigned char>(prefix[i])))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
-        /**
-         * @brief 将UTF-32码点编码为UTF-8
-         * @param cp UTF-32码点
-         * @param out 输出缓冲区（至少4字节）
-         * @return 写入的字节数
-         */
-        static constexpr int UTF32ToUTF8(char32_t cp, char* out) noexcept
+        [[nodiscard]] static std::vector<SString> Split(STextView str, char delim)
         {
-            if (cp < 0x80) {
-                out[0] = static_cast<char>(cp);
-                return 1;
+            std::vector<SString> result;
+            if (str.empty())
+            {
+                return result;
             }
-            if (cp < 0x800) {
-                out[0] = static_cast<char>(0xC0 | (cp >> 6));
-                out[1] = static_cast<char>(0x80 | (cp & 0x3F));
-                return 2;
+
+            int estimated_parts = 1;
+            for (char c : str)
+            {
+                if (c == delim)
+                {
+                    ++estimated_parts;
+                }
             }
-            if (cp < 0x10000) {
-                out[0] = static_cast<char>(0xE0 | (cp >> 12));
-                out[1] = static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
-                out[2] = static_cast<char>(0x80 | (cp & 0x3F));
-                return 3;
+            result.reserve(static_cast<std::size_t>(estimated_parts));
+
+            std::size_t start = 0;
+            while (true)
+            {
+                const std::size_t pos = str.find(delim, start);
+                if (pos == STextView::npos)
+                {
+                    result.emplace_back(SString::from_view(str.substr(start)));
+                    break;
+                }
+
+                result.emplace_back(SString::from_view(str.substr(start, pos - start)));
+                start = pos + 1;
             }
-            out[0] = static_cast<char>(0xF0 | (cp >> 18));
-            out[1] = static_cast<char>(0x80 | ((cp >> 12) & 0x3F));
-            out[2] = static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
-            out[3] = static_cast<char>(0x80 | (cp & 0x3F));
-            return 4;
+
+            return result;
         }
 
-        /**
-         * @brief 将UTF-32码点编码并追加到std::string
-         * @param cp UTF-32码点
-         * @param out 目标字符串
-         */
-        static void EncodeCodePoint(char32_t cp, std::string& out)
+        [[nodiscard]] static SString ToLower(STextView str)
         {
-            char buf[4];
-            int len = UTF32ToUTF8(cp, buf);
-            out.append(buf, static_cast<size_t>(len));
+            SString out = SString::from_view(str);
+            for (char& c : out)
+            {
+                c = static_cast<char>(ToLowerAscii(static_cast<unsigned char>(c)));
+            }
+            return out;
         }
 
-        // ===================== 编码检测 =====================
+        [[nodiscard]] static SString ToUpper(STextView str)
+        {
+            SString out = SString::from_view(str);
+            for (char& c : out)
+            {
+                c = static_cast<char>(ToUpperAscii(static_cast<unsigned char>(c)));
+            }
+            return out;
+        }
 
-        /**
-         * @brief 检查数据是否以UTF-8字节顺序标记(BOM)开头
-         * @param data 数据缓冲区
-         * @return 如果存在UTF-8 BOM则为true
-         */
-        [[nodiscard]] static bool HasUTF8BOM(std::span<const unsigned char> data);
+        [[nodiscard]] static SString ReplaceAll(STextView str, STextView from, STextView to)
+        {
+            if (str.empty() || from.empty())
+            {
+                return SString::from_view(str);
+            }
 
-        /**
-         * @brief 检测字节流的编码（基本检测）
-         * @param data 字节缓冲区
-         * @return 检测到的编码("utf-8", "utf-16le", "utf-16be", "ascii", "unknown")
-         */
-        [[nodiscard]] static std::string DetectEncoding(std::span<const unsigned char> data);
+            return SString::from_view(str).replace(from, to);
+        }
 
-        /**
-         * @brief 验证字符串是否包含有效的UTF-8序列
-         * @param str 输入字符串视图
-         * @return 如果是有效的UTF-8则为true
-         */
-        [[nodiscard]] static bool ValidateUTF8(std::string_view str);
+        [[nodiscard]] static bool Contains(STextView str, STextView substr)
+        {
+            return str.contains(substr);
+        }
 
-        [[nodiscard]] static size_t UTF8ToUTF32(std::span<const unsigned char> src, std::span<unsigned int> dst);
+        [[nodiscard]] static SString Trim(STextView str)
+        {
+            return SString::from_view(str.trim());
+        }
 
-        [[nodiscard]] static size_t UTF32ToUTF8(std::span<const unsigned int> src, std::span<unsigned char> dst);
+        [[nodiscard]] static std::vector<SString> SplitLines(STextView text)
+        {
+            std::vector<SString> lines;
+            if (text.empty())
+            {
+                return lines;
+            }
 
-        // ===================== 路径处理 =====================
+            std::size_t start = 0;
+            while (start < text.size())
+            {
+                const std::size_t pos = text.find_first_of(STextView::from_literal("\r\n"), start);
+                if (pos == STextView::npos)
+                {
+                    lines.emplace_back(SString::from_view(text.substr(start)));
+                    return lines;
+                }
 
-        /**
-         * @brief 将路径字符串分割为其组成部分
-         * @param path 路径字符串（使用/或\分隔符）
-         * @return 路径组件的向量
-         */
-        [[nodiscard]] static std::vector<std::string> SplitPathComponents(std::string_view path);
+                lines.emplace_back(SString::from_view(text.substr(start, pos - start)));
 
-        /**
-         * @brief 从路径中获取文件扩展名
-         * @param path 路径字符串
-         * @return 包含点的扩展名（如".txt"），如果没有扩展名则为空字符串
-         */
-        [[nodiscard]] static std::string_view GetFileExtension(std::string_view path);
-        [[nodiscard]] static std::string NormalizeFileExtension(std::string_view path);
+                if (text[pos] == '\r' && (pos + 1) < text.size() && text[pos + 1] == '\n')
+                {
+                    start = pos + 2;
+                }
+                else
+                {
+                    start = pos + 1;
+                }
+            }
 
-        /**
-         * @brief 获取完整路径的目录部分
-         * @param path 完整路径字符串
-         * @return 目录路径，如果没有目录部分则为空字符串
-         */
-        [[nodiscard]] static std::string_view GetDirectory(std::string_view path);
+            if (start == text.size())
+            {
+                lines.emplace_back();
+            }
 
-        /**
-         * @brief 从路径字符串中移除文件扩展名
-         * @param path 路径字符串
-         * @return 没有扩展名的路径字符串
-         */
-        [[nodiscard]] static std::string TrimFileExtension(std::string_view path);
+            return lines;
+        }
 
-        /**
-         * @brief 从路径中获取不带扩展名的文件名
-         * @param path 完整路径字符串
-         * @return 没有目录或扩展名的文件名
-         */
-        [[nodiscard]] static std::string GetFileNameWithoutExtension(std::string_view path);
+        [[nodiscard]] static SString RegexReplace(STextView str, STextView pattern, STextView replacement)
+        {
+            // Lightweight engine fallback:
+            // treat exact "*" as "replace whole string", otherwise do literal replace-all.
+            if (pattern == STextView::from_literal("*"))
+            {
+                return SString::from_view(replacement);
+            }
+            return ReplaceAll(str, pattern, replacement);
+        }
 
-        /**
-         * @brief 将路径分隔符转换为标准的正斜杠('/')
-         * @param path 路径字符串
-         * @return 使用正斜杠的路径字符串
-         */
-        [[nodiscard]] static std::string ToStandardPath(std::string_view path);
+        [[nodiscard]] static bool WildcardMatch(STextView str, STextView pattern)
+        {
+            const char* s = str.data();
+            const char* p = pattern.data();
+            const char* const s_end = str.data() + str.size();
+            const char* const p_end = pattern.data() + pattern.size();
 
-        /**
-         * @brief 将路径分隔符转换为Windows反斜杠('\')
-         * @param path 路径字符串
-         * @return 使用反斜杠的路径字符串
-         */
-        [[nodiscard]] static std::string ToWindowsPath(std::string_view path);
+            const char* star_p = nullptr;
+            const char* star_s = nullptr;
 
-        /**
-         * @brief 将路径分隔符转换为本机格式
-         * @param path 输入路径字符串视图
-         * @return 具有本机分隔符的路径字符串
-         */
-        [[nodiscard]] static std::string ToPlatformPath(std::string_view path);
+            while (s != s_end)
+            {
+                if (p != p_end && (*p == '?' || *p == *s))
+                {
+                    ++s;
+                    ++p;
+                    continue;
+                }
 
-        // ===================== 字节处理 =====================
+                if (p != p_end && *p == '*')
+                {
+                    star_p = ++p;
+                    star_s = s;
+                    continue;
+                }
 
-        /**
-         * @brief 将字节转换为十六进制字符串表示
-         * @param bytes 字节缓冲区
-         * @return 十六进制字符串（大写）
-         */
-        [[nodiscard]] static std::string BytesToHex(std::span<const unsigned char> bytes);
+                if (star_p != nullptr)
+                {
+                    p = star_p;
+                    s = ++star_s;
+                    continue;
+                }
 
-        /**
-         * @brief FNV-1a字符串哈希
-         * @param str 输入字符串视图
-         * @return 32位哈希值
-         */
-        [[nodiscard]] static std::uint32_t HashFNV1a(std::string_view str);
+                return false;
+            }
 
-        /**
-         * @brief 简单字符串模板插值。将{key}替换为映射中的值
-         * @param template_str 具有{key}占位符的模板字符串视图
-         * @param replacements 用于替换的键值对映射
-         * @return 插值后的字符串
-         */
-        [[nodiscard]] static std::string Interpolate(std::string_view template_str,
-            const std::unordered_map<std::string, std::string>& replacements);
+            while (p != p_end && *p == '*')
+            {
+                ++p;
+            }
 
-        /**
-         * @brief 计算字符串中指定字符的数量
-         * @param str 输入字符串视图
-         * @param s 要计数的字符
-         * @return 字符数量
-         */
-        [[nodiscard]] static constexpr int NumberCount(std::string_view str, char s) noexcept;
+            return p == p_end;
+        }
 
-        /**
-         * @brief 检查字符是否为字母数字
-         * @param c 要检查的字符
-         * @return 如果是字母数字则为true
-         */
+        // ===================== Encoding helpers =====================
+
+        [[nodiscard]] static bool HasUTF8BOM(std::span<const unsigned char> data)
+        {
+            constexpr std::array<unsigned char, 3> kBom{ 0xEF, 0xBB, 0xBF };
+            return data.size() >= kBom.size()
+                && data[0] == kBom[0]
+                && data[1] == kBom[1]
+                && data[2] == kBom[2];
+        }
+
+        [[nodiscard]] static SString DetectEncoding(std::span<const unsigned char> data)
+        {
+            if (HasUTF8BOM(data))
+            {
+                return SString::from_utf8("utf-8-bom");
+            }
+
+            if (data.size() >= 2)
+            {
+                if (data[0] == 0xFF && data[1] == 0xFE) return SString::from_utf8("utf-16le");
+                if (data[0] == 0xFE && data[1] == 0xFF) return SString::from_utf8("utf-16be");
+            }
+
+            if (data.empty())
+            {
+                return SString::from_utf8("ascii");
+            }
+
+            const std::size_t checkLen = data.size() < 4096 ? data.size() : 4096;
+            bool onlyAscii = true;
+
+            for (std::size_t i = 0; i < checkLen;)
+            {
+                const unsigned char lead = data[i];
+
+                if (lead < 0x80)
+                {
+                    ++i;
+                    continue;
+                }
+
+                onlyAscii = false;
+
+                std::size_t seqLen = 0;
+                if ((lead & 0xE0u) == 0xC0u) seqLen = 2;
+                else if ((lead & 0xF0u) == 0xE0u) seqLen = 3;
+                else if ((lead & 0xF8u) == 0xF0u) seqLen = 4;
+                else return SString::from_utf8("unknown");
+
+                if (i + seqLen > checkLen)
+                {
+                    return SString::from_utf8("unknown");
+                }
+
+                for (std::size_t j = 1; j < seqLen; ++j)
+                {
+                    if ((data[i + j] & 0xC0u) != 0x80u)
+                    {
+                        return SString::from_utf8("unknown");
+                    }
+                }
+
+                i += seqLen;
+            }
+
+            return onlyAscii ? SString::from_utf8("ascii") : SString::from_utf8("utf-8");
+        }
+
+        [[nodiscard]] static bool ValidateUTF8(STextView str)
+        {
+            const std::size_t len = str.size();
+
+            for (std::size_t i = 0; i < len;)
+            {
+                const unsigned char lead = static_cast<unsigned char>(str[i]);
+                std::size_t code_length = 0;
+
+                if (lead < 0x80)
+                {
+                    code_length = 1;
+                }
+                else if ((lead & 0xE0u) == 0xC0u)
+                {
+                    code_length = 2;
+                    if (lead < 0xC2u) return false;
+                }
+                else if ((lead & 0xF0u) == 0xE0u)
+                {
+                    code_length = 3;
+                    if (i + 1 >= len) return false;
+                    const unsigned char b1 = static_cast<unsigned char>(str[i + 1]);
+                    if (lead == 0xE0u && b1 < 0xA0u) return false;
+                    if (lead == 0xEDu && b1 >= 0xA0u) return false;
+                }
+                else if ((lead & 0xF8u) == 0xF0u)
+                {
+                    code_length = 4;
+                    if (i + 1 >= len) return false;
+                    const unsigned char b1 = static_cast<unsigned char>(str[i + 1]);
+                    if (lead == 0xF0u && b1 < 0x90u) return false;
+                    if (lead == 0xF4u && b1 >= 0x90u) return false;
+                    if (lead >= 0xF5u) return false;
+                }
+                else
+                {
+                    return false;
+                }
+
+                if (i + code_length > len)
+                {
+                    return false;
+                }
+
+                for (std::size_t j = 1; j < code_length; ++j)
+                {
+                    if ((static_cast<unsigned char>(str[i + j]) & 0xC0u) != 0x80u)
+                    {
+                        return false;
+                    }
+                }
+
+                i += code_length;
+            }
+
+            return true;
+        }
+
+        // ===================== Byte / hashing / templating =====================
+
+        [[nodiscard]] static SString BytesToHex(std::span<const unsigned char> bytes)
+        {
+            SString result;
+            result.reserve(bytes.size() * 2);
+
+            for (unsigned char byte : bytes)
+            {
+                result.push_back(toHex(static_cast<unsigned char>(byte >> 4)));
+                result.push_back(toHex(static_cast<unsigned char>(byte & 0x0F)));
+            }
+
+            return result;
+        }
+
+        [[nodiscard]] static std::uint32_t HashFNV1a(STextView str)
+        {
+            constexpr std::uint32_t kFnvOffset = 2166136261u;
+            constexpr std::uint32_t kFnvPrime  = 16777619u;
+
+            std::uint32_t h = kFnvOffset;
+            for (char c : str)
+            {
+                h ^= static_cast<unsigned char>(c);
+                h *= kFnvPrime;
+            }
+            return h;
+        }
+
+        [[nodiscard]] static SString Interpolate(
+            STextView template_str,
+            const std::unordered_map<SString, SString>& replacements)
+        {
+            if (template_str.empty() || replacements.empty())
+            {
+                return SString::from_view(template_str);
+            }
+
+            SString result;
+            result.reserve(template_str.size() + template_str.size() / 2);
+
+            std::size_t last_pos = 0;
+
+            while (true)
+            {
+                const std::size_t open_pos = template_str.find('{', last_pos);
+                if (open_pos == STextView::npos)
+                {
+                    break;
+                }
+
+                result.append(template_str.substr(last_pos, open_pos - last_pos));
+
+                const std::size_t close_pos = template_str.find('}', open_pos + 1);
+                if (close_pos == STextView::npos)
+                {
+                    result.append(template_str.substr(open_pos));
+                    return result;
+                }
+
+                const STextView key = template_str.substr(open_pos + 1, close_pos - open_pos - 1);
+                const auto it = replacements.find(SString::from_view(key));
+
+                if (it != replacements.end())
+                {
+                    result.append(it->second);
+                }
+                else
+                {
+                    result.append(template_str.substr(open_pos, close_pos - open_pos + 1));
+                }
+
+                last_pos = close_pos + 1;
+            }
+
+            if (last_pos < template_str.size())
+            {
+                result.append(template_str.substr(last_pos));
+            }
+
+            return result;
+        }
+
+        [[nodiscard]] static constexpr int NumberCount(STextView str, char s) noexcept
+        {
+            int count = 0;
+            for (char c : str)
+            {
+                if (c == s)
+                {
+                    ++count;
+                }
+            }
+            return count;
+        }
+
         [[nodiscard]] static constexpr bool isAlphaNumeric(unsigned char c) noexcept
         {
-            if (c >= 'A' && c <= 'Z') return true;
-            if (c >= 'a' && c <= 'z') return true;
-            if (c >= '0' && c <= '9') return true;
-            return false;
+            return (c >= 'A' && c <= 'Z')
+                || (c >= 'a' && c <= 'z')
+                || (c >= '0' && c <= '9');
         }
 
-        /**
-         * @brief 数值转换为十六进制字符
-         * @param c 数值（0-15）
-         * @return 十六进制字符
-         */
         [[nodiscard]] static constexpr char toHex(unsigned char c) noexcept
         {
-            static constexpr char hex[] = "0123456789ABCDEF";
-            return hex[c & 0xF];
+            return static_cast<char>((c & 0x0F) < 10
+                ? ('0' + (c & 0x0F))
+                : ('A' + ((c & 0x0F) - 10)));
         }
 
-        /**
-         * @brief 十六进制字符转换为数值
-         * @param c 十六进制字符
-         * @return 数值（0-15），如果无效则返回0
-         */
         [[nodiscard]] static constexpr unsigned char fromHex(unsigned char c) noexcept
         {
-            if (c >= '0' && c <= '9')
-                return c - '0';
-            if (c >= 'A' && c <= 'F')
-                return c - 'A' + 10;
-            if (c >= 'a' && c <= 'f')
-                return c - 'a' + 10;
+            if (c >= '0' && c <= '9') return static_cast<unsigned char>(c - '0');
+            if (c >= 'A' && c <= 'F') return static_cast<unsigned char>(c - 'A' + 10);
+            if (c >= 'a' && c <= 'f') return static_cast<unsigned char>(c - 'a' + 10);
             return 0;
         }
 
-        /**
-         * @brief 检查字符是否为有效十六进制字符
-         * @param c 要检查的字符
-         * @return 如果是有效十六进制字符则为true
-         */
         [[nodiscard]] static constexpr bool isAlphaNumericHex(unsigned char c) noexcept
         {
-            if (c >= '0' && c <= '9') return true;
-            if (c >= 'A' && c <= 'F') return true;
-            if (c >= 'a' && c <= 'f') return true;
-            return false;
+            return (c >= '0' && c <= '9')
+                || (c >= 'A' && c <= 'F')
+                || (c >= 'a' && c <= 'f');
         }
 
 #ifdef _WIN32
-        [[nodiscard]] static std::string WstringToUTF8(std::wstring_view wstr);
-
-        [[nodiscard]] static std::wstring UTF8ToWstring(std::string_view u8str);
-
-        /**
-         * @brief 将UTF-8字符串转换为系统本机多字节编码(ANSI)
-         * @param str UTF-8字符串视图
-         * @return 本机编码的字符串
-         * @warning 可能有损。推荐使用UTF-8或UTF-16(wstring)
-         */
-        [[nodiscard]] static std::string ToNativeEncoding(std::string_view str);
-
-        /**
-         * @brief 将字符串从系统本机多字节编码(ANSI)转换为UTF-8
-         * @param str 本机编码的字符串视图
-         * @return UTF-8字符串
-         */
-        [[nodiscard]] static std::string FromNativeEncoding(std::string_view str);
-#else
-        // 在非Windows中，假定本机是UTF-8
-        [[nodiscard]] static std::string ToNativeEncoding(std::string_view str) { return std::string(str); }
-        [[nodiscard]] static std::string FromNativeEncoding(std::string_view str) { return std::string(str); }
+        [[nodiscard]] static SString WstringToUTF8(std::wstring_view wstr);
+        [[nodiscard]] static std::wstring UTF8ToWstring(STextView u8str);
+        [[nodiscard]] static SString ToNativeEncoding(STextView str);
+        [[nodiscard]] static SString FromNativeEncoding(STextView str);
 #endif
 
+    private:
+        [[nodiscard]] static constexpr unsigned char ToLowerAscii(unsigned char c) noexcept
+        {
+            return (c >= 'A' && c <= 'Z')
+                ? static_cast<unsigned char>(c - 'A' + 'a')
+                : c;
+        }
+
+        [[nodiscard]] static constexpr unsigned char ToUpperAscii(unsigned char c) noexcept
+        {
+            return (c >= 'a' && c <= 'z')
+                ? static_cast<unsigned char>(c - 'a' + 'A')
+                : c;
+        }
     };
 }

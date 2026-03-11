@@ -1,14 +1,11 @@
 #pragma once
 
-#include <future>
-#include <memory>
-#include <string>
-#include <string_view>
-#include <vector>
+#include <cstdint>
 
-#include "EngineCore/asset/asset_base.h"
-#include "gameplay/actor.h"
+#include "EngineCore/asset/BaseAsset.h"
 #include "math/vector.ixx"
+#include "string/shine_string.h"
+#include "string/shine_text_view.h"
 
 namespace shine::gameplay::world
 {
@@ -19,64 +16,76 @@ namespace shine::gameplay::world
         bool enableGlobalIllumination = true;
     };
 
-    enum class ActorArchetype
+    enum class ActorArchetype : std::uint8_t
     {
-        EmptyActor,
+        EmptyActor = 0,
         StaticMeshCube,
         StaticMeshSphere
     };
 
     struct ActorSpawnDefinition
     {
-        std::string name;
+        shine::SString name;
         ActorArchetype archetype = ActorArchetype::EmptyActor;
         shine::math::FVector3f position{0.0f, 0.0f, 0.0f};
+        shine::math::FVector3f rotation{0.0f, 0.0f, 0.0f};
         shine::math::FVector3f scale{1.0f, 1.0f, 1.0f};
     };
 
-    struct LevelAsset
+    struct LevelDefinition
     {
-        enum class StreamingState
-        {
-            Unloaded,
-            Loading,
-            Loaded,
-            Failed
-        };
-
-        std::string name;
+        shine::SString name;
         bool initiallyLoaded = false;
-        StreamingState state = StreamingState::Unloaded;
         std::vector<ActorSpawnDefinition> actorDefinitions;
-        std::vector<std::unique_ptr<shine::gameplay::SActor>> loadedActors;
-        std::future<std::vector<ActorSpawnDefinition>> loadingTask;
     };
 
-    class MapAsset : public shine::editor::asset::IAssetBase
+    class MapAsset final : public shine::editor::asset::AssetBase
     {
     public:
-        explicit MapAsset(std::string mapName = "UntitledMap", std::string mapPath = "memory://map/untitled.map");
+        MapAsset();
+        explicit MapAsset(
+            shine::SString mapName,
+            const shine::SString& logicalPath = shine::SString("/game/maps/untitled"));
 
-        const std::string& getName() const noexcept { return name_; }
-        void setName(const std::string& name) { name_ = name; }
+        [[nodiscard]] shine::STextView GetClassName() const noexcept override
+        {
+            return shine::STextView::from_literal("MapAsset");
+        }
 
-        WorldSettings& getWorldSettings() noexcept { return worldSettings_; }
-        const WorldSettings& getWorldSettings() const noexcept { return worldSettings_; }
+        [[nodiscard]] WorldSettings& GetWorldSettings() noexcept;
+        [[nodiscard]] const WorldSettings& GetWorldSettings() const noexcept;
 
-        LevelAsset& persistentLevel() noexcept { return persistentLevel_; }
-        const LevelAsset& persistentLevel() const noexcept { return persistentLevel_; }
+        void SetWorldSettings(const WorldSettings& settings);
+        void SetGravityZ(float gravityZ);
+        void SetTimeDilation(float timeDilation);
+        void SetGlobalIlluminationEnabled(bool enabled);
 
-        std::vector<LevelAsset>& streamingLevels() noexcept { return streamingLevels_; }
-        const std::vector<LevelAsset>& streamingLevels() const noexcept { return streamingLevels_; }
+        [[nodiscard]] LevelDefinition& GetPersistentLevel() noexcept;
+        [[nodiscard]] const LevelDefinition& GetPersistentLevel() const noexcept;
 
-        LevelAsset* findStreamingLevel(std::string_view levelName) noexcept;
-        const LevelAsset* findStreamingLevel(std::string_view levelName) const noexcept;
-        LevelAsset& addStreamingLevel(const std::string& levelName);
+        [[nodiscard]] std::vector<LevelDefinition>& GetStreamingLevels() noexcept;
+        [[nodiscard]] const std::vector<LevelDefinition>& GetStreamingLevels() const noexcept;
+
+        [[nodiscard]] LevelDefinition* FindStreamingLevel(shine::STextView levelName) noexcept;
+        [[nodiscard]] const LevelDefinition* FindStreamingLevel(shine::STextView levelName) const noexcept;
+
+        LevelDefinition& AddStreamingLevel(shine::SString levelName, bool initiallyLoaded = false);
+        bool RemoveStreamingLevel(shine::STextView levelName);
+        void ClearStreamingLevels();
+
+        ActorSpawnDefinition& AddActorToPersistentLevel(const ActorSpawnDefinition& definition);
+        ActorSpawnDefinition& AddActorToStreamingLevel(shine::STextView levelName, const ActorSpawnDefinition& definition);
+
+        bool RemoveActorFromPersistentLevel(shine::STextView actorName);
+        bool RemoveActorFromStreamingLevel(shine::STextView levelName, shine::STextView actorName);
 
     private:
-        std::string name_;
-        WorldSettings worldSettings_;
-        LevelAsset persistentLevel_;
-        std::vector<LevelAsset> streamingLevels_;
+        static LevelDefinition CreatePersistentLevelDefinition();
+        static bool RemoveActorByName(std::vector<ActorSpawnDefinition>& definitions, shine::STextView actorName);
+
+    private:
+        WorldSettings worldSettings_{};
+        LevelDefinition persistentLevel_{};
+        std::vector<LevelDefinition> streamingLevels_{};
     };
 }
