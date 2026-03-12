@@ -56,7 +56,7 @@ constexpr TypeInfo BuildTypeInfo(std::string_view name);
 
 #define REFLECTION_STRUCT_AUTO(Type)                                            \
     REFLECTION_STRUCT(Type)
-  
+
 // =============================================================================
 // Field and Method Registration Macros
 // =============================================================================

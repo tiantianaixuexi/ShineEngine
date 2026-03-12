@@ -81,7 +81,7 @@ namespace shine
             const auto* end = p + sv.size();
             while (p < end) {
                 unsigned char c = *p;
-                int len;
+                int len{};
                 if (c < 0x80) { len = 1; }
                 else if ((c & 0xE0) == 0xC0) {
                     len = 2;
@@ -114,7 +114,7 @@ namespace shine
 
         [[nodiscard]] static constexpr std::pair<char32_t, int> utf8_to_utf32_char(const char* p, size_t avail) noexcept {
             if (avail == 0) return {0, 0};
-            unsigned char c = static_cast<unsigned char>(p[0]);
+            auto c = static_cast<unsigned char>(p[0]);
             if (c < 0x80) return {static_cast<char32_t>(c), 1};
             if ((c & 0xE0) == 0xC0 && avail >= 2) {
                 char32_t cp = ((c & 0x1F) << 6) | (static_cast<unsigned char>(p[1]) & 0x3F);

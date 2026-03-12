@@ -1,6 +1,6 @@
 {
   // clangd 配置
-  "clangd.path": "",
+  "clangd.path": "F:\\\\c++\\\\clang\\\\bin\\\\clangd.exe",
   "clangd.arguments": [
     // 启用后台索引，提升性能
     "--background-index",
@@ -8,8 +8,6 @@
     "--completion-style=detailed",
     // 启用代码诊断
     "--clang-tidy",
-    // 启用代码格式化建议
-    "--format-style=file",
     // 启用函数签名提示
     "--function-arg-placeholders=false",
     // 启用头文件补全

@@ -3,9 +3,6 @@
 #include <cfloat>
 #include <cstdint>
 #include <string>
-#include <unordered_map>
-#include <variant>
-#include <vector>
 
 
 
@@ -426,7 +423,7 @@ namespace shine::editor::views
                         {
                             ImGui::PushID("new_key_input");
                             ImGui::SetNextItemWidth(100);
-                            ImGui::InputText("##newKey", newKeyBuffer, sizeof(newKeyBuffer));
+                            ImGui::InputText("##newKey", &newKeyBuffer);
                             ImGui::SameLine();
                             if (ImGui::Button("+ Add Key"))
                             {

@@ -1,16 +1,15 @@
 #pragma once
 
-#include <memory>
 #include <string>
 #include <expected>
-#include <unordered_map>
 #include <vector>
+
 
 #include "EngineCore/subsystem.h"
 #include "EngineCore/asset/asset_base.h"
 
-namespace shine::editor::asset
-{
+    namespace shine::editor::asset
+    {
     using EditorAssetDependency = AssetDependencyRef;
 
     struct EditorAssetBuildState

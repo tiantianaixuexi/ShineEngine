@@ -1,11 +1,14 @@
 #pragma once
 
-#include "util/Algorithm/uuid.h"
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+
+#include "util/Algorithm/uuid.h"
+#include "string/shine_string.h"
 
 namespace shine::editor::asset
 {
@@ -77,10 +80,10 @@ namespace shine::editor::asset
         void Touch();
         void BumpVersion();
 
-        const std::string& GetName() const noexcept;
-        const std::string& GetPath() const noexcept;
-        const std::string& GetSourceHash() const noexcept;
-        const algorithm::UUID& GetID() const noexcept;
+        [[nodiscard] ]const std::string& GetName() const noexcept;
+        [[nodiscard]] const std::string& GetPath() const noexcept;
+        [[nodiscard]] const std::string& GetSourceHash() const noexcept;
+        [[nodiscard]] const algorithm::UUID& GetID() const noexcept;
         EEditorAssetType GetType() const noexcept;
         EAssetLifecycle GetLifecycle() const noexcept;
         uint32_t GetVersion() const noexcept;
