@@ -151,7 +151,7 @@ namespace shine::manager
     std::unique_ptr<loader::IModelLoader> AssetImportPipelineImpl::CreateModelLoader(const std::string& format) const
     {
         std::string fmt = format;
-        std::transform(fmt.begin(), fmt.end(), fmt.begin(), ::tolower);
+        std::ranges::transform(fmt,fmt.begin(), ::tolower);
         if (fmt == "gltf" || fmt == "glb")
         {
             return std::make_unique<shine::loader::gltfLoader>();

@@ -353,10 +353,10 @@ namespace shine::image
 		auto result = util::read_full_file(SString::from_utf8(filePath));
 		if (!result.has_value())
 		{
-			setError(shine::loader::EAssetLoaderError::FILE_NOT_FOUND, result.error());
+			setError(shine::loader::EAssetLoaderError::FILE_NOT_FOUND, result.error().c_str());
 			auto errorState = shine::loader::EAssetLoadState::FAILD;
 			setState(errorState);
-			return std::unexpected(result.error());
+			return std::unexpected(result.error().c_str());
 		}
 
 		setState(shine::loader::EAssetLoadState::PARSING_DATA);

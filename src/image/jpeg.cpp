@@ -198,10 +198,10 @@ namespace shine::image
 		auto result = read_full_file(SString::from_utf8(std::string(filePath)));
 		if (!result.has_value())
 		{
-			setError(loader::EAssetLoaderError::FILE_NOT_FOUND, result.error());
+			setError(loader::EAssetLoaderError::FILE_NOT_FOUND, result.error().to_string());
 			auto errorState = loader::EAssetLoadState::FAILD;
 			setState(errorState);
-			return std::unexpected(result.error());
+			return std::unexpected(result.error().to_string());
 		}
 
 		setState(loader::EAssetLoadState::PARSING_DATA);

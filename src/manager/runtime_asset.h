@@ -4,7 +4,7 @@
 #include <string>
 
 #include "Engine/Macro/RuntimeEditorSplit.h"
-#include "EngineCore/asset/asset_base.h"
+#include "EngineCore/asset/BaseAsset.h"
 #include "loader/image/image_loader.h"
 #include "loader/model/model_loader.h"
 #include "gameplay/world/map_asset.h"

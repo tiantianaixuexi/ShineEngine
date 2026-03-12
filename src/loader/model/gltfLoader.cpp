@@ -1,5 +1,4 @@
-﻿#define TINYGLTF_IMPLEMENTATION
-#include "gltfLoader.h"
+﻿#include "gltfLoader.h"
 
 #include <functional>
 #include <cstring>
@@ -8,6 +7,8 @@
 #include <limits>
 
 #include "fmt/format.h"
+#include "string/shine_string.h"
+#include "string/shine_text_view.h"
 
 #include "math/vector.ixx"
 #include "math/quat.h"
@@ -16,7 +17,6 @@
 #include "util/file_util.ixx"
 #include "util/image_util.h"
 #include "util/path_util.h"
-#include "util/string_util.ixx"
 
 namespace shine::loader
 {
@@ -50,7 +50,7 @@ namespace shine::loader
 
         bool tinygltf_file_exists(const std::string& path, void*)
         {
-            return util::file_exists(std::string_view(path));
+            return util::file_exists(STextView(path));
         }
 
         std::string tinygltf_expand_path(const std::string& path, void*)
@@ -60,12 +60,12 @@ namespace shine::loader
 
         bool tinygltf_read_whole_file(std::vector<unsigned char>* out, std::string* err, const std::string& path, void*)
         {
-            auto readResult = util::read_file_bytes(std::string_view(path));
+            auto readResult = util::read_file_bytes(STextView(path));
             if (!readResult.has_value())
             {
                 if (err)
                 {
-                    *err = readResult.error();
+                    *err = readResult.error().c_str();
                 }
                 return false;
             }
@@ -90,8 +90,8 @@ namespace shine::loader
 
         bool tinygltf_get_file_size(size_t* filesize_out, std::string* err, const std::string& path, void*)
         {
-            const uint64_t size = util::GetFileSize(std::string_view(path));
-            if (size == 0 && !util::file_exists(std::string_view(path)))
+            const uint64_t size = util::GetFileSize(STextView(path));
+            if (size == 0 && !util::file_exists(STextView(path)))
             {
                 if (err)
                 {
@@ -350,7 +350,7 @@ namespace shine::loader
         }
     }
 
-    std::expected<MeshData, std::string> LoadGltfMeshFromFile(std::string_view filePath, size_t meshIndex, IModelLoader::ProgressCallback progressCallback)
+    std::expected<MeshData, SString> LoadGltfMeshFromFile(STextView filePath, size_t meshIndex, IModelLoader::ProgressCallback progressCallback)
     {
         gltfLoader loader;
         if (progressCallback)
@@ -358,23 +358,22 @@ namespace shine::loader
             loader.setProgressCallback(std::move(progressCallback));
         }
 
-        std::string path(filePath);
-        if (path.empty())
+        if (filePath.empty())
         {
-            return std::unexpected("文件路径为空");
+            return std::unexpected(SString::from_utf8("文件路径为空"));
         }
-        if (!loader.loadFromFile(path.c_str()))
+        if (!loader.loadFromFile(filePath.data()))
         {
-            return std::unexpected(fmt::format("glTF 文件加载失败: {}", path));
+            return std::unexpected(SString::from_utf8(fmt::format("glTF 文件加载失败: {}", filePath.sv())));
         }
         return loader.extractMeshDataByIndex(meshIndex);
     }
 
-    std::expected<MeshData, std::string> LoadGltfMeshFromMemory(const void* data, size_t size, size_t meshIndex, IModelLoader::ProgressCallback progressCallback)
+    std::expected<MeshData, SString> LoadGltfMeshFromMemory(const void* data, size_t size, size_t meshIndex, IModelLoader::ProgressCallback progressCallback)
     {
         if (!data || size == 0)
         {
-            return std::unexpected("内存数据为空");
+            return std::unexpected(SString::from_utf8("内存数据为空"));
         }
 
         gltfLoader loader;
@@ -384,7 +383,7 @@ namespace shine::loader
         }
         if (!loader.loadFromMemory(data, size))
         {
-            return std::unexpected("glTF 内存数据加载失败");
+            return std::unexpected(SString::from_utf8("glTF 内存数据加载失败"));
         }
         return loader.extractMeshDataByIndex(meshIndex);
     }
@@ -434,18 +433,18 @@ namespace shine::loader
 
         if (preferBinary)
         {
-            parseOk = loader.LoadBinaryFromMemory(&_model, &err, &warn, bytes, static_cast<unsigned int>(size), _basePath, tinygltf::REQUIRE_VERSION);
+            parseOk = loader.LoadBinaryFromMemory(&_model, &err, &warn, bytes, static_cast<unsigned int>(size), _basePath.to_string(), tinygltf::REQUIRE_VERSION);
             if (!parseOk)
             {
-                parseOk = loader.LoadASCIIFromString(&_model, &err, &warn, reinterpret_cast<const char*>(bytes), static_cast<unsigned int>(size), _basePath, tinygltf::REQUIRE_VERSION);
+                parseOk = loader.LoadASCIIFromString(&_model, &err, &warn, reinterpret_cast<const char*>(bytes), static_cast<unsigned int>(size), _basePath.to_string(), tinygltf::REQUIRE_VERSION);
             }
         }
         else
         {
-            parseOk = loader.LoadASCIIFromString(&_model, &err, &warn, reinterpret_cast<const char*>(bytes), static_cast<unsigned int>(size), _basePath, tinygltf::REQUIRE_VERSION);
+            parseOk = loader.LoadASCIIFromString(&_model, &err, &warn, reinterpret_cast<const char*>(bytes), static_cast<unsigned int>(size), _basePath.to_string(), tinygltf::REQUIRE_VERSION);
             if (!parseOk)
             {
-                parseOk = loader.LoadBinaryFromMemory(&_model, &err, &warn, bytes, static_cast<unsigned int>(size), _basePath, tinygltf::REQUIRE_VERSION);
+                parseOk = loader.LoadBinaryFromMemory(&_model, &err, &warn, bytes, static_cast<unsigned int>(size), _basePath.to_string(), tinygltf::REQUIRE_VERSION);
             }
         }
 
@@ -466,16 +465,16 @@ namespace shine::loader
 
         if (!_model.extensionsUsed.empty())
         {
-            std::string extensionList;
+            SString extensionList;
             for (size_t i = 0; i < _model.extensionsUsed.size(); ++i)
             {
                 if (i > 0)
                 {
                     extensionList += ",";
                 }
-                extensionList += _model.extensionsUsed[i];
+                extensionList += STextView(_model.extensionsUsed[i]);
             }
-            SHINE_LOG_INFO(GltfLoaderLog, "parse", "extensionsUsed={}", extensionList);
+            SHINE_LOG_INFO(GltfLoaderLog, "parse", "extensionsUsed={}", extensionList.sv());
         }
 
         return true;
@@ -495,13 +494,13 @@ namespace shine::loader
                 continue;
             }
 
-            std::string imagePath = image.uri;
-            if (!_basePath.empty() && !util::is_absolute_path(std::string_view(imagePath)))
+            SString imagePath = SString::from_utf8(image.uri);
+            if (!_basePath.empty() && !util::is_absolute_path(imagePath.view()))
             {
-                imagePath = util::join_path(_basePath, imagePath);
+                imagePath = util::join_path(_basePath.view(), STextView(image.uri));
             }
 
-            auto imageResult = util::load_image(imagePath, 4);
+            auto imageResult = util::load_image(STextView(imagePath.sv()), 4);
             if (!imageResult.has_value())
             {
                 setError(EAssetLoaderError::PARSE_ERROR, imageResult.error());
@@ -583,12 +582,12 @@ namespace shine::loader
 
         unload();
         isLoader = false;
-        _basePath = std::string(util::StringUtil::GetDirectory(filePath));
+        _basePath = util::get_directory(STextView(filePath));
 
-        auto fileResult = util::read_full_file(filePath);
+        auto fileResult = util::read_full_file(STextView(filePath));
         if (!fileResult.has_value())
         {
-            setError(EAssetLoaderError::FILE_NOT_FOUND, fileResult.error());
+            setError(EAssetLoaderError::FILE_NOT_FOUND, fileResult.error().c_str());
             return false;
         }
 
@@ -625,24 +624,25 @@ namespace shine::loader
         setState(EAssetLoadState::NONE);
     }
 
-    bool gltfLoader::appendPrimitiveMeshData(std::vector<MeshData>& meshes, const tinygltf::Primitive& primitive, const tinygltf::Node& node, const std::string& meshName) const
+    bool gltfLoader::appendPrimitiveMeshData(std::vector<MeshData>& meshes, const tinygltf::Primitive& primitive, const tinygltf::Node& node, STextView meshName) const
     {
+        const STextView meshNameView(meshName);
         auto positionIt = primitive.attributes.find("POSITION");
         if (positionIt == primitive.attributes.end())
         {
-            SHINE_LOG_WARN(GltfLoaderLog, "extract", "skip primitive, missing POSITION, node='{}' mesh='{}'", node.name, meshName);
+            SHINE_LOG_WARN(GltfLoaderLog, "extract", "skip primitive, missing POSITION, node='{}' mesh='{}'", node.name, meshNameView.sv());
             return false;
         }
 
         AccessorView positionView;
         if (!get_accessor_view(_model, positionIt->second, positionView) || positionView.type != TINYGLTF_TYPE_VEC3)
         {
-            SHINE_LOG_WARN(GltfLoaderLog, "extract", "skip primitive, invalid POSITION accessor, node='{}' mesh='{}' accessor={}", node.name, meshName, positionIt->second);
+            SHINE_LOG_WARN(GltfLoaderLog, "extract", "skip primitive, invalid POSITION accessor, node='{}' mesh='{}' accessor={}", node.name, meshNameView.sv(), positionIt->second);
             return false;
         }
 
         MeshData meshData;
-        meshData.name = meshName;
+        meshData.name = meshNameView;
         meshData.materialIndex = primitive.material;
         meshData.vertices.reserve(positionView.count);
 
@@ -755,7 +755,7 @@ namespace shine::loader
             AccessorView indexView;
             if (!get_accessor_view(_model, primitive.indices, indexView) || indexView.type != TINYGLTF_TYPE_SCALAR)
             {
-                SHINE_LOG_WARN(GltfLoaderLog, "extract", "skip primitive, invalid index accessor, node='{}' mesh='{}' accessor={}", node.name, meshName, primitive.indices);
+                SHINE_LOG_WARN(GltfLoaderLog, "extract", "skip primitive, invalid index accessor, node='{}' mesh='{}' accessor={}", node.name, meshNameView.sv(), primitive.indices);
                 return false;
             }
 
@@ -849,7 +849,7 @@ namespace shine::loader
                     {
                         primitiveName = fmt::format("{}_{}", meshName, primitiveIndex);
                     }
-                    appendPrimitiveMeshData(result, primitive, node, primitiveName);
+                    appendPrimitiveMeshData(result, primitive, node, STextView(primitiveName));
                 }
             }
 
@@ -868,16 +868,16 @@ namespace shine::loader
         return result;
     }
 
-    std::expected<MeshData, std::string> gltfLoader::extractMeshDataByIndex(size_t meshIndex) const
+    std::expected<MeshData, SString> gltfLoader::extractMeshDataByIndex(size_t meshIndex) const
     {
         auto meshes = extractMeshData();
         if (meshes.empty())
         {
-            return std::unexpected("模型未包含可提取网格");
+            return std::unexpected(SString::from_utf8("模型未包含可提取网格"));
         }
         if (meshIndex >= meshes.size())
         {
-            return std::unexpected(fmt::format("网格索引越界: {} / {}", meshIndex, meshes.size()));
+            return std::unexpected(SString::from_utf8(fmt::format("网格索引越界: {} / {}", meshIndex, meshes.size())));
         }
         return meshes[meshIndex];
     }

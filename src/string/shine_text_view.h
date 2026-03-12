@@ -1,377 +1,774 @@
 #pragma once
+
 #include <algorithm>
-#include <string_view>
-#include <functional>
-#include <cstdint>
-#include <cstring>
+#include <array>
 #include <compare>
+#include <cstddef>
+#include <cstring>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <utility>
 
 namespace shine
 {
     // =========================================================
-    // STextView: Read-only, trivially-copyable UTF-8 string view
+    // STextView
+    //
+    // Compact non-owning UTF-8 byte view for engine code.
     //
     // Design:
-    //   - 16 bytes (same as std::string_view), no heap, no atomics
-    //   - Zero-copy, non-owning reference
-    //   - UTF-8 encoding/decoding support
-    //   - Code point iteration
+    //   - Same size as std::string_view on typical platforms
+    //   - No allocation, no ownership, trivially copyable
+    //   - Primary indexing model is bytes/code units
+    //   - Unicode-aware helpers are explicit
     //
-    // If you need shared ownership, wrap in shared_ptr<SString>
-    // and take STextView from it at call-site.
+    // Important:
+    //   - size(), substr(), find(), operator[] all operate on bytes
+    //   - UTF-8 helpers are named with code_point / cp terminology
+    //   - Lifetime is borrowed from external storage
     // =========================================================
     class STextView
     {
     public:
+        using value_type = char;
+        using size_type = std::size_t;
+        using difference_type = std::ptrdiff_t;
+        using pointer = const char*;
+        using const_pointer = const char*;
+        using reference = const char&;
+        using const_reference = const char&;
         using iterator = const char*;
         using const_iterator = const char*;
 
+        static constexpr size_type npos = static_cast<size_type>(-1);
+
+        // -----------------------------------------------------
+        // construction
+        // -----------------------------------------------------
+
         constexpr STextView() noexcept = default;
+        constexpr STextView(std::nullptr_t) noexcept
+        {
+        }
 
-        constexpr STextView(std::nullptr_t) noexcept : STextView() {}
+        constexpr STextView(const char* data, size_type size) noexcept
+            : _data(data), _size(size)
+        {
+        }
 
-        constexpr STextView(const char* p, size_t size) noexcept
-            : _p(p), _size(size) {}
+        constexpr STextView(const char* first, const char* last) noexcept
+            : _data(first), _size(static_cast<size_type>(last - first))
+        {
+        }
 
-        constexpr STextView(const char* start, const char* end) noexcept
-            : _p(start), _size(static_cast<size_t>(end - start)) {}
-
-        // Implicit from string_view for seamless interop
         constexpr STextView(std::string_view sv) noexcept
-            : _p(sv.data()), _size(sv.size()) {}
+            : _data(sv.data()), _size(sv.size())
+        {
+        }
+
+        constexpr STextView(const char* cstr) noexcept
+            : _data(cstr), _size(cstr ? std::char_traits<char>::length(cstr) : 0)
+        {
+        }
 
         constexpr STextView(const STextView&) noexcept = default;
         constexpr STextView& operator=(const STextView&) noexcept = default;
         constexpr STextView(STextView&&) noexcept = default;
         constexpr STextView& operator=(STextView&&) noexcept = default;
+        ~STextView() = default;
 
-        static constexpr STextView from_cstring(const char* s) noexcept {
-            return { s, std::char_traits<char>::length(s) };
+        template <size_type N>
+        [[nodiscard]] static constexpr STextView from_literal(const char (&lit)[N]) noexcept
+        {
+            static_assert(N > 0);
+            return STextView(lit, N - 1);
         }
 
-        template <size_t N>
-        static constexpr STextView from_literal(const char (&s)[N]) noexcept {
-            return STextView(s, N - 1);
+        [[nodiscard]] static constexpr STextView from_cstring(const char* s) noexcept
+        {
+            return s ? STextView(s, std::char_traits<char>::length(s)) : STextView{};
         }
 
-        [[nodiscard]] constexpr const char* data() const noexcept { return _p; }
-        [[nodiscard]] constexpr size_t size() const noexcept { return _size; }
+        // -----------------------------------------------------
+        // access
+        // -----------------------------------------------------
+
+        [[nodiscard]] constexpr const char* data() const noexcept { return _data; }
+        [[nodiscard]] constexpr size_type size() const noexcept { return _size; }
+        [[nodiscard]] constexpr size_type size_bytes() const noexcept { return _size; }
+        [[nodiscard]] constexpr size_type code_unit_count() const noexcept { return _size; }
         [[nodiscard]] constexpr bool empty() const noexcept { return _size == 0; }
-        [[nodiscard]] constexpr bool is_valid() const noexcept { return _p != nullptr || _size == 0; }
+        [[nodiscard]] constexpr bool is_valid() const noexcept { return _data != nullptr || _size == 0; }
 
-        [[nodiscard]] constexpr const_iterator begin() const noexcept { return _p; }
-        [[nodiscard]] constexpr const_iterator end() const noexcept { return _p + _size; }
+        [[nodiscard]] constexpr std::string_view sv() const noexcept
+        {
+            return std::string_view(_data, _size);
+        }
 
-        [[nodiscard]] constexpr const char& operator[](size_t i) const noexcept { return _p[i]; }
+        [[nodiscard]] std::string to_string() const
+        {
+            return std::string(_data,_size);
+        }
 
-        void reset() noexcept {
-            _p = nullptr;
+        constexpr operator std::string_view() const noexcept
+        {
+            return sv();
+        }
+
+        // -----------------------------------------------------
+        // iterators
+        // -----------------------------------------------------
+
+        [[nodiscard]] constexpr const_iterator begin() const noexcept { return _data; }
+        [[nodiscard]] constexpr const_iterator end() const noexcept { return _data + _size; }
+        [[nodiscard]] constexpr const_iterator cbegin() const noexcept { return _data; }
+        [[nodiscard]] constexpr const_iterator cend() const noexcept { return _data + _size; }
+
+        // -----------------------------------------------------
+        // byte access
+        // -----------------------------------------------------
+
+        [[nodiscard]] constexpr const_reference operator[](size_type index) const noexcept
+        {
+            return _data[index];
+        }
+
+        [[nodiscard]] constexpr const_reference front() const noexcept
+        {
+            return _data[0];
+        }
+
+        [[nodiscard]] constexpr const_reference back() const noexcept
+        {
+            return _data[_size - 1];
+        }
+
+        [[nodiscard]] constexpr const_reference byte_at(size_type index) const noexcept
+        {
+            return _data[index];
+        }
+
+        constexpr void reset() noexcept
+        {
+            _data = nullptr;
             _size = 0;
         }
 
-        // =========================================================
-        // UTF-8 Utilities (static)
-        // Note: Canonical versions are in StringUtil (IsUTF8StartByte,
-        //       UTF8CharLen, UTF8ToUTF32Char, DecodeCodePoint, etc.)
-        //       These are kept for backward compatibility.
-        // =========================================================
+        // -----------------------------------------------------
+        // slicing (byte-based)
+        // -----------------------------------------------------
 
-        [[nodiscard]] static bool is_valid_utf8(std::string_view sv) noexcept {
-            const auto* p = reinterpret_cast<const unsigned char*>(sv.data());
-            const auto* end = p + sv.size();
-            while (p < end) {
-                unsigned char c = *p;
-                int len{};
-                if (c < 0x80) { len = 1; }
-                else if ((c & 0xE0) == 0xC0) {
-                    len = 2;
-                    if ((c & 0xFE) == 0xC0) return false; // overlong
+        [[nodiscard]] constexpr STextView substr(size_type byte_pos, size_type byte_count = npos) const noexcept
+        {
+            if (byte_pos >= _size)
+            {
+                return {};
+            }
+
+            const size_type count = (byte_count == npos)
+                ? (_size - byte_pos)
+                : std::min(byte_count, _size - byte_pos);
+
+            return STextView(_data + byte_pos, count);
+        }
+
+        [[nodiscard]] constexpr STextView first(size_type byte_count) const noexcept
+        {
+            return substr(0, byte_count);
+        }
+
+        [[nodiscard]] constexpr STextView last(size_type byte_count) const noexcept
+        {
+            if (byte_count >= _size)
+            {
+                return *this;
+            }
+
+            return substr(_size - byte_count, byte_count);
+        }
+
+        // -----------------------------------------------------
+        // search (byte-based)
+        // -----------------------------------------------------
+
+        [[nodiscard]] size_type find(STextView pattern, size_type start = 0) const noexcept
+        {
+            if (pattern._size == 0)
+            {
+                return start <= _size ? start : npos;
+            }
+
+            if (start >= _size || pattern._size > (_size - start))
+            {
+                return npos;
+            }
+
+            const char first_char = pattern._data[0];
+            const char* cur = _data + start;
+            const char* const last = _data + (_size - pattern._size);
+
+            while (cur <= last)
+            {
+                cur = static_cast<const char*>(
+                    std::memchr(cur, first_char, static_cast<size_type>(last - cur + 1))
+                );
+
+                if (cur == nullptr)
+                {
+                    return npos;
                 }
-                else if ((c & 0xF0) == 0xE0) { len = 3; }
-                else if ((c & 0xF8) == 0xF0) { len = 4; }
-                else return false;
 
-                if (p + len > end) return false;
-                for (int i = 1; i < len; ++i) {
-                    if ((p[i] & 0xC0) != 0x80) return false;
+                if (std::memcmp(cur, pattern._data, pattern._size) == 0)
+                {
+                    return static_cast<size_type>(cur - _data);
                 }
-                p += len;
+
+                ++cur;
             }
-            return true;
+
+            return npos;
         }
 
-        [[nodiscard]] static constexpr bool is_utf8_start_byte(unsigned char c) noexcept {
-            return (c & 0xC0) != 0x80;
+        [[nodiscard]] size_type find(char ch, size_type start = 0) const noexcept
+        {
+            if (start >= _size)
+            {
+                return npos;
+            }
+
+            const char* p = static_cast<const char*>(
+                std::memchr(_data + start, ch, _size - start)
+            );
+
+            return p ? static_cast<size_type>(p - _data) : npos;
         }
 
-        [[nodiscard]] static constexpr int utf8_char_len(unsigned char c) noexcept {
-            if (c < 0x80) return 1;
-            if ((c & 0xE0) == 0xC0) return 2;
-            if ((c & 0xF0) == 0xE0) return 3;
-            if ((c & 0xF8) == 0xF0) return 4;
-            return 0;
+        [[nodiscard]] size_type rfind(char ch, size_type start = npos) const noexcept
+        {
+            if (_size == 0)
+            {
+                return npos;
+            }
+
+            size_type pos = (start == npos || start >= _size) ? (_size - 1) : start;
+            while (true)
+            {
+                if (_data[pos] == ch)
+                {
+                    return pos;
+                }
+
+                if (pos == 0)
+                {
+                    break;
+                }
+
+                --pos;
+            }
+
+            return npos;
         }
 
-        [[nodiscard]] static constexpr std::pair<char32_t, int> utf8_to_utf32_char(const char* p, size_t avail) noexcept {
-            if (avail == 0) return {0, 0};
-            auto c = static_cast<unsigned char>(p[0]);
-            if (c < 0x80) return {static_cast<char32_t>(c), 1};
-            if ((c & 0xE0) == 0xC0 && avail >= 2) {
-                char32_t cp = ((c & 0x1F) << 6) | (static_cast<unsigned char>(p[1]) & 0x3F);
-                return {cp, 2};
+        [[nodiscard]] size_type find_first_of(STextView chars, size_type start = 0) const noexcept
+        {
+            if (start >= _size || chars.empty())
+            {
+                return npos;
             }
-            if ((c & 0xF0) == 0xE0 && avail >= 3) {
-                char32_t cp = ((c & 0x0F) << 12) | ((static_cast<unsigned char>(p[1]) & 0x3F) << 6)
-                    | (static_cast<unsigned char>(p[2]) & 0x3F);
-                return {cp, 3};
+
+            std::array<bool, 256> table{};
+            for (size_type i = 0; i < chars._size; ++i)
+            {
+                table[static_cast<unsigned char>(chars._data[i])] = true;
             }
-            if ((c & 0xF8) == 0xF0 && avail >= 4) {
-                char32_t cp = ((c & 0x07) << 18) | ((static_cast<unsigned char>(p[1]) & 0x3F) << 12)
-                    | ((static_cast<unsigned char>(p[2]) & 0x3F) << 6) | (static_cast<unsigned char>(p[3]) & 0x3F);
-                return {cp, 4};
+
+            for (size_type i = start; i < _size; ++i)
+            {
+                if (table[static_cast<unsigned char>(_data[i])])
+                {
+                    return i;
+                }
             }
-            return {0xFFFD, 1}; // replacement char
+
+            return npos;
         }
 
-        static constexpr char32_t decode_code_point(const char*& it, const char* end) noexcept {
-            if (it >= end) return 0;
-            auto [cp, len] = utf8_to_utf32_char(it, static_cast<size_t>(end - it));
-            it += len;
-            return cp;
+        [[nodiscard]] size_type find_first_not_of(STextView chars, size_type start = 0) const noexcept
+        {
+            if (start >= _size)
+            {
+                return npos;
+            }
+
+            if (chars.empty())
+            {
+                return start;
+            }
+
+            std::array<bool, 256> table{};
+            for (size_type i = 0; i < chars._size; ++i)
+            {
+                table[static_cast<unsigned char>(chars._data[i])] = true;
+            }
+
+            for (size_type i = start; i < _size; ++i)
+            {
+                if (!table[static_cast<unsigned char>(_data[i])])
+                {
+                    return i;
+                }
+            }
+
+            return npos;
         }
 
-        static constexpr int utf32_to_utf8(char32_t cp, char* out) noexcept {
-            if (cp < 0x80) {
-                out[0] = static_cast<char>(cp);
-                return 1;
+        [[nodiscard]] size_type find_last_of(STextView chars, size_type start = npos) const noexcept
+        {
+            if (_size == 0 || chars.empty())
+            {
+                return npos;
             }
-            if (cp < 0x800) {
-                out[0] = static_cast<char>(0xC0 | (cp >> 6));
-                out[1] = static_cast<char>(0x80 | (cp & 0x3F));
-                return 2;
+
+            std::array<bool, 256> table{};
+            for (size_type i = 0; i < chars._size; ++i)
+            {
+                table[static_cast<unsigned char>(chars._data[i])] = true;
             }
-            if (cp < 0x10000) {
-                out[0] = static_cast<char>(0xE0 | (cp >> 12));
-                out[1] = static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
-                out[2] = static_cast<char>(0x80 | (cp & 0x3F));
-                return 3;
+
+            size_type pos = (start == npos || start >= _size) ? (_size - 1) : start;
+            while (true)
+            {
+                if (table[static_cast<unsigned char>(_data[pos])])
+                {
+                    return pos;
+                }
+
+                if (pos == 0)
+                {
+                    break;
+                }
+
+                --pos;
             }
-            out[0] = static_cast<char>(0xF0 | (cp >> 18));
-            out[1] = static_cast<char>(0x80 | ((cp >> 12) & 0x3F));
-            out[2] = static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
-            out[3] = static_cast<char>(0x80 | (cp & 0x3F));
-            return 4;
+
+            return npos;
         }
 
-        static void encode_code_point(char32_t cp, std::string& out) {
-            char buf[4];
-            int len = utf32_to_utf8(cp, buf);
-            out.append(buf, static_cast<size_t>(len));
+        [[nodiscard]] size_type find_last_of(char ch, size_type start = npos) const noexcept
+        {
+            return rfind(ch, start);
         }
 
-        // =========================================================
-        // Code Point Operations
-        // =========================================================
+        [[nodiscard]] bool contains(STextView pattern) const noexcept
+        {
+            return find(pattern) != npos;
+        }
 
-        [[nodiscard]] constexpr size_t code_unit_count() const noexcept { return _size; }
+        [[nodiscard]] bool contains(char ch) const noexcept
+        {
+            return find(ch) != npos;
+        }
 
-        [[nodiscard]] size_t code_point_count() const noexcept {
-            size_t count = 0;
-            const char* p = _p;
-            const char* e = _p + _size;
-            while (p < e) {
-                decode_code_point(p, e);
+        // -----------------------------------------------------
+        // prefix / suffix / comparison
+        // -----------------------------------------------------
+
+        [[nodiscard]] constexpr bool starts_with(STextView prefix) const noexcept
+        {
+            return prefix._size <= _size
+                && std::memcmp(_data, prefix._data, prefix._size) == 0;
+        }
+
+        [[nodiscard]] constexpr bool ends_with(STextView suffix) const noexcept
+        {
+            return suffix._size <= _size
+                && std::memcmp(_data + (_size - suffix._size), suffix._data, suffix._size) == 0;
+        }
+
+        [[nodiscard]] constexpr bool equals(STextView rhs) const noexcept
+        {
+            return _size == rhs._size
+                && (_data == rhs._data || std::memcmp(_data, rhs._data, _size) == 0);
+        }
+
+        // -----------------------------------------------------
+        // trim (byte-based, ASCII whitespace + UTF-8 NBSP)
+        // -----------------------------------------------------
+
+        [[nodiscard]] constexpr STextView trim_start() const noexcept
+        {
+            size_type start = 0;
+            while (start < _size)
+            {
+                const unsigned char c = static_cast<unsigned char>(_data[start]);
+
+                if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v')
+                {
+                    ++start;
+                }
+                else if (c == 0xC2 && (start + 1) < _size &&
+                         static_cast<unsigned char>(_data[start + 1]) == 0xA0)
+                {
+                    start += 2;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return substr(start);
+        }
+
+        [[nodiscard]] constexpr STextView trim_end() const noexcept
+        {
+            size_type end_pos = _size;
+            while (end_pos > 0)
+            {
+                const unsigned char c = static_cast<unsigned char>(_data[end_pos - 1]);
+
+                if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v')
+                {
+                    --end_pos;
+                }
+                else if (c == 0xA0 && end_pos >= 2 &&
+                         static_cast<unsigned char>(_data[end_pos - 2]) == 0xC2)
+                {
+                    end_pos -= 2;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return first(end_pos);
+        }
+
+        [[nodiscard]] constexpr STextView trim() const noexcept
+        {
+            return trim_start().trim_end();
+        }
+
+        // -----------------------------------------------------
+        // UTF-8 code point helpers
+        // -----------------------------------------------------
+
+        [[nodiscard]] size_type code_point_count() const noexcept
+        {
+            size_type count = 0;
+            const char* p = _data;
+            const char* const e = _data + _size;
+
+            while (p < e)
+            {
+                (void)_decode_code_point(p, e);
                 ++count;
             }
+
             return count;
         }
 
-        template <typename Fn>
-        void for_each_code_point(Fn&& fn) const {
-            const char* p = _p;
-            const char* e = _p + _size;
-            while (p < e) {
-                fn(decode_code_point(p, e));
+        [[nodiscard]] size_type byte_index_from_code_point(size_type cp_index) const noexcept
+        {
+            size_type current = 0;
+            const char* p = _data;
+            const char* const e = _data + _size;
+
+            while (p < e && current < cp_index)
+            {
+                (void)_decode_code_point(p, e);
+                ++current;
             }
+
+            return (current == cp_index) ? static_cast<size_type>(p - _data) : npos;
         }
 
-        [[nodiscard]] size_t find(char32_t cp) const noexcept {
-            const char* p = _p;
-            const char* e = _p + _size;
-            while (p < e) {
+        [[nodiscard]] STextView substr_code_points(size_type cp_pos, size_type cp_count = npos) const noexcept
+        {
+            const size_type start = byte_index_from_code_point(cp_pos);
+            if (start == npos)
+            {
+                return {};
+            }
+
+            if (cp_count == npos)
+            {
+                return substr(start);
+            }
+
+            const char* p = _data + start;
+            const char* const e = _data + _size;
+            size_type remaining = cp_count;
+
+            while (p < e && remaining > 0)
+            {
+                (void)_decode_code_point(p, e);
+                --remaining;
+            }
+
+            return STextView(_data + start, static_cast<size_type>(p - (_data + start)));
+        }
+
+        [[nodiscard]] size_type find_code_point(char32_t cp, size_type byte_start = 0) const noexcept
+        {
+            if (byte_start >= _size)
+            {
+                return npos;
+            }
+
+            const char* p = _data + byte_start;
+            const char* const e = _data + _size;
+
+            while (p < e)
+            {
                 const char* current = p;
-                if (decode_code_point(p, e) == cp) {
-                    return static_cast<size_t>(current - _p);
+                if (_decode_code_point(p, e) == cp)
+                {
+                    return static_cast<size_type>(current - _data);
                 }
             }
+
             return npos;
         }
 
-        static constexpr size_t npos = static_cast<size_t>(-1);
-
-        [[nodiscard]] size_t utf8_index_from_code_point(size_t cp_index) const noexcept {
-            size_t current_cp = 0;
-            const char* p = _p;
-            const char* e = _p + _size;
-            while (p < e && current_cp < cp_index) {
-                decode_code_point(p, e);
-                ++current_cp;
-            }
-            return (current_cp == cp_index) ? static_cast<size_t>(p - _p) : npos;
+        [[nodiscard]] bool contains_code_point(char32_t cp) const noexcept
+        {
+            return find_code_point(cp) != npos;
         }
 
-        [[nodiscard]] constexpr STextView substr_units(size_t unit_pos, size_t unit_count) const noexcept {
-            if (unit_pos >= _size) return STextView();
-            size_t count = std::min(unit_count, _size - unit_pos);
-            return STextView(_p + unit_pos, count);
-        }
+        [[nodiscard]] int compare_code_points(STextView rhs) const noexcept
+        {
+            const char* p1 = _data;
+            const char* const e1 = _data + _size;
+            const char* p2 = rhs._data;
+            const char* const e2 = rhs._data + rhs._size;
 
-        [[nodiscard]] STextView substr_cp(size_t pos, size_t count) const noexcept {
-            size_t start_idx = utf8_index_from_code_point(pos);
-            if (start_idx == npos) return STextView();
+            while (p1 < e1 && p2 < e2)
+            {
+                const char32_t c1 = _decode_code_point(p1, e1);
+                const char32_t c2 = _decode_code_point(p2, e2);
 
-            const char* p = _p + start_idx;
-            const char* e = _p + _size;
-            for (size_t i = 0; i < count && p < e; ++i) {
-                decode_code_point(p, e);
-            }
-            return substr_units(start_idx, static_cast<size_t>(p - (_p + start_idx)));
-        }
-
-        // =========================================================
-        // Find / Search (byte-level, use memchr for speed)
-        // =========================================================
-
-        [[nodiscard]] size_t find(STextView pattern) const noexcept {
-            return find(pattern, 0);
-        }
-
-        [[nodiscard]] size_t find(STextView pattern, size_t start) const noexcept {
-            if (pattern.empty()) return start <= _size ? start : npos;
-            if (start >= _size) return npos;
-            size_t pat_len = pattern.size();
-            if (pat_len > _size - start) return npos;
-
-            const char first = pattern._p[0];
-            const char* p = _p + start;
-            const char* p_end = _p + _size - pat_len;
-
-            while (p <= p_end) {
-                p = static_cast<const char*>(std::memchr(p, first, static_cast<size_t>(p_end - p + 1)));
-                if (!p) return npos;
-                if (std::memcmp(p, pattern._p, pat_len) == 0) {
-                    return static_cast<size_t>(p - _p);
-                }
-                ++p;
-            }
-            return npos;
-        }
-
-        [[nodiscard]] size_t find_cp(char32_t cp) const noexcept { return find(cp); }
-
-        [[nodiscard]] bool contains(STextView pattern) const noexcept { return find(pattern) != npos; }
-        [[nodiscard]] bool contains(char32_t cp) const noexcept { return find(cp) != npos; }
-
-        // =========================================================
-        // Comparison
-        // =========================================================
-
-        [[nodiscard]] int compare_cp(STextView rhs) const noexcept {
-            const char* p1 = _p;
-            const char* end1 = _p + _size;
-            const char* p2 = rhs._p;
-            const char* end2 = rhs._p + rhs._size;
-
-            while (p1 < end1 && p2 < end2) {
-                char32_t c1 = decode_code_point(p1, end1);
-                char32_t c2 = decode_code_point(p2, end2);
                 if (c1 < c2) return -1;
                 if (c1 > c2) return 1;
             }
-            if (p1 == end1 && p2 == end2) return 0;
-            return (p1 == end1) ? -1 : 1;
+
+            if (p1 == e1 && p2 == e2) return 0;
+            return (p1 == e1) ? -1 : 1;
         }
 
-        [[nodiscard]] constexpr bool equals(STextView rhs) const noexcept {
-            return _size == rhs._size && (_p == rhs._p || std::string_view(_p, _size) == std::string_view(rhs._p, rhs._size));
-        }
+        template <class F>
+        constexpr void for_each_code_point(F&& fn) const
+            noexcept(noexcept(std::declval<F&>()(std::declval<char32_t>())))
+        {
+            const char* p = _data;
+            const char* const e = _data + _size;
 
-        [[nodiscard]] bool starts_with(STextView prefix) const noexcept {
-            if (prefix._size > _size) return false;
-            return std::memcmp(_p, prefix._p, prefix._size) == 0;
-        }
-
-        [[nodiscard]] bool ends_with(STextView suffix) const noexcept {
-            if (suffix._size > _size) return false;
-            return std::memcmp(_p + _size - suffix._size, suffix._p, suffix._size) == 0;
-        }
-
-        // =========================================================
-        // Trim (whitespace: space, tab, \n, \r, UTF-8 NBSP U+00A0)
-        // =========================================================
-
-        [[nodiscard]] STextView trim_start() const noexcept {
-            size_t start = 0;
-            while (start < _size) {
-                unsigned char c = static_cast<unsigned char>(_p[start]);
-                if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
-                    ++start;
-                } else if (c == 0xC2 && start + 1 < _size && static_cast<unsigned char>(_p[start + 1]) == 0xA0) {
-                    start += 2; // UTF-8 NBSP (U+00A0 = 0xC2 0xA0)
-                } else {
-                    break;
-                }
+            while (p < e)
+            {
+                fn(_decode_code_point(p, e));
             }
-            return substr_units(start, _size - start);
         }
 
-        [[nodiscard]] STextView trim_end() const noexcept {
-            size_t end = _size;
-            while (end > 0) {
-                unsigned char c = static_cast<unsigned char>(_p[end - 1]);
-                if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
-                    --end;
-                } else if (c == 0xA0 && end >= 2 && static_cast<unsigned char>(_p[end - 2]) == 0xC2) {
-                    end -= 2; // UTF-8 NBSP
-                } else {
-                    break;
-                }
-            }
-            return substr_units(0, end);
+        // -----------------------------------------------------
+        // compatibility aliases
+        // -----------------------------------------------------
+
+        [[nodiscard]] size_type utf8_index_from_code_point(size_type cp_index) const noexcept
+        {
+            return byte_index_from_code_point(cp_index);
         }
 
-        [[nodiscard]] STextView trim() const noexcept { return trim_start().trim_end(); }
+        [[nodiscard]] STextView substr_cp(size_type cp_pos, size_type cp_count) const noexcept
+        {
+            return substr_code_points(cp_pos, cp_count);
+        }
 
-        // =========================================================
-        // Conversion
-        // =========================================================
+        [[nodiscard]] size_type find_cp(char32_t cp, size_type byte_start = 0) const noexcept
+        {
+            return find_code_point(cp, byte_start);
+        }
 
-        [[nodiscard]] std::string to_string() const { return std::string(_p, _size); }
-
-        constexpr operator std::string_view() const noexcept { return std::string_view(_p, _size); }
+        [[nodiscard]] int compare_cp(STextView rhs) const noexcept
+        {
+            return compare_code_points(rhs);
+        }
 
     private:
-        const char* _p = nullptr;
-        size_t _size = 0;
+        static constexpr char32_t kReplacementChar = 0xFFFD;
+
+        [[nodiscard]] static constexpr char32_t _decode_code_point(const char*& p, const char* end) noexcept
+        {
+            if (p >= end)
+            {
+                return kReplacementChar;
+            }
+
+            const unsigned char b0 = static_cast<unsigned char>(*p);
+
+            // 1-byte ASCII
+            if (b0 < 0x80)
+            {
+                ++p;
+                return static_cast<char32_t>(b0);
+            }
+
+            // invalid leading classes
+            if (b0 < 0xC2)
+            {
+                ++p;
+                return kReplacementChar;
+            }
+
+            // 2-byte sequence
+            if (b0 < 0xE0)
+            {
+                if ((end - p) < 2)
+                {
+                    ++p;
+                    return kReplacementChar;
+                }
+
+                const unsigned char b1 = static_cast<unsigned char>(p[1]);
+                if ((b1 & 0xC0u) != 0x80u)
+                {
+                    ++p;
+                    return kReplacementChar;
+                }
+
+                const char32_t cp =
+                    (static_cast<char32_t>(b0 & 0x1Fu) << 6) |
+                    static_cast<char32_t>(b1 & 0x3Fu);
+
+                p += 2;
+                return cp;
+            }
+
+            // 3-byte sequence
+            if (b0 < 0xF0)
+            {
+                if ((end - p) < 3)
+                {
+                    ++p;
+                    return kReplacementChar;
+                }
+
+                const unsigned char b1 = static_cast<unsigned char>(p[1]);
+                const unsigned char b2 = static_cast<unsigned char>(p[2]);
+
+                if ((b1 & 0xC0u) != 0x80u || (b2 & 0xC0u) != 0x80u)
+                {
+                    ++p;
+                    return kReplacementChar;
+                }
+
+                if (b0 == 0xE0 && b1 < 0xA0)
+                {
+                    ++p;
+                    return kReplacementChar;
+                }
+
+                if (b0 == 0xED && b1 >= 0xA0)
+                {
+                    ++p;
+                    return kReplacementChar;
+                }
+
+                const char32_t cp =
+                    (static_cast<char32_t>(b0 & 0x0Fu) << 12) |
+                    (static_cast<char32_t>(b1 & 0x3Fu) << 6) |
+                    static_cast<char32_t>(b2 & 0x3Fu);
+
+                p += 3;
+                return cp;
+            }
+
+            // 4-byte sequence
+            if (b0 < 0xF5)
+            {
+                if ((end - p) < 4)
+                {
+                    ++p;
+                    return kReplacementChar;
+                }
+
+                const unsigned char b1 = static_cast<unsigned char>(p[1]);
+                const unsigned char b2 = static_cast<unsigned char>(p[2]);
+                const unsigned char b3 = static_cast<unsigned char>(p[3]);
+
+                if ((b1 & 0xC0u) != 0x80u || (b2 & 0xC0u) != 0x80u || (b3 & 0xC0u) != 0x80u)
+                {
+                    ++p;
+                    return kReplacementChar;
+                }
+
+                if (b0 == 0xF0 && b1 < 0x90)
+                {
+                    ++p;
+                    return kReplacementChar;
+                }
+
+                if (b0 == 0xF4 && b1 >= 0x90)
+                {
+                    ++p;
+                    return kReplacementChar;
+                }
+
+                const char32_t cp =
+                    (static_cast<char32_t>(b0 & 0x07u) << 18) |
+                    (static_cast<char32_t>(b1 & 0x3Fu) << 12) |
+                    (static_cast<char32_t>(b2 & 0x3Fu) << 6) |
+                    static_cast<char32_t>(b3 & 0x3Fu);
+
+                p += 4;
+                return cp;
+            }
+
+            ++p;
+            return kReplacementChar;
+        }
+
+    private:
+        const char* _data = nullptr;
+        size_type _size = 0;
     };
 
-    // =========================================================
-    // Operators
-    // =========================================================
+    static_assert(std::is_trivially_copyable_v<STextView>);
+    static_assert(sizeof(STextView) == sizeof(std::string_view));
 
-    [[nodiscard]] constexpr bool operator==(STextView lhs, STextView rhs) noexcept {
-        return lhs.size() == rhs.size()
-            && (lhs.data() == rhs.data() || std::string_view(lhs) == std::string_view(rhs));
+    [[nodiscard]] constexpr bool operator==(STextView lhs, STextView rhs) noexcept
+    {
+        return lhs.equals(rhs);
     }
 
-    [[nodiscard]] constexpr std::strong_ordering operator<=>(STextView lhs, STextView rhs) noexcept {
-        auto cmp = std::string_view(lhs).compare(std::string_view(rhs));
+    template <std::size_t N>
+    [[nodiscard]] constexpr bool operator==(STextView lhs, const char (&rhs)[N]) noexcept
+    {
+        return lhs == STextView::from_literal(rhs);
+    }
+
+    template <std::size_t N>
+    [[nodiscard]] constexpr bool operator==(const char (&lhs)[N], STextView rhs) noexcept
+    {
+        return STextView::from_literal(lhs) == rhs;
+    }
+
+    [[nodiscard]] inline bool operator==(STextView lhs, const char* rhs) noexcept
+    {
+        return lhs == STextView::from_cstring(rhs);
+    }
+
+    [[nodiscard]] inline bool operator==(const char* lhs, STextView rhs) noexcept
+    {
+        return STextView::from_cstring(lhs) == rhs;
+    }
+
+    [[nodiscard]] constexpr std::strong_ordering operator<=>(STextView lhs, STextView rhs) noexcept
+    {
+        const int cmp = lhs.sv().compare(rhs.sv());
         if (cmp < 0) return std::strong_ordering::less;
         if (cmp > 0) return std::strong_ordering::greater;
         return std::strong_ordering::equal;
     }
-
-    // static_assert to guarantee the view is lightweight
-    static_assert(sizeof(STextView) == 2 * sizeof(void*), "STextView should be pointer+size only");
-    static_assert(std::is_trivially_copyable_v<STextView>, "STextView must be trivially copyable");
 }

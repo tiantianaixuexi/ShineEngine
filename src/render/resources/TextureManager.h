@@ -145,4 +145,3 @@ namespace shine::render
     private:
     };
 }
-

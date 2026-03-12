@@ -2,7 +2,7 @@
 
 #include "EngineCore/engine_context.h"
 #include "editor/asset/AssetDirectoryService.h"
-#include "editor/asset/editor_asset_manager.h"
+#include "editor/asset/Manager/editor_asset_manager.h"
 #include "editor/asset/editor_runtime_asset_bridge.h"
 #include "editor/mainEditor.h"
 
