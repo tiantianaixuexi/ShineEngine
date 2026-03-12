@@ -23,21 +23,21 @@ namespace shine::gameplay::world
 
         void createMapAsset(const std::string& mapName);
         bool activateMapAsset(const manager::AssetHandle& mapHandle);
-        bool hasMap() const noexcept { return activeMapHandle_.isValid(); }
+        [[nodiscard]] bool hasMap() const noexcept { return activeMapHandle_.isValid(); }
 
         MapAsset* getActiveMap() noexcept;
-        const MapAsset* getActiveMap() const noexcept;
+        [[nodiscard]] const MapAsset* getActiveMap() const noexcept;
 
         void addActorToPersistentLevel(std::unique_ptr<shine::gameplay::SActor> actor) override;
-        bool removeActor(shine::gameplay::SObject* actor);
-        std::vector<shine::gameplay::SObject*> getAllActorsSnapshot() const;
-        shine::gameplay::SObject* findActorById(uint32_t objectId) const noexcept;
+        [[nodiscard]] bool removeActor(shine::gameplay::SObject* actor) override;
+        [[nodiscard]] std::vector<shine::gameplay::SObject*> getAllActorsSnapshot() const override ;
+        [[nodiscard]] shine::gameplay::SObject* findActorById(uint32_t objectId) const noexcept;
 
         void clearSelection() override;
         void setSelectedObject(shine::gameplay::SObject* obj) override;
         void toggleSelectedObject(shine::gameplay::SObject* obj) override;
-        shine::gameplay::SObject* getSelectedObject() const override;
-        std::vector<shine::gameplay::SObject*> getSelectedObjectsSnapshot() const override;
+        [[nodiscard]] shine::gameplay::SObject* getSelectedObject() const override;
+        [[nodiscard]] std::vector<shine::gameplay::SObject*> getSelectedObjectsSnapshot() const override;
         bool isSelected(const shine::gameplay::SObject* obj) const override;
 
         LevelAsset& ensureStreamingLevel(const std::string& levelName);
@@ -46,7 +46,7 @@ namespace shine::gameplay::world
         void tickStreaming();
 
     private:
-        std::unique_ptr<shine::gameplay::SActor> instantiateActor(const ActorSpawnDefinition& definition) const;
+        [[nodiscard]] std::unique_ptr<shine::gameplay::SActor> instantiateActor(const ActorSpawnDefinition& definition) const;
         void rebuildActorIndex();
         void indexActorVector(const std::vector<std::unique_ptr<shine::gameplay::SActor>>& actors);
         void addSelectionInternal(shine::gameplay::SObject* obj);

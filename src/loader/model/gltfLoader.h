@@ -1,15 +1,13 @@
 #pragma once
 
-#include "loader/core/loader.h"
+
 #include "loader/model/model_loader.h"
 #include "EngineCore/log/LogSystem.h"
 #include <vector>
 #include <expected>
 
-#include "math/vector.ixx"
 #include "string/shine_string.h"
 #include "string/shine_text_view.h"
-#include "math/vector2.h"
 
 #include "third/tinygltf/tiny_gltf.h"
 
@@ -29,22 +27,26 @@ namespace shine::loader
             addSupportedExtension("glb");
         }
 
-        virtual ~gltfLoader() = default;
-        virtual bool loadFromMemory(const void* data, size_t size) override;
-        virtual bool loadFromFile(const char* filePath) override;
+        gltfLoader(const gltfLoader&) = default;
+        gltfLoader(gltfLoader&&)  noexcept = default;
+        gltfLoader& operator=(gltfLoader&&) = default;
+
+        ~gltfLoader() override = default;
+        bool loadFromMemory(const void* data, size_t size) override;
+        bool loadFromFile(const char* filePath) override;
         void unload() override;
 
-        virtual const char* getName() const override { return "gltfLoader"; }
-        virtual const char* getVersion() const override { return "1.0.0"; }
+        [[nodiscard]] const char* getName() const override { return "gltfLoader"; }
+        [[nodiscard]] const char* getVersion() const override { return "1.0.0"; }
 
 
-        std::vector<MeshData> extractMeshData() const override;
-        std::expected<MeshData, SString> extractMeshDataByIndex(size_t meshIndex) const;
-        size_t getMeshCount() const noexcept override;
+        [[nodiscard]] std::vector<MeshData> extractMeshData() const override;
+        [[nodiscard]] std::expected<MeshData, SString> extractMeshDataByIndex(size_t meshIndex) const;
+        [[nodiscard]] std::size_t getMeshCount() const noexcept override;
 
-        size_t getSceneCount() const { return _model.scenes.size(); }
-        int getDefaultSceneIndex() const { return _model.defaultScene; }
-        std::vector<int> getSceneRootNodes(int sceneIndex) const;
+        [[nodiscard]] std::size_t getSceneCount() const { return _model.scenes.size(); }
+        [[nodiscard]] int getDefaultSceneIndex() const { return _model.defaultScene; }
+        [[nodiscard]] std::vector<int> getSceneRootNodes(int sceneIndex) const;
 
     private:
         bool parseFromMemory(const unsigned char* bytes, size_t size, bool preferBinary);

@@ -108,7 +108,7 @@ namespace shine
 
         [[nodiscard]] std::string to_string() const
         {
-            return std::string(sv());
+            return std::string(_data,_size);
         }
 
         constexpr operator std::string_view() const noexcept

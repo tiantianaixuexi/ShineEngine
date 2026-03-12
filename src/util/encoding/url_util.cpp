@@ -12,20 +12,20 @@
 namespace shine::util {
 
     bool isDataURI(STextView uri) {
-        return uri.size() > 5 && uri.substr(0, 5) == "data:";
+        return uri.size() > 5 && uri.starts_with("data:");
     }
 
     // 检查URI是否是本地文件路径
     bool isFileURI(STextView uri) {
         return uri.size() > 7 &&
-            (uri.substr(0, 7) == "file://" ||
-                uri.substr(0, 8) == "file:///");
+            (uri.starts_with("file://") ||
+                uri.starts_with("file:///"));
     }
 
     // 检查URI是否是HTTP/HTTPS URL
     bool isHttpURI(STextView uri) {
-        return (uri.size() > 7 && uri.substr(0, 7) == "http://") ||
-            (uri.size() > 8 && uri.substr(0, 8) == "https://");
+        return (uri.size() > 7 && uri.starts_with("http://")) ||
+            (uri.size() > 8 && uri.starts_with("https://"));
     }
 
     // 辅助函数实现
@@ -109,22 +109,22 @@ namespace shine::util {
         SString result;
         result.reserve(str.size());
 
-        for (auto it = str.begin(); it != str.end(); ++it) {
-            if (*it == '%' && std::distance(it, str.end()) > 2 &&
-                StringUtil::isAlphaNumericHex(static_cast<unsigned char>(*(it + 1))) &&
-                StringUtil::isAlphaNumericHex(static_cast<unsigned char>(*(it + 2)))) {
-                unsigned char high = StringUtil::fromHex(static_cast<unsigned char>(*(it + 1)));
-                unsigned char low = StringUtil::fromHex(static_cast<unsigned char>(*(it + 2)));
-                result.push_back(static_cast<char>(high * 16 + low));
-                it += 2;
-            }
-            else if (*it == '+') {
-                result.push_back(' ');
-            }
-            else {
-                result.push_back(*it);
-            }
+    for (size_t i = 0; i < str.size(); ++i) {
+        if (str[i] == '%' && i + 2 < str.size() &&
+            StringUtil::isAlphaNumericHex(static_cast<unsigned char>(str[i + 1])) &&
+            StringUtil::isAlphaNumericHex(static_cast<unsigned char>(str[i + 2]))) {
+            unsigned char high = StringUtil::fromHex(static_cast<unsigned char>(str[i + 1]));
+            unsigned char low = StringUtil::fromHex(static_cast<unsigned char>(str[i + 2]));
+            result.push_back(static_cast<char>(high * 16 + low));
+            i += 2; // 跳过已处理的 % 和两个十六进制字符
         }
+        else if (str[i] == '+') {
+            result.push_back(' ');
+        }
+        else {
+            result.push_back(str[i]);
+        }
+    }
 
         return result;
     }
@@ -286,7 +286,7 @@ namespace shine::util {
         auto baseUriResult = parseURI(baseURI);
         if (!baseUriResult) return std::unexpected(UriError::InvalidParameter);
 
-        URI base = *baseUriResult;
+        const URI& base = *baseUriResult;
         if (relativeURI.empty()) return uriToString(base);
 
         URI result = base;
@@ -320,7 +320,7 @@ namespace shine::util {
     }
 
     bool isAssetURI(STextView uri) {
-        return uri.size() > 8 && uri.substr(0, 8) == "asset://";
+        return uri.size() > 8 && uri.starts_with("asset://");
     }
 
     std::expected<SString, UriError> assetURIToFilePath(STextView uri, STextView assetRootDir) {
@@ -332,4 +332,27 @@ namespace shine::util {
     std::expected<SString, UriError> normalizeURIPath(STextView uriPath) {
         return normalize_path(SString::from_view(uriPath));
     }
+
+    SString getBaseDir(STextView path)
+    {
+        const auto _index = path.find_last_of("/\\");
+
+        if(_index == STextView::npos){
+            return "";
+        }
+
+        return SString::from_view(path.substr(0,_index+1));
+    }
+
+    SString getBaseFileName(STextView path)
+    {
+        const auto _index = path.find_last_of("/\\");
+        if(_index == STextView::npos)
+        {
+            return SString::from_view(path);
+        }
+
+        return SString::from_view(path.substr(_index+1));
+    }
+    
 }

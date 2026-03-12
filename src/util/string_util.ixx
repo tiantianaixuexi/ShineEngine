@@ -1,22 +1,3 @@
-#ifdef SHINE_USE_MODULE
-
-module;
-
-export module shine.util.string_util;
-
-import <array>;
-
-import <cstdint>;
-import <span>;
-import <string_view>;
-import <unordered_map>;
-import <vector>;
-
-import "string/shine_string.h";
-import "string/shine_text_view.h";
-
-#else
-
 #pragma once
 
 #include <array>
@@ -30,7 +11,6 @@ import "string/shine_text_view.h";
 #include "string/shine_string.h"
 #include "string/shine_text_view.h"
 
-#endif
 
 namespace shine::util
 {

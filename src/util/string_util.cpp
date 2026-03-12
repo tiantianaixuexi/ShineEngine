@@ -1,17 +1,3 @@
-#ifdef SHINE_USE_MODULE
-
-module;
-
-#include "util/shine_define.h"
-
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
-
-module shine.util.string_util;
-
-#else
 
 #include "string_util.ixx"
 #include "encoding_util.ixx"
@@ -20,8 +6,6 @@ module shine.util.string_util;
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#endif
-
 #endif
 
 namespace shine::util

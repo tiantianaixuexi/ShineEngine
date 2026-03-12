@@ -1,12 +1,6 @@
 #pragma once
 
-#include <algorithm>
-#include <array>
 #include <cassert>
-#include <compare>
-#include <cstddef>
-#include <cstring>
-
 #include <new>
 #include <stdexcept>
 #include <string>
@@ -95,6 +89,7 @@ namespace shine
         {
             _assign_raw(str.data(), str.size());
         }
+        
 
         SString(const SString& other)
         {

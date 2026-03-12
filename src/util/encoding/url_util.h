@@ -4,13 +4,14 @@
 #include <expected>
 #include <cstdint>
 
-#include "../../string/shine_string.h"
-#include "../../string/shine_text_view.h"
+#include "shine_define.h"
+#include "string/shine_string.h"
+#include "string/shine_text_view.h"
 
 namespace shine::util {
 
     // URI工具的错误枚举
-    enum class UriError {
+    enum class UriError : s8{
         InvalidDataURI,   // 无效的数据URI
         InvalidBase64,    // 无效的Base64编码
         InvalidParameter, // 无效的参数
@@ -31,6 +32,15 @@ namespace shine::util {
 
     // 检查字符串是否为数据URI
     bool isDataURI(STextView uri);
+
+    // 获取去除 // 之后的路径   
+    SString getBaseDir(STextView path);
+
+    // 获取文件的名字
+    SString getBaseFileName(STextView path);
+    
+
+
 
     // URL解码字符串
     SString urlDecode(STextView str);
@@ -78,5 +88,8 @@ namespace shine::util {
 
     // 规范化URI路径，处理./和/
     std::expected<SString, UriError> normalizeURIPath(STextView uriPath);
+
+
+  
 
 }; // namespace shine::util

@@ -1,5 +1,4 @@
-﻿#define TINYGLTF_IMPLEMENTATION
-#include "gltfLoader.h"
+﻿#include "gltfLoader.h"
 
 #include <functional>
 #include <cstring>
@@ -18,7 +17,6 @@
 #include "util/file_util.ixx"
 #include "util/image_util.h"
 #include "util/path_util.h"
-#include "util/string_util.ixx"
 
 namespace shine::loader
 {
@@ -67,7 +65,7 @@ namespace shine::loader
             {
                 if (err)
                 {
-                    *err = readResult.error();
+                    *err = readResult.error().c_str();
                 }
                 return false;
             }
@@ -589,7 +587,7 @@ namespace shine::loader
         auto fileResult = util::read_full_file(STextView(filePath));
         if (!fileResult.has_value())
         {
-            setError(EAssetLoaderError::FILE_NOT_FOUND, fileResult.error());
+            setError(EAssetLoaderError::FILE_NOT_FOUND, fileResult.error().c_str());
             return false;
         }
 
