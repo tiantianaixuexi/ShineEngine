@@ -14,10 +14,10 @@ namespace shine::manager
     public:
         explicit AssetImportPipelineImpl(AssetCatalogImpl& catalog);
 
-        AssetHandle LoadTextureAsset(const std::string& filePath) override;
-        AssetHandle LoadModel(const std::string& filePath) override;
-        AssetHandle LoadModel(const std::string& filePath, loader::IModelLoader::ProgressCallback progressCallback);
-        AssetHandle LoadMapAsset(const std::string& filePath) override;
+        AssetHandle LoadTextureAsset(STextView) override;
+        AssetHandle LoadModel(STextView filePath) override;
+        AssetHandle LoadModel(STextView filePath, loader::IModelLoader::ProgressCallback progressCallback);
+        AssetHandle LoadMapAsset(STextView filePath) override;
         AssetHandle LoadImageFromMemory(const void* data, size_t size, const std::string& formatHint);
 
     private:

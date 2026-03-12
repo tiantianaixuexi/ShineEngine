@@ -47,10 +47,6 @@ namespace shine::gameplay::world
             shine::SString mapName,
             const shine::SString& logicalPath = shine::SString("/game/maps/untitled"));
 
-        [[nodiscard]] shine::STextView GetClassName() const noexcept override
-        {
-            return shine::STextView::from_literal("MapAsset");
-        }
 
         [[nodiscard]] WorldSettings& GetWorldSettings() noexcept;
         [[nodiscard]] const WorldSettings& GetWorldSettings() const noexcept;

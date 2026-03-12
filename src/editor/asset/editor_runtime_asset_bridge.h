@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Algorithm/uuid.h"
+
 #include <expected>
 #include <functional>
 #include <string>
@@ -20,7 +22,7 @@ namespace shine::editor::asset
     struct RuntimePreloadResult
     {
         std::vector<manager::AssetHandle> loadedHandles;
-        std::vector<algorithm::UUID> failedAssets;
+        std::vector<AssetID>              failedAssets;
         std::vector<std::string> errors;
     };
 
@@ -32,17 +34,17 @@ namespace shine::editor::asset
         explicit EditorRuntimeAssetBridge(EditorAssetManager* editorAssetManager = nullptr);
 
         bool Init(EngineContext& ctx) override;
-        std::expected<manager::AssetHandle, std::string> LoadRuntimeAssetByEditorId(const algorithm::UUID& id);
-        RuntimePreloadResult PreloadRuntimeAssets(const std::vector<algorithm::UUID>& rootAssets);
+        std::expected<manager::AssetHandle, std::string> LoadRuntimeAssetByEditorId(const AssetID &id);
+        RuntimePreloadResult                             PreloadRuntimeAssets(const std::vector<AssetID> &rootAssets);
         RuntimePreloadResult PreloadBundleRuntimeAssets(uint32_t bundleId);
-        std::expected<manager::AssetHandle, std::string> ActivateWorldMapByEditorId(const algorithm::UUID& mapAssetId);
-        void RegisterRuntimeLoader(EEditorAssetType type, RuntimeLoader loader);
+        std::expected<manager::AssetHandle, std::string> ActivateWorldMapByEditorId(const AssetID &mapAssetId);
+        void RegisterRuntimeLoader(EAssetKind type, RuntimeLoader loader);
 
     private:
         std::expected<std::string, std::string> ResolveRuntimePath(const EditorAssetRecord& record) const;
 
     private:
-        std::unordered_map<EEditorAssetType, RuntimeLoader> runtimeLoaders_;
+        std::unordered_map<EAssetKind, RuntimeLoader> runtimeLoaders_;
         EditorAssetManager* editorAssetManager_ = nullptr;
         manager::IAssetImportPipeline* runtimeImportPipeline_ = nullptr;
         gameplay::world::WorldService* worldService_ = nullptr;

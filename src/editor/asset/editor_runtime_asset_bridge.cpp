@@ -26,7 +26,7 @@ namespace shine::editor::asset
         return editorAssetManager_ && runtimeImportPipeline_;
     }
 
-    void EditorRuntimeAssetBridge::RegisterRuntimeLoader(EEditorAssetType type, RuntimeLoader loader)
+    void EditorRuntimeAssetBridge::RegisterRuntimeLoader(EAssetKind type, RuntimeLoader loader)
     {
         if (!loader)
         {
@@ -37,22 +37,22 @@ namespace shine::editor::asset
 
     std::expected<std::string, std::string> EditorRuntimeAssetBridge::ResolveRuntimePath(const EditorAssetRecord& record) const
     {
-        if (!record.packagePath.empty())
-        {
-            return record.packagePath;
-        }
-        if (!record.sourcePath.empty())
-        {
-            return record.sourcePath;
-        }
-        if (!record.logicalPath.empty())
-        {
-            return record.logicalPath;
-        }
+        //if (!record.packagePath.empty())
+        //{
+        //    return record.packagePath;
+        //}
+        //if (!record.sourcePath.empty())
+        //{
+        //    return record.sourcePath;
+        //}
+        //if (!record.logicalPath.empty())
+        //{
+        //    return record.logicalPath;
+        //}
         return std::unexpected("资产路径为空");
     }
 
-    std::expected<manager::AssetHandle, std::string> EditorRuntimeAssetBridge::LoadRuntimeAssetByEditorId(const algorithm::UUID& id)
+    std::expected<manager::AssetHandle, std::string> EditorRuntimeAssetBridge::LoadRuntimeAssetByEditorId(const AssetID &id)
     {
         if (!editorAssetManager_ || !runtimeImportPipeline_)
         {
@@ -73,7 +73,7 @@ namespace shine::editor::asset
         }
         const auto& path = pathResult.value();
 
-        auto loaderIt = runtimeLoaders_.find(record.type);
+        auto loaderIt = runtimeLoaders_.find(record.kind);
         if (loaderIt == runtimeLoaders_.end())
         {
             return std::unexpected("未注册该编辑器资产类型的运行时加载器");
@@ -86,7 +86,7 @@ namespace shine::editor::asset
         return loadResult.value();
     }
 
-    RuntimePreloadResult EditorRuntimeAssetBridge::PreloadRuntimeAssets(const std::vector<algorithm::UUID>& rootAssets)
+    RuntimePreloadResult EditorRuntimeAssetBridge::PreloadRuntimeAssets(const std::vector<AssetID> &rootAssets)
     {
         RuntimePreloadResult result;
         if (!editorAssetManager_)
@@ -118,26 +118,28 @@ namespace shine::editor::asset
         RuntimePreloadResult result;
         if (!editorAssetManager_)
         {
-            result.errors.push_back("EditorAssetManager 未初始化");
+            result.errors.emplace_back("EditorAssetManager 未初始化");
             return result;
         }
         if (bundleId == 0)
         {
-            result.errors.push_back("bundleId 无效");
+            result.errors.emplace_back("bundleId 无效");
             return result;
         }
 
-        const auto bundleIndex = editorAssetManager_->BuildBundleIndex();
-        auto it = bundleIndex.find(bundleId);
-        if (it == bundleIndex.end())
-        {
-            result.errors.push_back("未找到指定Bundle");
-            return result;
-        }
-        return PreloadRuntimeAssets(it->second);
+        //const auto bundleIndex = editorAssetManager_->BuildBundleIndex();
+        //auto it = bundleIndex.find(bundleId);
+        //if (it == bundleIndex.end())
+        //{
+        //    result.errors.push_back("未找到指定Bundle");
+        //    return result;
+        //}
+        //return PreloadRuntimeAssets(it->second);
+
+        return result;
     }
 
-    std::expected<manager::AssetHandle, std::string> EditorRuntimeAssetBridge::ActivateWorldMapByEditorId(const algorithm::UUID& mapAssetId)
+    std::expected<manager::AssetHandle, std::string> EditorRuntimeAssetBridge::ActivateWorldMapByEditorId(const AssetID &mapAssetId)
     {
         auto loadResult = LoadRuntimeAssetByEditorId(mapAssetId);
         if (!loadResult.has_value())

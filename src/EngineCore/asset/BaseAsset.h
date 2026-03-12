@@ -86,7 +86,6 @@ namespace shine::editor::asset
         void Touch() noexcept;
         void BumpVersion();
 
-        [[nodiscard]] virtual shine::STextView GetClassName() const noexcept;
 
         [[nodiscard]] shine::AssetID GetID() const noexcept;
         [[nodiscard]] shine::STextView GetName() const noexcept;

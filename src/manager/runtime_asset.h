@@ -35,10 +35,10 @@ namespace shine::manager
     class RuntimeImageAsset final : public IRuntimeAsset
     {
     public:
-        RuntimeImageAsset(const std::string& path, std::unique_ptr<loader::IImageLoader> loader)
+        RuntimeImageAsset(SString path, std::unique_ptr<loader::IImageLoader> loader)
             : loader_(std::move(loader))
         {
-            Init(path, path, shine::editor::asset::EEditorAssetType::Texture);
+            //Init(path, path, EAssetKind::Texture);
         }
 
         loader::IImageLoader* getLoader() const noexcept { return loader_.get(); }
@@ -53,7 +53,7 @@ namespace shine::manager
         RuntimeModelAsset(const std::string& path, std::unique_ptr<loader::IModelLoader> loader)
             : loader_(std::move(loader))
         {
-            Init(path, path, shine::editor::asset::EEditorAssetType::StaticMesh);
+           // Init(path, path, shine::editor::asset::EEditorAssetType::StaticMesh);
         }
 
         loader::IModelLoader* getLoader() const noexcept { return loader_.get(); }
@@ -70,7 +70,7 @@ namespace shine::manager
         {
             if (mapAsset_)
             {
-                Init(mapAsset_->getName(), mapAsset_->GetPath(), shine::editor::asset::EEditorAssetType::Scene);
+                //Init(mapAsset_->getName(), mapAsset_->GetPath(), shine::editor::asset::EEditorAssetType::Scene);
             }
         }
 

@@ -54,7 +54,7 @@ namespace shine::manager
         return textureHandle;
     }
 
-    TextureResourceHandle AssetTextureBridgeImpl::CreateTextureResourceByPath(const std::string& filePath)
+    TextureResourceHandle AssetTextureBridgeImpl::CreateTextureResourceByPath(STextView filePath)
     {
         if (!importPipeline_)
         {

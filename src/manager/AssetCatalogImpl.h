@@ -12,9 +12,9 @@ namespace shine::manager
     class AssetCatalogImpl : public IAssetCatalog
     {
     public:
-        AssetHandle RegisterRuntimeAsset(EAssetType type, const std::string& logicalPath, std::unique_ptr<IRuntimeAsset> asset);
+        AssetHandle                RegisterRuntimeAsset(EAssetType type, STextView logicalPath, std::unique_ptr<IRuntimeAsset> asset);
         IRuntimeAsset* GetRuntimeAsset(const AssetHandle& handle) const override;
-        AssetHandle GetAssetHandleByPath(const std::string& filePath) const override;
+        AssetHandle                GetAssetHandleByPath(STextView filePath) const override;
         bool IsAssetLoaded(const AssetHandle& handle) const override;
         loader::IImageLoader* GetImageLoader(const AssetHandle& handle) const;
         loader::IModelLoader* GetModelLoader(const AssetHandle& handle) const;
@@ -25,7 +25,7 @@ namespace shine::manager
 
     private:
         bool ResolveTypeById(uint64_t id, EAssetType& outType) const;
-        AssetHandle BuildHandle(uint64_t id, EAssetType type, const std::string& path) const;
+        AssetHandle BuildHandle(uint64_t id, EAssetType type, STextView path) const;
 
     private:
         std::unordered_map<uint64_t, std::unique_ptr<IRuntimeAsset>> runtimeAssets_;

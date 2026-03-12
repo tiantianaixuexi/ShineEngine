@@ -47,7 +47,7 @@ namespace shine::util
      * @param path 输入路径
      * @return 规范化后的资源路径
      */
-    SString normalize_asset_path(const SString& path);
+    SString normalize_asset_path(STextView path);
 
     /**
      * @brief 将相对路径转换为绝对路径

@@ -15,7 +15,7 @@ namespace shine::manager
 
         void SetImportPipeline(IAssetImportPipeline* importPipeline);
         TextureResourceHandle CreateTextureResource(const AssetHandle& imageAsset) override;
-        TextureResourceHandle CreateTextureResourceByPath(const std::string& filePath) override;
+        TextureResourceHandle CreateTextureResourceByPath(STextView filePath) override;
         uint32_t GetTextureNativeId(const TextureResourceHandle& textureHandle) const override;
         void ReleaseTextureResource(const TextureResourceHandle& textureHandle) override;
         void ReleaseAll();

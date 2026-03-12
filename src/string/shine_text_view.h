@@ -85,9 +85,16 @@ namespace shine
             return STextView(lit, N - 1);
         }
 
+
         [[nodiscard]] static constexpr STextView from_cstring(const char* s) noexcept
         {
             return s ? STextView(s, std::char_traits<char>::length(s)) : STextView{};
+        }
+
+        
+        [[nodiscard]] static constexpr STextView from_string(const std::string& s) noexcept {
+
+            return STextView(s.data(), s.size() - 1);
         }
 
         // -----------------------------------------------------

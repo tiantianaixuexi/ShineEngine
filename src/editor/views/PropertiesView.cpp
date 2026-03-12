@@ -59,7 +59,7 @@ namespace shine::editor::views
         if (obj == nullptr)
             return;
 
-        if (ImGui::InputText("名称", obj->getRefName().data(), obj->getRefName().length())) {
+        if (ImGui::InputText("名称", obj->getRefName().data(), obj->getRefName().size())) {
             obj->setName(obj->getRefName());
         }
 
@@ -235,7 +235,7 @@ namespace shine::editor::views
                 return;
             }
 
-            const bool isReadOnly = property.access.sv() == "ReadOnly";
+            const bool isReadOnly = property.access == "ReadOnly";
             const std::string nameText = property.name.to_string();
             const std::string valueLabel = fmt::format("##ScriptProp_{}", index);
             bool changed = false;
@@ -252,7 +252,7 @@ namespace shine::editor::views
                 ImGui::BeginDisabled();
             }
             ImGui::SetNextItemWidth(-FLT_MIN);
-            if (property.type.sv() == "bool")
+            if (property.type == "bool")
             {
                 bool boolValue = std::holds_alternative<bool>(value.data) ? std::get<bool>(value.data) : false;
                 changed = ImGui::Checkbox(valueLabel.c_str(), &boolValue);
@@ -261,7 +261,7 @@ namespace shine::editor::views
                     newValue = reflection::ScriptValue(boolValue);
                 }
             }
-            else if (property.type.sv() == "int")
+            else if (property.type == "int")
             {
                 int intValue = 0;
                 if (std::holds_alternative<int>(value.data))
@@ -282,7 +282,7 @@ namespace shine::editor::views
                     newValue = reflection::ScriptValue(intValue);
                 }
             }
-            else if (property.type.sv() == "float")
+            else if (property.type == "float")
             {
                 float floatValue = 0.0f;
                 if (std::holds_alternative<int>(value.data))
@@ -303,7 +303,7 @@ namespace shine::editor::views
                     newValue = reflection::ScriptValue(floatValue);
                 }
             }
-            else if (property.type.sv() == "array")
+            else if (property.type == "array")
             {
                 // 数组类型：可展开编辑
                 if (std::holds_alternative<reflection::ScriptValue::ArrayWrapper>(value.data))
@@ -404,7 +404,7 @@ namespace shine::editor::views
                     ImGui::TextDisabled("[]");
                 }
             }
-            else if (property.type.sv() == "map")
+            else if (property.type == "map")
             {
                 // Map类型：可展开编辑
                 if (std::holds_alternative<reflection::ScriptValue::MapWrapper>(value.data))

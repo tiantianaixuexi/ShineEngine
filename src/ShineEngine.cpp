@@ -44,14 +44,12 @@ int main(int argc, char **argv) {
 
 #include "EngineCore/engine_context.h"
 
-#include "util/encoding_util.ixx"
 #include "util/EngineDirectoryService.h"
 #include "util/fps_controller.h"
 #include "util/watcher/FileWatchService.h"
 
 #include "editor/mainEditor.h"
-#include "editor/asset/editor_asset_manager.h"
-#include "editor/asset/editor_runtime_asset_bridge.h"
+#include "editor/asset/Manager/editor_asset_manager.h"
 #include "editor/main_editor/EditorCompositionRoot.h"
 
 #include "render/backend/render_backend.h"

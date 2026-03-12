@@ -93,8 +93,8 @@ SString join_path(STextView base, STextView part) {
     return normalize_path(SString::from_utf8(combined.string()));
 }
 
-SString normalize_asset_path(const SString &path) {
-    SString normalized = path;
+SString normalize_asset_path(STextView path) {
+    SString normalized{path};
     std::ranges::replace(normalized, '\\', '/');
 
     std::ranges::transform(normalized, normalized.begin(),

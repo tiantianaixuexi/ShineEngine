@@ -540,9 +540,9 @@ namespace shine::editor::asset
             return nullptr;
         }
 
-        auto asset = std::static_pointer_cast<AssetBase>(result.asset);
-        RegisterAsset(asset);
-        return asset;
+
+        RegisterAsset(result.asset);
+        return result.asset;
     }
 
     shine::StringId AssetRegistry::InternString(shine::STextView text)

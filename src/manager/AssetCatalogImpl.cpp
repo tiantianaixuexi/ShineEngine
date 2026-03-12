@@ -16,7 +16,7 @@ namespace shine::manager
         return true;
     }
 
-    AssetHandle AssetCatalogImpl::BuildHandle(uint64_t id, EAssetType type, const std::string& path) const
+    AssetHandle AssetCatalogImpl::BuildHandle(uint64_t id, EAssetType type, STextView path) const
     {
         AssetHandle handle;
         handle.id = id;
@@ -25,7 +25,7 @@ namespace shine::manager
         return handle;
     }
 
-    AssetHandle AssetCatalogImpl::RegisterRuntimeAsset(EAssetType type, const std::string& logicalPath, std::unique_ptr<IRuntimeAsset> asset)
+    AssetHandle AssetCatalogImpl::RegisterRuntimeAsset(EAssetType type, STextView logicalPath, std::unique_ptr<IRuntimeAsset> asset)
     {
         if (!asset)
         {
@@ -36,7 +36,7 @@ namespace shine::manager
         runtimeAssetTypes_[handle.id] = type;
         if (!logicalPath.empty())
         {
-            pathToHandle_[util::normalize_asset_path(logicalPath)] = handle.id;
+            pathToHandle_[util::normalize_asset_path(logicalPath).c_str()] = handle.id;
         }
         return handle;
     }
@@ -55,10 +55,10 @@ namespace shine::manager
         return it->second.get();
     }
 
-    AssetHandle AssetCatalogImpl::GetAssetHandleByPath(const std::string& filePath) const
+    AssetHandle AssetCatalogImpl::GetAssetHandleByPath(STextView filePath) const
     {
-        const auto normalizedPath = util::normalize_asset_path(filePath);
-        auto it = pathToHandle_.find(normalizedPath);
+        const auto normalizedPath = util::normalize_asset_path(filePath.data());
+        auto it = pathToHandle_.find(normalizedPath.data());
         if (it == pathToHandle_.end())
         {
             return {};
@@ -122,7 +122,7 @@ namespace shine::manager
         runtimeAssetTypes_.erase(handle.id);
         if (!handle.path.empty())
         {
-            pathToHandle_.erase(util::normalize_asset_path(handle.path));
+            pathToHandle_.erase(util::normalize_asset_path(handle.path.view()).c_str());
         }
     }
 

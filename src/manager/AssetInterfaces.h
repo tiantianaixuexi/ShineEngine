@@ -40,9 +40,9 @@ struct TextureResourceHandle {
 class IAssetImportPipeline {
 public:
     virtual ~IAssetImportPipeline()                                   = default;
-    virtual AssetHandle LoadTextureAsset(const std::string &filePath) = 0;
-    virtual AssetHandle LoadModel(const std::string &filePath)        = 0;
-    virtual AssetHandle LoadMapAsset(const std::string &filePath)     = 0;
+    virtual AssetHandle LoadTextureAsset(STextView filePath)          = 0;
+    virtual AssetHandle LoadModel(STextView filePath)                 = 0;
+    virtual AssetHandle LoadMapAsset(STextView filePath)              = 0;
 };
 
 class ITextureBridge {

@@ -51,7 +51,7 @@ namespace shine::util
             if (const auto executableDirectory = get_executable_directory();
                 executableDirectory.has_value() && !executableDirectory->empty())
             {
-                candidateRoots.emplace_back(*executableDirectory);
+                candidateRoots.emplace_back(executableDirectory->c_str());
             }
 
             for (const auto& candidate : candidateRoots)
@@ -107,7 +107,7 @@ namespace shine::util
         std::filesystem::path resolvedPath = directoryPath;
         if (!resolvedPath.is_absolute())
         {
-            resolvedPath = std::filesystem::path(join_path(projectRootDirectory_.string(), resolvedPath.string()));
+            resolvedPath = std::filesystem::path(join_path(STextView::from_string(projectRootDirectory_.string()), STextView::from_string(resolvedPath.string)).c_str());
         }
 
         std::error_code ec;

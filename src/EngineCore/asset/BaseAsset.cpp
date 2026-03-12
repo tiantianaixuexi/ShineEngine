@@ -338,10 +338,6 @@ namespace shine::editor::asset
         MarkDirty();
     }
 
-    shine::STextView AssetBase::GetClassName() const noexcept
-    {
-        return shine::STextView::from_literal("AssetBase");
-    }
 
     shine::AssetID AssetBase::GetID() const noexcept
     {

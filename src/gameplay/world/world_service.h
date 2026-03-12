@@ -21,7 +21,7 @@ namespace shine::gameplay::world
         bool Init(EngineContext& ctx) override;
         void Shutdown(EngineContext& ctx) override;
 
-        void createMapAsset(const std::string& mapName);
+        void               createMapAsset(STextView mapName);
         bool activateMapAsset(const manager::AssetHandle& mapHandle);
         [[nodiscard]] bool hasMap() const noexcept { return activeMapHandle_.isValid(); }
 
@@ -40,7 +40,7 @@ namespace shine::gameplay::world
         [[nodiscard]] std::vector<shine::gameplay::SObject*> getSelectedObjectsSnapshot() const override;
         bool isSelected(const shine::gameplay::SObject* obj) const override;
 
-        LevelAsset& ensureStreamingLevel(const std::string& levelName);
+        //LevelAsset& ensureStreamingLevel(const std::string& levelName);
         bool requestLoadLevelAsync(const std::string& levelName);
         bool requestUnloadLevel(const std::string& levelName);
         void tickStreaming();

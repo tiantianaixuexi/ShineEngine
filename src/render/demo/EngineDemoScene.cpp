@@ -74,8 +74,8 @@ namespace shine::render::demo
             auto* map = worldService->getActiveMap();
             if (map)
             {
-                map->getWorldSettings().gravityZ = -980.0f;
-                map->getWorldSettings().timeDilation = 1.0f;
+               // map->getWorldSettings().gravityZ = -980.0f;
+                //map->getWorldSettings().timeDilation = 1.0f;
 
                 auto& subLevel = worldService->ensureStreamingLevel("Gameplay_SubLevel_A");
                 subLevel.actorDefinitions = {

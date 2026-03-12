@@ -10,8 +10,7 @@
 #include "loader/model/gltfLoader.h"
 #include "loader/model/objLoader.h"
 #include "manager/AssetCatalogImpl.h"
-#include "util/file_util.ixx"
-#include "util/string_util.ixx"
+#include "util/encoding/url_util.h"
 #include "util/timer/FunctionTimer.h"
 
 namespace shine::manager
@@ -21,24 +20,24 @@ namespace shine::manager
     {
     }
 
-    AssetHandle AssetImportPipelineImpl::LoadTextureAsset(const std::string& filePath)
+    AssetHandle AssetImportPipelineImpl::LoadTextureAsset(STextView filePath)
     {
         shine::util::FunctionTimer timer("AssetManager::LoadTextureAsset", shine::util::TimerPrecision::Nanoseconds);
         const auto loadedHandle = catalog_.GetAssetHandleByPath(filePath);
         if (loadedHandle.isValid())
         {
-            return { .id = loadedHandle.id, .generation = loadedHandle.generation, .type = EAssetType::Image, .path = filePath, .fromPackage = loadedHandle.fromPackage };
+            return { .id = loadedHandle.id, .generation = loadedHandle.generation, .type = EAssetType::Image, .path = filePath.data(), .fromPackage = loadedHandle.fromPackage };
         }
 
-        std::string ext = util::StringUtil::NormalizeFileExtension(filePath);
-        auto loader = CreateImageLoader(ext);
+        SString ext    =  *util::getURIExtension(filePath);
+        auto        loader = CreateImageLoader(ext.c_str());
         if (!loader)
         {
             fmt::print("AssetManager: 不支持的图片格式: {}\n", filePath);
             return {};
         }
 
-        if (!loader->loadFromFile(filePath.c_str()))
+        if (!loader->loadFromFile(filePath.data()))
         {
             fmt::print(FMT_STRING("AssetManager: 图片文件加载失败: {} - 错误: {}\n"), filePath, static_cast<int>(loader->getLastError()));
             return {};
@@ -51,12 +50,12 @@ namespace shine::manager
             return {};
         }
 
-        return catalog_.RegisterRuntimeAsset(EAssetType::Image, filePath, std::make_unique<RuntimeImageAsset>(filePath, std::move(loader)));
+        return catalog_.RegisterRuntimeAsset(EAssetType::Image, filePath, std::make_unique<RuntimeImageAsset>(filePath.data(), std::move(loader)));
     }
 
     AssetHandle AssetImportPipelineImpl::LoadImageFromMemory(const void* data, size_t size, const std::string& formatHint)
     {
-        shine::util::FunctionTimer timer("AssetManager::LoadImageFromMemory", shine::util::TimerPrecision::Nanoseconds);
+      /*  shine::util::FunctionTimer timer("AssetManager::LoadImageFromMemory", shine::util::TimerPrecision::Nanoseconds);
         std::string format = formatHint.empty() ? DetectImageFormat(data, size) : formatHint;
         if (format.empty())
         {
@@ -75,49 +74,54 @@ namespace shine::manager
         }
 
         const auto memoryPath = fmt::format("memory://image/{}", catalog_.PeekNextHandleId());
-        return catalog_.RegisterRuntimeAsset(EAssetType::Image, memoryPath, std::make_unique<RuntimeImageAsset>(memoryPath, std::move(loader)));
+        return catalog_.RegisterRuntimeAsset(EAssetType::Image, memoryPath, std::make_unique<RuntimeImageAsset>(memoryPath, std::move(loader)));*/
+        
+        AssetHandle a;
+        return a;
     }
 
-    AssetHandle AssetImportPipelineImpl::LoadModel(const std::string& filePath)
+    AssetHandle AssetImportPipelineImpl::LoadModel(STextView filePath)
     {
         return LoadModel(filePath, nullptr);
     }
 
-    AssetHandle AssetImportPipelineImpl::LoadModel(const std::string& filePath, loader::IModelLoader::ProgressCallback progressCallback)
+    AssetHandle AssetImportPipelineImpl::LoadModel(STextView filePath, loader::IModelLoader::ProgressCallback progressCallback)
     {
-        shine::util::FunctionTimer timer("AssetManager::LoadModel", shine::util::TimerPrecision::Nanoseconds);
-        const auto loadedHandle = catalog_.GetAssetHandleByPath(filePath);
-        if (loadedHandle.isValid())
-        {
-            return { .id = loadedHandle.id, .generation = loadedHandle.generation, .type = EAssetType::Model, .path = filePath, .fromPackage = loadedHandle.fromPackage };
-        }
+        //shine::util::FunctionTimer timer("AssetManager::LoadModel", shine::util::TimerPrecision::Nanoseconds);
+        //const auto loadedHandle = catalog_.GetAssetHandleByPath(filePath);
+        //if (loadedHandle.isValid())
+        //{
+        //    return { .id = loadedHandle.id, .generation = loadedHandle.generation, .type = EAssetType::Model, .path = filePath, .fromPackage = loadedHandle.fromPackage };
+        //}
 
-        std::string ext = util::StringUtil::NormalizeFileExtension(filePath);
-        if (!util::file_exists(SString::from_utf8(filePath)))
-        {
-            return {};
-        }
+        //std::string ext = NormalizeFileExtension(filePath);
+        //if (!util::file_exists(SString::from_utf8(filePath)))
+        //{
+        //    return {};
+        //}
 
-        auto loader = CreateModelLoader(ext);
-        if (!loader)
-        {
-            return {};
-        }
-        if (progressCallback)
-        {
-            loader->setProgressCallback(std::move(progressCallback));
-        }
-        if (!loader->loadFromFile(filePath.c_str()))
-        {
-            return {};
-        }
+        //auto loader = CreateModelLoader(ext);
+        //if (!loader)
+        //{
+        //    return {};
+        //}
+        //if (progressCallback)
+        //{
+        //    loader->setProgressCallback(std::move(progressCallback));
+        //}
+        //if (!loader->loadFromFile(filePath.c_str()))
+        //{
+        //    return {};
+        //}
 
-        return catalog_.RegisterRuntimeAsset(EAssetType::Model, filePath, std::make_unique<RuntimeModelAsset>(filePath, std::move(loader)));
+        //return catalog_.RegisterRuntimeAsset(EAssetType::Model, filePath, std::make_unique<RuntimeModelAsset>(filePath, std::move(loader)));
+        AssetHandle a;
+        return a;
     }
 
-    AssetHandle AssetImportPipelineImpl::LoadMapAsset(const std::string& filePath)
+    AssetHandle AssetImportPipelineImpl::LoadMapAsset(STextView filePath)
     {
-        const auto loadedHandle = catalog_.GetAssetHandleByPath(filePath);
+ /*       const auto loadedHandle = catalog_.GetAssetHandleByPath(filePath);
         if (loadedHandle.isValid())
         {
             return { .id = loadedHandle.id, .generation = loadedHandle.generation, .type = EAssetType::Map, .path = filePath, .fromPackage = loadedHandle.fromPackage };
@@ -129,8 +133,12 @@ namespace shine::manager
             mapName = fmt::format("Map_{}", catalog_.PeekNextHandleId());
         }
 
-        auto mapAsset = std::make_unique<gameplay::world::MapAsset>(mapName, filePath);
-        return catalog_.RegisterRuntimeAsset(EAssetType::Map, filePath, std::make_unique<RuntimeMapAsset>(std::move(mapAsset)));
+        auto mapAsset = std::make_unique<gameplay::world::MapAsset>(mapName, filePath);*/
+ 
+        //return catalog_.RegisterRuntimeAsset(EAssetType::Map, filePath, std::make_unique<RuntimeMapAsset>(std::move(mapAsset)));
+
+        AssetHandle a;
+        return a;
     }
 
     std::unique_ptr<loader::IImageLoader> AssetImportPipelineImpl::CreateImageLoader(const std::string& format) const

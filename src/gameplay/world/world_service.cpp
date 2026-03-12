@@ -5,6 +5,9 @@
 #include <thread>
 
 #include "EngineCore/engine_context.h"
+#include "gameplay/actor.h"
+#include "gameplay/object.h"
+#include "gameplay/objectFlag.h"
 #include "gameplay/component/StaticMeshComponent.h"
 #include "gameplay/component/TransformComponent.h"
 #include "gameplay/mesh/StaticMesh.h"
@@ -16,8 +19,7 @@ namespace shine::gameplay::world
     {
         for (uint32_t objectId : selectedObjectIds_)
         {
-            const auto it = actorIndex_.find(objectId);
-            if (it != actorIndex_.end() && it->second)
+            if (const auto it = actorIndex_.find(objectId); it != actorIndex_.end() && it->second)
             {
                 it->second->setFlag(shine::gameplay::EObjectFlags::OF_Selected, false);
             }
@@ -99,7 +101,7 @@ namespace shine::gameplay::world
         actorIndex_.clear();
     }
 
-    void WorldService::createMapAsset(const std::string& mapName)
+    void WorldService::createMapAsset(STextView mapName)
     {
         if (!worldAssetBridge_)
         {
@@ -107,12 +109,12 @@ namespace shine::gameplay::world
             return;
         }
         clearSelection();
-        const std::string mapPath = "memory://map/" + mapName + ".map";
+        STextView mapPath = "memory://map/" + mapName + ".map";
         activeMapHandle_ = worldAssetBridge_->LoadMapAsset(mapPath);
         auto* map = worldAssetBridge_->GetMapAsset(activeMapHandle_);
         if (map)
         {
-            map->setName(mapName);
+           // map->setName(mapName);
         }
         rebuildActorIndex();
     }
@@ -173,11 +175,11 @@ namespace shine::gameplay::world
             return;
         }
         auto* actorPtr = actor.get();
-        map->persistentLevel().loadedActors.push_back(std::move(actor));
-        if (actorPtr)
+        //map->persistentLevel().loadedActors.push_back(std::move(actor));
+       /* if (actorPtr)
         {
             actorIndex_[actorPtr->getObjectId()] = actorPtr;
-        }
+        }*/
     }
 
     bool WorldService::removeActor(shine::gameplay::SObject* actor)
@@ -197,7 +199,7 @@ namespace shine::gameplay::world
             removeSelectionInternal(actor);
         }
 
-        auto eraseFrom = [actor](std::vector<std::unique_ptr<shine::gameplay::SActor>>& actors)
+     /*   auto eraseFrom = [actor](std::vector<std::unique_ptr<shine::gameplay::SActor>>& actors)
         {
             const auto oldSize = actors.size();
             actors.erase(
@@ -222,7 +224,7 @@ namespace shine::gameplay::world
                 actorIndex_.erase(actor->getObjectId());
                 return true;
             }
-        }
+        }*/
         return false;
     }
 
@@ -251,23 +253,23 @@ namespace shine::gameplay::world
             {
                 if (actor)
                 {
-                    snapshot.push_back(actor.get());
+                //    snapshot.push_back(actor.get());
                 }
             }
         };
 
-        appendActors(map->persistentLevel().loadedActors);
+      /*  appendActors(map->persistentLevel().loadedActors);
         for (const auto& level : map->streamingLevels())
         {
             if (level.state == LevelAsset::StreamingState::Loaded)
             {
                 appendActors(level.loadedActors);
             }
-        }
+        }*/
         return snapshot;
     }
 
-    LevelAsset& WorldService::ensureStreamingLevel(const std::string& levelName)
+   /* LevelAsset& WorldService::ensureStreamingLevel(const std::string& levelName)
     {
         auto* map = getActiveMap();
         if (!map)
@@ -282,23 +284,23 @@ namespace shine::gameplay::world
             return fallbackLevel;
         }
         return map->addStreamingLevel(levelName);
-    }
+    }*/
 
     bool WorldService::requestLoadLevelAsync(const std::string& levelName)
     {
-        auto& level = ensureStreamingLevel(levelName);
-        if (level.state == LevelAsset::StreamingState::Loaded || level.state == LevelAsset::StreamingState::Loading)
-        {
-            return false;
-        }
+        //auto& level = ensureStreamingLevel(levelName);
+        //if (level.state == LevelAsset::StreamingState::Loaded || level.state == LevelAsset::StreamingState::Loading)
+        //{
+        //    return false;
+        //}
 
-        level.state = LevelAsset::StreamingState::Loading;
-        const auto defs = level.actorDefinitions;
-        level.loadingTask = std::async(std::launch::async, [defs]()
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            return defs;
-        });
+        //level.state = LevelAsset::StreamingState::Loading;
+        //const auto defs = level.actorDefinitions;
+        //level.loadingTask = std::async(std::launch::async, [defs]()
+        //{
+        //    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        //    return defs;
+        //});
         return true;
     }
 
@@ -309,15 +311,15 @@ namespace shine::gameplay::world
         {
             return false;
         }
-        auto* level = map->findStreamingLevel(levelName);
-        if (!level)
-        {
-            return false;
-        }
-        level->loadedActors.clear();
-        level->state = LevelAsset::StreamingState::Unloaded;
-        rebuildActorIndex();
-        pruneSelection();
+        //auto* level = map->findStreamingLevel(levelName);
+        //if (!level)
+        //{
+        //    return false;
+        //}
+        //level->loadedActors.clear();
+        //level->state = LevelAsset::StreamingState::Unloaded;
+        //rebuildActorIndex();
+        //pruneSelection();
         return true;
     }
 
@@ -329,7 +331,7 @@ namespace shine::gameplay::world
             return;
         }
 
-        for (auto& level : map->streamingLevels())
+     /*   for (auto& level : map->streamingLevels())
         {
             if (level.state != LevelAsset::StreamingState::Loading || !level.loadingTask.valid())
             {
@@ -353,7 +355,7 @@ namespace shine::gameplay::world
             level.state = LevelAsset::StreamingState::Loaded;
             rebuildActorIndex();
             pruneSelection();
-        }
+        }*/
     }
 
     void WorldService::rebuildActorIndex()
@@ -365,14 +367,14 @@ namespace shine::gameplay::world
             return;
         }
 
-        indexActorVector(map->persistentLevel().loadedActors);
+        /*indexActorVector(map->persistentLevel().loadedActors);
         for (const auto& level : map->streamingLevels())
         {
             if (level.state == LevelAsset::StreamingState::Loaded)
             {
                 indexActorVector(level.loadedActors);
             }
-        }
+        }*/
         pruneSelection();
     }
 
@@ -382,7 +384,7 @@ namespace shine::gameplay::world
         {
             if (actor)
             {
-                actorIndex_[actor->getObjectId()] = actor.get();
+                //actorIndex_[actor->getObjectId()] = actor.get();
             }
         }
     }

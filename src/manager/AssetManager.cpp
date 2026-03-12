@@ -29,7 +29,7 @@ namespace shine::manager
         UnloadAllAssets();
     }
 
-    AssetHandle AssetManager::RegisterRuntimeAsset(EAssetType type, const std::string& logicalPath, std::unique_ptr<IRuntimeAsset> asset)
+    AssetHandle AssetManager::RegisterRuntimeAsset(EAssetType type, STextView  logicalPath, std::unique_ptr<IRuntimeAsset> asset)
     {
         return catalog_->RegisterRuntimeAsset(type, logicalPath, std::move(asset));
     }
@@ -39,7 +39,7 @@ namespace shine::manager
         return catalog_->GetRuntimeAsset(handle);
     }
 
-    AssetHandle AssetManager::LoadTextureAsset(const std::string& filePath)
+    AssetHandle AssetManager::LoadTextureAsset(STextView filePath)
     {
         return importPipeline_->LoadTextureAsset(filePath);
     }
@@ -54,7 +54,7 @@ namespace shine::manager
         return catalog_->GetImageLoader(handle);
     }
 
-    std::shared_ptr<image::STexture> AssetManager::LoadTexture(const std::string& filePath)
+    std::shared_ptr<image::STexture> AssetManager::LoadTexture(STextView  filePath)
     {
         auto assetHandle = LoadTextureAsset(filePath);
         if (!assetHandle.isValid())
@@ -69,12 +69,12 @@ namespace shine::manager
         return texture;
     }
 
-    AssetHandle AssetManager::LoadModel(const std::string& filePath)
+    AssetHandle AssetManager::LoadModel(STextView  filePath)
     {
         return importPipeline_->LoadModel(filePath);
     }
 
-    AssetHandle AssetManager::LoadModel(const std::string& filePath, loader::IModelLoader::ProgressCallback progressCallback)
+    AssetHandle AssetManager::LoadModel(STextView  filePath, loader::IModelLoader::ProgressCallback progressCallback)
     {
         return importPipeline_->LoadModel(filePath, std::move(progressCallback));
     }
@@ -118,7 +118,7 @@ namespace shine::manager
         return meshes[meshIndex];
     }
 
-    std::expected<loader::MeshData, std::string> AssetManager::LoadModelMesh(const std::string& filePath, size_t meshIndex, loader::IModelLoader::ProgressCallback progressCallback)
+    std::expected<loader::MeshData, std::string> AssetManager::LoadModelMesh(STextView  filePath, size_t meshIndex, loader::IModelLoader::ProgressCallback progressCallback)
     {
         auto handle = LoadModel(filePath, std::move(progressCallback));
         if (!handle.isValid())
@@ -128,7 +128,7 @@ namespace shine::manager
         return GetModelMesh(handle, meshIndex);
     }
 
-    AssetHandle AssetManager::LoadMapAsset(const std::string& filePath)
+    AssetHandle AssetManager::LoadMapAsset(STextView  filePath)
     {
         return importPipeline_->LoadMapAsset(filePath);
     }
@@ -160,7 +160,7 @@ namespace shine::manager
         return catalog_->IsAssetLoaded(handle);
     }
 
-    AssetHandle AssetManager::GetAssetHandleByPath(const std::string& filePath) const
+    AssetHandle AssetManager::GetAssetHandleByPath(STextView  filePath) const
     {
         return catalog_->GetAssetHandleByPath(filePath);
     }
@@ -180,7 +180,7 @@ namespace shine::manager
         return textureBridge_->CreateTextureResource(imageAsset);
     }
 
-    TextureResourceHandle AssetManager::CreateTextureResourceByPath(const std::string& filePath)
+    TextureResourceHandle AssetManager::CreateTextureResourceByPath(STextView filePath)
     {
         return textureBridge_->CreateTextureResourceByPath(filePath);
     }
