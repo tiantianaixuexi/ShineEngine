@@ -77,11 +77,11 @@ namespace shine::render::demo
                // map->getWorldSettings().gravityZ = -980.0f;
                 //map->getWorldSettings().timeDilation = 1.0f;
 
-                auto& subLevel = worldService->ensureStreamingLevel("Gameplay_SubLevel_A");
-                subLevel.actorDefinitions = {
-                    {"SubLevelCube_A", gameplay::world::ActorArchetype::StaticMeshCube, {-4.0f, 0.3f, 0.2f}, {0.8f, 0.8f, 0.8f}},
-                    {"SubLevelSphere_A", gameplay::world::ActorArchetype::StaticMeshSphere, {-3.0f, -0.7f, 1.3f}, {0.6f, 0.6f, 0.6f}}
-                };
+                // auto& subLevel = worldService->ensureStreamingLevel("Gameplay_SubLevel_A");
+                // subLevel.actorDefinitions = {
+                //     {"SubLevelCube_A", gameplay::world::ActorArchetype::StaticMeshCube, {-4.0f, 0.3f, 0.2f}, {0.8f, 0.8f, 0.8f}},
+                //     {"SubLevelSphere_A", gameplay::world::ActorArchetype::StaticMeshSphere, {-3.0f, -0.7f, 1.3f}, {0.6f, 0.6f, 0.6f}}
+                // };
                 worldService->requestLoadLevelAsync("Gameplay_SubLevel_A");
             }
         }

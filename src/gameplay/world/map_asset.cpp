@@ -40,11 +40,6 @@ namespace shine::gameplay::world
     MapAsset::MapAsset(shine::SString mapName, const shine::SString& logicalPath)
         : persistentLevel_(CreatePersistentLevelDefinition())
     {
-        Init(
-            shine::InvalidAssetID,
-            std::move(mapName),
-            logicalPath,
-            shine::EAssetKind::World);
     }
 
     WorldSettings& MapAsset::GetWorldSettings() noexcept
@@ -60,7 +55,6 @@ namespace shine::gameplay::world
     void MapAsset::SetWorldSettings(const WorldSettings& settings)
     {
         worldSettings_ = settings;
-        MarkDirty();
     }
 
     void MapAsset::SetGravityZ(float gravityZ)
@@ -71,7 +65,6 @@ namespace shine::gameplay::world
         }
 
         worldSettings_.gravityZ = gravityZ;
-        MarkDirty();
     }
 
     void MapAsset::SetTimeDilation(float timeDilation)
@@ -82,7 +75,6 @@ namespace shine::gameplay::world
         }
 
         worldSettings_.timeDilation = timeDilation;
-        MarkDirty();
     }
 
     void MapAsset::SetGlobalIlluminationEnabled(bool enabled)
@@ -93,7 +85,6 @@ namespace shine::gameplay::world
         }
 
         worldSettings_.enableGlobalIllumination = enabled;
-        MarkDirty();
     }
 
     LevelDefinition& MapAsset::GetPersistentLevel() noexcept
@@ -154,7 +145,6 @@ namespace shine::gameplay::world
         definition.initiallyLoaded = initiallyLoaded;
 
         streamingLevels_.push_back(std::move(definition));
-        MarkDirty();
         return streamingLevels_.back();
     }
 
@@ -168,10 +158,6 @@ namespace shine::gameplay::world
             });
 
         const bool removed = oldSize != streamingLevels_.size();
-        if (removed)
-        {
-            MarkDirty();
-        }
 
         return removed;
     }
@@ -184,13 +170,11 @@ namespace shine::gameplay::world
         }
 
         streamingLevels_.clear();
-        MarkDirty();
     }
 
     ActorSpawnDefinition& MapAsset::AddActorToPersistentLevel(const ActorSpawnDefinition& definition)
     {
         persistentLevel_.actorDefinitions.push_back(definition);
-        MarkDirty();
         return persistentLevel_.actorDefinitions.back();
     }
 
@@ -204,17 +188,12 @@ namespace shine::gameplay::world
         }
 
         level->actorDefinitions.push_back(definition);
-        MarkDirty();
         return level->actorDefinitions.back();
     }
 
     bool MapAsset::RemoveActorFromPersistentLevel(shine::STextView actorName)
     {
         const bool removed = RemoveActorByName(persistentLevel_.actorDefinitions, actorName);
-        if (removed)
-        {
-            MarkDirty();
-        }
 
         return removed;
     }
@@ -228,10 +207,6 @@ namespace shine::gameplay::world
         }
 
         const bool removed = RemoveActorByName(level->actorDefinitions, actorName);
-        if (removed)
-        {
-            MarkDirty();
-        }
 
         return removed;
     }

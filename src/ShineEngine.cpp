@@ -36,7 +36,6 @@ int main(int argc, char **argv) {
 #include "gameplay/tick/tickManager.h"
 #include "gameplay/world/world_service.h"
 
-#include "manager/AssetManager.h"
 #include "manager/CameraManager.h"
 
 #include "platform/InitWindows.h"
@@ -49,7 +48,6 @@ int main(int argc, char **argv) {
 #include "util/watcher/FileWatchService.h"
 
 #include "editor/mainEditor.h"
-#include "editor/asset/Manager/editor_asset_manager.h"
 #include "editor/main_editor/EditorCompositionRoot.h"
 
 #include "render/backend/render_backend.h"
@@ -100,7 +98,6 @@ int main(int argc, char **argv) {
     context.Register(new input::InputManager());
     context.Register(new util::FPSController());
     context.Register(new util::EngineDirectoryService());
-    context.Register(new manager::AssetManager());
     editor::main_editor::EditorCompositionRoot::RegisterEditorSystems(context);
     context.Register(new manager::CameraManager());
     context.Register(new util::watcher::FileWatchService());

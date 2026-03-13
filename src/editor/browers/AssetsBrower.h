@@ -11,10 +11,7 @@
 
 namespace shine::editor::asset
 {
-    class AssetDirectoryService;
-    class EditorAssetManager;
-    class EditorRuntimeAssetBridge;
-    struct EditorAssetRecord;
+    class EditorAssetRegistry;
 }
 
 namespace shine::editor::assets_brower 
@@ -25,6 +22,8 @@ namespace shine::editor::assets_brower
         public:
             shine::SString title = "资产浏览器";
             
+            void SetEditorAssetRegistry(shine::editor::asset::EditorAssetRegistry* registry) { editorAssetRegistry_ = registry; }
+
             void onInit() override;
             void onRender() override;
             void onShutDown() override;
@@ -39,7 +38,6 @@ namespace shine::editor::assets_brower
             bool RenameEntry(const std::filesystem::path& sourcePath, const shine::SString& newName);
             bool DeleteEntry(const std::filesystem::path& path);
             bool MoveEntry(const std::filesystem::path& sourcePath, const std::filesystem::path& destinationDirectory);
-            std::optional<editor::asset::EditorAssetRecord> FindAssetRecordByPath(const std::filesystem::path& path) const;
             void SyncAssetRecordMove(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
             void SyncAssetRecordDelete(const std::filesystem::path& path);
             shine::SString ToDisplayText(const std::filesystem::path& path) const;
@@ -50,9 +48,6 @@ namespace shine::editor::assets_brower
             std::filesystem::path selectedDirectory_;
             std::filesystem::path selectedEntryPath_;
             std::filesystem::path contextEntryPath_;
-            editor::asset::AssetDirectoryService* assetDirectoryService_ = nullptr;
-            editor::asset::EditorAssetManager* editorAssetManager_ = nullptr;
-            editor::asset::EditorRuntimeAssetBridge* runtimeAssetBridge_ = nullptr;
             std::vector<int> filteredEntryIndices_;
             char searchBuffer_[128]{};
             char renameBuffer_[256]{};
@@ -63,7 +58,6 @@ namespace shine::editor::assets_brower
             bool requestDeletePopup_ = false;
             bool requestMovePopup_ = false;
 
- 
+        shine::editor::asset::EditorAssetRegistry* editorAssetRegistry_ = nullptr;
     };
-
-} // namespace shine::editor::assets_brower
+}

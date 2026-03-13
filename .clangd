@@ -19,6 +19,7 @@ CompileFlags:
     - "src/third/imgui"
     - "-I"
     - "src/third/imgui/backends"
+    - "-Wno-c++98-compat"
   Remove:
     - "--target=wasm32-unknown-emscripten"
     - "-fvisibility=default"

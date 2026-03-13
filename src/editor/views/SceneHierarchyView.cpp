@@ -53,7 +53,7 @@ void SceneHierarchyView::onRender() {
 
     ImGui::SameLine();
     const auto selectedObjects = worldService_ ? worldService_->getSelectedObjectsSnapshot() : std::vector<shine::gameplay::SObject*>{};
-    const bool canDelete = std::any_of(selectedObjects.begin(), selectedObjects.end(), [this](const shine::gameplay::SObject* obj) {
+    const bool canDelete = std::ranges::any_of(selectedObjects, [this](const shine::gameplay::SObject* obj) {
         return isEditorOwned(obj);
     });
     if (!canDelete) {
@@ -103,28 +103,28 @@ void SceneHierarchyView::refreshObjects() {
     }
 
     auto objects = worldService_->getAllActorsSnapshot();
-    std::sort(objects.begin(), objects.end(), [](const shine::gameplay::SObject* a, const shine::gameplay::SObject* b) {
+    std::ranges::sort(objects, [](const shine::gameplay::SObject* a, const shine::gameplay::SObject* b) {
         return a->getName() < b->getName();
     });
 
     std::string filter = searchBuffer_;
-    std::transform(filter.begin(), filter.end(), filter.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::ranges::transform(filter, filter.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
     for (auto* obj : objects) {
-        if (!obj) {
-            continue;
-        }
-        if (filter.empty()) {
-            visibleObjects_.push_back(obj);
-            continue;
-        }
+        // if (!obj) {
+        //     continue;
+        // }
+        // if (filter.empty()) {
+        //     visibleObjects_.push_back(obj);
+        //     continue;
+        // }
 
-        std::string objectName = obj->getName();
-        std::string className = obj->getClassName();
-        std::transform(objectName.begin(), objectName.end(), objectName.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        std::transform(className.begin(), className.end(), className.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        if (objectName.find(filter) != std::string::npos || className.find(filter) != std::string::npos) {
-            visibleObjects_.push_back(obj);
-        }
+        // STextView objectName = obj->getName();
+        // std::string className = obj->getClassName();
+        // std::ranges::transform(objectName, objectName.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        // std::ranges::transform(className, className.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        // if (objectName.find(filter) != std::string::npos || className.find(filter) != std::string::npos) {
+        //     visibleObjects_.push_back(obj);
+        // }
     }
 }
 
@@ -134,7 +134,7 @@ void SceneHierarchyView::RenderObjectNode(shine::gameplay::SObject* obj, int ind
     }
 
     const bool isSelected = worldService_ && worldService_->isSelected(obj);
-    const std::string displayName = obj->getName().empty() ? fmt::format("Object_{}", index) : obj->getName();
+    const std::string displayName = obj->getName().empty() ? fmt::format("Object_{}", index) : obj->getName().to_string();
     const std::string label = fmt::format("{} [{}]", displayName, obj->getClassName());
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
     if (isSelected) {
@@ -158,7 +158,7 @@ void SceneHierarchyView::RenderObjectNode(shine::gameplay::SObject* obj, int ind
     if (ImGui::BeginPopupContextItem()) {
         contextObject_ = obj;
         if (ImGui::MenuItem("重命名")) {
-            std::snprintf(renameBuffer_, sizeof(renameBuffer_), "%s", obj->getName().c_str());
+            std::snprintf(renameBuffer_, sizeof(renameBuffer_), "%s", obj->getName().data());
             ImGui::OpenPopup("SceneRenamePopup");
         }
         const bool owned = isEditorOwned(obj);
@@ -180,7 +180,7 @@ void SceneHierarchyView::createEmptyActor() {
         return;
     }
     auto actor = std::make_unique<shine::gameplay::EmptyActor>();
-    actor->setName(fmt::format("EmptyActor_{}", nextEmptyActorId_++));
+    actor->setName(STextView::from_string(fmt::format("EmptyActor_{}", nextEmptyActorId_++)));
     actor->addComponent<shine::gameplay::component::TransformComponent>();
     auto* actorPtr = actor.get();
     worldService_->addActorToPersistentLevel(std::move(actor));
@@ -192,7 +192,7 @@ void SceneHierarchyView::createStaticMeshActor() {
         return;
     }
     auto actor = std::make_unique<shine::gameplay::StaticMeshActor>();
-    actor->setName(fmt::format("StaticMeshActor_{}", nextStaticMeshActorId_++));
+    actor->setName(STextView::from_string(fmt::format("StaticMeshActor_{}", nextStaticMeshActorId_++)));
     auto* transform = actor->addComponent<shine::gameplay::component::TransformComponent>();
     transform->setScale({0.35f, 0.35f, 0.35f});
     auto* meshComp = actor->addComponent<shine::gameplay::component::StaticMeshComponent>();
@@ -232,7 +232,7 @@ bool SceneHierarchyView::isEditorOwned(const shine::gameplay::SObject* obj) cons
         return false;
     }
     const auto name = obj->getName();
-    return name.rfind("EmptyActor_", 0) == 0 || name.rfind("StaticMeshActor_", 0) == 0;
+    return name.find_last_of("EmptyActor_", 0) == 0 || name.find_last_of("StaticMeshActor_", 0) == 0;
 }
 
 } // namespace shine::editor::views

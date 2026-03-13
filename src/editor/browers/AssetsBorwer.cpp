@@ -7,9 +7,8 @@
 #include <string>
 
 #include "EngineCore/engine_context.h"
-#include "editor/asset/AssetDirectoryService.h"
-#include "editor/asset/manager/editor_asset_manager.h"
-#include "editor/asset/editor_runtime_asset_bridge.h"
+#include "editor/ShineAsset/EditorAssetRegistry.h"
+#include "util/EngineDirectoryService.h"
 #include "util/path_util.h"
 
 namespace shine::editor::assets_brower
@@ -19,31 +18,25 @@ namespace shine::editor::assets_brower
         SetName(title.to_string());
         if (EngineContext::IsInitialized())
         {
-            assetDirectoryService_ = EngineContext::Get().GetSystem<editor::asset::AssetDirectoryService>();
-            editorAssetManager_ = EngineContext::Get().GetSystem<editor::asset::EditorAssetManager>();
-            runtimeAssetBridge_ = EngineContext::Get().GetSystem<editor::asset::EditorRuntimeAssetBridge>();
-        }
-        if (assetDirectoryService_)
-        {
-            assetDirectoryService_->RefreshIfDirty();
-            selectedDirectory_ = assetDirectoryService_->GetContentRootPath();
+            auto& ctx = EngineContext::Get();
+            editorAssetRegistry_ = ctx.GetSystem<shine::editor::asset::EditorAssetRegistry>();
+
+            auto* dirService = ctx.GetSystem<util::EngineDirectoryService>();
+            if (dirService && !dirService->GetContentDirectory().empty())
+            {
+                selectedDirectory_ = dirService->GetContentDirectory();
+            }
         }
     }
 
     void AssetsBrower::onRender()
     {
-        if (assetDirectoryService_)
-        {
-            assetDirectoryService_->RefreshIfDirty();
-        }
         if (ImGui::Begin(name.c_str(), &isOpen))
         {
             if (ImGui::BeginMenuBar())
             {
-                if (ImGui::MenuItem("刷新") && assetDirectoryService_)
+                if (ImGui::MenuItem("刷新"))
                 {
-                    assetDirectoryService_->ForceRefresh();
-                    assetDirectoryService_->RefreshIfDirty();
                 }
                 if (ImGui::BeginMenu("视图"))
                 {
@@ -56,15 +49,11 @@ namespace shine::editor::assets_brower
 
             ImGui::BeginChild("AssetsTree", ImVec2(260, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX);
             ImGui::InputTextWithHint("##asset_search", "搜索文件", searchBuffer_, sizeof(searchBuffer_));
-            const std::filesystem::path contentRootPath = assetDirectoryService_ ? assetDirectoryService_->GetContentRootPath() : std::filesystem::path{};
-            if (ImGui::TreeNodeEx(ToDisplayText(contentRootPath).c_str(), ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow))
+            if (ImGui::TreeNodeEx("Content", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow))
             {
-                if (assetDirectoryService_)
+                if (!selectedDirectory_.empty())
                 {
-                    for (const auto& path : assetDirectoryService_->GetRootDirectories())
-                    {
-                        RenderDirectoryNode(path);
-                    }
+                    RenderDirectoryNode(selectedDirectory_);
                 }
                 ImGui::TreePop();
             }
@@ -86,17 +75,10 @@ namespace shine::editor::assets_brower
 
     void AssetsBrower::onShutDown()
     {
-        assetDirectoryService_ = nullptr;
-        editorAssetManager_ = nullptr;
-        runtimeAssetBridge_ = nullptr;
     }
 
     void AssetsBrower::RenderDirectoryNode(const std::filesystem::path& path)
     {
-        if (!assetDirectoryService_)
-        {
-            return;
-        }
 
         std::error_code ec;
         const bool selected = std::filesystem::equivalent(path, selectedDirectory_, ec);
@@ -116,16 +98,35 @@ namespace shine::editor::assets_brower
             return;
         }
 
-        for (const auto& childPath : assetDirectoryService_->GetChildDirectories(path))
         {
-            RenderDirectoryNode(childPath);
+            std::vector<std::filesystem::path> childDirs;
+            std::error_code iterEc;
+            for (const auto& fse : std::filesystem::directory_iterator(path, iterEc))
+            {
+                std::error_code isDirEc;
+                if (fse.is_directory(isDirEc))
+                {
+                    childDirs.push_back(fse.path());
+                }
+            }
+            for (const auto& childPath : childDirs)
+            {
+                RenderDirectoryNode(childPath);
+            }
         }
         ImGui::TreePop();
     }
 
     void AssetsBrower::RenderAssetGrid()
     {
-        const auto& entries = assetDirectoryService_ ? assetDirectoryService_->GetEntries(selectedDirectory_) : std::vector<std::filesystem::directory_entry>{};
+        std::vector<std::filesystem::directory_entry> entries;
+        {
+            std::error_code scanEc;
+            for (const auto& fse : std::filesystem::directory_iterator(selectedDirectory_.empty() ? std::filesystem::path{} : selectedDirectory_, scanEc))
+            {
+                entries.push_back(fse);
+            }
+        }
         filteredEntryIndices_.clear();
         filteredEntryIndices_.reserve(entries.size());
         for (int i = 0; i < static_cast<int>(entries.size()); ++i)
@@ -290,11 +291,7 @@ namespace shine::editor::assets_brower
             if (ImGui::Button("确认"))
             {
                 std::filesystem::path targetDirectory = std::filesystem::path(moveTargetBuffer_);
-                if (!targetDirectory.is_absolute() && assetDirectoryService_)
-                {
-                    targetDirectory = assetDirectoryService_->GetContentRootPath() / targetDirectory;
-                }
-                if (MoveEntry(contextEntryPath_, targetDirectory))
+        if (MoveEntry(contextEntryPath_, targetDirectory))
                 {
                     ImGui::CloseCurrentPopup();
                 }
@@ -314,8 +311,38 @@ namespace shine::editor::assets_brower
         }
         if (ImGui::BeginPopupModal("AssetDeletePopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
         {
-            ImGui::TextUnformatted("确认删除该资产?");
-            if (ImGui::Button("删除"))
+            // Check for dependents before allowing deletion
+            bool hasDependents = false;
+            if (editorAssetRegistry_ && contextEntryPath_.extension() == ".sasset")
+            {
+                const auto* assetEntry = editorAssetRegistry_->FindByPath(contextEntryPath_);
+                if (assetEntry)
+                {
+                    const auto& dependents = editorAssetRegistry_->GetDependents(assetEntry->uuid);
+                    if (!dependents.empty())
+                    {
+                        hasDependents = true;
+                        ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.2f, 1.0f),
+                            "⚠ 该资产被 %zu 个其他资产依赖!", dependents.size());
+                        ImGui::TextUnformatted("依赖的资产:");
+                        for (const auto& depUuid : dependents)
+                        {
+                            const auto* depEntry = editorAssetRegistry_->Find(depUuid);
+                            if (depEntry)
+                                ImGui::BulletText("%s (%s)", depEntry->diskPath.c_str(), depEntry->record.type.c_str());
+                            else
+                                ImGui::BulletText("%s", depUuid.c_str());
+                        }
+                        ImGui::Separator();
+                        ImGui::TextUnformatted("确认强制删除? 这会导致悬挂引用!");
+                    }
+                }
+            }
+
+            if (!hasDependents)
+                ImGui::TextUnformatted("确认删除该资产?");
+
+            if (ImGui::Button(hasDependents ? "强制删除" : "删除"))
             {
                 if (DeleteEntry(contextEntryPath_))
                 {
@@ -340,19 +367,26 @@ namespace shine::editor::assets_brower
             selectedEntryPath_.clear();
             return;
         }
-        auto record = FindAssetRecordByPath(entry.path());
-        if (!record.has_value() || !runtimeAssetBridge_)
+
+        // Look up asset record via the editor registry
+        if (editorAssetRegistry_)
         {
-            return;
+            const auto* assetEntry = editorAssetRegistry_->FindByPath(entry.path());
+            if (assetEntry)
+            {
+                // Dispatch based on asset type
+                const auto& type = assetEntry->record.type;
+                if (type == "world")
+                {
+                    // TODO: Load world map via WorldService
+                }
+                else if (type == "material")
+                {
+                    // TODO: Open material editor
+                }
+                // Other asset types can be handled here
+            }
         }
-        if (record->type == editor::asset::EEditorAssetType::Scene)
-        {
-            auto result = runtimeAssetBridge_->ActivateWorldMapByEditorId(record->assetID);
-            (void)result;
-            return;
-        }
-        auto result = runtimeAssetBridge_->LoadRuntimeAssetByEditorId(record->assetID);
-        (void)result;
     }
 
     bool AssetsBrower::RenameEntry(const std::filesystem::path& sourcePath, const shine::SString& newName)
@@ -380,11 +414,6 @@ namespace shine::editor::assets_brower
         if (contextEntryPath_ == sourcePath)
         {
             contextEntryPath_ = targetPath;
-        }
-        if (assetDirectoryService_)
-        {
-            assetDirectoryService_->ForceRefresh();
-            assetDirectoryService_->RefreshIfDirty();
         }
         return true;
     }
@@ -417,11 +446,6 @@ namespace shine::editor::assets_brower
         {
             contextEntryPath_.clear();
         }
-        if (assetDirectoryService_)
-        {
-            assetDirectoryService_->ForceRefresh();
-            assetDirectoryService_->RefreshIfDirty();
-        }
         return true;
     }
 
@@ -452,177 +476,22 @@ namespace shine::editor::assets_brower
         {
             contextEntryPath_ = targetPath;
         }
-        if (assetDirectoryService_)
-        {
-            assetDirectoryService_->ForceRefresh();
-            assetDirectoryService_->RefreshIfDirty();
-        }
         return true;
-    }
-
-    std::optional<editor::asset::EditorAssetRecord> AssetsBrower::FindAssetRecordByPath(const std::filesystem::path& path) const
-    {
-        if (!editorAssetManager_)
-        {
-            return std::nullopt;
-        }
-        std::vector<std::string> candidates;
-        candidates.push_back(path.generic_string());
-        if (assetDirectoryService_)
-        {
-            std::error_code ec;
-            const auto rel = std::filesystem::relative(path, assetDirectoryService_->GetContentRootPath(), ec);
-            if (!ec)
-            {
-                candidates.push_back(rel.generic_string());
-            }
-        }
-        for (const auto& candidate : candidates)
-        {
-            auto result = editorAssetManager_->GetAssetRecordByPath(candidate);
-            if (result.has_value())
-            {
-                return result.value();
-            }
-        }
-        return std::nullopt;
     }
 
     void AssetsBrower::SyncAssetRecordMove(const std::filesystem::path& oldPath, const std::filesystem::path& newPath)
     {
-        if (!editorAssetManager_)
+        if (editorAssetRegistry_)
         {
-            return;
-        }
-        const bool sourceIsDirectory = std::filesystem::is_directory(oldPath);
-        std::string oldAbsolute = util::normalize_asset_path(oldPath.generic_string());
-        std::string newAbsolute = util::normalize_asset_path(newPath.generic_string());
-        std::string oldRelative;
-        std::string newRelative;
-        if (assetDirectoryService_)
-        {
-            std::error_code ec;
-            oldRelative = util::normalize_asset_path(std::filesystem::relative(oldPath, assetDirectoryService_->GetContentRootPath(), ec).generic_string());
-            ec = {};
-            newRelative = util::normalize_asset_path(std::filesystem::relative(newPath, assetDirectoryService_->GetContentRootPath(), ec).generic_string());
-        }
-        if (newRelative.empty())
-        {
-            newRelative = newAbsolute;
-        }
-
-        auto remapField = [&](std::string& field) {
-            auto normalized = util::normalize_asset_path(field);
-            if (normalized.empty())
-            {
-                return false;
-            }
-            if (!sourceIsDirectory)
-            {
-                if (normalized == oldAbsolute || (!oldRelative.empty() && normalized == oldRelative))
-                {
-                    field = newRelative;
-                    return true;
-                }
-                return false;
-            }
-
-            auto remapPrefix = [&](const std::string& fromPrefix, const std::string& toPrefix) {
-                if (fromPrefix.empty())
-                {
-                    return false;
-                }
-                if (normalized == fromPrefix)
-                {
-                    field = toPrefix;
-                    return true;
-                }
-                if (normalized.starts_with(fromPrefix + "/"))
-                {
-                    field = toPrefix + normalized.substr(fromPrefix.size());
-                    return true;
-                }
-                return false;
-            };
-            if (remapPrefix(oldRelative, newRelative))
-            {
-                return true;
-            }
-            return remapPrefix(oldAbsolute, newAbsolute);
-        };
-
-        auto allRecords = editorAssetManager_->GetAllAssetRecords();
-        for (auto& record : allRecords)
-        {
-            bool changed = false;
-            changed |= remapField(record.logicalPath);
-            changed |= remapField(record.sourcePath);
-            changed |= remapField(record.packagePath);
-            if (!changed)
-            {
-                continue;
-            }
-            editorAssetManager_->UpsertAssetRecord(record);
-            if (const auto runtimeAsset = editorAssetManager_->GetAsset(record.assetID))
-            {
-                runtimeAsset->SetPath(record.logicalPath.empty() ? record.sourcePath : record.logicalPath);
-            }
+            editorAssetRegistry_->OnFileMoved(oldPath, newPath);
         }
     }
 
     void AssetsBrower::SyncAssetRecordDelete(const std::filesystem::path& path)
     {
-        if (!editorAssetManager_)
+        if (editorAssetRegistry_)
         {
-            return;
-        }
-        const bool deletingDirectory = std::filesystem::is_directory(path);
-        if (!deletingDirectory)
-        {
-            auto record = FindAssetRecordByPath(path);
-            if (!record.has_value())
-            {
-                return;
-            }
-            editorAssetManager_->RemoveAsset(record->assetID);
-            return;
-        }
-
-        std::string absolutePrefix = util::normalize_asset_path(path.generic_string());
-        std::string relativePrefix;
-        if (assetDirectoryService_)
-        {
-            std::error_code ec;
-            relativePrefix = util::normalize_asset_path(std::filesystem::relative(path, assetDirectoryService_->GetContentRootPath(), ec).generic_string());
-        }
-
-        auto allRecords = editorAssetManager_->GetAllAssetRecords();
-        for (const auto& record : allRecords)
-        {
-            auto underPrefix = [&](const std::string& candidate) {
-                const auto normalized = util::normalize_asset_path(candidate);
-                if (normalized.empty())
-                {
-                    return false;
-                }
-                auto matchPrefix = [&](const std::string& prefix) {
-                    if (prefix.empty())
-                    {
-                        return false;
-                    }
-                    if (normalized == prefix)
-                    {
-                        return true;
-                    }
-                    return normalized.starts_with(prefix + "/");
-                };
-                return matchPrefix(relativePrefix) || matchPrefix(absolutePrefix);
-            };
-
-            if (underPrefix(record.logicalPath) || underPrefix(record.sourcePath) || underPrefix(record.packagePath))
-            {
-                editorAssetManager_->RemoveAsset(record.assetID);
-            }
+            editorAssetRegistry_->OnFileDeleted(path);
         }
     }
 
@@ -639,7 +508,7 @@ namespace shine::editor::assets_brower
     bool AssetsBrower::PassesSearchFilter(const std::filesystem::path& path) const
     {
         std::string filter = searchBuffer_;
-        std::transform(filter.begin(), filter.end(), filter.begin(), [](unsigned char c) {
+        std::ranges::transform(filter, filter.begin(), [](unsigned char c) {
             return static_cast<char>(std::tolower(c));
         });
         if (filter.empty())
@@ -647,7 +516,7 @@ namespace shine::editor::assets_brower
             return true;
         }
         auto lower = ToDisplayText(path.filename()).to_string();
-        std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) {
+        std::ranges::transform(lower, lower.begin(), [](unsigned char c) {
             return static_cast<char>(std::tolower(c));
         });
         return lower.find(filter) != std::string::npos;

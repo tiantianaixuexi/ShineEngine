@@ -1,0 +1,39 @@
+{
+  "name": "ShineAssetTest",
+  "files": [
+    "dev/test/ShineAssetTest/ShineAssetTest.cpp"
+  ],
+  "deps": [
+    "fmt",
+    "glaze",
+    "ShineAsset"
+  ],
+  "defines": [
+    "TEST_BUILD"
+  ],
+  "link": {
+    "debug": {
+      "lib": [
+        "mimallocd.lib",
+        "bcrypt.lib"
+      ]
+    },
+    "release": {
+      "lib": [
+        "mimalloc.lib",
+        "bcrypt.lib"
+      ]
+    }
+  },
+  "type": [
+    "exe"
+  ],
+  "platform": [
+    "Windows"
+  ],
+  "buildMode": [
+    "both"
+  ],
+  "output": "exe/ShineAssetTest.exe",
+  "comment": "资产系统单元测试：依赖图、元数据序列化、运行时注册表、编辑器注册表"
+}

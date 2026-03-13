@@ -30,5 +30,6 @@
   "buildMode": [
     "both"
   ],
-  "output": "exe/SimplePerfTest.exe"
+  "output": "exe/SimplePerfTest.exe",
+  "comment": "用来测试字符串性能的"
 }

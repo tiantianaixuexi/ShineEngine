@@ -10,11 +10,12 @@
 #include "string/shine_string.h"
 #include "string/shine_text_view.h"
 
+#include "loader/model/gltf/ShineGltf.h"
+
 #include "math/vector.ixx"
 #include "math/quat.h"
 
 #include "util/timer/FunctionTimer.h"
-#include "util/file_util.ixx"
 #include "util/image_util.h"
 #include "util/path_util.h"
 
@@ -48,104 +49,7 @@ namespace shine::loader
             (void)initialized;
         }
 
-        bool tinygltf_file_exists(const std::string& path, void*)
-        {
-            return util::file_exists(STextView(path));
-        }
-
-        std::string tinygltf_expand_path(const std::string& path, void*)
-        {
-            return path;
-        }
-
-        bool tinygltf_read_whole_file(std::vector<unsigned char>* out, std::string* err, const std::string& path, void*)
-        {
-            auto readResult = util::read_file_bytes(STextView(path));
-            if (!readResult.has_value())
-            {
-                if (err)
-                {
-                    *err = readResult.error().c_str();
-                }
-                return false;
-            }
-
-            const auto& bytes = readResult.value();
-            out->resize(bytes.size());
-            if (!bytes.empty())
-            {
-                std::memcpy(out->data(), bytes.data(), bytes.size());
-            }
-            return true;
-        }
-
-        bool tinygltf_write_whole_file(std::string* err, const std::string&, const std::vector<unsigned char>&, void*)
-        {
-            if (err)
-            {
-                *err = "写入未启用";
-            }
-            return false;
-        }
-
-        bool tinygltf_get_file_size(size_t* filesize_out, std::string* err, const std::string& path, void*)
-        {
-            const uint64_t size = util::GetFileSize(STextView(path));
-            if (size == 0 && !util::file_exists(STextView(path)))
-            {
-                if (err)
-                {
-                    *err = fmt::format("文件不存在: {}", path);
-                }
-                return false;
-            }
-            *filesize_out = static_cast<size_t>(size);
-            return true;
-        }
-
-        bool tinygltf_decode_uri(const std::string& in_uri, std::string* out_uri, void*)
-        {
-            *out_uri = in_uri;
-            return true;
-        }
-
-        bool tinygltf_load_image(tinygltf::Image* image, const int, std::string* err, std::string*, int, int, const unsigned char* bytes, int size, void*)
-        {
-            if (!image || !bytes || size <= 0)
-            {
-                if (err)
-                {
-                    *err = "图像数据为空";
-                }
-                return false;
-            }
-
-            std::span<const std::byte> encoded(reinterpret_cast<const std::byte*>(bytes), static_cast<size_t>(size));
-            auto decoded = util::load_image_from_memory(encoded, 4);
-            if (!decoded.has_value())
-            {
-                if (err)
-                {
-                    *err = decoded.error();
-                }
-                return false;
-            }
-
-            auto& imageData = decoded.value();
-            image->width = imageData.width;
-            image->height = imageData.height;
-            image->component = imageData.channels;
-            image->bits = 8;
-            image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
-            image->image.resize(imageData.data.size());
-            if (!imageData.data.empty())
-            {
-                std::memcpy(image->image.data(), imageData.data.data(), imageData.data.size());
-            }
-            return true;
-        }
-
-        bool get_accessor_view(const tinygltf::Model& model, int accessorIndex, AccessorView& outView)
+        bool get_accessor_view(const gltf::GltfModel& model, int accessorIndex, AccessorView& outView)
         {
             ensure_gltf_loader_log_categories();
             if (accessorIndex < 0 || accessorIndex >= static_cast<int>(model.accessors.size()))
@@ -154,7 +58,7 @@ namespace shine::loader
                 return false;
             }
 
-            const auto& accessor = model.accessors[accessorIndex];
+            const auto& accessor = model.accessors[static_cast<size_t>(accessorIndex)];
             if (accessor.bufferView < 0 || accessor.bufferView >= static_cast<int>(model.bufferViews.size()))
             {
                 SHINE_LOG_WARN(
@@ -168,7 +72,7 @@ namespace shine::loader
                 return false;
             }
 
-            const auto& bufferView = model.bufferViews[accessor.bufferView];
+            const auto& bufferView = model.bufferViews[static_cast<size_t>(accessor.bufferView)];
             if (bufferView.buffer < 0 || bufferView.buffer >= static_cast<int>(model.buffers.size()))
             {
                 SHINE_LOG_WARN(
@@ -182,7 +86,7 @@ namespace shine::loader
                 return false;
             }
 
-            const auto& buffer = model.buffers[bufferView.buffer];
+            const auto& buffer = model.buffers[static_cast<size_t>(bufferView.buffer)];
             const size_t byteOffset = bufferView.byteOffset + accessor.byteOffset;
             if (byteOffset >= buffer.data.size())
             {
@@ -197,9 +101,8 @@ namespace shine::loader
                 return false;
             }
 
-            const int strideValue = accessor.ByteStride(bufferView);
-            int componentSize = tinygltf::GetComponentSizeInBytes(static_cast<uint32_t>(accessor.componentType));
-            int components = tinygltf::GetNumComponentsInType(static_cast<uint32_t>(accessor.type));
+            const int componentSize = gltf::GetComponentSizeInBytes(static_cast<u32>(accessor.componentType));
+            const int components    = gltf::GetNumComponentsInType(static_cast<u32>(accessor.type));
             if (componentSize <= 0 || components <= 0)
             {
                 SHINE_LOG_WARN(
@@ -211,6 +114,10 @@ namespace shine::loader
                     accessor.type);
                 return false;
             }
+
+            const int strideValue = (bufferView.byteStride == 0)
+                ? componentSize * components
+                : static_cast<int>(bufferView.byteStride);
 
             outView.data = buffer.data.data() + byteOffset;
             outView.stride = (strideValue > 0) ? static_cast<size_t>(strideValue) : static_cast<size_t>(componentSize * components);
@@ -225,31 +132,31 @@ namespace shine::loader
         {
             switch (componentType)
             {
-                case TINYGLTF_COMPONENT_TYPE_BYTE:
+                case gltf::COMPONENT_TYPE_BYTE:
                 {
                     int8_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
                     return std::max(-1.0f, static_cast<float>(value) / 127.0f);
                 }
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+                case gltf::COMPONENT_TYPE_UNSIGNED_BYTE:
                 {
                     uint8_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
                     return static_cast<float>(value) / 255.0f;
                 }
-                case TINYGLTF_COMPONENT_TYPE_SHORT:
+                case gltf::COMPONENT_TYPE_SHORT:
                 {
                     int16_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
                     return std::max(-1.0f, static_cast<float>(value) / 32767.0f);
                 }
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+                case gltf::COMPONENT_TYPE_UNSIGNED_SHORT:
                 {
                     uint16_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
                     return static_cast<float>(value) / 65535.0f;
                 }
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+                case gltf::COMPONENT_TYPE_UNSIGNED_INT:
                 {
                     uint32_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
@@ -269,49 +176,49 @@ namespace shine::loader
 
             switch (componentType)
             {
-                case TINYGLTF_COMPONENT_TYPE_FLOAT:
+                case gltf::COMPONENT_TYPE_FLOAT:
                 {
                     float value = 0.0f;
                     std::memcpy(&value, data, sizeof(value));
                     return value;
                 }
-                case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+                case gltf::COMPONENT_TYPE_DOUBLE:
                 {
                     double value = 0.0;
                     std::memcpy(&value, data, sizeof(value));
                     return static_cast<float>(value);
                 }
-                case TINYGLTF_COMPONENT_TYPE_BYTE:
+                case gltf::COMPONENT_TYPE_BYTE:
                 {
                     int8_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
                     return static_cast<float>(value);
                 }
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+                case gltf::COMPONENT_TYPE_UNSIGNED_BYTE:
                 {
                     uint8_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
                     return static_cast<float>(value);
                 }
-                case TINYGLTF_COMPONENT_TYPE_SHORT:
+                case gltf::COMPONENT_TYPE_SHORT:
                 {
                     int16_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
                     return static_cast<float>(value);
                 }
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+                case gltf::COMPONENT_TYPE_UNSIGNED_SHORT:
                 {
                     uint16_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
                     return static_cast<float>(value);
                 }
-                case TINYGLTF_COMPONENT_TYPE_INT:
+                case gltf::COMPONENT_TYPE_INT:
                 {
                     int32_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
                     return static_cast<float>(value);
                 }
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+                case gltf::COMPONENT_TYPE_UNSIGNED_INT:
                 {
                     uint32_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
@@ -326,19 +233,19 @@ namespace shine::loader
         {
             switch (componentType)
             {
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+                case gltf::COMPONENT_TYPE_UNSIGNED_BYTE:
                 {
                     uint8_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
                     return static_cast<uint32_t>(value);
                 }
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+                case gltf::COMPONENT_TYPE_UNSIGNED_SHORT:
                 {
                     uint16_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
                     return static_cast<uint32_t>(value);
                 }
-                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+                case gltf::COMPONENT_TYPE_UNSIGNED_INT:
                 {
                     uint32_t value = 0;
                     std::memcpy(&value, data, sizeof(value));
@@ -388,135 +295,78 @@ namespace shine::loader
         return loader.extractMeshDataByIndex(meshIndex);
     }
 
-    bool gltfLoader::hasBinaryMagic(const unsigned char* bytes, size_t size)
-    {
-        return size >= 4 && bytes[0] == 'g' && bytes[1] == 'l' && bytes[2] == 'T' && bytes[3] == 'F';
-    }
-
-    bool gltfLoader::parseFromMemory(const unsigned char* bytes, size_t size, bool preferBinary)
-    {
-        ensure_gltf_loader_log_categories();
-        tinygltf::TinyGLTF loader;
-        tinygltf::FsCallbacks fsCallbacks;
-        fsCallbacks.FileExists = tinygltf_file_exists;
-        fsCallbacks.ExpandFilePath = tinygltf_expand_path;
-        fsCallbacks.ReadWholeFile = tinygltf_read_whole_file;
-        fsCallbacks.WriteWholeFile = tinygltf_write_whole_file;
-        fsCallbacks.GetFileSizeInBytes = tinygltf_get_file_size;
-        fsCallbacks.user_data = nullptr;
-
-        tinygltf::URICallbacks uriCallbacks;
-        uriCallbacks.encode = nullptr;
-        uriCallbacks.decode = tinygltf_decode_uri;
-        uriCallbacks.user_data = nullptr;
-
-        std::string callbackErr;
-        if (!loader.SetFsCallbacks(fsCallbacks, &callbackErr))
-        {
-            setError(EAssetLoaderError::INVALID_FORMAT, callbackErr);
-            return false;
-        }
-
-        if (!loader.SetURICallbacks(uriCallbacks, &callbackErr))
-        {
-            setError(EAssetLoaderError::INVALID_FORMAT, callbackErr);
-            return false;
-        }
-
-        loader.SetImageLoader(tinygltf_load_image, nullptr);
-        loader.SetPreserveImageChannels(false);
-        loader.SetImagesAsIs(false);
-
-        std::string err;
-        std::string warn;
-        bool parseOk = false;
-
-        if (preferBinary)
-        {
-            parseOk = loader.LoadBinaryFromMemory(&_model, &err, &warn, bytes, static_cast<unsigned int>(size), _basePath.to_string(), tinygltf::REQUIRE_VERSION);
-            if (!parseOk)
-            {
-                parseOk = loader.LoadASCIIFromString(&_model, &err, &warn, reinterpret_cast<const char*>(bytes), static_cast<unsigned int>(size), _basePath.to_string(), tinygltf::REQUIRE_VERSION);
-            }
-        }
-        else
-        {
-            parseOk = loader.LoadASCIIFromString(&_model, &err, &warn, reinterpret_cast<const char*>(bytes), static_cast<unsigned int>(size), _basePath.to_string(), tinygltf::REQUIRE_VERSION);
-            if (!parseOk)
-            {
-                parseOk = loader.LoadBinaryFromMemory(&_model, &err, &warn, bytes, static_cast<unsigned int>(size), _basePath.to_string(), tinygltf::REQUIRE_VERSION);
-            }
-        }
-
-        if (!warn.empty())
-        {
-            SHINE_LOG_WARN(GltfLoaderLog, "parse", "warning: {}", warn);
-        }
-
-        if (!parseOk)
-        {
-            if (!err.empty())
-            {
-                SHINE_LOG_ERROR(GltfLoaderLog, "parse", "parse error: {}", err);
-            }
-            setError(EAssetLoaderError::PARSE_ERROR, err);
-            return false;
-        }
-
-        if (!_model.extensionsUsed.empty())
-        {
-            SString extensionList;
-            for (size_t i = 0; i < _model.extensionsUsed.size(); ++i)
-            {
-                if (i > 0)
-                {
-                    extensionList += ",";
-                }
-                extensionList += STextView(_model.extensionsUsed[i]);
-            }
-            SHINE_LOG_INFO(GltfLoaderLog, "parse", "extensionsUsed={}", extensionList.sv());
-        }
-
-        return true;
-    }
-
     bool gltfLoader::loadImagesForModel()
     {
         for (auto& image : _model.images)
         {
+            // Already decoded (has dimensions and pixel data)
             if (!image.image.empty() && image.width > 0 && image.height > 0)
             {
                 continue;
             }
 
-            if (image.uri.empty())
+            if (!image.uri.empty())
             {
-                continue;
-            }
+                // URI image: load and decode from file path
+                SString imagePath = image.uri;
+                if (!_basePath.empty() && !util::is_absolute_path(imagePath.view()))
+                {
+                    imagePath = util::join_path(_basePath.view(), image.uri.view());
+                }
 
-            SString imagePath = SString::from_utf8(image.uri);
-            if (!_basePath.empty() && !util::is_absolute_path(imagePath.view()))
-            {
-                imagePath = util::join_path(_basePath.view(), STextView(image.uri));
-            }
+                auto imageResult = util::load_image(imagePath.sv(), 4);
+                if (!imageResult.has_value())
+                {
+                    setError(EAssetLoaderError::PARSE_ERROR, imageResult.error());
+                    return false;
+                }
 
-            auto imageResult = util::load_image(STextView(imagePath.sv()), 4);
-            if (!imageResult.has_value())
-            {
-                setError(EAssetLoaderError::PARSE_ERROR, imageResult.error());
-                return false;
+                auto& decoded = imageResult.value();
+                image.width     = decoded.width;
+                image.height    = decoded.height;
+                image.component = decoded.channels;
+                image.bits      = 8;
+                image.pixel_type = static_cast<int>(gltf::COMPONENT_TYPE_UNSIGNED_BYTE);
+                image.image.resize(decoded.data.size());
+                if (!decoded.data.empty())
+                {
+                    std::memcpy(image.image.data(), decoded.data.data(), decoded.data.size());
+                }
             }
-
-            auto& decoded = imageResult.value();
-            image.width = decoded.width;
-            image.height = decoded.height;
-            image.component = decoded.channels;
-            image.bits = 8;
-            image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
-            image.image.resize(decoded.data.size());
-            if (!decoded.data.empty())
+            else if (image.bufferView >= 0 && image.bufferView < static_cast<int>(_model.bufferViews.size()))
             {
-                std::memcpy(image.image.data(), decoded.data.data(), decoded.data.size());
+                // bufferView image: decode from buffer data already loaded by ShineGltf
+                const auto& bv = _model.bufferViews[static_cast<size_t>(image.bufferView)];
+                if (bv.buffer < 0 || bv.buffer >= static_cast<int>(_model.buffers.size()))
+                {
+                    continue;
+                }
+
+                const auto& bufData = _model.buffers[static_cast<size_t>(bv.buffer)].data;
+                if (bv.byteOffset + bv.byteLength > bufData.size())
+                {
+                    continue;
+                }
+
+                const auto rawSpan = std::as_bytes(
+                    std::span<const unsigned char>(bufData).subspan(bv.byteOffset, bv.byteLength));
+                auto decoded = util::load_image_from_memory(rawSpan, 4);
+                if (!decoded.has_value())
+                {
+                    setError(EAssetLoaderError::PARSE_ERROR, decoded.error());
+                    return false;
+                }
+
+                image.width     = decoded->width;
+                image.height    = decoded->height;
+                image.component = decoded->channels;
+                image.bits      = 8;
+                image.pixel_type = static_cast<int>(gltf::COMPONENT_TYPE_UNSIGNED_BYTE);
+                image.image.resize(decoded->data.size());
+                if (!decoded->data.empty())
+                {
+                    std::memcpy(image.image.data(), decoded->data.data(), decoded->data.size());
+                }
             }
         }
 
@@ -548,12 +398,26 @@ namespace shine::loader
         setState(EAssetLoadState::PARSING_DATA);
         notifyProgress(0.25f, "解析 glTF");
 
-        const auto* bytes = static_cast<const unsigned char*>(data);
-        const bool preferBinary = hasBinaryMagic(bytes, size);
-        if (!parseFromMemory(bytes, size, preferBinary))
+        gltf::ShineGltf gltfLoader;
+        const auto dataSpan = std::span<const std::byte>{static_cast<const std::byte*>(data), size};
+        auto parseResult = gltfLoader.LoadFromMemory(dataSpan, STextView{_basePath});
+        if (!parseResult)
         {
+            setError(EAssetLoaderError::PARSE_ERROR, parseResult.error().c_str());
             setState(EAssetLoadState::FAILD);
             return false;
+        }
+        _model = gltfLoader.TakeModel();
+
+        if (!_model.extensionsUsed.empty())
+        {
+            SString extensionList;
+            for (size_t i = 0; i < _model.extensionsUsed.size(); ++i)
+            {
+                if (i > 0) extensionList += ",";
+                extensionList += STextView(_model.extensionsUsed[i]);
+            }
+            SHINE_LOG_INFO(GltfLoaderLog, "parse", "extensionsUsed={}", extensionList.sv());
         }
 
         notifyProgress(0.65f, "加载图片资源");
@@ -584,23 +448,27 @@ namespace shine::loader
         isLoader = false;
         _basePath = util::get_directory(STextView(filePath));
 
-        auto fileResult = util::read_full_file(STextView(filePath));
-        if (!fileResult.has_value())
-        {
-            setError(EAssetLoaderError::FILE_NOT_FOUND, fileResult.error().c_str());
-            return false;
-        }
-
-        auto fileMapView = std::move(fileResult.value());
-        const auto* bytes = reinterpret_cast<const unsigned char*>(fileMapView.view.data());
-        const size_t size = fileMapView.view.size();
-        const bool preferBinary = hasBinaryMagic(bytes, size);
-
         notifyProgress(0.2f, "解析文件数据");
-        if (!parseFromMemory(bytes, size, preferBinary))
+
+        gltf::ShineGltf gltfLoader;
+        auto parseResult = gltfLoader.LoadFromFile(STextView(filePath));
+        if (!parseResult)
         {
+            setError(EAssetLoaderError::FILE_NOT_FOUND, parseResult.error().c_str());
             setState(EAssetLoadState::FAILD);
             return false;
+        }
+        _model = gltfLoader.TakeModel();
+
+        if (!_model.extensionsUsed.empty())
+        {
+            SString extensionList;
+            for (size_t i = 0; i < _model.extensionsUsed.size(); ++i)
+            {
+                if (i > 0) extensionList += ",";
+                extensionList += STextView(_model.extensionsUsed[i]);
+            }
+            SHINE_LOG_INFO(GltfLoaderLog, "parse", "extensionsUsed={}", extensionList.sv());
         }
 
         notifyProgress(0.65f, "加载图片资源");
@@ -618,13 +486,13 @@ namespace shine::loader
 
     void gltfLoader::unload()
     {
-        _model = tinygltf::Model();
+        _model = gltf::GltfModel{};
         isLoader = false;
         _basePath.clear();
         setState(EAssetLoadState::NONE);
     }
 
-    bool gltfLoader::appendPrimitiveMeshData(std::vector<MeshData>& meshes, const tinygltf::Primitive& primitive, const tinygltf::Node& node, STextView meshName) const
+    bool gltfLoader::appendPrimitiveMeshData(std::vector<MeshData>& meshes, const gltf::GltfPrimitive& primitive, const gltf::GltfNode& node, STextView meshName) const
     {
         const STextView meshNameView(meshName);
         auto positionIt = primitive.attributes.find("POSITION");
@@ -635,7 +503,7 @@ namespace shine::loader
         }
 
         AccessorView positionView;
-        if (!get_accessor_view(_model, positionIt->second, positionView) || positionView.type != TINYGLTF_TYPE_VEC3)
+        if (!get_accessor_view(_model, positionIt->second, positionView) || positionView.type != gltf::TYPE_VEC3)
         {
             SHINE_LOG_WARN(GltfLoaderLog, "extract", "skip primitive, invalid POSITION accessor, node='{}' mesh='{}' accessor={}", node.name, meshNameView.sv(), positionIt->second);
             return false;
@@ -664,7 +532,7 @@ namespace shine::loader
             meshData.rotation = q.toRotatorDegrees();
         }
 
-        const int positionComponentSize = tinygltf::GetComponentSizeInBytes(static_cast<uint32_t>(positionView.componentType));
+        const int positionComponentSize = gltf::GetComponentSizeInBytes(static_cast<u32>(positionView.componentType));
         for (size_t i = 0; i < positionView.count; ++i)
         {
             const unsigned char* p = positionView.data + i * positionView.stride;
@@ -678,10 +546,10 @@ namespace shine::loader
         if (normalIt != primitive.attributes.end())
         {
             AccessorView normalView;
-            if (get_accessor_view(_model, normalIt->second, normalView) && normalView.type == TINYGLTF_TYPE_VEC3 && normalView.count == positionView.count)
+            if (get_accessor_view(_model, normalIt->second, normalView) && normalView.type == gltf::TYPE_VEC3 && normalView.count == positionView.count)
             {
                 meshData.normals.reserve(normalView.count);
-                const int normalComponentSize = tinygltf::GetComponentSizeInBytes(static_cast<uint32_t>(normalView.componentType));
+                const int normalComponentSize = gltf::GetComponentSizeInBytes(static_cast<u32>(normalView.componentType));
                 for (size_t i = 0; i < normalView.count; ++i)
                 {
                     const unsigned char* p = normalView.data + i * normalView.stride;
@@ -701,10 +569,10 @@ namespace shine::loader
         if (texcoordIt != primitive.attributes.end())
         {
             AccessorView texcoordView;
-            if (get_accessor_view(_model, texcoordIt->second, texcoordView) && texcoordView.type == TINYGLTF_TYPE_VEC2 && texcoordView.count == positionView.count)
+            if (get_accessor_view(_model, texcoordIt->second, texcoordView) && texcoordView.type == gltf::TYPE_VEC2 && texcoordView.count == positionView.count)
             {
                 meshData.texcoords.reserve(texcoordView.count);
-                const int texComponentSize = tinygltf::GetComponentSizeInBytes(static_cast<uint32_t>(texcoordView.componentType));
+                const int texComponentSize = gltf::GetComponentSizeInBytes(static_cast<u32>(texcoordView.componentType));
                 for (size_t i = 0; i < texcoordView.count; ++i)
                 {
                     const unsigned char* p = texcoordView.data + i * texcoordView.stride;
@@ -724,12 +592,12 @@ namespace shine::loader
         {
             AccessorView colorView;
             if (get_accessor_view(_model, colorIt->second, colorView) &&
-                (colorView.type == TINYGLTF_TYPE_VEC3 || colorView.type == TINYGLTF_TYPE_VEC4) &&
+                (colorView.type == gltf::TYPE_VEC3 || colorView.type == gltf::TYPE_VEC4) &&
                 colorView.count == positionView.count)
             {
                 meshData.colors.reserve(colorView.count);
-                const int colorComponentSize = tinygltf::GetComponentSizeInBytes(static_cast<uint32_t>(colorView.componentType));
-                const int colorComponents = tinygltf::GetNumComponentsInType(static_cast<uint32_t>(colorView.type));
+                const int colorComponentSize = gltf::GetComponentSizeInBytes(static_cast<u32>(colorView.componentType));
+                const int colorComponents    = gltf::GetNumComponentsInType(static_cast<u32>(colorView.type));
                 for (size_t i = 0; i < colorView.count; ++i)
                 {
                     const unsigned char* p = colorView.data + i * colorView.stride;
@@ -753,7 +621,7 @@ namespace shine::loader
         if (primitive.indices >= 0)
         {
             AccessorView indexView;
-            if (!get_accessor_view(_model, primitive.indices, indexView) || indexView.type != TINYGLTF_TYPE_SCALAR)
+            if (!get_accessor_view(_model, primitive.indices, indexView) || indexView.type != gltf::TYPE_SCALAR)
             {
                 SHINE_LOG_WARN(GltfLoaderLog, "extract", "skip primitive, invalid index accessor, node='{}' mesh='{}' accessor={}", node.name, meshNameView.sv(), primitive.indices);
                 return false;
@@ -806,11 +674,11 @@ namespace shine::loader
             "extract",
             "extract begin, sceneIndex={} sceneRoots={} nodes={} meshes={}",
             sceneIndex,
-            _model.scenes[sceneIndex].nodes.size(),
+            _model.scenes[static_cast<size_t>(sceneIndex)].nodes.size(),
             _model.nodes.size(),
             _model.meshes.size());
 
-        const auto& scene = _model.scenes[sceneIndex];
+        const auto& scene = _model.scenes[static_cast<size_t>(sceneIndex)];
         std::function<void(int)> processNode = [&](int nodeIndex)
         {
             if (nodeIndex < 0 || nodeIndex >= static_cast<int>(_model.nodes.size()))
@@ -818,10 +686,10 @@ namespace shine::loader
                 return;
             }
 
-            const auto& node = _model.nodes[nodeIndex];
+            const auto& node = _model.nodes[static_cast<size_t>(nodeIndex)];
             if (node.mesh >= 0 && node.mesh < static_cast<int>(_model.meshes.size()))
             {
-                const auto& mesh = _model.meshes[node.mesh];
+                const auto& mesh = _model.meshes[static_cast<size_t>(node.mesh)];
                 std::string meshName = mesh.name.empty() ? node.name : mesh.name;
                 if (meshName.empty())
                 {
@@ -831,7 +699,7 @@ namespace shine::loader
                 for (size_t primitiveIndex = 0; primitiveIndex < mesh.primitives.size(); ++primitiveIndex)
                 {
                     const auto& primitive = mesh.primitives[primitiveIndex];
-                    if (primitive.mode != -1 && primitive.mode != TINYGLTF_MODE_TRIANGLES)
+                    if (primitive.mode != -1 && primitive.mode != 4) // 4 = TRIANGLES
                     {
                         SHINE_LOG_WARN(
                             GltfLoaderLog,
@@ -897,6 +765,6 @@ namespace shine::loader
         {
             return {};
         }
-        return _model.scenes[sceneIndex].nodes;
+        return _model.scenes[static_cast<size_t>(sceneIndex)].nodes;
     }
 }

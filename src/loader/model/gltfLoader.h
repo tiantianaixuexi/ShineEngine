@@ -9,7 +9,7 @@
 #include "string/shine_string.h"
 #include "string/shine_text_view.h"
 
-#include "third/tinygltf/tiny_gltf.h"
+#include "loader/model/gltf/ShineGltf.h"
 
 namespace shine::loader
 {
@@ -49,13 +49,11 @@ namespace shine::loader
         [[nodiscard]] std::vector<int> getSceneRootNodes(int sceneIndex) const;
 
     private:
-        bool parseFromMemory(const unsigned char* bytes, size_t size, bool preferBinary);
         bool loadImagesForModel();
-        bool appendPrimitiveMeshData(std::vector<MeshData>& meshes, const tinygltf::Primitive& primitive, const tinygltf::Node& node, STextView meshName) const;
-        static bool hasBinaryMagic(const unsigned char* bytes, size_t size);
+        bool appendPrimitiveMeshData(std::vector<MeshData>& meshes, const gltf::GltfPrimitive& primitive, const gltf::GltfNode& node, STextView meshName) const;
 
     private:
-        tinygltf::Model _model;
+        gltf::GltfModel _model;
         SString _basePath;
     };
 }

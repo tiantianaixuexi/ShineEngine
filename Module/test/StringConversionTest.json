@@ -1,0 +1,35 @@
+{
+    "name": "StringConversionTest",
+    "files": [
+        "dev/test/StringConversionTest/StringConversionTest.cpp"
+    ],
+    "deps": [
+        "fmt"
+    ],
+    "defines": [
+        "TEST_BUILD"
+    ],
+    "link": {
+        "debug": {
+            "lib": [
+                "mimallocd.lib"
+            ]
+        },
+        "release": {
+            "lib": [
+                "mimalloc.lib"
+            ]
+        }
+    },
+    "type": [
+        "exe"
+    ],
+    "platform": [
+        "Windows"
+    ],
+    "buildMode": [
+        "both"
+    ],
+    "output": "exe/StringConversionTest.exe",
+    "comment": "用来测试字符串隐式转换的"
+}

@@ -92,9 +92,14 @@ namespace shine
         }
 
         
-        [[nodiscard]] static constexpr STextView from_string(const std::string& s) noexcept {
+        [[nodiscard]] static constexpr STextView from_string(const std::string& s) noexcept
+        {
+            return STextView(s.data(), s.size());
+        }
 
-            return STextView(s.data(), s.size() - 1);
+        [[nodiscard]] static constexpr STextView from_sv(std::string_view sv) noexcept
+        {
+            return STextView(sv.data(), sv.size());
         }
 
         // -----------------------------------------------------
@@ -779,3 +784,17 @@ namespace shine
         return std::strong_ordering::equal;
     }
 }
+
+#if defined(__cpp_lib_format)
+#include <format>
+template <>
+struct std::formatter<shine::STextView, char> : std::formatter<std::string_view, char>
+{
+    auto format(const shine::STextView& v, std::format_context& ctx) const
+    {
+        // Use data()+size() directly — avoids the sv() call overhead.
+        return std::formatter<std::string_view, char>::format(
+            std::string_view(v.data(), v.size()), ctx);
+    }
+};
+#endif

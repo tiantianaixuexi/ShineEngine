@@ -10,6 +10,24 @@
 
 #include "shine_text_view.h"
 
+// Portable lifetime-bound annotation: warns when a returned view outlives *this
+#if defined(__clang__)
+#  define SHINE_LIFETIMEBOUND [[clang::lifetimebound]]
+#elif defined(_MSC_VER) && _MSC_VER >= 1929
+#  define SHINE_LIFETIMEBOUND [[msvc::lifetimebound]]
+#else
+#  define SHINE_LIFETIMEBOUND
+#endif
+
+// Force-inline hint: critical for hot path helpers (_assign_raw/_assign_from)
+#if defined(_MSC_VER)
+#  define SHINE_FORCE_INLINE __forceinline
+#elif defined(__GNUC__) || defined(__clang__)
+#  define SHINE_FORCE_INLINE __attribute__((always_inline)) inline
+#else
+#  define SHINE_FORCE_INLINE inline
+#endif
+
 namespace shine
 {
     class SString
@@ -176,7 +194,7 @@ namespace shine
         // views / conversion
         // ---------------------------------------------------------
 
-        constexpr operator STextView() const noexcept
+        constexpr operator STextView() const noexcept SHINE_LIFETIMEBOUND
         {
             return { data(), size() };
         }
@@ -916,7 +934,9 @@ namespace shine
 
         [[nodiscard]] size_type hash() const noexcept
         {
-            return std::hash<std::string_view>{}(sv());
+            // Use our own FNV-1a directly — avoids std::hash<string_view> dispatch,
+            // and stays consistent with static_hash().
+            return static_hash(sv());
         }
 
         [[nodiscard]] static constexpr size_type static_hash(std::string_view sv_arg) noexcept
@@ -1088,7 +1108,7 @@ namespace shine
             return result;
         }
 
-        void _assign_raw(const char* src, size_type len)
+        SHINE_FORCE_INLINE void _assign_raw(const char* src, size_type len)
         {
             if (src == nullptr || len == 0)
             {
@@ -1112,7 +1132,7 @@ namespace shine
             _storage.sso[kTagIndex] = static_cast<char>(kHeapFlag);
         }
 
-        void _assign_from(const char* src, size_type len)
+        SHINE_FORCE_INLINE void _assign_from(const char* src, size_type len)
         {
             if (src == nullptr || len == 0)
             {
@@ -1127,7 +1147,7 @@ namespace shine
             if (len <= kSsoCapacity)
             {
                 char* old_heap = _is_sso() ? nullptr : _storage.heap.ptr;
-                std::memcpy(_storage.sso.data(), src, len);
+                std::memmove(_storage.sso.data(), src, len); // memmove: src may alias SSO buffer
                 _storage.sso[len] = '\0';
                 _storage.sso[kTagIndex] = static_cast<char>(len);
                 delete[] old_heap;
@@ -1136,7 +1156,7 @@ namespace shine
 
             if (!_is_sso() && _storage.heap.cap >= len)
             {
-                std::memcpy(_storage.heap.ptr, src, len);
+                std::memmove(_storage.heap.ptr, src, len); // memmove: src may be a subview of heap
                 _storage.heap.ptr[len] = '\0';
                 _storage.heap.size = len;
                 return;
@@ -1271,6 +1291,21 @@ struct std::hash<shine::SString>
 {
     std::size_t operator()(const shine::SString& s) const noexcept
     {
-        return std::hash<std::string_view>{}(s.sv());
+        // Consistent with SString::hash() and static_hash() — single FNV-1a path.
+        return shine::SString::static_hash(s.sv());
     }
 };
+
+#if defined(__cpp_lib_format)
+#include <format>
+template <>
+struct std::formatter<shine::SString, char> : std::formatter<std::string_view, char>
+{
+    auto format(const shine::SString& s, std::format_context& ctx) const
+    {
+        // Use data()+size() directly — avoids the sv() call overhead.
+        return std::formatter<std::string_view, char>::format(
+            std::string_view(s.data(), s.size()), ctx);
+    }
+};
+#endif

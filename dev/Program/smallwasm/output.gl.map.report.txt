@@ -1,105 +1,106 @@
 ﻿smallwasm map report
-Map: E:\c++\ShineEngine\Program\smallwasm\output.gl.map
-Time: 2026-01-30 17:35:21
+Map: E:\c++\ShineEngine\dev\Program\smallwasm\output.gl.map
+Time: 2026-03-09 16:24:43
 
 Section summary
 ==============
-CODE                    20871 B   20.38 KB
-.rodata                  3264 B    3.19 KB
-.data                   34032 B   33.23 KB
-.bss                      208 B    0.20 KB
-CUSTOM(name)             7742 B    7.56 KB
-CUSTOM(producers)          66 B    0.06 KB
+CODE                    17526 B   17.12 KB
+.rodata                  3244 B    3.17 KB
+.data                    4584 B    4.48 KB
+.bss                      220 B    0.21 KB
+CUSTOM(name)             7580 B    7.40 KB
+CUSTOM(producers)         147 B    0.14 KB
 CUSTOM(target_features)    151 B    0.15 KB
-TYPE                      199 B    0.19 KB
-IMPORT                    900 B    0.88 KB
-EXPORT                    126 B    0.12 KB
+TYPE                      207 B    0.20 KB
+IMPORT                    887 B    0.87 KB
+EXPORT                    139 B    0.14 KB
 ELEM                       90 B    0.09 KB
-FUNCTION                  139 B    0.14 KB
+FUNCTION                  140 B    0.14 KB
 TABLE                       7 B    0.01 KB
 MEMORY                      5 B    0.00 KB
 GLOBAL                     10 B    0.01 KB
-DATA                    37316 B   36.44 KB
+DATA                     7848 B    7.66 KB
 
 Top CODE symbols
 ================
- 1.  3282 B    3.21 KB  shine::graphics::Renderer2D::flush()
- 2.  1532 B    1.50 KB  DemoGame::onInit()
- 3.  1037 B    1.01 KB  shine::ui::UIManager::onPointer(float, float, int)
- 4.   812 B    0.79 KB  shine::graphics::Renderer2D::drawRoundRect(shine::math::Rect const&, shine::graphics::Renderer2D::RoundRectStyle const&)
- 5.   750 B    0.73 KB  DemoGame::onUpdate(float)
- 6.   733 B    0.72 KB  shine::engine::Engine::frame(float)
- 7.   515 B    0.50 KB  shine::ui::UIManager::rebuildVisible()
- 8.   499 B    0.49 KB  shine::game::SpriteRenderer::onRender(shine::game::RenderContext&, float)
- 9.   413 B    0.40 KB  shine::game::Node::~Node()
-10.   384 B    0.38 KB  DemoGame::onPointer(float, float, int)
-11.   381 B    0.37 KB  malloc
-12.   379 B    0.37 KB  shine::game::Transform::worldXYZ(float&, float&, float&) const
-13.   372 B    0.36 KB  shine::graphics::Renderer2D::init(int)
-14.   333 B    0.33 KB  shine::ui::Button::render(int)
-15.   331 B    0.32 KB  shine::ui::Element::onResize(int, int)
-16.   327 B    0.32 KB  shine::graphics::Renderer2D::drawRectColor(float, float, float, float, float, float, float)
-17.   327 B    0.32 KB  shine::graphics::Renderer2D::drawRectColorSorted(float, float, float, float, float, float, float, unsigned int)
-18.   319 B    0.31 KB  shine::ui::UIManager::addToBins(shine::ui::Element*, float, float, float, float)
-19.   317 B    0.31 KB  shine::graphics::Renderer2D::drawRectUVSorted(int, float, float, float, float, unsigned int)
-20.   317 B    0.31 KB  shine::graphics::Renderer2D::drawRectUV(int, float, float, float, float)
+ 1.  2417 B    2.36 KB  shine::graphics::Renderer2D::flush()
+ 2.   733 B    0.72 KB  shine::engine::Engine::frame(float)
+ 3.   587 B    0.57 KB  demo_init_ui(DemoGame*, int)
+ 4.   520 B    0.51 KB  shine::ui::UIManager::rebuild()
+ 5.   501 B    0.49 KB  shine::game::SpriteRenderer::onRender(shine::game::RenderContext&, float)
+ 6.   448 B    0.44 KB  shine::graphics::Renderer2D::init(int)
+ 7.   441 B    0.43 KB  DemoGame::onUpdate(float)
+ 8.   411 B    0.40 KB  DemoGame::onInit()
+ 9.   379 B    0.37 KB  shine::game::Transform::worldXYZ(float&, float&, float&) const
+10.   371 B    0.36 KB  malloc
+11.   355 B    0.35 KB  shine::graphics::Renderer2D::drawRoundRect(shine::math::Rect const&, shine::graphics::Renderer2D::RoundRectStyle const&)
+12.   333 B    0.33 KB  shine::ui::Button::render(int)
+13.   331 B    0.32 KB  shine::ui::Element::onResize(int, int)
+14.   325 B    0.32 KB  shine::game::Node::~Node()
+15.   310 B    0.30 KB  shine::ui::UIManager::onPointer(float, float, int)
+16.   302 B    0.29 KB  shine::graphics::Renderer2D::checkBatchRR(int, shine::graphics::Renderer2D::RRUniformState const&, int, int, unsigned int)
+17.   298 B    0.29 KB  demo_init_scene(DemoGame*, int)
+18.   296 B    0.29 KB  shine::ui::Button::pointer(float, float, int)
+19.   276 B    0.27 KB  demo_init_shaders(DemoGame*, int)
+20.   250 B    0.24 KB  shine::graphics::writeQuadVtxCol(float*, float, float, float, float, float, float, float) (.llvm.18132705280188934446)
 
 Top .rodata symbols
 ===================
- 1.  1159 B    1.13 KB  shine::graphics::kFS_RR (.llvm.8835717189241661750)
+ 1.  1159 B    1.13 KB  shine::graphics::kFS_RR (.llvm.18132705280188934446)
  2.   215 B    0.21 KB  kVS_INST
- 3.   204 B    0.20 KB  shine::graphics::kVS_TEX (.llvm.8835717189241661750)
- 4.   203 B    0.20 KB  shine::graphics::kVS_COL (.llvm.8835717189241661750)
+ 3.   204 B    0.20 KB  shine::graphics::kVS_TEX (.llvm.18132705280188934446)
+ 4.   203 B    0.20 KB  shine::graphics::kVS_COL (.llvm.18132705280188934446)
  5.   135 B    0.13 KB  kVS
- 6.   134 B    0.13 KB  shine::graphics::kFS_TEX (.llvm.8835717189241661750)
+ 6.   134 B    0.13 KB  shine::graphics::kFS_TEX (.llvm.18132705280188934446)
  7.   124 B    0.12 KB  shine::ui::DefaultButtonStyleInstance
- 8.   120 B    0.12 KB  DemoGame::onInit()::q
- 9.   120 B    0.12 KB  shine::graphics::Renderer2D::init(int)::kUniforms (.llvm.8835717189241661750)
-10.   109 B    0.11 KB  shine::graphics::kFS_COL (.llvm.8835717189241661750)
-11.   109 B    0.11 KB  kFS
-12.    64 B    0.06 KB  DemoGame::onRender(float)::kIdentity
-13.    44 B    0.04 KB  vtable for shine::game::Transform
-14.    44 B    0.04 KB  vtable for KillOnClick
-15.    44 B    0.04 KB  vtable for shine::game::SpriteRenderer
-16.    39 B    0.04 KB  .rodata
-17.    36 B    0.04 KB  vtable for DemoGame
-18.    36 B    0.04 KB  vtable for shine::ui::Element
-19.    36 B    0.04 KB  vtable for shine::ui::Button
-20.    36 B    0.04 KB  vtable for shine::ui::Image
+ 8.   120 B    0.12 KB  demo_init_shaders(DemoGame*, int)::q
+ 9.   109 B    0.11 KB  kFS
+10.   109 B    0.11 KB  shine::graphics::kFS_COL (.llvm.18132705280188934446)
+11.    64 B    0.06 KB  DemoGame::onRender(float)::kIdentity
+12.    44 B    0.04 KB  vtable for KillOnClick
+13.    44 B    0.04 KB  vtable for shine::game::SpriteRenderer
+14.    44 B    0.04 KB  vtable for shine::game::Transform
+15.    40 B    0.04 KB  shine::graphics::Renderer2D::init(int)::kUniforms (.llvm.18132705280188934446)
+16.    40 B    0.04 KB  shine::graphics::Renderer2D::init(int)::kRRUniformNames (.llvm.18132705280188934446)
+17.    39 B    0.04 KB  .rodata
+18.    36 B    0.04 KB  vtable for shine::ui::Button
+19.    36 B    0.04 KB  vtable for shine::ui::Element
+20.    36 B    0.04 KB  vtable for DemoGame
 
 Top .data symbols
 =================
- 1. 32820 B   32.05 KB  shine::graphics::g_cmd_buffer
- 2.   836 B    0.82 KB  shine::ui::s_uiMgr (.llvm.6629247843520537986)
- 3.   324 B    0.32 KB  shine::graphics::s_texMgr (.llvm.4443780657583081176)
- 4.    48 B    0.05 KB  shine::engine::s_engine_instance (.llvm.3600184461518518859)
+ 1.  4148 B    4.05 KB  shine::graphics::g_cmd_buffer
+ 2.   324 B    0.32 KB  shine::graphics::s_texMgr (.llvm.14638215784898967994)
+ 3.    60 B    0.06 KB  shine::ui::s_uiMgr (.llvm.12552716775348157085)
+ 4.    48 B    0.05 KB  shine::engine::s_engine_instance (.llvm.4164036092135388194)
  5.     4 B    0.00 KB  shine::game::Object::next_id()::s
 
 Top .bss symbols
 ================
- 1.   136 B    0.13 KB  shine::graphics::s_renderer (.llvm.8835717189241661750)
- 2.    32 B    0.03 KB  g_free_bins (.llvm.994666323607233261)
- 3.     4 B    0.00 KB  shine::game::ComponentType<KillOnClick>::id()::k
- 4.     4 B    0.00 KB  shine::game::ComponentType<shine::game::Transform>::id()::k
- 5.     4 B    0.00 KB  g_heap_ptr (.llvm.994666323607233261)
- 6.     4 B    0.00 KB  shine::game::Object::s_pending_kill_count
- 7.     4 B    0.00 KB  g_alloc_count (.llvm.994666323607233261)
- 8.     4 B    0.00 KB  shine::game::ComponentType<shine::game::SpriteRenderer>::id()::k
- 9.     4 B    0.00 KB  g_free_count (.llvm.994666323607233261)
-10.     4 B    0.00 KB  g_demo_game
-11.     4 B    0.00 KB  shine::game::Object::s_gc_head
-12.     4 B    0.00 KB  g_alloc_fail_count (.llvm.994666323607233261)
+ 1.   148 B    0.14 KB  shine::graphics::s_renderer (.llvm.18132705280188934446)
+ 2.    32 B    0.03 KB  g_free_bins (.llvm.5891681099622448002)
+ 3.     4 B    0.00 KB  shine::game::ComponentType<shine::game::Transform>::id()::k
+ 4.     4 B    0.00 KB  shine::game::ComponentType<KillOnClick>::id()::k
+ 5.     4 B    0.00 KB  shine::game::Object::s_pending_kill_count
+ 6.     4 B    0.00 KB  shine::game::ComponentType<shine::game::SpriteRenderer>::id()::k
+ 7.     4 B    0.00 KB  g_free_count (.llvm.5891681099622448002)
+ 8.     4 B    0.00 KB  g_demo_game
+ 9.     4 B    0.00 KB  g_alloc_count (.llvm.5891681099622448002)
+10.     4 B    0.00 KB  g_heap_ptr (.llvm.5891681099622448002)
+11.     4 B    0.00 KB  g_alloc_fail_count (.llvm.5891681099622448002)
+12.     4 B    0.00 KB  shine::game::Object::s_gc_head
 
 CODE by object file
 ===================
- 1.  8464 B    8.27 KB  output.gl.raw.wasm.lto.demo_game.o
- 2.  6661 B    6.50 KB  output.gl.raw.wasm.lto.renderer_2d.o
- 3.  2657 B    2.59 KB  output.gl.raw.wasm.lto.ui_manager.o
+ 1.  7967 B    7.78 KB  output.gl.raw.wasm.lto.demo_game.o
+ 2.  5037 B    4.92 KB  output.gl.raw.wasm.lto.renderer_2d.o
+ 3.  1383 B    1.35 KB  output.gl.raw.wasm.lto.ui_manager.o
  4.   995 B    0.97 KB  output.gl.raw.wasm.lto.engine.o
- 5.   911 B    0.89 KB  output.gl.raw.wasm.lto.wasm_runtime.o
+ 5.   971 B    0.95 KB  output.gl.raw.wasm.lto.wasm_runtime.o
  6.   598 B    0.58 KB  output.gl.raw.wasm.lto.texture_manager.o
- 7.   422 B    0.41 KB  output.gl.raw.wasm.lto.wasm_command_buffer.o
+ 7.   372 B    0.36 KB  output.gl.raw.wasm.lto.wasm_command_buffer.o
  8.   102 B    0.10 KB  output.gl.raw.wasm.lto.gl_ctx.o
  9.    55 B    0.05 KB  output.gl.raw.wasm.lto.gl_api.o
+10.    40 B    0.04 KB  output.gl.raw.wasm.lto.wasm_compat.o
 
 

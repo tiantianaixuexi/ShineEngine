@@ -1,313 +1,305 @@
 DWARF size report
-Input: E:\c++\ShineEngine\Program\smallwasm\output.gl.dwarf.txt
-Count: 307
+Input: E:\c++\ShineEngine\dev\Program\smallwasm\output.gl.dwarf.txt
+Count: 299
 
 No.    Size(B)   Size(KB) File:Line                                                    Function
 -----------------------------------------------------------------------------------------------
-  1       3280    3.20 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\\renderer_2d.cpp flush
-  2       1530    1.49 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp onInit
-  3       1035    1.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\\ui_manager.cpp  onPointer
-  4        810    0.79 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\\renderer_2d.cpp drawRoundRect
-  5        748    0.73 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp onUpdate
-  6        731    0.71 KB E:/c++/ShineEngine/Program/smallwasm/src/engine\\engine.cpp  frame
-  7        620    0.61 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:213 sort_inplace<shine::graphics::Renderer2D::Batch, BatchLess>
-  8        598    0.58 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:272 updateRRUniforms
-  9        513    0.50 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\\ui_manager.cpp  rebuildVisible
- 10        419    0.41 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:163 rebuildDirty
- 11        394    0.38 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp ~Node
- 12        382    0.37 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp onPointer
- 13        380    0.37 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:227 collectGarbage
- 14        379    0.37 KB E:/c++/ShineEngine/Program/smallwasm/src/util\\wasm_runtime.cpp malloc
- 15        329    0.32 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp onResize
- 16        323    0.32 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:83 collectGarbageIncremental
- 17        317    0.31 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\\ui_manager.cpp  addToBins
- 18        217    0.21 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\\wasm_command_buffer.cpp getSubmitData
- 19        208    0.20 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp onPointer
- 20        198    0.19 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\\renderer_2d.cpp checkBatch
- 21        197    0.19 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp onRender
- 22        193    0.19 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:432 checkBatchRR
- 23        176    0.17 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp attachComponent
- 24        166    0.16 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp DemoGame
- 25        151    0.15 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp addComponent<shine::game::Transform>
- 26        143    0.14 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp ~Object
- 27        132    0.13 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\\ui_manager.cpp  applyResize
- 28        131    0.13 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\\ui_manager.cpp  erase_first_unordered
- 29        125    0.12 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp getComponent<shine::game::Transform>
- 30        123    0.12 KB E:/c++/ShineEngine/Program/smallwasm/src/util\\wasm_runtime.cpp free
- 31        120    0.12 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp addComponent<shine::game::SpriteRenderer>
- 32        117    0.11 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\\renderer_2d.cpp allocVtx
- 33        114    0.11 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp push_back
- 34        113    0.11 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp Object
- 35        113    0.11 KB E:/c++/ShineEngine/Program/smallwasm/src/util\\wasm_runtime.cpp remove_free
- 36        110    0.11 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp create
- 37        104    0.10 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp addChildNode<shine::game::Node, const char (&)[7]>
- 38        104    0.10 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:125 find_suitable_block
- 39        101    0.10 KB E:/c++/ShineEngine/Program/smallwasm/src/util\\wasm_runtime.cpp raw_realloc
- 40        100    0.10 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:233 RRUniformState
- 41         97    0.09 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:69 erase_first_unordered
- 42         97    0.09 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:50 removeChild
- 43         96    0.09 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:200 setLayoutPx
- 44         94    0.09 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:109 Transform
- 45         94    0.09 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp markChildrenDirty
- 46         92    0.09 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp ~DemoGame
- 47         91    0.09 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\\renderer_2d.cpp begin
- 48         91    0.09 KB E:/c++/ShineEngine/Program/smallwasm/src/engine\engine.cpp:84 push
- 49         89    0.09 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp setLayoutRel
- 50         85    0.08 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp operator=
- 51         84    0.08 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\object.h:46 gc_unlink
- 52         84    0.08 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:279 push
- 53         83    0.08 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp markTree
- 54         78    0.08 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:503 push
- 55         77    0.08 KB E:/c++/ShineEngine/Program/smallwasm/src/engine\engine.cpp:85 push
- 56         72    0.07 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp Scene
- 57         72    0.07 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp isOwnedByDead
- 58         70    0.07 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\\wasm_command_buffer.cpp reset
- 59         63    0.06 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:109 SpriteRenderer
- 60         60    0.06 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp Node
- 61         60    0.06 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp init
- 62         56    0.05 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp RenderPipeline
- 63         53    0.05 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:75 attachChild
- 64         52    0.05 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:161 coalesce
- 65         51    0.05 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp render
- 66         49    0.05 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h:170 erase_unordered_at
- 67         48    0.05 KB E:/c++/ShineEngine/Program/smallwasm/src\\gl_ctx.cpp         pointer
- 68         47    0.05 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\button.h:72 Button
- 69         47    0.05 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\../Container\SVector.h:170 erase_unordered_at
- 70         46    0.04 KB E:/c++/ShineEngine/Program/smallwasm/src/util\\wasm_runtime.cpp insert_free
- 71         44    0.04 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:188 addComponent<KillOnClick>
- 72         43    0.04 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp isOwnedByDead
- 73         43    0.04 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:62 markPendingKill
- 74         42    0.04 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h:134 grow_cap
- 75         41    0.04 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp ~SVector
- 76         40    0.04 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:66 pointerTree
- 77         39    0.04 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.h:16 RenderContext
- 78         39    0.04 KB E:/c++/ShineEngine/Program/smallwasm/src\gl_ctx.cpp:31       pointer
- 79         38    0.04 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:118 ensure_heap_inited
- 80         38    0.04 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h:134 grow_cap
- 81         38    0.04 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:181 setPosition
- 82         36    0.04 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:28 update
- 83         35    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\../graphics\../Container\SArray.h:43 reset
- 84         35    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:198 setAlignment
- 85         35    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:209 setAlignment
- 86         35    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:51 ~SVector
- 87         34    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp ~SArray
- 88         32    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\ui.h:151 markDirty
- 89         31    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\button.h:81 DefaultButtonStyle
- 90         30    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:56 commit
- 91         30    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h:56 commit
- 92         30    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:79 commit_pass
- 93         30    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h:79 commit_pass
- 94         30    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:143 ensure_capacity
- 95         30    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:175 setPosition
- 96         30    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:287 ~Pass
- 97         30    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/engine\engine.cpp:102 ~Pass
- 98         29    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\\texture_manager.cpp request_url
- 99         28    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\ui.h:193 setAnchorPoint
-100         28    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\ui.h:162 setAnchors
-101         26    0.03 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:246 Vector3
-102         25    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:219 clampi
-103         23    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:273 SArray
-104         23    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:281 SArray
-105         23    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:64 markTransformDirty
-106         23    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:54 worldXY
-107         22    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp on_tex_loaded
-108         21    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:420 on_loaded
-109         20    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:221 clampi
-110         19    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:60 note_overflow
-111         19    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:110 setTypeId<KillOnClick>
-112         18    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:246 Vector3
-113         18    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:222 clampi
-114         18    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:220 clampi
-115         18    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\ui.h:180 setAnchorPoint
-116         18    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\ui.h:162 setAnchors
-117         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:26 RenderPass
-118         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:98 gcMark
-119         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:60 note_overflow
-120         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:60 note_overflow
-121         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:60 note_overflow
-122         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:60 note_overflow
-123         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:60 note_overflow
-124         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:60 note_overflow
-125         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:60 note_overflow
-126         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:60 note_overflow
-127         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:60 note_overflow
-128         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:60 note_overflow
-129         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.h:60 note_overflow
-130         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h:60 note_overflow
-131         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h:60 note_overflow
-132         17    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h:60 note_overflow
-133         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:61 add_pass
-134         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:60 add_pass
-135         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:59 add_pass
-136         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:58 add_pass
-137         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:57 add_pass
-138         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:56 add_pass
-139         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:55 add_pass
-140         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp on_tex_failed
-141         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:164 size
-142         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp ~DemoGame
-143         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp ~KillOnClick
-144         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp ~Node
-145         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp ~SpriteRenderer
-146         16    0.02 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp ~Transform
-147         15    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:424 on_failed
-148         15    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h:134 reserve
-149         14    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:28 SVector
-150         14    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:11 SVector
-151         14    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:23 back
-152         14    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:61 back
-153         14    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:234 clampi
-154         14    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:233 clampi
-155         14    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:29 clear
-156         14    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:100 gcUnmark
-157         14    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:80 operator[]
-158         13    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:82 block_size
-159         13    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:21 clear
-160         13    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:120 getCtx
-161         12    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:43 align_up
-162         12    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/engine\engine.cpp:73 cmd_reset
-163         12    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/engine\engine.cpp:93 end
-164         12    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:56 pendingKill
-165         12    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:82 pendingKillCount
-166         12    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\../graphics\../Container\SArray.h:73 raw_free
-167         12    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\../graphics\../Container\SArray.h:55 raw_free
-168         12    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h:68 raw_free
-169         12    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h:68 raw_free
-170         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:195 bindHoverEvent
-171         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:194 bindOnClick
-172         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:204 bindOnClick
-173         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:196 bindUnHoverEvent
-174         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:130 capacity
-175         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:189 empty
-176         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:90 gcHead
-177         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:108 gcHead
-178         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:241 operator[]
-179         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:176 setSize
-180         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:182 setSize
-181         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:110 setTypeId<shine::game::SpriteRenderer>
-182         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:110 setTypeId<shine::game::Transform>
-183         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:67 size
-184         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:240 size
-185         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:463 size
-186         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:111 size
-187         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:26 size
-188         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:64 size
-189         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\transform.h:92 size
-190         11    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:121 typeId
-191         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:127 block_size
-192         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:109 block_size
-193         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:133 capacity
-194         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:233 count
-195         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\../Container\SVector.h:117 data
-196         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:465 data
-197         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:118 pendingKill
-198         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:183 pendingKill
-199         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:240 raw_free
-200         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/engine\../util\timer.h:117 raw_free
-201         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/engine\../util\timer.h:130 raw_free
-202         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:291 size
-203         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:33 size
-204         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:56 size
-205         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp ~Button
-206         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp ~Element
-207         10    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\\demo_game.cpp ~Image
-208          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:58 capacity
-209          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:20 capacity
-210          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:58 capacity
-211          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:22 clear
-212          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:62 data
-213          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:300 data
-214          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:48 empty
-215          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:141 empty
-216          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:160 empty
-217          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:22 empty
-218          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:60 empty
-219          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:234 getCtx
-220          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\button.h:11 operator delete
-221          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\ui.h:88  operator delete
-222          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\image.h:9 operator delete
-223          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:205 size
-224          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:174 size
-225          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:30 size
-226          9    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:68 size
-227          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.h:16 SArray
-228          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.h:16 SArray
-229          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:107 block_is_free
-230          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:91 block_size
-231          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:68 block_size
-232          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:19 clear
-233          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:57 clear
-234          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:74 empty
-235          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:25 isActive
-236          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:63 isActive
-237          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:57 operator[]
-238          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:182 pendingKill
-239          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:247 raw_free
-240          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:238 raw_malloc
-241          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:243 raw_malloc
-242          8    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:79 size
-243          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:28 SVector
-244          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:11 SVector
-245          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:11 SVector
-246          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:102 begin
-247          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:31 begin
-248          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:41 begin
-249          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:294 capacity
-250          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:25 capacity
-251          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:127 clear
-252          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:126 clear
-253          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:24 clear
-254          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:137 clear
-255          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:136 clear
-256          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:38 clear
-257          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:54 data
-258          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:222 data
-259          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:224 data
-260          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h:88 data
-261          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h:88 data
-262          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\../Container\SVector.h:88 data
-263          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:187 empty
-264          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:162 empty
-265          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:102 end
-266          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:31 end
-267          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:41 end
-268          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:99 gcNext
-269          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:117 gcNext
-270          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\texture_manager.cpp:15 getCtx
-271          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\component.h:66 isActive
-272          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\component.h:76 isActive
-273          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:193 operator[]
-274          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:43 operator[]
-275          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:113 operator[]
-276          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:175 operator[]
-277          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:186 operator[]
-278          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:206 operator[]
-279          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:31 operator[]
-280          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:27 operator[]
-281          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:69 operator[]
-282          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:65 operator[]
-283          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\transform.h:93 operator[]
-284          7    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:220 size
-285          6    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:119 align_up
-286          6    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:96 clear
-287          6    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\button.h:79 init
-288          6    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.h:17 operator delete
-289          6    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:29 operator delete
-290          6    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\transform.h:11 operator delete
-291          6    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\sprite_renderer.h:11 operator delete
-292          6    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\demo_game.cpp:45 operator delete
-293          6    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\../graphics\../Container\SArray.h:25 raw_malloc
-294          6    0.01 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../ui\../graphics\../Container\SArray.h:25 raw_malloc
-295          5    0.00 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:199 clear
-296          5    0.00 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:286 clear
-297          5    0.00 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:213 data
-298          5    0.00 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:25 size
-299          4    0.00 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:122 align_up
-300          4    0.00 KB E:/c++/ShineEngine/Program/smallwasm/src/util\wasm_runtime.cpp:141 align_up
-301          4    0.00 KB E:/c++/ShineEngine/Program/smallwasm/src/ui\ui_manager.cpp:59 clear
-302          4    0.00 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:24 pop_back
-303          4    0.00 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\scene.h:62 pop_back
-304          3    0.00 KB E:/c++/ShineEngine/Program/smallwasm/src/graphics\renderer_2d.cpp:125 clear
-305          3    0.00 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:47 clear
-306          2    0.00 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:56 gcMarked
-307          2    0.00 KB E:/c++/ShineEngine/Program/smallwasm/src/demo\../game\node.h:183 gcMarked
+  1       2415    2.36 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\\renderer_2d.cpp flush
+  2        731    0.71 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\\engine.cpp frame
+  3        608    0.59 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:295 switchShader
+  4        585    0.57 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp demo_init_ui
+  5        518    0.51 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\\ui_manager.cpp rebuild
+  6        439    0.43 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp onUpdate
+  7        409    0.40 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp onInit
+  8        380    0.37 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:229 collectGarbage
+  9        369    0.36 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\\wasm_runtime.cpp malloc
+ 10        329    0.32 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp onResize
+ 11        323    0.32 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\scene.h:38 collectGarbageIncremental
+ 12        308    0.30 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\\ui_manager.cpp onPointer
+ 13        306    0.30 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp ~Node
+ 14        300    0.29 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\\renderer_2d.cpp checkBatchRR
+ 15        296    0.29 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp demo_init_scene
+ 16        273    0.27 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:264 sort_batches
+ 17        208    0.20 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\\wasm_command_buffer.cpp getSubmitData
+ 18        208    0.20 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp onPointer
+ 19        197    0.19 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp onRender
+ 20        190    0.19 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\\renderer_2d.cpp checkBatch
+ 21        187    0.18 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp pointerTree
+ 22        179    0.17 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp update
+ 23        173    0.17 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:300 updateRRUniforms
+ 24        164    0.16 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\\renderer_2d.cpp allocVtx
+ 25        163    0.16 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp DemoGame
+ 26        143    0.14 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp ~Object
+ 27        140    0.14 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp addComponent<shine::game::Transform>
+ 28        128    0.12 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp attachComponent
+ 29        125    0.12 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp getComponent<shine::game::Transform>
+ 30        123    0.12 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\\wasm_runtime.cpp free
+ 31        123    0.12 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp removeChild
+ 32        113    0.11 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp Object
+ 33        113    0.11 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\\wasm_runtime.cpp remove_free
+ 34        112    0.11 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:90 applyResize
+ 35        110    0.11 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp attachChild
+ 36        109    0.11 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp addComponent<shine::game::SpriteRenderer>
+ 37        101    0.10 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\\wasm_runtime.cpp raw_realloc
+ 38         99    0.10 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\\renderer_2d.cpp begin
+ 39         98    0.10 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp create
+ 40         98    0.10 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:104 erase_first_unordered
+ 41         98    0.10 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:69 erase_first_unordered
+ 42         96    0.09 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:184 setLayoutPx
+ 43         95    0.09 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:285 RRUniformState
+ 44         94    0.09 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:109 Transform
+ 45         94    0.09 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:125 find_suitable_block
+ 46         94    0.09 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp markChildrenDirty
+ 47         92    0.09 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:77 push
+ 48         92    0.09 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:307 push3
+ 49         91    0.09 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h:79 push
+ 50         91    0.09 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\engine.cpp:84 push5
+ 51         89    0.09 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp setLayoutRel
+ 52         85    0.08 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp operator=
+ 53         84    0.08 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\object.h:46 gc_unlink
+ 54         83    0.08 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp markTree
+ 55         78    0.08 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:76 push
+ 56         78    0.08 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:333 push2
+ 57         77    0.08 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h:76 push
+ 58         77    0.08 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\engine.cpp:85 push2
+ 59         76    0.07 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:212 push_back
+ 60         75    0.07 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:63 push_back
+ 61         72    0.07 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp isOwnedByDead
+ 62         69    0.07 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp onPointer
+ 63         63    0.06 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:109 SpriteRenderer
+ 64         62    0.06 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\\wasm_command_buffer.cpp reset
+ 65         60    0.06 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp Node
+ 66         56    0.05 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp RenderPipeline
+ 67         53    0.05 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp ~DemoGame
+ 68         52    0.05 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:161 coalesce
+ 69         51    0.05 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp render
+ 70         50    0.05 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:170 resize_uninitialized
+ 71         49    0.05 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp init
+ 72         48    0.05 KB E:/c++/ShineEngine/dev/Program/smallwasm/src\\gl_ctx.cpp     pointer
+ 73         47    0.05 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../ui\button.h:72 Button
+ 74         47    0.05 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\../Container\SVector.h:164 erase_unordered_at
+ 75         47    0.05 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../Container\SVector.h:164 erase_unordered_at
+ 76         46    0.04 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\\wasm_runtime.cpp insert_free
+ 77         44    0.04 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:171 addComponent<KillOnClick>
+ 78         43    0.04 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp isOwnedByDead
+ 79         43    0.04 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:62 markPendingKill
+ 80         40    0.04 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:159 pointerTree
+ 81         39    0.04 KB E:/c++/ShineEngine/dev/Program/smallwasm/src\gl_ctx.cpp:31   pointer
+ 82         38    0.04 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:118 ensure_heap_inited
+ 83         38    0.04 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:165 setPosition
+ 84         36    0.04 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.h:16 RenderContext
+ 85         36    0.04 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:135 update
+ 86         35    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../Container\SArray.h:43 reset
+ 87         35    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:182 setAlignment
+ 88         35    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:193 setAlignment
+ 89         35    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:51 ~SVector
+ 90         35    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:51 ~SVector
+ 91         34    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp ~SArray
+ 92         32    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../ui\ui.h:151 markDirty
+ 93         30    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:55 commit
+ 94         30    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h:55 commit
+ 95         30    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:83 commit_pass
+ 96         30    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h:83 commit_pass
+ 97         30    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:143 ensure_capacity
+ 98         30    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:159 setPosition
+ 99         30    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:316 ~Pass
+100         30    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\engine.cpp:102 ~Pass
+101         29    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\\texture_manager.cpp request_url
+102         28    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../ui\ui.h:193 setAnchorPoint
+103         28    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../ui\ui.h:162 setAnchors
+104         26    0.03 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:248 Vector3
+105         23    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:275 SArray
+106         23    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:283 SArray
+107         23    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:64 markTransformDirty
+108         23    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:59 note_overflow
+109         23    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:300 operator[]
+110         23    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:288 size
+111         23    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:54 worldXY
+112         22    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp on_tex_loaded
+113         21    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../ui\button.h:81 DefaultButtonStyle
+114         21    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:59 note_overflow
+115         21    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:59 note_overflow
+116         21    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:409 on_loaded
+117         20    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\../Container\SVector.h:128 _grow_to
+118         19    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:110 setTypeId<KillOnClick>
+119         18    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:248 Vector3
+120         18    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../Container\SVector.h:128 _grow_to
+121         18    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../Container\SVector.h:128 _grow_to
+122         18    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:199 operator[]
+123         18    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../ui\ui.h:180 setAnchorPoint
+124         18    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../ui\ui.h:162 setAnchors
+125         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:26 RenderPass
+126         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:98 gcMark
+127         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:59 note_overflow
+128         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:59 note_overflow
+129         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:59 note_overflow
+130         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:59 note_overflow
+131         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:59 note_overflow
+132         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:59 note_overflow
+133         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:59 note_overflow
+134         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:59 note_overflow
+135         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.h:59 note_overflow
+136         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h:59 note_overflow
+137         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h:59 note_overflow
+138         17    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\../graphics\wasm_command_buffer.h:59 note_overflow
+139         16    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:61 add_pass
+140         16    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:60 add_pass
+141         16    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:59 add_pass
+142         16    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:58 add_pass
+143         16    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:57 add_pass
+144         16    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:56 add_pass
+145         16    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp on_tex_failed
+146         16    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp ~DemoGame
+147         16    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp ~KillOnClick
+148         16    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp ~Node
+149         16    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp ~SpriteRenderer
+150         16    0.02 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp ~Transform
+151         15    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\../Container\SVector.h:121 _grow_to
+152         15    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../renderer\render_pipeline.h:55 add_pass
+153         15    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:413 on_failed
+154         15    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:253 size
+155         14    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:28 SVector
+156         14    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\scene.h:55 gcUnmark
+157         13    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:82 block_size
+158         13    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:264 data
+159         13    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:202 getCtx
+160         13    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:132 isActive
+161         13    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:156 isActive
+162         12    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:43 align_up
+163         12    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\engine.cpp:73 cmd_reset
+164         12    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\engine.cpp:93 end
+165         12    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:56 pendingKill
+166         12    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\scene.h:37 pendingKillCount
+167         12    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:254 pointer
+168         12    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../Container\SArray.h:73 raw_free
+169         12    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../Container\SArray.h:55 raw_free
+170         12    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../Container\SVector.h:58 raw_free
+171         12    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../Container\SVector.h:58 raw_free
+172         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:102 begin
+173         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:179 bindHoverEvent
+174         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:178 bindOnClick
+175         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:188 bindOnClick
+176         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:180 bindUnHoverEvent
+177         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:151 capacity
+178         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:21 clear
+179         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\../Container\SVector.h:78 data
+180         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\scene.h:45 gcHead
+181         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\scene.h:63 gcHead
+182         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:160 setSize
+183         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:166 setSize
+184         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:110 setTypeId<shine::game::SpriteRenderer>
+185         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:110 setTypeId<shine::game::Transform>
+186         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:323 size
+187         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:133 size
+188         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:157 size
+189         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\transform.h:91 size
+190         11    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:121 typeId
+191         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:127 block_size
+192         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:109 block_size
+193         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:154 capacity
+194         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:235 count
+195         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:325 data
+196         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:125 empty
+197         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\scene.h:73 pendingKill
+198         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:183 pendingKill
+199         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:240 raw_free
+200         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\../util\timer.h:117 raw_free
+201         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/engine\../util\timer.h:130 raw_free
+202         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:68 size
+203         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:162 size
+204         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:226 update
+205         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp ~Button
+206         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp ~Element
+207         10    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\\demo_game.cpp ~Image
+208          9    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:171 data
+209          9    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\../Container\SVector.h:111 data
+210          9    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:176 empty
+211          9    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:196 empty
+212          9    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:236 getCtx
+213          9    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../ui\button.h:11 operator delete
+214          9    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../ui\ui.h:88 operator delete
+215          9    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../ui\image.h:9 operator delete
+216          9    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:132 operator[]
+217          9    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:137 size
+218          9    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:161 size
+219          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.h:16 SArray
+220          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.h:16 SArray
+221          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:107 block_is_free
+222          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:91 block_size
+223          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:68 block_size
+224          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:58 capacity
+225          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:22 clear
+226          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:149 clear
+227          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:62 data
+228          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:48 empty
+229          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:182 pendingKill
+230          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:247 raw_free
+231          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:238 raw_malloc
+232          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:243 raw_malloc
+233          8    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:211 size
+234          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:28 SVector
+235          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:67 begin
+236          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:99 begin
+237          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:109 begin
+238          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:102 begin
+239          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:31 begin
+240          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:41 begin
+241          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:165 capacity
+242          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:148 clear
+243          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:147 clear
+244          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:49 clear
+245          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:48 clear
+246          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:274 data
+247          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:276 data
+248          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:289 data
+249          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\../Container\SVector.h:78 data
+250          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\../Container\SVector.h:78 data
+251          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\../Container\SVector.h:78 data
+252          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../Container\SVector.h:78 data
+253          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../Container\SVector.h:78 data
+254          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\../Container\SVector.h:78 data
+255          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:249 empty
+256          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:67 end
+257          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:99 end
+258          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:109 end
+259          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:102 end
+260          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:31 end
+261          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:41 end
+262          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\scene.h:54 gcNext
+263          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\scene.h:72 gcNext
+264          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\texture_manager.cpp:15 getCtx
+265          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\component.h:66 isActive
+266          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\component.h:76 isActive
+267          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:255 operator[]
+268          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:152 operator[]
+269          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:138 operator[]
+270          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:134 operator[]
+271          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:162 operator[]
+272          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:158 operator[]
+273          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\transform.h:92 operator[]
+274          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:272 size
+275          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:128 size
+276          7    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.h:17 ~Scene
+277          6    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:119 align_up
+278          6    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\wasm_command_buffer.cpp:54 data
+279          6    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../ui\button.h:79 init
+280          6    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.h:17 operator delete
+281          6    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:29 operator delete
+282          6    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\transform.h:11 operator delete
+283          6    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\sprite_renderer.h:11 operator delete
+284          6    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\demo_game.cpp:45 operator delete
+285          6    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../Container\SArray.h:25 raw_malloc
+286          6    0.01 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../Container\SArray.h:25 raw_malloc
+287          5    0.00 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:315 clear
+288          5    0.00 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:112 clear
+289          4    0.00 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:122 align_up
+290          4    0.00 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/util\wasm_runtime.cpp:141 align_up
+291          4    0.00 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:102 end
+292          3    0.00 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:184 Batch
+293          3    0.00 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:146 clear
+294          3    0.00 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/ui\ui_manager.cpp:98 clear
+295          3    0.00 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:38 clear
+296          3    0.00 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:47 clear
+297          2    0.00 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:56 gcMarked
+298          2    0.00 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/demo\../game\node.h:183 gcMarked
+299          2    0.00 KB E:/c++/ShineEngine/dev/Program/smallwasm/src/graphics\renderer_2d.cpp:256 operator[]

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
-#include "EngineCore/asset/BaseAsset.h"
 #include "math/vector.ixx"
 #include "string/shine_string.h"
 #include "string/shine_text_view.h"
@@ -39,7 +39,7 @@ namespace shine::gameplay::world
         std::vector<ActorSpawnDefinition> actorDefinitions;
     };
 
-    class MapAsset final : public shine::editor::asset::AssetBase
+    class MapAsset final
     {
     public:
         MapAsset();

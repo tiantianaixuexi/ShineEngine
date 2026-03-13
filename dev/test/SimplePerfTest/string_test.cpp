@@ -38,25 +38,8 @@ using shine::test::run_compare;
 
 #define CHECK(name, cond) SHINE_TEST_CHECK(g_test_ctx, name, cond)
 
-// =========================================================
-// Formatting support if std::format formatter is unavailable
-// =========================================================
-
-namespace std {
-    template <>
-    struct formatter<shine::STextView, char> : formatter<std::string_view, char> {
-        auto format(const shine::STextView& v, format_context& ctx) const {
-            return formatter<std::string_view, char>::format(v.sv(), ctx);
-        }
-    };
-
-    template <>
-    struct formatter<shine::SString, char> : formatter<std::string_view, char> {
-        auto format(const shine::SString& s, format_context& ctx) const {
-            return formatter<std::string_view, char>::format(s.sv(), ctx);
-        }
-    };
-}
+// std::formatter<SString> and std::formatter<STextView> are defined in
+// shine_string.h / shine_text_view.h (guarded by __cpp_lib_format).
 
 // =========================================================
 // Dataset helpers

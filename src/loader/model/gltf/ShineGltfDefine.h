@@ -342,7 +342,7 @@ struct GltfSkin {
 struct GltfSampler {
     SString name;
     // glTF 2.0 spec does not define default value for `minFilter` and
-    // `magFilter`. Set -1 in TinyGLTF(issue #186)
+
     int minFilter =
         -1; // optional. -1 = no filter defined. ["NEAREST", "LINEAR",
             // "NEAREST_MIPMAP_NEAREST", "LINEAR_MIPMAP_NEAREST",
@@ -355,7 +355,6 @@ struct GltfSampler {
     int wrapT =
         TEXTURE_WRAP_REPEAT; // ["CLAMP_TO_EDGE", "MIRRORED_REPEAT",
                              // "REPEAT"], default "REPEAT"
-    // int wrapR = TINYGLTF_TEXTURE_WRAP_REPEAT;  // TinyGLTF extension. currently
     // not used.
 
     Value        extras;
@@ -554,9 +553,9 @@ struct GltfAccessor {
     std::string  name;
     size_t       byteOffset{0};
     bool         normalized{false}; // optional.
-    int          componentType{-1}; // (required) One of TINYGLTF_COMPONENT_TYPE_***
+    int          componentType{-1}; // (required) One
     size_t       count{0};          // required
-    int          type{-1};          // (required) One of TINYGLTF_TYPE_***   ..
+    int          type{-1};          // (required) One 
     Value        extras;
     ExtensionMap extensions;
 
@@ -575,7 +574,7 @@ struct GltfAccessor {
         struct {
             size_t       byteOffset{0};
             int          bufferView{-1};
-            int          componentType{-1}; // a TINYGLTF_COMPONENT_TYPE_ value
+            int          componentType{-1}; // 
             Value        extras;
             ExtensionMap extensions;
             std::string  extras_json_string;
@@ -647,7 +646,7 @@ struct GltfPrimitive {
     int material{-1};                                    // The index of the material to apply to this primitive
                                                          // when rendering.
     int                                     indices{-1}; // The index of the accessor that contains the indices.
-    int                                     mode{-1};    // one of TINYGLTF_MODE_***
+    int                                     mode{-1};    
     std::vector<std::map<std::string, int>> targets;     // array of morph targets,
     // where each target is a dict with attributes in ["POSITION, "NORMAL",
     // "TANGENT"] pointing

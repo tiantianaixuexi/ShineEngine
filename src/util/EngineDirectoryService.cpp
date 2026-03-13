@@ -107,7 +107,7 @@ namespace shine::util
         std::filesystem::path resolvedPath = directoryPath;
         if (!resolvedPath.is_absolute())
         {
-            resolvedPath = std::filesystem::path(join_path(STextView::from_string(projectRootDirectory_.string()), STextView::from_string(resolvedPath.string)).c_str());
+            resolvedPath = std::filesystem::path(join_path(STextView::from_string(projectRootDirectory_.string()), STextView::from_string(resolvedPath.string())).c_str());
         }
 
         std::error_code ec;
