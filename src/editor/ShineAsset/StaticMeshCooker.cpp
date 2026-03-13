@@ -52,6 +52,11 @@ namespace shine::editor::asset
         // Create output directory
         std::error_code ec;
         std::filesystem::create_directories(ctx.outputDir, ec);
+        if (ec)
+        {
+            result.errorMessage = "Failed to create output directory: " + ctx.outputDir.string() + " (" + ec.message() + ")";
+            return result;
+        }
 
         // Write a compact binary mesh blob per sub-asset
         // Binary format: [vertexCount:u32][indexCount:u32][vertices:float3*N][normals:float3*N][texcoords:float2*N][indices:u32*M]
