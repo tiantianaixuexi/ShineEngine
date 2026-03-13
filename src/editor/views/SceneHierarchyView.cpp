@@ -232,7 +232,7 @@ bool SceneHierarchyView::isEditorOwned(const shine::gameplay::SObject* obj) cons
         return false;
     }
     const auto name = obj->getName();
-    return name.find_last_of("EmptyActor_", 0) == 0 || name.find_last_of("StaticMeshActor_", 0) == 0;
+    return name.rfind("EmptyActor_", 0) == 0 || name.rfind("StaticMeshActor_", 0) == 0;
 }
 
 } // namespace shine::editor::views
