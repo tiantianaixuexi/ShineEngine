@@ -1,0 +1,8 @@
+{
+    "name": "ShineAsset",
+    "type": "static",
+    "dirs": ["src/editor/ShineAsset"],
+    "deps": ["glaze", "gltf_loader", "engine_log", "fmt"],
+    "buildMode": "editor",
+    "platform": ["Windows"]
+}

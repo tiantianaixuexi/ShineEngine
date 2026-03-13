@@ -1,7 +1,6 @@
 #undef SHINE_USE_MODULE
 #include "Texture.h"
 #include "render/resources/TextureManager.h"
-#include "manager/AssetInterfaces.h"
 #include "loader/image/image_loader.h"
 #include <cstring>
 
@@ -40,36 +39,7 @@ namespace shine::image
         }
     }
 
-    bool STexture::InitializeFromAsset(const manager::AssetHandle& assetHandle, const manager::IImageAssetProvider& imageAssetProvider)
-    {
-        if (!assetHandle.isValid() || assetHandle.type != manager::EAssetType::Image)
-        {
-            return false;
-        }
 
-        auto* loader = imageAssetProvider.GetImageLoader(assetHandle);
-        if (!loader || !loader->isDecoded())
-        {
-            return false;
-        }
-
-        // 从加载器获取数据
-        const auto& imageData = loader->getImageData();
-        _width = static_cast<u32>(loader->getWidth());
-        _height = static_cast<u32>(loader->getHeight());
-
-        if (imageData.empty() || _width == 0 || _height == 0)
-        {
-            return false;
-        }
-
-        // 复制数据到 RGBA8 格式
-        size_t pixelCount = _width * _height;
-        _data.resize(pixelCount);
-        std::memcpy(_data.data(), imageData.data(), imageData.size());
-
-        return true;
-    }
 
     shine::render::TextureHandle STexture::CreateRenderResource()
     {

@@ -1,21 +1,16 @@
 #include "editor/main_editor/EditorCompositionRoot.h"
 
 #include "EngineCore/engine_context.h"
-#include "editor/asset/AssetDirectoryService.h"
-#include "editor/asset/Manager/editor_asset_manager.h"
-#include "editor/asset/editor_runtime_asset_bridge.h"
 #include "editor/mainEditor.h"
+#include "editor/ShineAsset/RuntimeAssetRegistry.h"
+#include "editor/ShineAsset/EditorAssetRegistry.h"
 
 namespace shine::editor::main_editor
 {
     void EditorCompositionRoot::RegisterEditorSystems(EngineContext& context)
     {
-        auto* editorAssetManager = new editor::asset::EditorAssetManager();
-        auto* runtimeAssetBridge = new editor::asset::EditorRuntimeAssetBridge(editorAssetManager);
-        auto* assetDirectoryService = new editor::asset::AssetDirectoryService();
-        context.Register(editorAssetManager);
-        context.Register(runtimeAssetBridge);
-        context.Register(assetDirectoryService);
+        context.Register(new shine::asset::RuntimeAssetRegistry());
+        context.Register(new shine::editor::asset::EditorAssetRegistry());
     }
 
     std::unique_ptr<MainEditor> EditorCompositionRoot::BuildMainEditor(EngineContext& context)

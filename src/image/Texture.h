@@ -11,12 +11,6 @@ namespace shine::render
     class TextureManager;
 }
 
-namespace shine::manager
-{
-    struct AssetHandle;
-    class IImageAssetProvider;
-}
-
 namespace shine::image
 {
 
@@ -201,13 +195,6 @@ namespace shine::image
          * @param height 纹理高度
          */
         void InitializeFromMemory(const unsigned char* imageData, u32 width, u32 height);
-
-        /**
-         * @brief 从 AssetHandle 初始化（从已加载的图片资源创建）
-         * @param assetHandle 资源句柄
-         * @return 成功返回true
-         */
-        bool InitializeFromAsset(const manager::AssetHandle& assetHandle, const manager::IImageAssetProvider& imageAssetProvider);
 
         /**
          * @brief 创建 GPU 纹理资源（通过 TextureManager 单例）

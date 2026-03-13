@@ -1466,7 +1466,7 @@ endif()
 target_link_libraries(MainEngine PRIVATE
     $<$<CONFIG:Debug>:glew32d>
     $<$<CONFIG:Release>:glew32>
-    $<$<PLATFORM_ID:Windows>:opengl32;glu32;dxgi;dwmapi>
+    $<$<PLATFORM_ID:Windows>:opengl32;glu32;dxgi;dwmapi;bcrypt>
 )
 
 # 设置运行时环境变量

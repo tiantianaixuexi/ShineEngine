@@ -2,7 +2,6 @@
 #include "gameplay/object.h"
 #include "TransformComponent.h"
 #include "render/material.h"
-#include "manager/AssetManager.h"
 #include "loader/model/gltfLoader.h"
 #include "EngineCore/engine_context.h"
 #include <array>
@@ -30,12 +29,7 @@ namespace shine::gameplay::component
 
     bool StaticMeshComponent::loadModelMesh(std::string_view path, size_t meshIndex)
     {
-        auto* assetManager = shine::EngineContext::Get().GetSystem<shine::manager::AssetManager>();
-        if (!assetManager)
-        {
-            return false;
-        }
-        auto meshResult = assetManager->LoadModelMesh(std::string(path), meshIndex);
+        auto meshResult = shine::loader::LoadGltfMeshFromFile(STextView::from_sv(path), meshIndex);
         if (!meshResult.has_value())
         {
             return false;

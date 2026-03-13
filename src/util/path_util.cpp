@@ -71,11 +71,7 @@ std::optional<SString> get_script_path(const SString &script_name) {
 SString normalize_path(const SString &path) {
     std::filesystem::path fsPath(path.c_str());
     std::string           result = fsPath.lexically_normal().string();
-#ifdef SHINE_PLATFORM_WIN
     std::ranges::replace(result, '/', '\\');
-#else
-    std::ranges::replace(result, '\\', '/');
-#endif
     return SString::from_utf8(result);
 }
 
@@ -91,10 +87,10 @@ SString join_path(STextView base, STextView part) {
     std::filesystem::path combined = std::filesystem::path(base.data(), base.data() + base.size()) /
                                      std::filesystem::path(part.data(), part.data() + part.size());
     return normalize_path(SString::from_utf8(combined.string()));
-}
+}   
 
 SString normalize_asset_path(STextView path) {
-    SString normalized{path};
+    SString normalized = SString::from_view(path);
     std::ranges::replace(normalized, '\\', '/');
 
     std::ranges::transform(normalized, normalized.begin(),

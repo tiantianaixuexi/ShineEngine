@@ -5,13 +5,17 @@
 #include <thread>
 
 #include "EngineCore/engine_context.h"
+#include "editor/ShineAsset/AssetMetadata.h"
+#include "editor/ShineAsset/AssetTypes.h"
+#include "editor/ShineAsset/AssetUuidHelper.h"
+#include "editor/ShineAsset/EditorAssetRegistry.h"
 #include "gameplay/actor.h"
 #include "gameplay/object.h"
 #include "gameplay/objectFlag.h"
 #include "gameplay/component/StaticMeshComponent.h"
 #include "gameplay/component/TransformComponent.h"
 #include "gameplay/mesh/StaticMesh.h"
-#include "manager/AssetManager.h"
+
 
 namespace shine::gameplay::world
 {
@@ -81,81 +85,128 @@ namespace shine::gameplay::world
 
     bool WorldService::Init(EngineContext& ctx)
     {
-        auto* assetManager = ctx.GetSystem<manager::AssetManager>();
-        worldAssetBridge_ = static_cast<manager::IWorldAssetBridge*>(assetManager);
+        (void)ctx;
         clearSelection();
         actorIndex_.clear();
-        return worldAssetBridge_ != nullptr;
+        return true;
     }
 
     void WorldService::Shutdown(EngineContext& ctx)
     {
         (void)ctx;
-        if (worldAssetBridge_ && activeMapHandle_.isValid())
-        {
-            worldAssetBridge_->UnloadAsset(activeMapHandle_);
-        }
         clearSelection();
-        activeMapHandle_ = {};
-        worldAssetBridge_ = nullptr;
+        activeMap_.reset();
         actorIndex_.clear();
     }
 
     void WorldService::createMapAsset(STextView mapName)
     {
-        if (!worldAssetBridge_)
-        {
-            activeMapHandle_ = {};
-            return;
-        }
         clearSelection();
-        STextView mapPath = "memory://map/" + mapName + ".map";
-        activeMapHandle_ = worldAssetBridge_->LoadMapAsset(mapPath);
-        auto* map = worldAssetBridge_->GetMapAsset(activeMapHandle_);
-        if (map)
-        {
-           // map->setName(mapName);
-        }
+        activeMap_ = std::make_unique<MapAsset>(SString(mapName));
+        activeMapUuid_ = shine::editor::asset::GenerateUUIDString();
         rebuildActorIndex();
     }
 
-    bool WorldService::activateMapAsset(const manager::AssetHandle& mapHandle)
+    bool WorldService::saveMapAsset(const std::filesystem::path& sassetPath)
     {
-        if (!mapHandle.isValid() || mapHandle.type != manager::EAssetType::Map)
-        {
+        if (!activeMap_)
             return false;
-        }
-        if (!worldAssetBridge_)
+
+        using namespace shine::editor::asset;
+
+        // Generate UUID on first save
+        if (activeMapUuid_.empty())
+            activeMapUuid_ = GenerateUUIDString();
+
+        // Build AssetMetadata
+        AssetMetadata meta;
+        meta.formatVersion = "2.0";
+        auto& rec = meta.asset;
+        rec.uuid     = activeMapUuid_.to_string();
+        rec.type     = std::string(AssetTypeId::World);
+        rec.imported = true;
+        rec.lastImportTime = std::format("{:%FT%TZ}",
+            std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()));
+
+        // Serialize world settings as import settings JSON
+        const auto& ws = activeMap_->GetWorldSettings();
+        struct SerializedWorldSettings
         {
+            float gravityZ;
+            float timeDilation;
+            bool  enableGlobalIllumination;
+        };
+
+        SerializedWorldSettings sws{
+            .gravityZ = ws.gravityZ,
+            .timeDilation = ws.timeDilation,
+            .enableGlobalIllumination = ws.enableGlobalIllumination
+        };
+
+        std::string wsJson = glz::write_json(sws);
+        rec.importSettings = glz::raw_json{ std::move(wsJson) };
+
+        // Write .sasset file
+        auto writeResult = WriteAssetMetadataFile(meta, sassetPath.string());
+        if (!writeResult)
             return false;
-        }
-        auto* map = worldAssetBridge_->GetMapAsset(mapHandle);
-        if (!map)
+
+        // Register with EditorAssetRegistry if available
+        if (EngineContext::IsInitialized())
         {
-            return false;
+            auto* editorRegistry = EngineContext::Get().GetSystem<EditorAssetRegistry>();
+            if (editorRegistry)
+                editorRegistry->Register(sassetPath, std::move(rec));
         }
-        clearSelection();
-        activeMapHandle_ = mapHandle;
-        rebuildActorIndex();
+
         return true;
     }
 
+    bool WorldService::loadMapAsset(STextView uuid)
+    {
+        if (uuid.empty())
+            return false;
+
+        using namespace shine::editor::asset;
+
+        if (!EngineContext::IsInitialized())
+            return false;
+
+        auto* editorRegistry = EngineContext::Get().GetSystem<EditorAssetRegistry>();
+        if (!editorRegistry)
+            return false;
+
+        const auto* entry = editorRegistry->Find(uuid);
+        if (!entry || entry->isDangling)
+            return false;
+
+        // Read the .sasset file
+        auto result = ReadAssetMetadataFile(entry->diskPath.sv());
+        if (!result)
+            return false;
+
+        // Reconstruct MapAsset from metadata
+        const auto& rec = result->asset;
+        SString mapName(rec.sourceFile.empty() ? "LoadedMap" : rec.sourceFile);
+
+        clearSelection();
+        activeMap_ = std::make_unique<MapAsset>(std::move(mapName));
+        activeMapUuid_ = SString(rec.uuid);
+        rebuildActorIndex();
+
+        return true;
+    }
+
+
+
     MapAsset* WorldService::getActiveMap() noexcept
     {
-        if (!worldAssetBridge_ || !activeMapHandle_.isValid())
-        {
-            return nullptr;
-        }
-        return worldAssetBridge_->GetMapAsset(activeMapHandle_);
+        return activeMap_.get();
     }
 
     const MapAsset* WorldService::getActiveMap() const noexcept
     {
-        if (!worldAssetBridge_ || !activeMapHandle_.isValid())
-        {
-            return nullptr;
-        }
-        return worldAssetBridge_->GetMapAsset(activeMapHandle_);
+        return activeMap_.get();
     }
 
     void WorldService::addActorToPersistentLevel(std::unique_ptr<shine::gameplay::SActor> actor)
