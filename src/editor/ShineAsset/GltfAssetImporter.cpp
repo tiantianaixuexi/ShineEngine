@@ -54,7 +54,6 @@ namespace shine::editor::asset
         asset.importSettings = ctx.savedImportSettings;
 
         // Extract mesh data as sub-assets
-        const std::size_t meshCount = loader.getMeshCount();
         auto allMeshes = loader.extractMeshData();
 
         for (std::size_t i = 0; i < allMeshes.size(); ++i)
@@ -82,15 +81,18 @@ namespace shine::editor::asset
         }
 
         // Build node tree from scene graph
+        // TODO: 当前是简化实现，将所有 sub-asset 平铺挂在 Root 下。
+        //       后续需要递归遍历 glTF 场景图，正确构建父子层级关系，
+        //       使每个节点的 mesh/材质引用对应到正确的 sub-asset UUID。
         const int defaultScene = loader.getDefaultSceneIndex();
         if (loader.getSceneCount() > 0)
         {
             const int sceneIdx = (defaultScene >= 0) ? defaultScene : 0;
-            auto rootNodes = loader.getSceneRootNodes(sceneIdx);
+            [[maybe_unused]] auto rootNodes = loader.getSceneRootNodes(sceneIdx);
 
             AssetNode rootNode;
             rootNode.name = "Root";
-            for (std::size_t i = 0; i < rootNodes.size() && i < asset.subAssets.size(); ++i)
+            for (std::size_t i = 0; i < asset.subAssets.size(); ++i)
             {
                 NodeComponent comp;
                 comp.type = std::string(SubAssetTypeId::Mesh);
