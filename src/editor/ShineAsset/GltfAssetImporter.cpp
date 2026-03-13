@@ -1,7 +1,7 @@
 #include "GltfAssetImporter.h"
 
 #include <chrono>
-#include <format>
+#include <fmt/chrono.h>
 
 #include "AssetTypes.h"
 #include "AssetUuidHelper.h"
@@ -47,7 +47,7 @@ namespace shine::editor::asset
         asset.type       = std::string(AssetTypeId::Model);
         asset.sourceFile  = ctx.sourceFile.string();
         asset.imported   = true;
-        asset.lastImportTime = std::format("{:%FT%TZ}",
+        asset.lastImportTime = fmt::format("{:%FT%TZ}",
             std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()));
 
         // Preserve import settings if provided
