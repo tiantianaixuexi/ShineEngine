@@ -97,7 +97,7 @@ namespace shine::editor::asset
         /// Return true if this cooker can handle the given platform.
         /// Default: all platforms.
         [[nodiscard]] virtual bool
-        SupportsPlafform(ECookPlatform platform) const noexcept { return true; }
+        SupportsPlatform(ECookPlatform platform) const noexcept { return true; }
 
         /// Perform the cook.  Called on a worker thread — must be thread-safe.
         [[nodiscard]] virtual CookResult
