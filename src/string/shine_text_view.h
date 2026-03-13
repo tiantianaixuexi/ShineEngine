@@ -787,14 +787,17 @@ namespace shine
 
 #if defined(__cpp_lib_format)
 #include <format>
-template <>
-struct std::formatter<shine::STextView, char> : std::formatter<std::string_view, char>
+namespace std
 {
-    auto format(const shine::STextView& v, std::format_context& ctx) const
+    template <>
+    struct formatter<shine::STextView, char> : formatter<std::string_view, char>
     {
-        // Use data()+size() directly — avoids the sv() call overhead.
-        return std::formatter<std::string_view, char>::format(
-            std::string_view(v.data(), v.size()), ctx);
-    }
-};
+        auto format(const shine::STextView& v, std::format_context& ctx) const
+        {
+            // Use data()+size() directly — avoids the sv() call overhead.
+            return std::formatter<std::string_view, char>::format(
+                std::string_view(v.data(), v.size()), ctx);
+        }
+    };
+}
 #endif
