@@ -130,9 +130,20 @@ namespace shine::gameplay::world
 
         // Serialize world settings as import settings JSON
         const auto& ws = activeMap_->GetWorldSettings();
-        std::string wsJson = "{\"gravityZ\":" + std::to_string(ws.gravityZ)
-            + ",\"timeDilation\":" + std::to_string(ws.timeDilation)
-            + ",\"enableGlobalIllumination\":" + (ws.enableGlobalIllumination ? "true" : "false") + "}";
+        struct SerializedWorldSettings
+        {
+            float gravityZ;
+            float timeDilation;
+            bool  enableGlobalIllumination;
+        };
+
+        SerializedWorldSettings sws{
+            .gravityZ = ws.gravityZ,
+            .timeDilation = ws.timeDilation,
+            .enableGlobalIllumination = ws.enableGlobalIllumination
+        };
+
+        std::string wsJson = glz::write_json(sws);
         rec.importSettings = glz::raw_json{ std::move(wsJson) };
 
         // Write .sasset file
