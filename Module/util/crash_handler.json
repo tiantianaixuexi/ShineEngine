@@ -1,0 +1,21 @@
+{
+  "name": "crash_handler",
+  "type": "static",
+  "dirs": [
+    "src/util/crash_handler"
+  ],
+  "deps": [
+    "shine_string",
+    "shineLog"
+  ],
+  "defines": [
+    "NOMINMAX"
+  ],
+  "platform": [
+    "Windows"
+  ],
+  "buildMode": [
+    "both"
+  ],
+  "comment": "Windows crash handler: SEH + MiniDump + C++23 std::stacktrace"
+}

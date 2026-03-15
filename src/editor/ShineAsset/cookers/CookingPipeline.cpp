@@ -42,21 +42,21 @@ namespace shine::editor::asset
     {
         const auto* entry = registry.Find(uuid);
         if (!entry || entry->isDangling)
-            return { false, "Asset not found or dangling", {} };
+            return { .succeeded=false, .errorMessage="Asset not found or dangling", .outputFiles={} };
 
         SString typeKey(entry->record.type);
         auto it = m_cookers.find(typeKey);
         if (it == m_cookers.end())
-            return { false, "No cooker registered for type: " + entry->record.type, {} };
+            return { .succeeded=false, .errorMessage="No cooker registered for type: " + entry->record.type, .outputFiles={} };
 
         auto& cooker = it->second;
-        if (!cooker->SupportsPlafform(platform))
-            return { false, "Cooker does not support target platform", {} };
+        if (!cooker->SupportsPlatform(platform))
+            return { .succeeded=false, .errorMessage="Cooker does not support target platform", .outputFiles={} };
 
         // Read the full metadata from disk
         auto metaResult = ReadAssetMetadataFile(entry->diskPath.sv());
         if (!metaResult)
-            return { false, "Failed to read .sasset file: " + entry->diskPath.to_string(), {} };
+            return { .succeeded=false, .errorMessage="Failed to read .sasset file: " + entry->diskPath.to_string(), .outputFiles={} };
 
         AssetCookContext ctx;
         ctx.metadata       = std::move(metaResult.value());

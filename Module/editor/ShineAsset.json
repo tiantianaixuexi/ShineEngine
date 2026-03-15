@@ -2,7 +2,15 @@
     "name": "ShineAsset",
     "type": "static",
     "dirs": ["src/editor/ShineAsset"],
-    "deps": ["glaze", "gltf_loader", "engine_log", "fmt"],
+    "include_dirs": [
+        "src/editor/ShineAsset",
+        "src/editor/ShineAsset/core",
+        "src/editor/ShineAsset/metadata",
+        "src/editor/ShineAsset/registry",
+        "src/editor/ShineAsset/importers",
+        "src/editor/ShineAsset/cookers"
+    ],
+    "deps": ["glaze", "gltf_loader", "obj_loader", "png", "jpeg", "engine_log", "fmt"],
     "buildMode": "editor",
     "platform": ["Windows"]
 }

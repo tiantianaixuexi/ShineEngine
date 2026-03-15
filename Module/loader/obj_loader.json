@@ -1,0 +1,9 @@
+{
+    "name": "obj_loader",
+    "type": "static",
+    "files": [
+        "src/loader/model/objLoader.h",
+        "src/loader/model/objLoader.cpp"
+    ],
+    "deps": ["loader", "fast_float", "fmt", "file_util", "string_util", "timer", "math"]
+}
