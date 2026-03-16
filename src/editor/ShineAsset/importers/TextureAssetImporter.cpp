@@ -2,6 +2,7 @@
 #include "ImporterAutoRegistry.h"
 
 #include <chrono>
+#include <cstring>
 #include <fstream>
 #include <system_error>
 
@@ -11,7 +12,7 @@
 #include "AssetTypes.h"
 #include "AssetUuidHelper.h"
 
-#include "image/png.h"
+#include "util/image_util.h"
 #include "image/jpeg.h"
 
 namespace shine::editor::asset
@@ -62,20 +63,16 @@ namespace shine::editor::asset
 
         if (extLower == ".png")
         {
-            shine::image::png pngLoader;
-            if (!pngLoader.loadFromFile(ctx.sourceFile.string().c_str()))
+            auto imgResult = shine::util::load_image(ctx.sourceFile.string(), 4);
+            if (!imgResult.has_value())
             {
-                result.errorMessage = "Failed to load PNG file: " + ctx.sourceFile.string();
+                result.errorMessage = "Failed to load PNG: " + imgResult.error();
                 return result;
             }
-            if (auto dec = pngLoader.decode(); !dec)
-            {
-                result.errorMessage = "Failed to decode PNG: " + dec.error();
-                return result;
-            }
-            width    = pngLoader.getWidth();
-            height   = pngLoader.getHeight();
-            rgbaData = pngLoader.getImageData();
+            width  = static_cast<uint32_t>(imgResult->width);
+            height = static_cast<uint32_t>(imgResult->height);
+            rgbaData.resize(imgResult->data.size());
+            std::memcpy(rgbaData.data(), imgResult->data.data(), imgResult->data.size());
         }
         else if (extLower == ".jpg" || extLower == ".jpeg")
         {

@@ -1,0 +1,15 @@
+{
+    "name": "image_util",
+    "type": "static",
+    "files": [
+        "src/util/image_util.h",
+        "src/util/image_util.cpp"
+    ],
+    "deps": ["libpng", "file_util", "imgui"],
+    "third": {
+        "lib": {
+            "debug": ["glew32d.lib", "opengl32.lib"],
+            "release": ["glew32.lib", "opengl32.lib"]
+        }
+    }
+}

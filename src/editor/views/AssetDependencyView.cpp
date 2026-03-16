@@ -1,7 +1,7 @@
 #include "AssetDependencyView.h"
 
 #include "imgui/imgui.h"
-#include "editor/ShineAsset/EditorAssetRegistry.h"
+#include "editor/ShineAsset/registry/EditorAssetRegistry.h"
 
 namespace shine::editor::views
 {

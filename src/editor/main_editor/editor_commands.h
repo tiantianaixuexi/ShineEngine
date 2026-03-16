@@ -8,7 +8,7 @@ namespace shine::editor::main_editor
     public:
         bool ToggleAssetBrowser(this auto& self)
         {
-            return self.ToggleAssetBrowser();
+            return self.ToggleAssetBrowserImpl();
         }
 
         bool ToggleMemoryProfiler(this auto& self)

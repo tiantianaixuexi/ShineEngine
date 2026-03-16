@@ -17,6 +17,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <malloc.h>   // _resetstkoflw
 #include <string>
 #include <vector>
 
@@ -100,6 +101,50 @@ namespace shine::util::crash_handler
                 result += fmt::format(" [{}:{}]", lineInfo.FileName, lineInfo.LineNumber);
 
             return result;
+        }
+
+        // -----------------------------------------------------------------------
+        //  Stack frame collection
+        // -----------------------------------------------------------------------
+
+        // Collect up to `maxFrames` return addresses.
+        // If hThread + ctx are provided, walks that thread's saved CONTEXT via StackWalk64
+        // (needed when we're on a worker thread unwinding the crashed thread's stack).
+        // Otherwise falls back to CaptureStackBackTrace on the current thread.
+        USHORT CollectFrames(void** frames, DWORD maxFrames,
+                             HANDLE hThread, CONTEXT* ctx)
+        {
+            if (hThread && ctx)
+            {
+                USHORT count = 0;
+                STACKFRAME64 sf{};
+                sf.AddrPC.Mode = sf.AddrFrame.Mode = sf.AddrStack.Mode = AddrModeFlat;
+#ifdef _M_X64
+                sf.AddrPC.Offset    = ctx->Rip;
+                sf.AddrFrame.Offset = ctx->Rbp;
+                sf.AddrStack.Offset = ctx->Rsp;
+                constexpr DWORD kMachine = IMAGE_FILE_MACHINE_AMD64;
+#else
+                sf.AddrPC.Offset    = ctx->Eip;
+                sf.AddrFrame.Offset = ctx->Ebp;
+                sf.AddrStack.Offset = ctx->Esp;
+                constexpr DWORD kMachine = IMAGE_FILE_MACHINE_I386;
+#endif
+                while (count < maxFrames)
+                {
+                    if (!StackWalk64(kMachine, GetCurrentProcess(), hThread,
+                                     &sf, ctx, nullptr,
+                                     SymFunctionTableAccess64, SymGetModuleBase64, nullptr))
+                        break;
+                    if (sf.AddrPC.Offset == 0) break;
+                    frames[count++] = reinterpret_cast<void*>(sf.AddrPC.Offset);
+                }
+                return count;
+            }
+
+            return CaptureStackBackTrace(
+                static_cast<DWORD>(2 + g_config.stackSkipFrames),
+                maxFrames, frames, nullptr);
         }
 
         // -----------------------------------------------------------------------
@@ -189,15 +234,34 @@ namespace shine::util::crash_handler
             if (ep)
             {
                 const EXCEPTION_RECORD* rec = ep->ExceptionRecord;
-                log << fmt::format("Exception code:    0x{:08X}\n",
-                                   static_cast<unsigned>(rec->ExceptionCode));
+                const auto code = rec->ExceptionCode;
+
+                // Human-readable name for common exception codes
+                const char* codeName = [code]() -> const char* {
+                    switch (code) {
+                    case EXCEPTION_ACCESS_VIOLATION:      return "EXCEPTION_ACCESS_VIOLATION";
+                    case EXCEPTION_STACK_OVERFLOW:        return "EXCEPTION_STACK_OVERFLOW";
+                    case EXCEPTION_ILLEGAL_INSTRUCTION:   return "EXCEPTION_ILLEGAL_INSTRUCTION";
+                    case EXCEPTION_INT_DIVIDE_BY_ZERO:    return "EXCEPTION_INT_DIVIDE_BY_ZERO";
+                    case EXCEPTION_FLT_DIVIDE_BY_ZERO:    return "EXCEPTION_FLT_DIVIDE_BY_ZERO";
+                    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED: return "EXCEPTION_ARRAY_BOUNDS_EXCEEDED";
+                    case EXCEPTION_PRIV_INSTRUCTION:      return "EXCEPTION_PRIV_INSTRUCTION";
+                    case EXCEPTION_IN_PAGE_ERROR:         return "EXCEPTION_IN_PAGE_ERROR";
+                    case 0xE06D7363u:                     return "C++ Exception (0xE06D7363)";
+                    default:                              return "(unknown)";
+                    }
+                }();
+
+                log << fmt::format("Exception:         {} (0x{:08X})\n",
+                                   codeName, static_cast<unsigned>(code));
                 log << fmt::format("Exception address: 0x{:016X}\n",
                                    reinterpret_cast<uintptr_t>(rec->ExceptionAddress));
                 log << fmt::format("Exception flags:   0x{:08X}\n\n",
                                    static_cast<unsigned>(rec->ExceptionFlags));
                 SHINE_LOG_ERROR(CrashHandlerLog, "crash",
-                    "CRASH! code=0x{:08X} addr=0x{:016X} log={}",
-                    static_cast<unsigned>(rec->ExceptionCode),
+                    "CRASH! {} (0x{:08X}) addr=0x{:016X} log={}",
+                    codeName,
+                    static_cast<unsigned>(code),
                     reinterpret_cast<uintptr_t>(rec->ExceptionAddress),
                     path);
             }
@@ -218,21 +282,47 @@ namespace shine::util::crash_handler
             }
         }
 
-        void HandleCrash(EXCEPTION_POINTERS* ep)
+        void HandleCrash(EXCEPTION_POINTERS* ep,
+                          HANDLE hCrashedThread = nullptr, CONTEXT* crashCtx = nullptr)
         {
             // Refresh symbol table in case DLLs were loaded after Install().
             SymRefreshModuleList(GetCurrentProcess());
 
-            // Capture raw return addresses before WriteMiniDump (which allocates).
-            // Skip: HandleCrash(1) + ExceptionFilter/TerminateHandler(1) + user skip.
             constexpr DWORD kMaxFrames = 128;
             void*  frames[kMaxFrames]{};
-            const USHORT captured = CaptureStackBackTrace(
-                static_cast<DWORD>(2 + g_config.stackSkipFrames),
-                kMaxFrames, frames, nullptr);
+            const USHORT captured = CollectFrames(frames, kMaxFrames, hCrashedThread, crashCtx);
 
             WriteMiniDump(ep);
             WriteTextLog(ep, frames, captured);
+        }
+
+        // -----------------------------------------------------------------------
+        //  Stack-overflow worker — runs on a fresh thread with its own 1 MB stack.
+        //  The crashed thread blocks in WaitForSingleObject while we work here.
+        // -----------------------------------------------------------------------
+        struct StackOverflowWorkItem
+        {
+            EXCEPTION_POINTERS* ep;
+            HANDLE              hCrashedThread; // DuplicateHandle'd — caller closes
+        };
+
+        static DWORD WINAPI StackOverflowWorkerProc(LPVOID param)
+        {
+            auto* work = static_cast<StackOverflowWorkItem*>(param);
+
+            CONTEXT ctx{};
+            CONTEXT* pCtx = nullptr;
+            if (work->ep && work->hCrashedThread)
+            {
+                ctx  = *work->ep->ContextRecord; // copy before crashed thread resumes
+                pCtx = &ctx;
+            }
+
+            HandleCrash(work->ep, work->hCrashedThread, pCtx);
+
+            CloseHandle(work->hCrashedThread);
+            delete work;
+            return 0;
         }
 
         // -----------------------------------------------------------------------
@@ -240,7 +330,37 @@ namespace shine::util::crash_handler
         // -----------------------------------------------------------------------
         LONG WINAPI ExceptionFilter(EXCEPTION_POINTERS* ep)
         {
-            HandleCrash(ep);
+            if (ep && ep->ExceptionRecord->ExceptionCode == EXCEPTION_STACK_OVERFLOW)
+            {
+                // Restore the guard page so we can execute a tiny bit of code on this thread.
+                _resetstkoflw();
+
+                // Offload the heavy work (SymFromAddr, file I/O) to a thread with a fresh stack.
+                auto* work = new (std::nothrow) StackOverflowWorkItem{};
+                if (work)
+                {
+                    work->ep = ep;
+                    DuplicateHandle(GetCurrentProcess(), GetCurrentThread(),
+                                    GetCurrentProcess(), &work->hCrashedThread,
+                                    0, FALSE, DUPLICATE_SAME_ACCESS);
+                    HANDLE hWorker = CreateThread(nullptr, 0, StackOverflowWorkerProc,
+                                                  work, 0, nullptr);
+                    if (hWorker)
+                    {
+                        WaitForSingleObject(hWorker, 15'000);
+                        CloseHandle(hWorker);
+                    }
+                    else
+                    {
+                        CloseHandle(work->hCrashedThread);
+                        delete work;
+                    }
+                }
+            }
+            else
+            {
+                HandleCrash(ep);
+            }
             // Let the OS show its default crash dialog / invoke JIT debugger.
             return EXCEPTION_CONTINUE_SEARCH;
         }
@@ -279,6 +399,11 @@ namespace shine::util::crash_handler
         }
 
         ADD_LOG_CATEGORY_WITH_CONSOLE(CrashHandlerLog, "crash", true)
+
+        // Reserve extra stack pages for the SEH handler so it can run even when
+        // the thread stack is nearly exhausted (non-overflow scenarios).
+        ULONG stackGuarantee = 64 * 1024; // 64 KB
+        SetThreadStackGuarantee(&stackGuarantee);
 
         // Initialize DbgHelp now so the PDB search path is set before any crash.
         EnsureSymbols();
