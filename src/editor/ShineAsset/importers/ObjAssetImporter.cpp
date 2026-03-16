@@ -87,13 +87,11 @@ namespace shine::editor::asset
         {
             const auto& mesh = allMeshes[i];
 
-            const std::string meshName = mesh.name.empty()
-                ? "Mesh_" + std::to_string(i)
-                : mesh.name;
-
-            const std::string binFilename = SafeMeshFilename(meshName) + "_" + std::to_string(i) + ".bin";
-            const std::string relBinPath  = "meshes/" + binFilename;
-            const auto        binPath     = meshesDir / binFilename;
+            const SString meshName    = MakeMeshName(mesh.name, i);
+            const SString binFilename = MakeMeshBinFilename(meshName, i);
+            SString relBinPath("meshes/");
+            relBinPath += binFilename;
+            const auto binPath = meshesDir / binFilename.c_str();
 
             if (!WriteMeshBin(binPath, mesh, settings.scale, settings.flipUV))
             {
@@ -104,14 +102,18 @@ namespace shine::editor::asset
             SubAssetEntry sub;
             sub.uuid = GenerateV7UUIDString().to_string();
             sub.type = std::string(SubAssetTypeId::Mesh);
-            sub.name = meshName;
+            sub.name = meshName.to_string();
 
-            const std::string props =
-                "{\"vertexCount\":"   + std::to_string(mesh.vertices.size()) +
-                ",\"indexCount\":"    + std::to_string(mesh.indices.size())  +
-                ",\"materialIndex\":" + std::to_string(mesh.materialIndex)   +
-                ",\"binaryPath\":\""  + relBinPath + "\"}";
-            sub.properties = glz::raw_json{ props };
+            SString props("{\"vertexCount\":");
+            props += std::to_string(mesh.vertices.size());
+            props += ",\"indexCount\":";
+            props += std::to_string(mesh.indices.size());
+            props += ",\"materialIndex\":";
+            props += std::to_string(mesh.materialIndex);
+            props += ",\"binaryPath\":\"";
+            props += relBinPath;
+            props += "\"}";
+            sub.properties = glz::raw_json{ props.to_string() };
 
             asset.subAssets.push_back(std::move(sub));
 

@@ -1,31 +1,17 @@
 #include "TextureAssetImporter.h"
 #include "ImporterAutoRegistry.h"
+#include "MaterialImportUtil.h"
 
-#include <chrono>
 #include <cstring>
-#include <fstream>
 #include <system_error>
 
-#include <fmt/chrono.h>
 #include "imgui/imgui.h"
-
-#include "AssetTypes.h"
-#include "AssetUuidHelper.h"
 
 #include "util/image_util.h"
 #include "image/jpeg.h"
 
 namespace shine::editor::asset
 {
-    // -----------------------------------------------------------------------
-    //  Binary texture format written alongside the .sasset:
-    //
-    //    [width    : u32]
-    //    [height   : u32]
-    //    [channels : u32]  — always 4 (RGBA)
-    //    [pixels   : u8 * width * height * channels]
-    // -----------------------------------------------------------------------
-
     std::string_view TextureAssetImporter::GetName() const noexcept
     {
         return "Texture Importer";
@@ -107,9 +93,10 @@ namespace shine::editor::asset
             ctx.onProgress("Writing texture binary...", 0.6f);
 
         // Write binary pixel data alongside the .sasset
-        const std::string stem         = ctx.sourceFile.stem().string();
-        const std::string binFilename  = stem + ".bin";
-        const auto        binPath      = ctx.outputSAssetPath.parent_path() / binFilename;
+        const SString stem(ctx.sourceFile.stem().string());
+        SString binFilename = stem;
+        binFilename += ".bin";
+        const auto binPath = ctx.outputSAssetPath.parent_path() / binFilename.c_str();
 
         {
             std::error_code ec;
@@ -121,58 +108,20 @@ namespace shine::editor::asset
                 return result;
             }
 
-            std::ofstream out(binPath, std::ios::binary | std::ios::trunc);
-            if (!out)
+            if (!WriteTextureBin(binPath, width, height, rgbaData))
             {
                 result.errorMessage = "Failed to write texture binary: " + binPath.string();
                 return result;
             }
-
-            constexpr uint32_t channels = 4u;
-            out.write(reinterpret_cast<const char*>(&width),    sizeof(width));
-            out.write(reinterpret_cast<const char*>(&height),   sizeof(height));
-            out.write(reinterpret_cast<const char*>(&channels), sizeof(channels));
-            out.write(reinterpret_cast<const char*>(rgbaData.data()),
-                      static_cast<std::streamsize>(rgbaData.size()));
-
-            if (!out.good())
-            {
-                result.errorMessage = "I/O error while writing texture binary: " + binPath.string();
-                return result;
-            }
         }
 
-        // Build AssetMetadata
-        auto& meta  = result.metadata;
-        meta.formatVersion = "2.0";
-
-        auto& asset = meta.asset;
-        asset.uuid           = ctx.rootUUID;
-        asset.type           = std::string(AssetTypeId::Texture);
-        asset.sourceFile     = ctx.sourceFile.string();
-        asset.imported       = true;
-        asset.lastImportTime = fmt::format("{:%FT%TZ}",
-            std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()));
-        asset.importSettings = ctx.savedImportSettings;
-
-        // Single sub-asset representing the raw texture
-        {
-            SubAssetEntry sub;
-            sub.uuid = GenerateV7UUIDString().to_string();
-            sub.type = std::string(SubAssetTypeId::Texture);
-            sub.name = stem;
-
-            const std::string props =
-                "{\"width\":"        + std::to_string(width)   +
-                ",\"height\":"       + std::to_string(height)  +
-                ",\"channels\":4"
-                ",\"generateMipmaps\":" + (settings.generateMipmaps ? "true" : "false") +
-                ",\"sRGB\":"            + (settings.sRGB ? "true" : "false") +
-                ",\"binaryPath\":\""    + binFilename + "\"}";
-            sub.properties = glz::raw_json{ props };
-
-            asset.subAssets.push_back(std::move(sub));
-        }
+        // Build AssetMetadata via shared helper
+        const SString rootUUID(ctx.rootUUID);
+        const SString sourceStr(ctx.sourceFile.string());
+        result.metadata = MakeTextureMeta(
+            rootUUID, sourceStr, stem, binFilename, width, height,
+            settings.generateMipmaps, settings.sRGB);
+        result.metadata.asset.importSettings = ctx.savedImportSettings;
 
         if (ctx.onProgress)
             ctx.onProgress("Import complete", 1.0f);

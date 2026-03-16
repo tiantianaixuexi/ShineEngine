@@ -2,14 +2,20 @@
 
 #include <filesystem>
 #include <optional>
-#include <string>
 
+#include "string/shine_string.h"
 #include "loader/model/model_loader.h"
 
 namespace shine::editor::asset
 {
     /// Replace characters that are invalid in file names with underscores.
-    std::string SafeMeshFilename(const std::string& name);
+    SString SafeMeshFilename(STextView name);
+
+    /// Returns `name` if non-empty, otherwise "Mesh_<idx>".
+    SString MakeMeshName(const std::string& name, std::size_t idx);
+
+    /// Returns SafeMeshFilename(meshName) + "_<idx>.bin".
+    SString MakeMeshBinFilename(STextView meshName, std::size_t idx);
 
     /// Write one MeshData as a compact binary blob.
     /// Format (version 2):

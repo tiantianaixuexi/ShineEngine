@@ -50,9 +50,9 @@ namespace shine::editor::asset
 
     // -------------------------------------------------------------------------
 
-    std::string SafeMeshFilename(const std::string& name)
+    SString SafeMeshFilename(STextView name)
     {
-        std::string s = name;
+        SString s(name);
         for (char& c : s)
         {
             if (c == '/' || c == '\\' || c == ':' || c == '*' ||
@@ -61,6 +61,23 @@ namespace shine::editor::asset
                 c = '_';
         }
         return s;
+    }
+
+    SString MakeMeshName(const std::string& name, std::size_t idx)
+    {
+        if (!name.empty()) return SString(name);
+        SString s("Mesh_");
+        s += std::to_string(idx);
+        return s;
+    }
+
+    SString MakeMeshBinFilename(STextView meshName, std::size_t idx)
+    {
+        SString result = SafeMeshFilename(meshName);
+        result += "_";
+        result += std::to_string(idx);
+        result += ".bin";
+        return result;
     }
 
     bool WriteMeshBin(const std::filesystem::path& path,

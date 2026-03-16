@@ -1,5 +1,6 @@
 #include "GltfAssetImporter.h"
 #include "ImporterAutoRegistry.h"
+#include "MaterialImportUtil.h"
 #include "MeshBinUtil.h"
 
 #include <chrono>
@@ -21,10 +22,10 @@ namespace shine::editor::asset
     namespace
     {
         // Sanitise a string for use as a filename stem.
-        static std::string SafeStem(const std::string& name, const std::string& fallback)
+        static SString SafeStem(STextView name, STextView fallback)
         {
-            if (name.empty()) return fallback;
-            std::string s = name;
+            if (name.empty()) return SString(fallback);
+            SString s(name);
             for (char& c : s)
             {
                 if (c == '/' || c == '\\' || c == ':' || c == '*' ||
@@ -36,112 +37,39 @@ namespace shine::editor::asset
         }
 
         // Write raw RGBA pixels to a simple 4-channel .bin (matches TextureAssetImporter format).
-        static bool WriteTextureBin(const std::filesystem::path& path,
-                                    uint32_t width, uint32_t height,
-                                    const std::vector<unsigned char>& rgba)
-        {
-            std::filesystem::create_directories(path.parent_path());
-            std::ofstream out(path, std::ios::binary | std::ios::trunc);
-            if (!out) return false;
-            constexpr uint32_t channels = 4u;
-            out.write(reinterpret_cast<const char*>(&width),    sizeof(width));
-            out.write(reinterpret_cast<const char*>(&height),   sizeof(height));
-            out.write(reinterpret_cast<const char*>(&channels), sizeof(channels));
-            out.write(reinterpret_cast<const char*>(rgba.data()),
-                      static_cast<std::streamsize>(rgba.size()));
-            return out.good();
-        }
+        // (shared implementation lives in MaterialImportUtil)
 
-        // Build a texture AssetMetadata (same structure as TextureAssetImporter).
-        static AssetMetadata MakeTextureMeta(
-            const std::string& uuid,
-            const std::string& sourceFile,
-            const std::string& name,
-            const std::string& binFilename,
-            uint32_t width, uint32_t height)
-        {
-            AssetMetadata meta;
-            meta.formatVersion   = "2.0";
-            meta.asset.uuid      = uuid;
-            meta.asset.type      = std::string(AssetTypeId::Texture);
-            meta.asset.sourceFile = sourceFile;
-            meta.asset.imported  = true;
-            meta.asset.lastImportTime = fmt::format("{:%FT%TZ}",
-                std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()));
-
-            SubAssetEntry sub;
-            sub.uuid = GenerateV7UUIDString().to_string();
-            sub.type = std::string(SubAssetTypeId::Texture);
-            sub.name = name;
-            const std::string props =
-                "{\"width\":"     + std::to_string(width)  +
-                ",\"height\":"    + std::to_string(height) +
-                ",\"channels\":4"
-                ",\"generateMipmaps\":true"
-                ",\"sRGB\":true"
-                ",\"binaryPath\":\"" + binFilename + "\"}";
-            sub.properties = glz::raw_json{ props };
-            meta.asset.subAssets.push_back(std::move(sub));
-            return meta;
-        }
-
-        // Build a material AssetMetadata with PBR properties and texture UUID refs.
-        static AssetMetadata MakeMaterialMeta(
-            const std::string& uuid,
-            const std::string& sourceFile,
-            const std::string& name,
+        // Convert a GltfMaterial + resolved texture UUIDs into a format-agnostic
+        // MaterialImportData ready for MakeMaterialMeta().
+        static MaterialImportData ToMaterialImportData(
+            STextView name,
             const gltf::GltfMaterial& mat,
-            const std::vector<std::string>& textureUuids)   // indexed by gltf texture index
+            const std::vector<SString>& textureUuids)
         {
-            const auto texUuid = [&](int idx) -> std::string {
+            const auto resolveUuid = [&](int idx) -> SString {
                 if (idx >= 0 && static_cast<size_t>(idx) < textureUuids.size())
                     return textureUuids[static_cast<size_t>(idx)];
-                return "";
+                return {};
             };
 
-            AssetMetadata meta;
-            meta.formatVersion   = "2.0";
-            meta.asset.uuid      = uuid;
-            meta.asset.type      = std::string(AssetTypeId::Material);
-            meta.asset.sourceFile = sourceFile;
-            meta.asset.imported  = true;
-            meta.asset.lastImportTime = fmt::format("{:%FT%TZ}",
-                std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()));
+            MaterialImportData d;
+            d.name        = name;
+            d.alphaMode   = STextView::from_string(mat.alphaMode);
+            d.doubleSided = mat.doubleSided;
 
             const auto& pbr = mat.pbrMetallicRoughness;
             const auto& bcf = pbr.baseColorFactor;
-
-            // Build properties JSON
-            const std::string baseColorUuid = texUuid(pbr.baseColorTexture.index);
-            const std::string mrUuid        = texUuid(pbr.metallicRoughnessTexture.index);
-            const std::string normalUuid    = texUuid(mat.normalTexture.index);
-            const std::string emissiveUuid  = texUuid(mat.emissiveTexture.index);
-
-            std::string props = "{";
-            props += "\"name\":\"" + name + "\"";
-            props += ",\"alphaMode\":\"" + mat.alphaMode + "\"";
-            props += std::string(",\"doubleSided\":") + (mat.doubleSided ? "true" : "false");
             if (bcf.size() >= 4)
-            {
-                props += ",\"baseColorFactor\":["
-                    + std::to_string(bcf[0]) + "," + std::to_string(bcf[1]) + ","
-                    + std::to_string(bcf[2]) + "," + std::to_string(bcf[3]) + "]";
-            }
-            props += ",\"metallicFactor\":"  + std::to_string(pbr.metallicFactor);
-            props += ",\"roughnessFactor\":" + std::to_string(pbr.roughnessFactor);
-            if (!baseColorUuid.empty()) props += ",\"baseColorTextureUuid\":\"" + baseColorUuid + "\"";
-            if (!mrUuid.empty())        props += ",\"metallicRoughnessTextureUuid\":\"" + mrUuid + "\"";
-            if (!normalUuid.empty())    props += ",\"normalTextureUuid\":\"" + normalUuid + "\"";
-            if (!emissiveUuid.empty())  props += ",\"emissiveTextureUuid\":\"" + emissiveUuid + "\"";
-            props += "}";
+                d.baseColorFactor = { static_cast<float>(bcf[0]), static_cast<float>(bcf[1]),
+                                      static_cast<float>(bcf[2]), static_cast<float>(bcf[3]) };
+            d.metallicFactor  = static_cast<float>(pbr.metallicFactor);
+            d.roughnessFactor = static_cast<float>(pbr.roughnessFactor);
 
-            SubAssetEntry sub;
-            sub.uuid = GenerateV7UUIDString().to_string();
-            sub.type = std::string(SubAssetTypeId::Material);
-            sub.name = name;
-            sub.properties = glz::raw_json{ props };
-            meta.asset.subAssets.push_back(std::move(sub));
-            return meta;
+            d.baseColorTextureUuid         = resolveUuid(pbr.baseColorTexture.index);
+            d.metallicRoughnessTextureUuid = resolveUuid(pbr.metallicRoughnessTexture.index);
+            d.normalTextureUuid            = resolveUuid(mat.normalTexture.index);
+            d.emissiveTextureUuid          = resolveUuid(mat.emissiveTexture.index);
+            return d;
         }
     } // anonymous namespace
 
@@ -205,9 +133,9 @@ namespace shine::editor::asset
             return result;
         }
 
-        const std::string sourceStr = ctx.sourceFile.string();
-        const std::string nowStr    = fmt::format("{:%FT%TZ}",
-            std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()));
+        const SString sourceStr(ctx.sourceFile.string());
+        const SString nowStr(fmt::format("{:%FT%TZ}",
+            std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now())));
 
         // -----------------------------------------------------------------------
         //  Build AssetMetadata for root model
@@ -218,9 +146,9 @@ namespace shine::editor::asset
         auto& asset = meta.asset;
         asset.uuid           = ctx.rootUUID;
         asset.type           = std::string(AssetTypeId::Model);
-        asset.sourceFile     = sourceStr;
+        asset.sourceFile     = sourceStr.to_string();
         asset.imported       = true;
-        asset.lastImportTime = nowStr;
+        asset.lastImportTime = nowStr.to_string();
         asset.importSettings = ctx.savedImportSettings;
 
         // -----------------------------------------------------------------------
@@ -230,7 +158,7 @@ namespace shine::editor::asset
 
         // textureUuids[gltfTextureIndex] = UUID of the .sasset for that texture.
         // gltf::GltfTexture.source = image index.
-        std::vector<std::string> textureUuids(gltfModel.textures.size());
+        std::vector<SString> textureUuids(gltfModel.textures.size());
 
         if (!gltfModel.images.empty())
         {
@@ -244,13 +172,15 @@ namespace shine::editor::asset
                 if (img.image.empty() || img.width == 0 || img.height == 0)
                     continue;
 
-                const std::string stem = SafeStem(img.name.empty()
-                    ? "texture_" + std::to_string(imgIdx)
-                    : img.name.to_string(), "texture_" + std::to_string(imgIdx));
+                const SString defaultTexName(std::string("texture_") + std::to_string(imgIdx));
+                const SString stem = SafeStem(img.name.empty() ? defaultTexName : img.name, defaultTexName);
 
-                const std::string binFilename  = stem + ".bin";
-                const auto        texBinPath   = texturesDir / binFilename;
-                const auto        texSassetPath = texturesDir / (stem + ".sasset");
+                SString binFilename = stem;
+                binFilename += ".bin";
+                SString texSassetFilename = stem;
+                texSassetFilename += ".sasset";
+                const auto texBinPath    = texturesDir / binFilename.c_str();
+                const auto texSassetPath = texturesDir / texSassetFilename.c_str();
 
                 // Convert to RGBA (component may be 3 or 4)
                 std::vector<unsigned char> rgba;
@@ -269,13 +199,13 @@ namespace shine::editor::asset
                     static_cast<uint32_t>(img.width), static_cast<uint32_t>(img.height), rgba);
 
                 // Map each gltf texture that references this image to the same UUID
-                const std::string texUuid = GenerateV7UUIDString().to_string();
+                const SString texUuid = GenerateV7UUIDString();
 
                 auto texMeta = MakeTextureMeta(texUuid, sourceStr, stem, binFilename,
                     static_cast<uint32_t>(img.width), static_cast<uint32_t>(img.height));
 
                 result.sideAssets.emplace_back(texSassetPath, std::move(texMeta));
-                asset.dependencies.push_back(texUuid);
+                asset.dependencies.push_back(texUuid.to_string());
 
                 // Fill textureUuids for all gltf textures referencing this image
                 for (size_t ti = 0; ti < gltfModel.textures.size(); ++ti)
@@ -293,7 +223,7 @@ namespace shine::editor::asset
         //  Export materials
         // -----------------------------------------------------------------------
         // materialUuids[gltfMaterialIndex] = UUID
-        std::vector<std::string> materialUuids(gltfModel.materials.size());
+        std::vector<SString> materialUuids(gltfModel.materials.size());
 
         if (!gltfModel.materials.empty())
         {
@@ -302,20 +232,23 @@ namespace shine::editor::asset
             for (size_t mi = 0; mi < gltfModel.materials.size(); ++mi)
             {
                 const auto& mat  = gltfModel.materials[mi];
-                const std::string stem = SafeStem(mat.name.empty()
-                    ? "material_" + std::to_string(mi)
-                    : mat.name, "material_" + std::to_string(mi));
+                const SString defaultMatName(std::string("material_") + std::to_string(mi));
+                const SString stem = SafeStem(
+                    mat.name.empty() ? STextView(defaultMatName) : STextView::from_string(mat.name),
+                    defaultMatName);
 
-                const std::string matUuid = GenerateV7UUIDString().to_string();
+                SString matUuid = GenerateV7UUIDString();
                 materialUuids[mi] = matUuid;
 
-                const auto matSassetPath = materialsDir / (stem + ".sasset");
+                SString matSassetFilename = stem;
+                matSassetFilename += ".sasset";
+                const auto matSassetPath = materialsDir / matSassetFilename.c_str();
 
-                auto matMeta = MakeMaterialMeta(matUuid, sourceStr, stem, mat, textureUuids);
-                matMeta.asset.lastImportTime = nowStr;
+                const auto matData = ToMaterialImportData(stem, mat, textureUuids);
+                auto matMeta = MakeMaterialMeta(matUuid, sourceStr, matData);
 
                 result.sideAssets.emplace_back(matSassetPath, std::move(matMeta));
-                asset.dependencies.push_back(matUuid);
+                asset.dependencies.push_back(matUuid.to_string());
             }
         }
 
@@ -329,13 +262,11 @@ namespace shine::editor::asset
         {
             const auto& mesh = allMeshes[i];
 
-            const std::string meshName = mesh.name.empty()
-                ? "Mesh_" + std::to_string(i)
-                : mesh.name;
-
-            const std::string   binFilename = SafeMeshFilename(meshName) + "_" + std::to_string(i) + ".bin";
-            const std::string   relBinPath  = "meshes/" + binFilename;
-            const auto          binPath     = meshesDir / binFilename;
+            const SString meshName    = MakeMeshName(mesh.name, i);
+            const SString binFilename = MakeMeshBinFilename(meshName, i);
+            SString relBinPath("meshes/");
+            relBinPath += binFilename;
+            const auto binPath = meshesDir / binFilename.c_str();
 
             if (!WriteMeshBin(binPath, mesh, settings.scale))
             {
@@ -344,22 +275,27 @@ namespace shine::editor::asset
             }
 
             // Resolve which material UUID this mesh uses
-            const std::string matUuid = (mesh.materialIndex >= 0 &&
+            const SString matUuid = (mesh.materialIndex >= 0 &&
                 static_cast<size_t>(mesh.materialIndex) < materialUuids.size())
-                ? materialUuids[static_cast<size_t>(mesh.materialIndex)] : "";
+                ? materialUuids[static_cast<size_t>(mesh.materialIndex)] : SString();
 
             SubAssetEntry sub;
             sub.uuid = GenerateV7UUIDString().to_string();
             sub.type = std::string(SubAssetTypeId::Mesh);
-            sub.name = meshName;
+            sub.name = meshName.to_string();
 
-            std::string props =
-                "{\"vertexCount\":"  + std::to_string(mesh.vertices.size()) +
-                ",\"indexCount\":"   + std::to_string(mesh.indices.size())  +
-                ",\"materialIndex\":" + std::to_string(mesh.materialIndex)  +
-                ",\"binaryPath\":\""  + relBinPath + "\"" +
-                ",\"materialUuids\":[" + (matUuid.empty() ? "" : "\"" + matUuid + "\"") + "]}";
-            sub.properties = glz::raw_json{ props };
+            SString props("{\"vertexCount\":");
+            props += std::to_string(mesh.vertices.size());
+            props += ",\"indexCount\":";
+            props += std::to_string(mesh.indices.size());
+            props += ",\"materialIndex\":";
+            props += std::to_string(mesh.materialIndex);
+            props += ",\"binaryPath\":\"";
+            props += relBinPath;
+            props += "\",\"materialUuids\":[";
+            if (!matUuid.empty()) { props += "\""; props += matUuid; props += "\""; }
+            props += "]}";
+            sub.properties = glz::raw_json{ props.to_string() };
 
             asset.subAssets.push_back(std::move(sub));
 
