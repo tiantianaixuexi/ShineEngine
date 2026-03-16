@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-#include "AssetMetadata.h"
+#include "../metadata/AssetMetadata.h"
 
 namespace shine::editor::asset
 {
@@ -86,6 +86,17 @@ namespace shine::editor::asset
         /// The returned AssetMetadata is serialized to a .sasset file by the pipeline.
         [[nodiscard]] virtual ImportResult
         Import(const AssetImportContext& ctx) = 0;
+
+        /// Render ImGui controls for this importer's type-specific settings.
+        ///
+        /// `inOutSettings` carries the current settings as a raw JSON blob
+        /// (empty on first import).  Implementations parse it with
+        /// ParseImportSettings<T>(), render their widgets, and on any change
+        /// re-serialize back with SerializeImportSettings<T>().
+        ///
+        /// Called every frame while the import dialog is open.
+        /// Default: no-op (returns false).  Override in concrete importers.
+        virtual bool RenderImportSettingsUI(glz::raw_json& inOutSettings);
     };
 
     // -----------------------------------------------------------------------
@@ -100,6 +111,11 @@ namespace shine::editor::asset
             if (ext == supported)
                 return true;
         return false;
+    }
+
+    inline bool IAssetImporter::RenderImportSettingsUI(glz::raw_json& /*inOutSettings*/)
+    {
+        return false; // No settings UI by default
     }
 
 } // namespace shine::editor::asset

@@ -237,8 +237,16 @@ src/editor/ShineAsset/
 ├── EditorAssetRegistryIndex.h/.cpp Fast-startup persistent index
 ├── IAssetImporter.h               Import interface
 ├── IAssetCooker.h                 Cook interface
-├── GltfAssetImporter.h/.cpp       glTF/GLB/OBJ importer
+├── ImportPipeline.h/.cpp          Import orchestrator + auto-discovery
+├── ImporterAutoRegistry.h/.cpp    Self-registration (REGISTER_IMPORTER macro)
 ├── CookingPipeline.h/.cpp         Cook orchestrator
-├── StaticMeshCooker.h/.cpp        Model binary mesh cooker
-└── ARCHITECTURE.md                This file
+├── ARCHITECTURE.md                This file
+│
+├── importers/                     Concrete importers (self-register, no external refs needed)
+│   ├── GltfAssetImporter.h/.cpp   glTF / GLB importer
+│   ├── ObjAssetImporter.h/.cpp    Wavefront OBJ importer
+│   └── TextureAssetImporter.h/.cpp  PNG / JPEG texture importer
+│
+└── cookers/                       Concrete cookers
+    └── StaticMeshCooker.h/.cpp    Model → binary mesh blob
 ```

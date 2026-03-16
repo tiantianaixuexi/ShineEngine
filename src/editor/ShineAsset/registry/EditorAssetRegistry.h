@@ -27,7 +27,7 @@
 #include <vector>
 
 #include "AssetDependencyGraph.h"
-#include "AssetMetadata.h"
+#include "../metadata/AssetMetadata.h"
 #include "EngineCore/subsystem.h"
 #include "util/function/EventHandle.h"
 #include "string/shine_string.h"

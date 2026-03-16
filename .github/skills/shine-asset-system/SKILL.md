@@ -1,271 +1,132 @@
 ---
 name: shine-asset-system
-description: "ShineAsset system architecture, API reference, and usage patterns. Invoke when creating/modifying/querying asset types, importers, cookers, metadata (.sasset), dependency graphs, or editor/runtime asset registries. Covers the full asset pipeline: import → register → cook → runtime resolve."
+description: "ShineAsset 系统全局架构总览与 Cooking 管线。Invoke when adding a new asset type end-to-end, working with IAssetCooker/CookingPipeline/StaticMeshCooker, understanding subsystem lifecycle, or navigating the overall pipeline (import → register → cook → runtime resolve). For import pipeline details see shine-asset-import; for registry/runtime details see shine-asset-registry; for editor UI panels see shine-asset-editor-ui."
 ---
 
-# ShineAsset System
+# ShineAsset System — 架构总览
 
-Module: `Module/editor/ShineAsset.json` (static lib, editor-only).  
-All headers/sources live under `src/editor/ShineAsset/`.  
-Deps: `glaze`, `gltf_loader`, `engine_log`, `fmt`.  
-System lib: `bcrypt.lib` (linked to MainEngine for UUID generation).
+> 详细 API 分布在三个专项技能中：  
+> - **shine-asset-import** — 导入管线（`IAssetImporter`, `ImportPipeline`, `REGISTER_IMPORTER`）  
+> - **shine-asset-registry** — 注册表与运行时（`EditorAssetRegistry`, `RuntimeAssetRegistry`, `AssetHandle`, `AssetMetadata`, UUID）  
+> - **shine-asset-editor-ui** — 编辑器 UI 面板（`AssetsBrower`, `AssetDependencyView`）
+
+Module: `Module/editor/ShineAsset.json`（静态库，仅编辑器）。  
+所有头文件 / 源文件位于 `src/editor/ShineAsset/`。  
+依赖：`glaze`, `gltf_loader`, `engine_log`, `fmt`。  
+系统库：`bcrypt.lib`（链接到 MainEngine，用于 UUID 生成）。
 
 ---
 
-## Architecture Overview
+## 完整管线示意图
 
 ```
-Source File (.gltf/.obj/…)
-    │  IAssetImporter::Import()
+源文件 (.gltf/.obj/…)
+    │  IAssetImporter::Import()            ← shine-asset-import
     ▼
-.sasset (JSON metadata on disk)
-    │  EditorAssetRegistry::Register()         ← editor only
+.sasset（磁盘 JSON 元数据）
+    │  EditorAssetRegistry::Register()     ← shine-asset-registry
     ▼
 EditorAssetRegistry  ──→  AssetDependencyGraph
     │  IAssetCooker::Cook()
     ▼
 Cooked Binary (.bin)
-    │  RuntimeAssetRegistry::RequestLoad()
+    │  RuntimeAssetRegistry::RequestLoad() ← shine-asset-registry
     ▼
-RuntimeAssetRegistry  ──→  AssetBase (shared_ptr, loaded)
+RuntimeAssetRegistry  ──→  AssetBase (shared_ptr, 已加载)
     │  AssetHandle<T>::Resolve()
     ▼
-Gameplay / Renderer usage
+游戏逻辑 / 渲染器使用
 ```
 
-Two-registry pattern:
-- **EditorAssetRegistry** — editor-only, UUID ↔ disk path + metadata, dependency graph, file watcher integration. Subsystem registered in `EditorCompositionRoot`.
-- **RuntimeAssetRegistry** — shipping + editor, UUID → loaded `AssetBase`, thread-safe. Subsystem registered in `EditorCompositionRoot`.
+两注册表模式：
+- **EditorAssetRegistry** — 仅编辑器，UUID ↔ 磁盘路径 + 元数据，依赖图，文件监视器。向 `EditorCompositionRoot` 注册为 Subsystem。
+- **RuntimeAssetRegistry** — 发行版 + 编辑器均可用，UUID → 已加载的 `AssetBase`，线程安全。向 `EditorCompositionRoot` 注册为 Subsystem。
 
 ---
 
-## File Map
+## 文件目录
 
-| Header | Namespace | Purpose |
-|--------|-----------|---------|
-| `AssetTypes.h` | `shine::editor::asset::AssetTypeId` / `SubAssetTypeId` | `constexpr string_view` type IDs: `Model`, `Texture`, `Material`, `World`, … / `Mesh`, `Skeleton`, … |
-| `AssetBase.h` | `shine::asset` | Base class for loaded assets. `EAssetState` { Unloaded, Loading, Loaded, Failed }. UUID + typeId + atomic state. |
-| `AssetHandle.h` | `shine::asset` | `AssetHandle<T>` — UUID-based stable reference. Serializes as raw UUID via Glaze. `Resolve(registry)` → `shared_ptr<T>`. |
-| `AssetMetadata.h` | `shine::editor::asset` | `.sasset` JSON schema structs (serialization boundary — uses `std::string`). |
-| `AssetUuidHelper.h` | `shine::editor::asset` | UUID generation (`GenerateUUIDString()`, `GenerateV7UUIDString()`), parsing, validation. |
-| `AssetFactory.h` | `shine::asset` | `AssetCreatorFn = std::function<shared_ptr<AssetBase>(STextView uuid)>` |
-| `AssetImportSettings.h` | `shine::editor::asset` | Extensible typed import settings with `SerializeImportSettings<T>()` / `ParseImportSettings<T>()`. |
-| `IAssetImporter.h` | `shine::editor::asset` | Abstract importer interface (`Import(ctx) → ImportResult`). |
-| `IAssetCooker.h` | `shine::editor::asset` | Abstract cooker interface (`Cook(ctx) → CookResult`). |
-| `RuntimeAssetRegistry.h` | `shine::asset` | Thread-safe UUID → `shared_ptr<AssetBase>` map. `RequestLoad()`, factory system. Inherits `shine::Subsystem`. |
-| `EditorAssetRegistry.h` | `shine::editor::asset` | UUID → disk path + metadata. Scan, register, relocate, delete, dependency queries. Inherits `shine::Subsystem`. |
-| `EditorAssetRegistryIndex.h` | `shine::editor::asset` | Fast-startup index (`Content/.assetindex`). `SaveRegistryIndex()` / `LoadRegistryIndex()`. |
-| `AssetDependencyGraph.h` | `shine::editor::asset` | Bidirectional DAG with cycle detection. Forward + reverse lookups. |
-| `GltfAssetImporter.h` | `shine::editor::asset` | Concrete `IAssetImporter` for `.gltf/.glb/.obj`. |
-| `StaticMeshCooker.h` | `shine::editor::asset` | Concrete `IAssetCooker` for `Model` type → binary mesh blob. |
-| `CookingPipeline.h` | `shine::editor::asset` | `RegisterCooker()`, `CookAll()`, `CookSingle()`. |
+| 子目录 | 内容 |
+|--------|------|
+| `core/` | `AssetBase`, `AssetHandle`, `AssetTypes`, `AssetUuidHelper`, `RuntimeAssetRegistry`, `AssetFactory` |
+| `registry/` | `EditorAssetRegistry`, `EditorAssetRegistryIndex`, `AssetDependencyGraph` |
+| `metadata/` | `AssetMetadata`, `AssetMetadataIO`（ReadAssetMetadataFile / WriteAssetMetadataFile） |
+| `importers/` | `IAssetImporter`, `AssetImportSettings`, `ImporterAutoRegistry`, `ImportPipeline`, 具体导入器 |
+| `cookers/` | `IAssetCooker`, `CookingPipeline`, `StaticMeshCooker` |
 
 ---
 
-## .sasset File Format (JSON)
+## Cooking Pipeline
 
-```jsonc
-{
-  "formatVersion": "2.0",
-  "asset": {
-    "uuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-    "type": "model",              // AssetTypeId constant
-    "sourceFile": "Content/model/barrel.glb",
-    "imported": true,
-    "lastImportTime": "2025-01-15T10:30:00Z",
-    "importSettings": { ... },    // glz::raw_json — type-specific
-    "subAssets": [
-      { "uuid": "…", "type": "mesh", "name": "Barrel_LOD0", "properties": {} }
-    ],
-    "nodeTree": {                 // optional scene hierarchy
-      "name": "Root",
-      "transform": { "translation": [0,0,0], "rotation": [0,0,0,1], "scale": [1,1,1] },
-      "components": [{ "type": "mesh", "uuid": "sub-asset-uuid" }],
-      "children": []
-    },
-    "dependencies": ["uuid-of-material", "uuid-of-texture"],
-    "userData": { "tags": ["props", "barrel"], "extra": {} }
-  }
-}
-```
-
-Read/write helpers (serialization boundary — accepts `std::string_view`):
-```cpp
-#include "editor/ShineAsset/AssetMetadata.h"
-
-auto result = ReadAssetMetadataFile("Content/model/barrel.sasset");
-auto written = WriteAssetMetadataFile(meta, "Content/model/barrel.sasset");
-```
-
----
-
-## Key APIs
-
-### UUID Generation
+### IAssetCooker 接口
 
 ```cpp
-#include "editor/ShineAsset/AssetUuidHelper.h"
-using namespace shine::editor::asset;
+#include "editor/ShineAsset/cookers/IAssetCooker.h"
 
-SString uuid  = GenerateUUIDString();    // V4 random
-SString uuid7 = GenerateV7UUIDString();  // V7 time-ordered (preferred for new assets)
-bool valid    = IsValidUUIDString(uuid);
-```
-
-### AssetHandle (reference an asset by UUID)
-
-```cpp
-#include "editor/ShineAsset/AssetHandle.h"
-
-// Construct from UUID string
-AssetHandle<MyMeshAsset> handle("xxxxxxxx-xxxx-…");
-
-// Serialize transparently — Glaze reads/writes just the UUID string
-struct MyComponent {
-    AssetHandle<MyMeshAsset> mesh;  // JSON: "mesh": "uuid-string"
-};
-
-// Resolve to loaded object
-auto ptr = handle.Resolve(runtimeRegistry);  // shared_ptr<MyMeshAsset> or nullptr
-```
-
-### RuntimeAssetRegistry
-
-```cpp
-#include "editor/ShineAsset/RuntimeAssetRegistry.h"
-using namespace shine::asset;
-
-auto& rr = ctx.GetSystem<RuntimeAssetRegistry>();
-
-// Register a factory
-rr.RegisterFactory("model", [](STextView uuid) {
-    return std::make_shared<MyModelAsset>(uuid, "model");
-});
-
-// Request async load
-auto [result, asset] = rr.RequestLoad("uuid", "model");
-// result: Queued / AlreadyLoaded / AlreadyLoading / NoFactory / InvalidUUID
-
-// Direct register/query
-rr.Register(std::make_shared<MyAsset>(uuid, typeId));
-auto found = rr.FindAs<MyAsset>("uuid");
-```
-
-### EditorAssetRegistry
-
-```cpp
-#include "editor/ShineAsset/EditorAssetRegistry.h"
-using namespace shine::editor::asset;
-
-auto& er = ctx.GetSystem<EditorAssetRegistry>();
-
-// Scan content directory
-er.Scan(contentRoot);
-
-// Register from metadata
-er.Register(diskPath, record);
-
-// Query
-const EditorAssetEntry* entry = er.Find("uuid");
-const EditorAssetEntry* entry = er.FindByPath(path);
-bool known    = er.IsKnown("uuid");
-bool dangling = er.IsDangling("uuid");
-
-// Dependency queries
-const auto& deps = er.GetDependents("uuid");   // reverse: who depends on me?
-const auto& graph = er.DependencyGraph();       // forward: who do I depend on?
-
-// Relocation / deletion
-er.OnFileMoved(oldPath, newPath);
-auto affected = er.OnFileDeleted(path);         // returns dependent UUIDs
-auto result   = er.TryDelete("uuid", EDeletePolicy::SafeOnly);
-
-// Iteration
-er.ForEach([](const EditorAssetEntry& e) {
-    // process each entry
-});
-```
-
-### AssetDependencyGraph
-
-```cpp
-#include "editor/ShineAsset/AssetDependencyGraph.h"
-using namespace shine::editor::asset;
-
-AssetDependencyGraph graph;
-
-// Set forward dependencies (replaces existing)
-graph.SetDependencies("asset-A", { "dep-B", "dep-C" });
-
-// Query
-const auto& fwd = graph.GetDependencies("asset-A");  // → {dep-B, dep-C}
-const auto& rev = graph.GetDependents("dep-B");       // → {asset-A}
-bool wouldCycle = graph.WouldCreateCycle("dep-B", "asset-A");  // → true
-
-// Clean up
-graph.RemoveAsset("asset-A");
-```
-
----
-
-## Creating a New Importer
-
-1. Create header and source under `src/editor/ShineAsset/`.
-2. Inherit from `IAssetImporter`:
-
-```cpp
-#include "editor/ShineAsset/IAssetImporter.h"
-#include "editor/ShineAsset/AssetUuidHelper.h"
-
-namespace shine::editor::asset {
-
-class FbxAssetImporter final : public IAssetImporter {
+class IAssetCooker {
 public:
-    [[nodiscard]] std::string_view GetName() const noexcept override { return "FBX Importer"; }
-    [[nodiscard]] std::vector<std::string_view> SupportedExtensions() const noexcept override {
-        return { ".fbx" };
-    }
-    [[nodiscard]] ImportResult Import(const AssetImportContext& ctx) override {
-        ImportResult result;
-        // 1. Load source file from ctx.sourceFile
-        // 2. Build AssetMetadata (uuid = ctx.rootUUID, type, subAssets, nodeTree)
-        // 3. Generate sub-asset UUIDs via GenerateV7UUIDString()
-        // 4. Write .sasset via WriteAssetMetadataFile(meta, ctx.outputSAssetPath)
-        result.succeeded = true;
-        result.metadata = std::move(meta);
-        return result;
-    }
+    virtual std::string_view GetName() const noexcept = 0;
+    // 返回此 cooker 负责的资产类型 ID 列表
+    virtual std::vector<std::string_view> SupportedTypeIds() const noexcept = 0;
+    // 在工作线程调用
+    virtual CookResult Cook(const AssetCookContext& ctx) = 0;
 };
-
-} // namespace shine::editor::asset
 ```
 
-3. The new `.cpp` is auto-discovered by the `dirs` glob in `ShineAsset.json`.
+`AssetCookContext` 关键字段：
 
----
-
-## Creating a New Cooker
-
-1. Create header and source under `src/editor/ShineAsset/`.
-2. Inherit from `IAssetCooker`:
+| 字段 | 类型 | 描述 |
+|------|------|------|
+| `metadata` | `AssetMetadata` | 待 cook 资产的元数据 |
+| `outputDir` | `std::filesystem::path` | 写出 .bin 的目录 |
+| `platform` | `std::string_view` | 目标平台（`"win64"` / `"android"` 等）|
 
 ```cpp
-#include "editor/ShineAsset/IAssetCooker.h"
+struct CookResult {
+    bool                               succeeded = false;
+    std::vector<std::filesystem::path> outputFiles; // 生成的文件列表
+    std::string                        errorMessage;
+};
+```
+
+### CookingPipeline
+
+```cpp
+#include "editor/ShineAsset/cookers/CookingPipeline.h"
+using namespace shine::editor::asset;
+
+auto& cp = ctx.GetSystem<CookingPipeline>();
+
+// 注册 cooker
+cp.RegisterCooker(std::make_shared<StaticMeshCooker>());
+
+// Cook 全部已注册资产
+cp.CookAll(editorRegistry, outputDir, "win64");
+
+// 单次 cook
+CookResult r = cp.CookSingle(metadata, outputDir, "win64");
+```
+
+### 新建 Cooker
+
+```cpp
+#include "editor/ShineAsset/cookers/IAssetCooker.h"
+#include "editor/ShineAsset/core/AssetTypes.h"
 
 namespace shine::editor::asset {
 
 class TextureCooker final : public IAssetCooker {
 public:
-    [[nodiscard]] std::string_view GetName() const noexcept override { return "Texture Cooker"; }
-    [[nodiscard]] std::vector<std::string_view> SupportedTypeIds() const noexcept override {
+    std::string_view GetName() const noexcept override { return "Texture Cooker"; }
+    std::vector<std::string_view> SupportedTypeIds() const noexcept override {
         return { AssetTypeId::Texture };
     }
-    [[nodiscard]] CookResult Cook(const AssetCookContext& ctx) override {
+    CookResult Cook(const AssetCookContext& ctx) override {
         CookResult result;
-        // 1. Read source from ctx.metadata.asset.sourceFile
-        // 2. Compress / transcode per ctx.platform
-        // 3. Write binary to ctx.outputDir
-        // 4. Populate result.outputFiles
+        // 1. 读取 ctx.metadata.asset.sourceFile
+        // 2. 按 ctx.platform 转码 / 压缩
+        // 3. 写出到 ctx.outputDir
+        // 4. 填充 result.outputFiles
         result.succeeded = true;
         return result;
     }
@@ -274,109 +135,89 @@ public:
 } // namespace shine::editor::asset
 ```
 
-3. Register in CookingPipeline: `pipeline.RegisterCooker(std::make_shared<TextureCooker>())`.
+注册：`pipeline.RegisterCooker(std::make_shared<TextureCooker>());`
 
 ---
 
-## Creating a New Asset Type
+## 新增资产类型（端到端）
 
-1. Add type ID constant to `AssetTypes.h`:
+1. 在 `core/AssetTypes.h` 添加 type ID：
    ```cpp
-   inline constexpr std::string_view ParticleSystem = "particle_system";
+   namespace shine::editor::asset::AssetTypeId {
+       inline constexpr std::string_view ParticleSystem = "particle_system";
+   }
    ```
-2. Create a concrete `AssetBase` subclass:
+
+2. 创建继承 `AssetBase` 的运行时类（可放在非编辑器代码）：
    ```cpp
+   #include "editor/ShineAsset/core/AssetBase.h"
+
    class ParticleSystemAsset : public shine::asset::AssetBase {
    public:
        explicit ParticleSystemAsset(STextView uuid)
            : AssetBase(uuid, "particle_system") {}
-       // … runtime data members
+       // 运行时数据成员 …
    };
    ```
-3. Register factory in `RuntimeAssetRegistry`:
+
+3. 向 `RuntimeAssetRegistry` 注册工厂（启动时）：
    ```cpp
    rr.RegisterFactory("particle_system", [](STextView uuid) {
        return std::make_shared<ParticleSystemAsset>(uuid);
    });
    ```
-4. Create an `IAssetImporter` for the source format.
-5. Optionally create an `IAssetCooker` for cooking.
-6. Use `AssetHandle<ParticleSystemAsset>` for serializable references.
+
+4. 实现 `IAssetImporter`（参见 **shine-asset-import** 技能）。
+
+5. 可选：实现 `IAssetCooker` 并注册到 `CookingPipeline`。
+
+6. 用 `AssetHandle<ParticleSystemAsset>` 作为可序列化引用（参见 **shine-asset-registry** 技能）。
 
 ---
 
-## Import Settings Extension
-
-```cpp
-#include "editor/ShineAsset/AssetImportSettings.h"
-
-struct TextureImportSettings : AssetImportSettings {
-    int maxResolution = 4096;
-    bool generateMips = true;
-    std::string format = "BC7";
-};
-
-// Serialize into raw JSON blob for storage in AssetRecord::importSettings
-auto raw = SerializeImportSettings<TextureImportSettings>(settings);
-
-// Parse back from raw blob inside importer
-auto parsed = ParseImportSettings<TextureImportSettings>(record.importSettings);
-```
-
----
-
-## Editor Integration Points
-
-| Component | File | How it connects |
-|-----------|------|-----------------|
-| `EditorCompositionRoot` | `src/editor/main_editor/EditorCompositionRoot.cpp` | Registers `RuntimeAssetRegistry` and `EditorAssetRegistry` as subsystems via `context.Register()`. |
-| `AssetsBrower` | `src/editor/browers/AssetsBrower.h` | Gets `EditorAssetRegistry*` from `EngineContext` in `onInit()`. Calls `SyncAssetRecordMove/Delete` on file operations. |
-| `AssetDependencyView` | `src/editor/views/AssetDependencyView.h` | Gets `EditorAssetRegistry*`, shows forward/reverse deps for selected UUID. |
-| `FileWatchService` | `src/util/watcher/FileWatchService.h` | `EditorAssetRegistry::Init()` subscribes to `OnFileChanged` for hot-reload of `.sasset` files. |
-| `WorldService` | `src/gameplay/world/world_service.h` | `saveMapAsset()` / `loadMapAsset()` — writes `.sasset` for world maps, registers with `EditorAssetRegistry`. |
-
----
-
-## Subsystem Lifecycle
+## Subsystem 生命周期
 
 ```
 EditorCompositionRoot::RegisterSystems(ctx)
     ├── ctx.Register(new RuntimeAssetRegistry())
-    └── ctx.Register(new EditorAssetRegistry())
+    ├── ctx.Register(new EditorAssetRegistry())
+    └── ctx.Register(new ImportPipeline())
+
+ImportPipeline::Init(ctx)
+    └── ImporterAutoRegistry::CreateAll() → 实例化所有 REGISTER_IMPORTER 类
 
 EditorAssetRegistry::Init(ctx)
-    ├── Try LoadRegistryIndex("Content/.assetindex") for fast startup
-    ├── Fallback: Scan("Content/")
-    └── Connect FileWatchService::OnFileChanged → OnFileChangeEvent()
+    ├── 尝试 LoadRegistryIndex("Content/.assetindex") — 快速启动
+    ├── 降级：Scan("Content/")
+    └── 订阅 FileWatchService::OnFileChanged → OnFileChangeEvent()
 
 EditorAssetRegistry::Shutdown(ctx)
     ├── SaveRegistryIndex("Content/.assetindex")
-    └── Disconnect file watcher
+    └── 取消订阅文件监视器
 ```
 
 ---
 
-## Build & Test
+## 构建 & 测试
 
 ```powershell
-# Build main engine (includes ShineAsset as linked static lib)
+# 构建主引擎（ShineAsset 作为链接的静态库）
 .\build.bat run --release --msvc
 
-# Build and run asset tests
+# 构建并运行资产测试
 .\build.bat test ShineAssetTest
 .\build.bat test ShineAssetTest --release
 ```
 
-Test file: `dev/test/ShineAssetTest/ShineAssetTest.cpp`  
-Module: `Module/test/ShineAssetTest.json` (deps: `ShineAsset`, `fmt`, `glaze`)
+测试文件：`dev/test/ShineAssetTest/ShineAssetTest.cpp`  
+Module：`Module/test/ShineAssetTest.json`（依赖：`ShineAsset`, `fmt`, `glaze`）
 
 ---
 
-## Important Conventions
+## 惯例
 
-- **String types**: Internal code uses `SString` / `STextView`. `AssetMetadata.h` structs use `std::string` because they are a Glaze serialization boundary.
-- **UUID format**: RFC 9562 canonical lowercase with hyphens: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
-- **Prefer V7 UUIDs** (`GenerateV7UUIDString()`) for new assets — time-ordered for better index locality.
-- **Thread safety**: `RuntimeAssetRegistry` is mutex-protected. `EditorAssetRegistry` is single-threaded (editor main thread only).
-- **Dangling**: An entry where the `.sasset` file is deleted but other assets still reference the UUID. `isDangling = true`.
-- **New source files** under `src/editor/ShineAsset/` are **auto-discovered** by the `dirs` glob in the module JSON — no manual file list needed.
+- 内部代码用 `SString` / `STextView`；`AssetMetadata.h` 的结构体用 `std::string`（Glaze 序列化边界）。
+- UUID 格式：RFC 9562 规范小写加连字符 `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`。
+- 新建资产时**优先使用 V7 UUID**（`GenerateV7UUIDString()`）——时间有序，索引局部性更好。
+- `RuntimeAssetRegistry` 有互斥锁保护；`EditorAssetRegistry` 单线程（编辑器主线程）。
+- `src/editor/ShineAsset/` 下的新文件由 Module JSON 的 `dirs` glob **自动发现**，无需手动列举。

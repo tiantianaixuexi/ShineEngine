@@ -73,7 +73,7 @@ namespace shine::editor::asset
             if (!contentRoot.empty())
             {
                 auto indexPath = contentRoot / ".assetindex";
-                SaveRegistryIndex(*this, indexPath);
+                (void)SaveRegistryIndex(*this, indexPath);
             }
         }
     }

@@ -375,6 +375,7 @@ namespace shine::loader
 
     bool gltfLoader::loadFromMemory(const void* data, size_t size)
     {
+        ensure_gltf_loader_log_categories();
         util::FunctionTimer timer("gltfLoader::loadFromMemory");
         setState(EAssetLoadState::READING_FILE);
         notifyProgress(0.0f, "开始加载");
@@ -435,6 +436,7 @@ namespace shine::loader
 
     bool gltfLoader::loadFromFile(const char* filePath)
     {
+        ensure_gltf_loader_log_categories();
         setState(EAssetLoadState::READING_FILE);
         notifyProgress(0.0f, "读取文件");
 
