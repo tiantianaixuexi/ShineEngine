@@ -5,6 +5,7 @@
 
 #include "EngineCore/engine_context.h"
 #include "editor/browers/AssetsBrower.h"
+#include "editor/ShineAsset/importers/ImportPipeline.h"
 #include "editor/log/LogUI.h"
 #include "editor/main_editor/editor_commands.h"
 #include "editor/views/DebugTextureView.h"
@@ -64,6 +65,7 @@ namespace shine::editor::main_editor
         });
         (void)assetsBindHandle;
         assetsBrower_->onInit();
+        assetsBrower_->SetImportPipeline(ctx.GetSystem<shine::editor::asset::ImportPipeline>());
 
         editorView_ = std::make_unique<views::EditView>();
         editorView_->SetWorldPlacementService(worldPlacementService);
