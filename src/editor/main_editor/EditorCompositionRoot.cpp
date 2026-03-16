@@ -2,8 +2,8 @@
 
 #include "EngineCore/engine_context.h"
 #include "editor/mainEditor.h"
-#include "editor/ShineAsset/RuntimeAssetRegistry.h"
-#include "editor/ShineAsset/EditorAssetRegistry.h"
+#include "editor/ShineAsset/core/RuntimeAssetRegistry.h"
+#include "editor/ShineAsset/registry/EditorAssetRegistry.h"
 
 namespace shine::editor::main_editor
 {

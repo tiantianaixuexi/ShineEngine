@@ -5,17 +5,16 @@
 #include <thread>
 
 #include "EngineCore/engine_context.h"
-#include "editor/ShineAsset/AssetMetadata.h"
-#include "editor/ShineAsset/AssetTypes.h"
-#include "editor/ShineAsset/AssetUuidHelper.h"
-#include "editor/ShineAsset/EditorAssetRegistry.h"
+#include "editor/ShineAsset/metadata/AssetMetadata.h"
+#include "editor/ShineAsset/core/AssetTypes.h"
+#include "editor/ShineAsset/core/AssetUuidHelper.h"
+#include "editor/ShineAsset/registry/EditorAssetRegistry.h"
 #include "gameplay/actor.h"
 #include "gameplay/object.h"
 #include "gameplay/objectFlag.h"
 #include "gameplay/component/StaticMeshComponent.h"
 #include "gameplay/component/TransformComponent.h"
 #include "gameplay/mesh/StaticMesh.h"
-
 
 namespace shine::gameplay::world
 {
@@ -130,20 +129,8 @@ namespace shine::gameplay::world
 
         // Serialize world settings as import settings JSON
         const auto& ws = activeMap_->GetWorldSettings();
-        struct SerializedWorldSettings
-        {
-            float gravityZ;
-            float timeDilation;
-            bool  enableGlobalIllumination;
-        };
-
-        SerializedWorldSettings sws{
-            .gravityZ = ws.gravityZ,
-            .timeDilation = ws.timeDilation,
-            .enableGlobalIllumination = ws.enableGlobalIllumination
-        };
-
-        std::string wsJson = glz::write_json(sws);
+        auto wsJsonResult = glz::write_json(ws);
+        std::string wsJson = wsJsonResult ? std::move(*wsJsonResult) : std::string{};
         rec.importSettings = glz::raw_json{ std::move(wsJson) };
 
         // Write .sasset file

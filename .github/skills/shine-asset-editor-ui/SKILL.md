@@ -1,6 +1,6 @@
 ---
 name: shine-asset-editor-ui
-description: "ShineAsset editor UI panels. Invoke when working with AssetsBrower, AssetDependencyView, AssetsItem, the import-settings popup, OS file-drop integration, or the SHINE_ASSET_PATH drag-and-drop payload."
+description: "ShineAsset editor UI panels. Invoke when working with AssetsBrower, AssetDependencyView, AssetsItem, the import-settings popup, OS file-drop integration, the SHINE_ASSET_PATH drag-and-drop payload, or thumbnail provider system (IAssetThumbnailProvider)."
 ---
 
 # ShineAsset — Editor UI Panels
@@ -15,6 +15,9 @@ description: "ShineAsset editor UI panels. Invoke when working with AssetsBrower
 |------|----------|------|
 | `src/editor/browers/AssetsBrower.h/.cpp` | `shine::editor::assets_brower` | 资产浏览器主面板（目录树 + 资产网格 + 导入弹窗）|
 | `src/editor/browers/AssetsItem.h` | `shine::editor::assets_item` | 资产列表项排序辅助类 |
+| `src/editor/browers/IAssetThumbnailProvider.h` | `shine::editor::assets_brower` | 缩略图提供者抽象基类 |
+| `src/editor/browers/ThumbnailProviderRegistry.h` | `shine::editor::assets_brower` | 缩略图提供者注册表（header-only）|
+| `src/editor/browers/builtin_thumbnail_providers.h/.cpp` | `shine::editor::assets_brower` | 内置提供者：`ImageThumbnailProvider`、`ModelThumbnailProvider` |
 | `src/editor/views/AssetDependencyView.h/.cpp` | `shine::editor::views` | 资产依赖关系面板 |
 
 ---
@@ -103,15 +106,15 @@ if (ImGui::BeginDragDropTarget())
 ImGui::Begin("资产浏览器")
     ├── ImGui::BeginChild("AssetsTree", {260, 0}, Borders | ResizeX)
     │       ├── InputTextWithHint("##asset_search", "搜索文件")
-    │       └── TreeNode("Content") → RenderDirectoryNode(root)
+    │       └── RenderDirectoryNode(contentRoot_)   // 从固定根目录渲染，DefaultOpen
     └── ImGui::BeginChild("AssetsList", {0, 0}, Borders)
             ├── TextUnformatted(当前目录路径)
             ├── Separator
-            ├── RenderAssetGrid()           // 图标网格
-            └── RenderOperationsPopup()     // 右键菜单：重命名/删除/移动
+            ├── RenderAssetGrid()           // 多选网格（ImGuiMultiSelect + 虚拟裁剪）
+            └── RenderOperationsPopup()     // 右键菜单 + 目录 CRUD 弹窗
 ```
 
-图标尺寸通过菜单栏 `视图 → SliderFloat("图标尺寸")` 调节，范围 32–128 px。
+图标尺寸通过菜单栏 `视图 → SliderFloat("图标尺寸")` 调节（32–128 px），或 Ctrl+滚轮缩放。
 
 ### ImportPending 内部结构
 
@@ -153,6 +156,107 @@ depView.SetSelectedAssetUUID("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx");
 
 ---
 
+## 资产缩略图系统
+
+### 架构概述
+
+```
+IAssetThumbnailProvider   ← 抽象基类，用户继承并重写
+        ▲
+        │  内置实现
+        ├── ImageThumbnailProvider   (.png / .jpg / .jpeg → 真实缩略图)
+        └── ModelThumbnailProvider   (.obj / .gltf / .glb / .fbx / .dae → 等轴测方块图标)
+
+ThumbnailProviderRegistry  ← 保存有序 provider 列表，first-match 策略
+        ▲
+        │  成员
+AssetsBrower::thumbnailRegistry_
+```
+
+### 使用内置提供者（默认，无需额外代码）
+
+`onInit()` 中已自动调用 `RegisterBuiltinThumbnailProviders(thumbnailRegistry_)`，
+图片和模型文件自动显示缩略图/图标，其他类型回退到默认颜色方块。
+
+### 注册自定义提供者
+
+```cpp
+#include "editor/browers/IAssetThumbnailProvider.h"
+#include "editor/browers/ThumbnailProviderRegistry.h"
+
+class ShaderThumbnailProvider : public shine::editor::assets_brower::IAssetThumbnailProvider
+{
+public:
+    bool CanHandle(const std::filesystem::path& path) const override
+    {
+        auto ext = path.extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+        return ext == ".glsl" || ext == ".hlsl";
+    }
+
+    bool DrawThumbnail(ImDrawList* drawList,
+                       const std::filesystem::path& path,
+                       ImVec2 iconMin, ImVec2 iconMax,
+                       bool isSelected) override
+    {
+        drawList->AddRectFilled(iconMin, iconMax, IM_COL32(180, 80, 255, 220), 6.0f);
+        // ... 自定义绘制
+        return true;  // 返回 true = 已绘制，跳过默认图标
+    }
+};
+
+// 在 onInit() 之后注册（低于内置优先级）
+browser.RegisterThumbnailProvider(std::make_unique<ShaderThumbnailProvider>());
+
+// 在 onInit() 之前注册（高于内置优先级，可覆盖内置行为）
+// 注意：需在 RegisterBuiltinThumbnailProviders 调用之前调用
+browser.RegisterThumbnailProvider(std::make_unique<MyHighPriorityProvider>());
+```
+
+### 扩展内置提供者（示例：为图片添加格式支持）
+
+```cpp
+class ExtendedImageProvider : public shine::editor::assets_brower::ImageThumbnailProvider
+{
+public:
+    bool CanHandle(const std::filesystem::path& path) const override
+    {
+        // 先检查父类支持的格式
+        if (ImageThumbnailProvider::CanHandle(path)) return true;
+        // 再添加 .bmp 支持（只需重写 CanHandle，DrawThumbnail 复用父类）
+        auto ext = path.extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+        return ext == ".bmp";
+    }
+
+protected:
+    shine::render::TextureHandle LoadOrGetTexture(
+        const std::filesystem::path& path) override
+    {
+        // 处理 .bmp 加载，其他格式交给父类
+        auto ext = path.extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+        if (ext == ".bmp")
+        {
+            // 自定义加载逻辑 ...
+        }
+        return ImageThumbnailProvider::LoadOrGetTexture(path);
+    }
+};
+```
+
+### 关键约定
+
+| 约定 | 说明 |
+|------|------|
+| 线程安全 | `CanHandle` / `DrawThumbnail` / `Tick` 均在主线程调用，可安全使用 ImGui/GL |
+| GPU 资源生命周期 | 析构时通过 `TextureManager::ReleaseTexture` 释放；`onShutDown()` 中调用 `thumbnailRegistry_.Clear()` 确保 EngineContext 仍有效时释放 |
+| 返回 false | `DrawThumbnail` 返回 `false` 时调用方自动回退到默认颜色方块 + 类型文字 |
+| 加载失败缓存 | `ImageThumbnailProvider` 对失败路径记入 `failedPaths_`，避免每帧重试 |
+| 优先级顺序 | `ThumbnailProviderRegistry::Find` 返回第一个 `CanHandle == true` 者；先 `Register` 优先级更高 |
+
+---
+
 ## AssetsItem（排序辅助）
 
 ```cpp
@@ -175,3 +279,4 @@ AssetsItem::SortWithSortSpecs(sort_specs, items_array, item_count);
 - `AssetsBrower::onRender()` 每帧只消费一条拖入文件，避免连续弹窗。
 - 移动 / 删除操作会同步调用 `EditorAssetRegistry::OnFileMoved` / `OnFileDeleted`，保持注册表一致。
 - 导入成功后弹窗自动关闭；失败时保持打开并显示错误信息，允许用户修改设置后重试。
+- 资产网格支持框选（`BoxSelect2d`）、键盘导航（NavWrapX）、Ctrl+滚轮缩放（锚定鼠标位置）。

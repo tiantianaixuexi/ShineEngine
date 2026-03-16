@@ -55,6 +55,7 @@ int main(int argc, char **argv) {
 #include "script/ScriptSystem.h"
 
 #include "loader/model/objLoader.h"
+#include "util/crash_handler/crash_handler.h"
 
 #define TRACY_ENABLE
 #include "tracy/tracy/Tracy.hpp"
@@ -79,6 +80,13 @@ shine::gameplay::Camera g_Camera("默认相机");
 int main(int argc, char **argv) {
 
     ZoneScoped;
+
+    // Install crash handler AFTER ZoneScoped so Tracy's SetUnhandledExceptionFilter
+    // (installed during Tracy profiler init) is overridden by ours.
+    shine::util::crash_handler::Install({
+        .outputDir  = shine::SString("Logs"),
+        .filePrefix = shine::SString("crash"),
+    });
 
     for (int i = 0; i < argc; i++) {
         fmt::println("命令行参数[{}]: {}", i, argv[i]);

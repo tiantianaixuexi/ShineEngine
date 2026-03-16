@@ -10,7 +10,7 @@
         "src/editor/ShineAsset/importers",
         "src/editor/ShineAsset/cookers"
     ],
-    "deps": ["glaze", "gltf_loader", "obj_loader", "png", "jpeg", "engine_log", "fmt"],
+    "deps": ["glaze", "gltf_loader", "obj_loader", "image_util", "jpeg", "engine_log", "fmt"],
     "buildMode": "editor",
     "platform": ["Windows"]
 }
