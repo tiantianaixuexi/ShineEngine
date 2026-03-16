@@ -1,8 +1,8 @@
 #include "GltfAssetImporter.h"
 #include "ImporterAutoRegistry.h"
+#include "MeshBinUtil.h"
 
 #include <chrono>
-#include <fstream>
 #include <system_error>
 
 #include <fmt/chrono.h>
@@ -14,95 +14,6 @@
 
 namespace shine::editor::asset
 {
-    // -----------------------------------------------------------------------
-    //  Internal helpers
-    // -----------------------------------------------------------------------
-    namespace
-    {
-        /// Replace characters that are invalid in file names.
-        std::string SafeFilename(const std::string& name)
-        {
-            std::string s = name;
-            for (char& c : s)
-            {
-                if (c == '/' || c == '\\' || c == ':' || c == '*' ||
-                    c == '?' || c == '"' || c == '<' || c == '>' ||
-                    c == '|' || c == ' ')
-                    c = '_';
-            }
-            return s;
-        }
-
-        /// Write one mesh as a compact binary blob.
-        /// Format (matches StaticMeshCooker):
-        ///   [vertexCount : u32]
-        ///   [indexCount  : u32]
-        ///   [vertices    : float3 * vertexCount]   — scale applied
-        ///   [normals     : float3 * vertexCount]   — zeros if missing
-        ///   [texcoords   : float2 * vertexCount]   — zeros if missing
-        ///   [indices     : u32    * indexCount ]
-        bool WriteMeshBin(const std::filesystem::path& path,
-                          const shine::loader::MeshData& mesh,
-                          float scale)
-        {
-            std::ofstream out(path, std::ios::binary | std::ios::trunc);
-            if (!out) return false;
-
-            const auto vertexCount = static_cast<uint32_t>(mesh.vertices.size());
-            const auto indexCount  = static_cast<uint32_t>(mesh.indices.size());
-
-            out.write(reinterpret_cast<const char*>(&vertexCount), sizeof(vertexCount));
-            out.write(reinterpret_cast<const char*>(&indexCount),  sizeof(indexCount));
-
-            // Vertices with optional uniform scale
-            if (scale != 1.0f)
-            {
-                for (const auto& v : mesh.vertices)
-                {
-                    const float sv[3] = { v.X * scale, v.Y * scale, v.Z * scale };
-                    out.write(reinterpret_cast<const char*>(sv), sizeof(sv));
-                }
-            }
-            else
-            {
-                out.write(reinterpret_cast<const char*>(mesh.vertices.data()),
-                          static_cast<std::streamsize>(vertexCount * 3 * sizeof(float)));
-            }
-
-            // Normals
-            if (mesh.normals.size() == vertexCount)
-            {
-                out.write(reinterpret_cast<const char*>(mesh.normals.data()),
-                          static_cast<std::streamsize>(vertexCount * 3 * sizeof(float)));
-            }
-            else
-            {
-                const std::vector<float> zeros(static_cast<std::size_t>(vertexCount) * 3, 0.0f);
-                out.write(reinterpret_cast<const char*>(zeros.data()),
-                          static_cast<std::streamsize>(zeros.size() * sizeof(float)));
-            }
-
-            // Texcoords
-            if (mesh.texcoords.size() == vertexCount)
-            {
-                out.write(reinterpret_cast<const char*>(mesh.texcoords.data()),
-                          static_cast<std::streamsize>(vertexCount * 2 * sizeof(float)));
-            }
-            else
-            {
-                const std::vector<float> zeros(static_cast<std::size_t>(vertexCount) * 2, 0.0f);
-                out.write(reinterpret_cast<const char*>(zeros.data()),
-                          static_cast<std::streamsize>(zeros.size() * sizeof(float)));
-            }
-
-            // Indices
-            out.write(reinterpret_cast<const char*>(mesh.indices.data()),
-                      static_cast<std::streamsize>(indexCount * sizeof(uint32_t)));
-
-            return out.good();
-        }
-    } // namespace
-
     // -----------------------------------------------------------------------
     //  IAssetImporter interface
     // -----------------------------------------------------------------------
@@ -175,7 +86,7 @@ namespace shine::editor::asset
                 ? "Mesh_" + std::to_string(i)
                 : mesh.name;
 
-            const std::string   binFilename = SafeFilename(meshName) + "_" + std::to_string(i) + ".bin";
+            const std::string   binFilename = SafeMeshFilename(meshName) + "_" + std::to_string(i) + ".bin";
             const std::string   relBinPath  = "meshes/" + binFilename;
             const auto          binPath     = meshesDir / binFilename;
 
