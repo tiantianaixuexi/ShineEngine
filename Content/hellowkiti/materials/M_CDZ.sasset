@@ -1,0 +1,24 @@
+{
+   "formatVersion": "2.0",
+   "asset": {
+      "uuid": "019cf628-4dba-75a4-860c-e32ff8f8a26d",
+      "type": "material",
+      "sourceFile": "E:\\c++\\ShineEngine\\Content\\model\\hellowkiti.glb",
+      "imported": true,
+      "lastImportTime": "2026-03-16T10:19:22Z",
+      "importSettings": ,
+      "subAssets": [
+         {
+            "uuid": "019cf628-4dba-77e8-94b8-439fdff27168",
+            "type": "material",
+            "name": "M_CDZ",
+            "properties": {"name":"M_CDZ","alphaMode":"OPAQUE","doubleSided":true,"baseColorFactor":[1.000000,1.000000,1.000000,1.000000],"metallicFactor":0.500000,"roughnessFactor":0.748767}
+         }
+      ],
+      "dependencies": [],
+      "userData": {
+         "tags": [],
+         "extra": 
+      }
+   }
+}

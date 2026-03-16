@@ -1,7 +1,7 @@
 #include "image_util.h"
 
 #include "libpng/png.h"
-//#include <jpeglib.h>
+#include "image/jpeg.h"
 
 #include "fmt/format.h"
 
@@ -308,7 +308,43 @@ std::expected<ImageData, std::string> load_image_from_memory(std::span<const std
     // 检测 JPEG 签名
     if (data[0] == std::byte{0xFF} && data[1] == std::byte{0xD8})
     {
-      // return decode_jpeg(data, desiredChannels);
+        shine::image::jpeg jpegDecoder;
+        if (!jpegDecoder.loadFromMemory(data.data(), data.size()))
+            return std::unexpected("JPEG: loadFromMemory 失败");
+
+        auto decodeResult = jpegDecoder.decode();
+        if (!decodeResult)
+            return std::unexpected("JPEG 解码失败: " + decodeResult.error());
+
+        const auto& rawRgba = jpegDecoder.getImageData();
+        ImageData image;
+        image.width    = static_cast<int32_t>(jpegDecoder.getWidth());
+        image.height   = static_cast<int32_t>(jpegDecoder.getHeight());
+        image.channels = 4;
+        image.format   = GL_RGBA;
+        image.internalFormat = GL_RGBA8;
+
+        if (desiredChannels == 3)
+        {
+            // 去除 alpha 通道
+            const size_t pixels = static_cast<size_t>(image.width) * image.height;
+            image.data.resize(pixels * 3);
+            for (size_t i = 0; i < pixels; ++i)
+            {
+                image.data[i * 3 + 0] = static_cast<std::byte>(rawRgba[i * 4 + 0]);
+                image.data[i * 3 + 1] = static_cast<std::byte>(rawRgba[i * 4 + 1]);
+                image.data[i * 3 + 2] = static_cast<std::byte>(rawRgba[i * 4 + 2]);
+            }
+            image.channels = 3;
+            image.format   = GL_RGB;
+            image.internalFormat = GL_RGB8;
+        }
+        else
+        {
+            image.data.resize(rawRgba.size());
+            std::memcpy(image.data.data(), rawRgba.data(), rawRgba.size());
+        }
+        return image;
     }
 
     return std::unexpected("不支持的图像格式 (仅支持 PNG/JPEG)");

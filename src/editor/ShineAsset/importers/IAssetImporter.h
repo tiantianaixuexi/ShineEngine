@@ -58,6 +58,12 @@ namespace shine::editor::asset
         bool          succeeded = false;
         AssetMetadata metadata;             // valid only when succeeded == true
         std::string   errorMessage;         // non-empty on failure
+
+        /// Additional .sasset files produced alongside the main asset
+        /// (e.g. embedded textures and materials from a GLB).
+        /// Each entry: { absolute_sasset_path, AssetMetadata }.
+        /// The pipeline will write and register all of these automatically.
+        std::vector<std::pair<std::filesystem::path, AssetMetadata>> sideAssets;
     };
 
     // -----------------------------------------------------------------------

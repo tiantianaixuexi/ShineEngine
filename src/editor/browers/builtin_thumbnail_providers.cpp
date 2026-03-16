@@ -242,8 +242,9 @@ namespace shine::editor::assets_brower
         if (std::filesystem::is_directory(path, ec))
             return false;
         const std::string ext = LowerExtension(path);
-        return ext == ".obj"  || ext == ".gltf" || ext == ".glb"
-            || ext == ".fbx"  || ext == ".dae";
+        return ext == ".obj"    || ext == ".gltf" || ext == ".glb"
+            || ext == ".fbx"    || ext == ".dae"
+            || ext == ".sasset";
     }
 
     bool ModelThumbnailProvider::DrawThumbnail(ImDrawList*                  drawList,

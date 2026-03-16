@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <limits>
 
 #include "EngineCore/engine_context.h"
@@ -14,6 +15,8 @@
 #include "gameplay/world/WorldServiceInterfaces.h"
 #include "imgui/imgui.h"
 #include "manager/CameraManager.h"
+#include "editor/ShineAsset/importers/MeshBinUtil.h"
+#include "editor/ShineAsset/metadata/AssetMetadata.h"
 #include "render/demo/EngineDemoScene.h"
 
 namespace shine::editor::views 
@@ -116,6 +119,19 @@ void EditView::onRender() {
                 {
                     const auto* item = static_cast<const PlacementItemPayload*>(payload->Data);
                     SpawnPlacementActor(item->type, item->scale, cam);
+                }
+            }
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SHINE_ASSET_PATH"))
+            {
+                if (payload->Data && payload->DataSize > 1)
+                {
+                    const std::string assetPath(static_cast<const char*>(payload->Data),
+                                                static_cast<size_t>(payload->DataSize) - 1);
+                    if (assetPath.size() >= 7 &&
+                        assetPath.compare(assetPath.size() - 7, 7, ".sasset") == 0)
+                    {
+                        SpawnAssetActor(assetPath, cam);
+                    }
                 }
             }
             ImGui::EndDragDropTarget();
@@ -348,4 +364,62 @@ void EditView::SpawnPlacementActor(EPlacementItemType type, float scale, gamepla
     worldPlacementService_->addActorToPersistentLevel(std::move(actor));
     if (worldHierarchyService_) worldHierarchyService_->setSelectedObject(actorPtr);
 }
-} // namespace shine::editor::EditorView
+
+} // namespace shine::editor::views
+
+namespace shine::editor::views {
+
+struct MeshSubAssetProps { std::string binaryPath; };
+
+void EditView::SpawnAssetActor(const std::string& sassetPath, gameplay::Camera* cam)
+{
+    if (!worldPlacementService_ || !cam)
+        return;
+
+    auto metaResult = shine::editor::asset::ReadAssetMetadataFile(sassetPath);
+    if (!metaResult)
+        return;
+
+    const auto& meta = *metaResult;
+    std::string binRelPath;
+    for (const auto& sub : meta.asset.subAssets)
+    {
+        MeshSubAssetProps props;
+        (void)glz::read_json(props, sub.properties.str);
+        if (!props.binaryPath.empty())
+        {
+            binRelPath = props.binaryPath;
+            break;
+        }
+    }
+    if (binRelPath.empty())
+        return;
+
+    const std::filesystem::path sassetDir = std::filesystem::path(sassetPath).parent_path();
+    const std::filesystem::path binPath   = sassetDir / binRelPath;
+
+    auto meshDataOpt = shine::editor::asset::ReadMeshBin(binPath);
+    if (!meshDataOpt)
+        return;
+
+    const auto camPos   = cam->GetPosition();
+    const auto spawnPos = camPos + cam->front * 3.0;
+
+    auto actor = std::make_unique<shine::gameplay::StaticMeshActor>();
+    actor->setName(fmt::format("PlacedMesh_{}", nextPlacedActorId_++).c_str());
+    auto* transform = actor->addComponent<shine::gameplay::component::TransformComponent>();
+    transform->setPosition({
+        static_cast<float>(spawnPos.X),
+        static_cast<float>(spawnPos.Y),
+        static_cast<float>(spawnPos.Z)
+    });
+    auto* meshComp = actor->addComponent<shine::gameplay::component::StaticMeshComponent>();
+    auto mesh = std::make_shared<shine::gameplay::StaticMesh>();
+    mesh->initFromMeshData(*meshDataOpt);
+    meshComp->setMesh(mesh);
+    auto* actorPtr = actor.get();
+    worldPlacementService_->addActorToPersistentLevel(std::move(actor));
+    if (worldHierarchyService_) worldHierarchyService_->setSelectedObject(actorPtr);
+}
+
+} // namespace shine::editor::views

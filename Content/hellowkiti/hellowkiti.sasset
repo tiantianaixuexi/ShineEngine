@@ -1,0 +1,64 @@
+{
+   "formatVersion": "2.0",
+   "asset": {
+      "uuid": "019cf628-4db4-70df-aa48-dceffe30daf5",
+      "type": "model",
+      "sourceFile": "E:\\c++\\ShineEngine\\Content\\model\\hellowkiti.glb",
+      "imported": true,
+      "lastImportTime": "2026-03-16T10:19:22Z",
+      "importSettings": ,
+      "subAssets": [
+         {
+            "uuid": "019cf628-4dba-7940-969f-3f50f2950c8b",
+            "type": "mesh",
+            "name": "Mesh",
+            "properties": {"vertexCount":2369,"indexCount":9120,"materialIndex":0,"binaryPath":"meshes/Mesh_0.bin","materialUuids":["019cf628-4dba-75a4-860c-e32ff8f8a26d"]}
+         },
+         {
+            "uuid": "019cf628-4dbb-7567-a415-632fb9fa8b80",
+            "type": "mesh",
+            "name": "Mesh.001",
+            "properties": {"vertexCount":923,"indexCount":1794,"materialIndex":0,"binaryPath":"meshes/Mesh.001_1.bin","materialUuids":["019cf628-4dba-75a4-860c-e32ff8f8a26d"]}
+         }
+      ],
+      "nodeTree": {
+         "name": "Root",
+         "transform": {
+            "translation": [
+               0,
+               0,
+               0
+            ],
+            "rotation": [
+               0,
+               0,
+               0,
+               1
+            ],
+            "scale": [
+               1,
+               1,
+               1
+            ]
+         },
+         "components": [
+            {
+               "type": "mesh",
+               "uuid": "019cf628-4dba-7940-969f-3f50f2950c8b"
+            },
+            {
+               "type": "mesh",
+               "uuid": "019cf628-4dbb-7567-a415-632fb9fa8b80"
+            }
+         ],
+         "children": []
+      },
+      "dependencies": [
+         "019cf628-4dba-75a4-860c-e32ff8f8a26d"
+      ],
+      "userData": {
+         "tags": [],
+         "extra": 
+      }
+   }
+}

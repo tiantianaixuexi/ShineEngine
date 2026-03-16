@@ -6,14 +6,23 @@
 #include "AssetUuidHelper.h"
 #include "EditorAssetRegistry.h"
 #include "ImporterAutoRegistry.h"
+#include "GltfAssetImporter.h"
+#include "ObjAssetImporter.h"
+#include "TextureAssetImporter.h"
 
 namespace shine::editor::asset
 {
     bool ImportPipeline::Init(shine::EngineContext& /*ctx*/)
     {
-        // Pull every importer that registered itself via REGISTER_IMPORTER().
-        // This runs after all static initialisers have completed, so the
-        // registry is fully populated at this point.
+        // Explicitly instantiate each known importer.
+        // MSVC strips unreferenced .obj files from static libraries, which
+        // silently breaks the REGISTER_IMPORTER static-initializer trick.
+        // Explicit registration is simpler and always works.
+        m_importers.push_back(std::make_shared<GltfAssetImporter>());
+        m_importers.push_back(std::make_shared<ObjAssetImporter>());
+        m_importers.push_back(std::make_shared<TextureAssetImporter>());
+
+        // Also pull any importers registered via REGISTER_IMPORTER (plugins, tests, etc.)
         for (auto& imp : ImporterAutoRegistry::Instance().CreateAll())
             m_importers.push_back(std::move(imp));
         return true;
@@ -72,6 +81,16 @@ namespace shine::editor::asset
 
         if (registry)
             registry->Register(outputSAsset, result.metadata.asset);
+
+        // Write and register any side-assets produced by the importer
+        for (auto& [sidePath, sideMeta] : result.sideAssets)
+        {
+            std::error_code sideEc;
+            std::filesystem::create_directories(sidePath.parent_path(), sideEc);
+            auto sideWrite = WriteAssetMetadataFile(sideMeta, sidePath.string());
+            if (sideWrite && registry)
+                registry->Register(sidePath, sideMeta.asset);
+        }
 
         return result;
     }

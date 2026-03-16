@@ -19,6 +19,12 @@
 #include "util/image_util.h"
 #include "util/path_util.h"
 
+// Draco mesh decompression (KHR_draco_mesh_compression)
+#include "draco/compression/decode.h"
+#include "draco/mesh/mesh.h"
+#include "draco/attributes/point_attribute.h"
+#include "draco/attributes/geometry_attribute.h"
+
 namespace shine::loader
 {
     REGISTER_LOG_GROUP_END(GltfLoaderLog)
@@ -317,8 +323,8 @@ namespace shine::loader
                 auto imageResult = util::load_image(imagePath.sv(), 4);
                 if (!imageResult.has_value())
                 {
-                    setError(EAssetLoaderError::PARSE_ERROR, imageResult.error());
-                    return false;
+                    SHINE_LOG_WARN(GltfLoaderLog, "image", "skip image, decode failed: {} uri='{}'", imageResult.error(), imagePath.sv());
+                    continue;
                 }
 
                 auto& decoded = imageResult.value();
@@ -353,8 +359,8 @@ namespace shine::loader
                 auto decoded = util::load_image_from_memory(rawSpan, 4);
                 if (!decoded.has_value())
                 {
-                    setError(EAssetLoaderError::PARSE_ERROR, decoded.error());
-                    return false;
+                    SHINE_LOG_WARN(GltfLoaderLog, "image", "skip embedded image bufferView={}, decode failed: {}", image.bufferView, decoded.error());
+                    continue;
                 }
 
                 image.width     = decoded->width;
@@ -496,6 +502,131 @@ namespace shine::loader
 
     bool gltfLoader::appendPrimitiveMeshData(std::vector<MeshData>& meshes, const gltf::GltfPrimitive& primitive, const gltf::GltfNode& node, STextView meshName) const
     {
+        // -----------------------------------------------------------------------
+        //  KHR_draco_mesh_compression — decompress first, then fall through
+        // -----------------------------------------------------------------------
+        auto dracoIt = primitive.extensions.find("KHR_draco_mesh_compression");
+        if (dracoIt != primitive.extensions.end() && dracoIt->second.IsObject())
+        {
+            const gltf::Value& dracoExt = dracoIt->second;
+            if (!dracoExt.Has("bufferView"))
+            {
+                SHINE_LOG_WARN(GltfLoaderLog, "extract", "Draco ext missing bufferView, node='{}' mesh='{}'", node.name, meshName.sv());
+                return false;
+            }
+
+            const int bvIndex = dracoExt.Get("bufferView").GetNumberAsInt();
+            if (bvIndex < 0 || bvIndex >= static_cast<int>(_model.bufferViews.size()))
+            {
+                SHINE_LOG_WARN(GltfLoaderLog, "extract", "Draco bufferView out of range={}, node='{}' mesh='{}'", bvIndex, node.name, meshName.sv());
+                return false;
+            }
+
+            const auto& bv     = _model.bufferViews[static_cast<size_t>(bvIndex)];
+            const auto& buffer = _model.buffers[static_cast<size_t>(bv.buffer)];
+            const unsigned char* compressedData = buffer.data.data() + bv.byteOffset;
+            const size_t         compressedSize = static_cast<size_t>(bv.byteLength);
+
+            draco::DecoderBuffer decBuf;
+            decBuf.Init(reinterpret_cast<const char*>(compressedData), compressedSize);
+
+            draco::Decoder decoder;
+            auto statusOrMesh = decoder.DecodeMeshFromBuffer(&decBuf);
+            if (!statusOrMesh.ok())
+            {
+                SHINE_LOG_WARN(GltfLoaderLog, "extract", "Draco decode failed: {}, node='{}' mesh='{}'",
+                    statusOrMesh.status().error_msg(), node.name, meshName.sv());
+                return false;
+            }
+
+            const std::unique_ptr<draco::Mesh>& dracoMesh = statusOrMesh.value();
+
+            MeshData meshData;
+            meshData.name          = meshName;
+            meshData.materialIndex = primitive.material;
+
+            if (node.translation.size() == 3)
+                meshData.translation = FVector3f(static_cast<float>(node.translation[0]), static_cast<float>(node.translation[1]), static_cast<float>(node.translation[2]));
+            if (node.scale.size() == 3)
+                meshData.scale = FVector3f(static_cast<float>(node.scale[0]), static_cast<float>(node.scale[1]), static_cast<float>(node.scale[2]));
+            if (node.rotation.size() == 4)
+            {
+                const FQuatf q(static_cast<float>(node.rotation[3]), static_cast<float>(node.rotation[0]), static_cast<float>(node.rotation[1]), static_cast<float>(node.rotation[2]));
+                meshData.rotation = q.toRotatorDegrees();
+            }
+
+            const uint32_t numPoints = static_cast<uint32_t>(dracoMesh->num_points());
+            meshData.vertices.reserve(numPoints);
+            meshData.normals.reserve(numPoints);
+            meshData.texcoords.reserve(numPoints);
+
+            // POSITION
+            const draco::PointAttribute* posAttr = dracoMesh->GetNamedAttribute(draco::GeometryAttribute::POSITION);
+            if (!posAttr)
+            {
+                SHINE_LOG_WARN(GltfLoaderLog, "extract", "Draco mesh missing POSITION, node='{}' mesh='{}'", node.name, meshName.sv());
+                return false;
+            }
+            for (draco::PointIndex pi(0); pi < dracoMesh->num_points(); ++pi)
+            {
+                std::array<float, 3> val{};
+                posAttr->ConvertValue<float>(posAttr->mapped_index(pi), val.data());
+                meshData.vertices.emplace_back(val[0], val[1], val[2]);
+            }
+
+            // NORMAL
+            const draco::PointAttribute* normAttr = dracoMesh->GetNamedAttribute(draco::GeometryAttribute::NORMAL);
+            if (normAttr)
+            {
+                for (draco::PointIndex pi(0); pi < dracoMesh->num_points(); ++pi)
+                {
+                    std::array<float, 3> val{};
+                    normAttr->ConvertValue<float>(normAttr->mapped_index(pi), val.data());
+                    meshData.normals.emplace_back(val[0], val[1], val[2]);
+                }
+            }
+            else
+            {
+                meshData.normals.assign(numPoints, FVector3f(0.0f, 0.0f, 1.0f));
+            }
+
+            // TEXCOORD_0
+            const draco::PointAttribute* uvAttr = dracoMesh->GetNamedAttribute(draco::GeometryAttribute::TEX_COORD);
+            if (uvAttr)
+            {
+                for (draco::PointIndex pi(0); pi < dracoMesh->num_points(); ++pi)
+                {
+                    std::array<float, 2> val{};
+                    uvAttr->ConvertValue<float>(uvAttr->mapped_index(pi), val.data());
+                    meshData.texcoords.emplace_back(val[0], val[1]);
+                }
+            }
+            else
+            {
+                meshData.texcoords.assign(numPoints, FVector2f(0.0f, 0.0f));
+            }
+
+            // Colors — default white
+            meshData.colors.assign(numPoints, VertexColor(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // Indices from Draco faces
+            const uint32_t numFaces = static_cast<uint32_t>(dracoMesh->num_faces());
+            meshData.indices.reserve(static_cast<size_t>(numFaces) * 3);
+            for (draco::FaceIndex fi(0); fi < dracoMesh->num_faces(); ++fi)
+            {
+                const auto& face = dracoMesh->face(fi);
+                meshData.indices.push_back(static_cast<uint32_t>(face[0].value()));
+                meshData.indices.push_back(static_cast<uint32_t>(face[1].value()));
+                meshData.indices.push_back(static_cast<uint32_t>(face[2].value()));
+            }
+
+            meshes.push_back(std::move(meshData));
+            return true;
+        }
+
+        // -----------------------------------------------------------------------
+        //  Standard (non-Draco) path
+        // -----------------------------------------------------------------------
         const STextView meshNameView(meshName);
         auto positionIt = primitive.attributes.find("POSITION");
         if (positionIt == primitive.attributes.end())

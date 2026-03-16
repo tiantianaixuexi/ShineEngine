@@ -48,6 +48,9 @@ namespace shine::loader
         [[nodiscard]] int getDefaultSceneIndex() const { return _model.defaultScene; }
         [[nodiscard]] std::vector<int> getSceneRootNodes(int sceneIndex) const;
 
+        /// Direct access to the parsed GLTF model (images, materials, textures, etc.)
+        [[nodiscard]] const gltf::GltfModel& getModel() const noexcept { return _model; }
+
     private:
         bool loadImagesForModel();
         bool appendPrimitiveMeshData(std::vector<MeshData>& meshes, const gltf::GltfPrimitive& primitive, const gltf::GltfNode& node, STextView meshName) const;

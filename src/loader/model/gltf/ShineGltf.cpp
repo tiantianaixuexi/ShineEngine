@@ -240,6 +240,29 @@ static GltfNode ParseNode(const json& obj) {
     return n;
 }
 
+// Recursively convert a glaze JSON node to a gltf::Value.
+static Value json_to_value(const json& node) {
+    if (const auto* b = node.get_if<bool>())       return Value(*b);
+    if (const auto* u = node.get_if<uint64_t>())   return Value(static_cast<int>(*u));
+    if (const auto* i = node.get_if<int64_t>())    return Value(static_cast<int>(*i));
+    if (const auto* d = node.get_if<double>())     return Value(*d);
+    if (const auto* s = node.get_if<std::string>()) return Value(*s);
+    if (const auto* a = node.get_if<jarr_t>()) {
+        Value::Array arr;
+        arr.reserve(a->size());
+        for (const auto& item : *a)
+            arr.push_back(json_to_value(item));
+        return Value(std::move(arr));
+    }
+    if (const auto* o = node.get_if<jobj_t>()) {
+        Value::Object obj;
+        for (const auto& [k, v] : *o)
+            obj[k] = json_to_value(v);
+        return Value(std::move(obj));
+    }
+    return Value{};
+}
+
 static GltfMesh ParseMesh(const json& obj) {
     GltfMesh m;
     m.name = obj_str(obj, "name");
@@ -275,6 +298,15 @@ static GltfMesh ParseMesh(const json& obj) {
                 }
             }
         }
+
+        // Primitive-level extensions (e.g. KHR_draco_mesh_compression)
+        if (const auto* extsNode = find_key(pobj, "extensions")) {
+            if (const auto* extsObj = extsNode->get_if<jobj_t>()) {
+                for (const auto& [extName, extVal] : *extsObj)
+                    prim.extensions[SString(extName)] = json_to_value(extVal);
+            }
+        }
+
         m.primitives.push_back(std::move(prim));
     }
     return m;

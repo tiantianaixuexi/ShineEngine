@@ -1,5 +1,15 @@
 ﻿#include "AssetsBrower.h"
 
+// Windows headers first to avoid macro pollution from other includes
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <commdlg.h>
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -16,6 +26,7 @@
 #include "util/EngineDirectoryService.h"
 #include "editor/browers/AssetDropQueue.h"
 #include "editor/browers/builtin_thumbnail_providers.h"
+#include "widget/CustomNode/IconTreeNode.h"
 
 namespace shine::editor::assets_brower
 {
@@ -49,6 +60,10 @@ namespace shine::editor::assets_brower
                 contentRoot_       = dirService->GetContentDirectory();
                 selectedDirectory_ = contentRoot_;
             }
+
+            // 图标目录：<project_root>/icon/
+            if (dirService)
+                iconCache_.SetRoot(dirService->GetProjectRootDirectory() / "icon");
         }
 
         // Register built-in thumbnail providers (Image + Model).
@@ -68,22 +83,23 @@ namespace shine::editor::assets_brower
             {
                 auto path = std::move(g_dropQueue.front());
                 g_dropQueue.pop();
-                if (importPipeline_)
-                {
-                    ImportPending pending;
-                    pending.sourcePath = std::move(path);
-                    pending.importer   = importPipeline_->FindImporter(pending.sourcePath);
-                    pendingImport_     = std::move(pending);
-                    importErrorMsg_.clear();
-                    requestImportPopup_ = true;
-                }
+                ImportPending pending;
+                pending.sourcePath = std::move(path);
+                pending.importer   = importPipeline_ ? importPipeline_->FindImporter(pending.sourcePath) : nullptr;
+                pendingImport_     = std::move(pending);
+                importErrorMsg_.clear();
+                requestImportPopup_ = true;
             }
         }
 
-        if (ImGui::Begin(name.c_str(), &isOpen))
+        if (ImGui::Begin(name.c_str(), &isOpen, ImGuiWindowFlags_MenuBar))
         {
             if (ImGui::BeginMenuBar())
             {
+                if (ImGui::MenuItem("导入文件..."))
+                {
+                    TriggerFileOpenDialog();
+                }
                 if (ImGui::MenuItem("刷新"))
                 {
                 }
@@ -138,31 +154,81 @@ namespace shine::editor::assets_brower
             flags |= ImGuiTreeNodeFlags_Selected;
         if (isRoot)
             flags |= ImGuiTreeNodeFlags_DefaultOpen;
-        const bool opened = ImGui::TreeNodeEx(path.string().c_str(), flags, "%s", ToDisplayText(path.filename()).c_str());
+
+        // 使用全路径作为 id 后缀，避免同名文件夹冲突
+        const std::string labelId = ToDisplayText(path.filename()).to_string()
+                                    + "##" + path.string();
+
+        const bool opened = shine::widget::IconTreeNode(
+            labelId.c_str(),
+            iconCache_.Get("icon_win_open.png"),
+            iconCache_.Get("icon_win_close.png"),
+            flags);
+
         if (ImGui::IsItemClicked())
-        {
             selectedDirectory_ = path;
-        }
+
         RenderDirectoryContextMenu(path);
         if (!opened)
-        {
             return;
-        }
 
         {
             std::vector<std::filesystem::path> childDirs;
+            std::vector<std::filesystem::path> sassetPaths;
             std::error_code iterEc;
             for (const auto& fse : std::filesystem::directory_iterator(path, iterEc))
             {
                 std::error_code isDirEc;
                 if (fse.is_directory(isDirEc))
-                {
                     childDirs.push_back(fse.path());
-                }
+                else if (fse.path().extension() == ".sasset")
+                    sassetPaths.push_back(fse.path());
             }
             for (const auto& childPath : childDirs)
-            {
                 RenderDirectoryNode(childPath);
+
+            // 将含有子资产的 .sasset 文件显示为可展开节点，子层级列出各子资产名称
+            for (const auto& sp : sassetPaths)
+            {
+                const auto* regEntry = editorAssetRegistry_
+                    ? editorAssetRegistry_->FindByPath(sp) : nullptr;
+
+                const bool hasSubs = regEntry && !regEntry->record.subAssets.empty();
+                const std::string stemStr = sp.stem().string();
+
+                if (hasSubs)
+                {
+                    const std::string sassetLabelId = stemStr + "##" + sp.string();
+                    const bool nodeOpen = shine::widget::IconTreeNode(
+                        sassetLabelId.c_str(),
+                        iconCache_.Get("icon_win_open.png"),
+                        iconCache_.Get("icon_win_close.png"),
+                        ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick);
+
+                    if (ImGui::IsItemClicked())
+                        selectedDirectory_ = sp.parent_path();
+
+                    if (nodeOpen)
+                    {
+                        for (const auto& sub : regEntry->record.subAssets)
+                        {
+                            const std::string subLabel = sub.name + "##" + sub.uuid;
+                            shine::widget::IconLeafNode(
+                                subLabel.c_str(),
+                                iconCache_.Get("icon_win_close.png"));
+                        }
+                        ImGui::TreePop();
+                    }
+                }
+                else
+                {
+                    const std::string sassetLabelId = stemStr + "##" + sp.string();
+                    shine::widget::IconLeafNode(
+                        sassetLabelId.c_str(),
+                        iconCache_.Get("icon_win_close.png"));
+                    if (ImGui::IsItemClicked())
+                        selectedDirectory_ = sp.parent_path();
+                }
             }
         }
         ImGui::TreePop();
@@ -972,6 +1038,58 @@ namespace shine::editor::assets_brower
             return static_cast<char>(std::tolower(c));
         });
         return lower.find(filter) != std::string::npos;
+    }
+
+    void AssetsBrower::TriggerFileOpenDialog()
+    {
+        // 构建过滤字符串（双 null 结尾格式）
+        // "描述\0*.ext1;*.ext2\0所有文件\0*.*\0\0"
+        static const wchar_t filter[] =
+            L"\u652f\u6301\u7684\u8d44\u4ea7\u6587\u4ef6\0*.png;*.jpg;*.jpeg;*.gltf;*.glb;*.obj\0"
+            L"\u6240\u6709\u6587\u4ef6\0*.*\0\0";
+
+        // 足够大的缓冲区支持多选（目录 + 多个文件名）
+        wchar_t fileBuffer[8192]{};
+
+        HWND parentHwnd = static_cast<HWND>(ImGui::GetMainViewport()->PlatformHandleRaw);
+
+        OPENFILENAMEW ofn{};
+        ofn.lStructSize  = sizeof(ofn);
+        ofn.hwndOwner    = parentHwnd;
+        ofn.lpstrFilter  = filter;
+        ofn.nFilterIndex = 1;
+        ofn.lpstrFile    = fileBuffer;
+        ofn.nMaxFile     = static_cast<DWORD>(std::size(fileBuffer));
+        ofn.Flags        = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST |
+                           OFN_ALLOWMULTISELECT | OFN_EXPLORER | OFN_NOCHANGEDIR;
+
+        if (!GetOpenFileNameW(&ofn))
+            return;  // 用户取消
+
+        // 解析多选结果：首项为目录，后续各项为文件名；单选时首项为完整路径
+        std::vector<std::filesystem::path> paths;
+        const wchar_t* p = fileBuffer;
+        std::wstring first(p);
+        p += first.size() + 1;
+
+        if (*p == L'\0')
+        {
+            // 单文件：fileBuffer 直接是完整路径
+            paths.emplace_back(first);
+        }
+        else
+        {
+            // 多文件：first 是目录，后续是文件名
+            while (*p != L'\0')
+            {
+                std::wstring filename(p);
+                paths.emplace_back(std::filesystem::path(first) / filename);
+                p += filename.size() + 1;
+            }
+        }
+
+        if (!paths.empty())
+            EnqueueExternalDrop(std::move(paths));
     }
 
 }    // end namespace

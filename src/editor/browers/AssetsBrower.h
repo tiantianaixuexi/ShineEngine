@@ -12,6 +12,7 @@
 #include "string/shine_string.h"
 #include "editor/browers/IAssetThumbnailProvider.h"
 #include "editor/browers/ThumbnailProviderRegistry.h"
+#include "editor/browers/EditorIconCache.h"
 
 namespace shine::editor::asset
 {
@@ -54,6 +55,7 @@ namespace shine::editor::assets_brower
             void RenderAssetContextMenu(const std::filesystem::directory_entry& entry);
             void RenderOperationsPopup();
             void RenderImportPopup();
+            void TriggerFileOpenDialog();
             void OpenEntry(const std::filesystem::directory_entry& entry);
             bool RenameEntry(const std::filesystem::path& sourcePath, const shine::SString& newName);
             bool DeleteEntry(const std::filesystem::path& path);
@@ -125,5 +127,6 @@ namespace shine::editor::assets_brower
         shine::editor::asset::ImportPipeline*       importPipeline_       = nullptr;
 
         ThumbnailProviderRegistry thumbnailRegistry_;
+        EditorIconCache           iconCache_;
     };
 }
