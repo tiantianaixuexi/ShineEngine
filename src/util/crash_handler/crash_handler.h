@@ -33,9 +33,10 @@ namespace shine::util::crash_handler
         /// Write a plain-text log (.log) with exception info + stacktrace.
         bool writeTextLog = true;
 
-        /// Number of stacktrace frames to skip from the top
-        /// (hides crash_handler internals from the log).
-        int stackSkipFrames = 2;
+        /// Number of additional stacktrace frames to skip from the top,
+        /// beyond the crash_handler internals already skipped internally.
+        /// Set to 0 unless you wrap Install() in another layer.
+        int stackSkipFrames = 0;
     };
 
     /// Install global unhandled-exception and std::terminate handlers.
