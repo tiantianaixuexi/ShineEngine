@@ -29,7 +29,6 @@ namespace shine::editor::assets_brower
             shine::SString title = "资产浏览器";
             
             void SetEditorAssetRegistry(shine::editor::asset::EditorAssetRegistry* registry) { editorAssetRegistry_ = registry; }
-            void SetImportPipeline(shine::editor::asset::ImportPipeline* pipeline) { importPipeline_ = pipeline; }
 
             /**
              * @brief 注册自定义缩略图提供者

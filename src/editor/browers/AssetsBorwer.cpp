@@ -432,24 +432,6 @@ namespace shine::editor::assets_brower
         }
         contextEntryPath_ = entry.path();
 
-        // 原始源文件（非目录、非 .sasset）提供"导入"选项
-        std::error_code isFileEc;
-        const bool isSourceFile = !entry.is_directory(isFileEc) &&
-                                  entry.path().extension() != ".sasset";
-        if (isSourceFile && importPipeline_)
-        {
-            if (ImGui::MenuItem("导入"))
-            {
-                ImportPending pending;
-                pending.sourcePath  = entry.path();
-                pending.importer    = importPipeline_->FindImporter(entry.path());
-                pendingImport_      = std::move(pending);
-                importErrorMsg_.clear();
-                requestImportPopup_ = true;
-            }
-            ImGui::Separator();
-        }
-
         if (ImGui::MenuItem("打开"))
         {
             OpenEntry(entry);
@@ -894,13 +876,20 @@ namespace shine::editor::assets_brower
         SyncAssetRecordMoveDir(oldPath, newPath);
 
         // 如果当前选中目录在被重命名的目录下，同步更新
+        // 注意：此时 oldPath 已不存在，不能用 equivalent()（需要双路径存在），改为词法比较
         if (!selectedDirectory_.empty())
         {
-            const auto rel = std::filesystem::relative(selectedDirectory_, oldPath, ec);
-            if (!ec && !rel.empty() && rel.native()[0] != '.')
-                selectedDirectory_ = newPath / rel;
-            else if (std::filesystem::equivalent(selectedDirectory_, oldPath, ec) && !ec)
+            if (selectedDirectory_ == oldPath)
+            {
                 selectedDirectory_ = newPath;
+            }
+            else
+            {
+                std::error_code relEc;
+                const auto rel = std::filesystem::relative(selectedDirectory_, oldPath, relEc);
+                if (!relEc && !rel.empty() && rel.native()[0] != '.')
+                    selectedDirectory_ = newPath / rel;
+            }
         }
         return true;
     }
@@ -927,14 +916,14 @@ namespace shine::editor::assets_brower
             return false;
 
         // 如果选中目录在已删除目录下，退回根目录
+        // 注意：此时 path 已不存在，不能用 equivalent()（需要双路径存在），改为词法比较
         if (!selectedDirectory_.empty())
         {
+            const bool wasExact = (selectedDirectory_ == path);
             std::error_code relEc;
             const auto rel = std::filesystem::relative(selectedDirectory_, path, relEc);
             const bool wasInside = !relEc && !rel.empty() && rel.native()[0] != '.';
-            std::error_code eqEc;
-            const bool wasExact = std::filesystem::equivalent(selectedDirectory_, path, eqEc) && !eqEc;
-            if (wasInside || wasExact)
+            if (wasExact || wasInside)
                 selectedDirectory_ = contentRoot_;
         }
         return true;
