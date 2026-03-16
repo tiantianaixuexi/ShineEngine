@@ -8,6 +8,9 @@
 #include "fmt/base.h"
 #include "render/renderer_service.h"
 #include "render/backend/render_backend_factory.h"
+#include "editor/browers/AssetDropQueue.h"
+
+#include <shellapi.h>
 
 
 // Forward-declare WndProc handler from imgui Win32 backend
@@ -123,7 +126,24 @@ namespace shine::windows
 			::PostQuitMessage(0);
 			return 0;
 
-		
+		case WM_DROPFILES:
+		{
+			HDROP hDrop = reinterpret_cast<HDROP>(wParam);
+			const UINT fileCount = DragQueryFileW(hDrop, 0xFFFFFFFF, nullptr, 0);
+			std::vector<std::filesystem::path> paths;
+			paths.reserve(fileCount);
+			for (UINT i = 0; i < fileCount; ++i)
+			{
+				WCHAR buf[MAX_PATH]{};
+				if (DragQueryFileW(hDrop, i, buf, MAX_PATH))
+					paths.emplace_back(buf);
+			}
+			DragFinish(hDrop);
+			if (!paths.empty())
+				shine::editor::assets_brower::EnqueueExternalDrop(std::move(paths));
+			return 0;
+		}
+
 		}
 
 		shine::input::InputManager::get().processWin32Message(msg, wParam,
