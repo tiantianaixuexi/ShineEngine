@@ -38,6 +38,7 @@ public:
     bool TogglePlacementPaletteImpl();
     bool ToggleDebugTextureImpl();
     bool TogglePropertyInspectorImpl();
+    bool ToggleWidgetDesignerImpl();
     bool IsMemoryProfilerOpenImpl() const;
 
     bool ToggleAssetBrowser()
@@ -79,6 +80,12 @@ public:
     {
         return MainEditorCommandsCRTP<MainEditor>::TogglePropertyInspector();
     }
+
+    bool ToggleWidgetDesigner()
+    {
+        return MainEditorCommandsCRTP<MainEditor>::ToggleWidgetDesigner();
+    }
+
     bool IsMemoryProfilerOpen() const
     {
         return MainEditorCommandsCRTP<MainEditor>::IsMemoryProfilerOpen();

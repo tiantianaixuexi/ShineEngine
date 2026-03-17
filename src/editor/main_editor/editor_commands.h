@@ -46,6 +46,11 @@ namespace shine::editor::main_editor
             return self.TogglePropertyInspectorImpl();
         }
 
+        bool ToggleWidgetDesigner(this auto& self)
+        {
+            return self.ToggleWidgetDesignerImpl();
+        }
+
         bool IsMemoryProfilerOpen(this auto const& self)
         {
             return self.IsMemoryProfilerOpenImpl();

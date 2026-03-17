@@ -19,6 +19,7 @@ namespace shine::editor::views
     class DebugTextureView;
     class LogUI;
     class PlacementPaletteView;
+    class WidgetDesignerView;
 }
 
 namespace shine::widget::button
@@ -50,6 +51,7 @@ namespace shine::editor::main_editor
         bool TogglePlacementPalette();
         bool ToggleDebugTexture();
         bool TogglePropertyInspector();
+        bool ToggleWidgetDesigner();
         bool IsMemoryProfilerOpen() const; 
 
 
@@ -65,6 +67,7 @@ namespace shine::editor::main_editor
         std::unique_ptr<views::LogUI> logUI_;
         std::unique_ptr<views::DebugTextureView> debugTextureView_;
         std::unique_ptr<views::PlacementPaletteView> placementPaletteView_;
+        std::unique_ptr<views::WidgetDesignerView> widgetDesignerView_;
         std::unique_ptr<widget::button::shineButton> myButton_;
     };
 }

@@ -18,5 +18,5 @@
         "debug":   { "lib": ["jpeg-staticd.lib", "turbojpeg-staticd.lib"] },
         "release": { "lib": ["jpeg-static.lib",  "turbojpeg-static.lib"] }
     },
-    "comment": "libjpeg-turbo 3.1.4 via subcmake (SIMD auto-detected by NASM)"
+    "comment": "libjpeg-turbo 3.1.4 via subcmake (SIMD auto-fallback: enabled when NASM found, gracefully disabled otherwise)"
 }

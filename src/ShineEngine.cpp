@@ -1,8 +1,5 @@
 
-#ifdef BUILD_EDITOR
-
 #include "editor/editorPlayer/editor_play.h"
-#endif
 
 #include "manager/InputManager.h"
 

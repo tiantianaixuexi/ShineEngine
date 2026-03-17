@@ -107,6 +107,15 @@ namespace shine::editor::main_editor {
         return windowRegistry_->ToggleDebugTexture();
     }
 
+    bool MainEditor::ToggleWidgetDesignerImpl()
+    {
+        if (!windowRegistry_)
+        {
+            return false;
+        }
+        return windowRegistry_->ToggleWidgetDesigner();
+    }
+
     bool MainEditor::IsMemoryProfilerOpenImpl() const
     {
         if (!windowRegistry_)

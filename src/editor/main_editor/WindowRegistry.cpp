@@ -1,13 +1,11 @@
 #include "editor/main_editor/WindowRegistry.h"
 
-#include "fmt/format.h"
+
 #include "imgui/imgui.h"
 
 #include "EngineCore/engine_context.h"
 #include "editor/browers/AssetsBrower.h"
-#include "editor/ShineAsset/importers/ImportPipeline.h"
 #include "editor/log/LogUI.h"
-#include "editor/main_editor/editor_commands.h"
 #include "editor/views/DebugTextureView.h"
 #include "editor/views/EditorView.h"
 #include "editor/views/ImageViewerView.h"
@@ -18,9 +16,9 @@
 #include "editor/views/SettingsView.h"
 #include "editor/views/placement/PlacementPaletteView.h"
 #include "gameplay/world/WorldServiceLocator.h"
-#include "render/demo/EngineDemoScene.h"
 #include "script/ScriptSystem.h"
 #include "widget/shineButton.h"
+#include "editor/views/WidgetDesignerView.h"
 #include "editor/mainEditor.h"
 
 namespace shine::editor::main_editor
@@ -46,7 +44,7 @@ namespace shine::editor::main_editor
         const bool toolbarShown = mainEditorToolbar_->SetShow();
         (void)toolbarShown;
 
-        myButton_ = std::make_unique<widget::button::shineButton>("应用编辑");
+        myButton_ = std::make_unique<::shine::widget::button::shineButton>("应用编辑");
         myButton_->SetOnPressed([]() { fmt::println("应用编辑按钮被按下"); });
         myButton_->SetOnReleased([]() { fmt::println("应用编辑按钮被释放"); });
         myButton_->SetOnHovered([]() { fmt::println("应用编辑按钮被悬停"); });
@@ -105,6 +103,9 @@ namespace shine::editor::main_editor
         });
         (void)placementBindHandle;
         placementPaletteView_->onInit();
+
+        widgetDesignerView_ = std::make_unique<views::WidgetDesignerView>();
+        widgetDesignerView_->onInit();
     }
 
     void WindowRegistry::Render(bool& mainDocker)
@@ -136,6 +137,7 @@ namespace shine::editor::main_editor
         logUI_->RenderBase();
         debugTextureView_->RenderBase();
         placementPaletteView_->RenderBase();
+        widgetDesignerView_->RenderBase();
 
         ImGui::Render();
     }
@@ -178,6 +180,11 @@ namespace shine::editor::main_editor
     bool WindowRegistry::TogglePropertyInspector()
     {
         return propertiesView_->SetShow();
+    }
+
+    bool WindowRegistry::ToggleWidgetDesigner()
+    {
+        return widgetDesignerView_->SetShow();
     }
 
     bool WindowRegistry::IsMemoryProfilerOpen() const

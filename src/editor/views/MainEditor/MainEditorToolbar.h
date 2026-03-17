@@ -28,6 +28,7 @@ public:
     bool                     PlacementPaletteShow = false;
     bool                     DebugTextureShow     = false;
     bool                     PropertyInspectorShow = false;
+    bool                     WidgetDesignerShow    = false;
 
 private:
 

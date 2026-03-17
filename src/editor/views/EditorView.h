@@ -33,7 +33,7 @@ namespace shine::editor::views
     {
 	public:
 
-
+        EditView();
         virtual ~EditView();
 
         void SetWorldPlacementService(shine::gameplay::world::IWorldActorPlacementService* worldPlacementService);

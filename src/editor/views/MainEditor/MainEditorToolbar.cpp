@@ -110,6 +110,11 @@ namespace shine::editor::views
 					PropertyInspectorShow = commands_ ? commands_->TogglePropertyInspector() : PropertyInspectorShow;
 				}
 
+				if(ImGui::MenuItem("Widget 编辑器",nullptr,&WidgetDesignerShow))
+				{
+					WidgetDesignerShow = commands_ ? commands_->ToggleWidgetDesigner() : WidgetDesignerShow;
+				}
+
 				ImGui::EndMenu();
 			}
 		

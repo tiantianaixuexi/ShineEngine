@@ -26,6 +26,7 @@ static manager::CameraManager  *cameraManager    = nullptr;
 static render::RendererService *renderer         = nullptr;
 
 
+EditView::EditView() = default;
 EditView::~EditView() = default;
 
 void EditView::SetWorldPlacementService(shine::gameplay::world::IWorldActorPlacementService* worldPlacementService)
