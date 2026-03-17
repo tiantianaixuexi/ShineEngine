@@ -43,9 +43,9 @@ namespace shine::editor::asset
         for (char& c : extLower) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
 
         // Decode to RGBA using the appropriate built-in loader
-        uint32_t width   = 0;
-        uint32_t height  = 0;
-        std::vector<uint8_t> rgbaData;
+        std::uint32_t width   = 0;
+        std::uint32_t height  = 0;
+        std::vector<uint8_t> rgbaData {};
 
         if (extLower == ".png")
         {
@@ -55,8 +55,8 @@ namespace shine::editor::asset
                 result.errorMessage = "Failed to load PNG: " + imgResult.error();
                 return result;
             }
-            width  = static_cast<uint32_t>(imgResult->width);
-            height = static_cast<uint32_t>(imgResult->height);
+            width  = static_cast<std::uint32_t>(imgResult->width);
+            height = static_cast<std::uint32_t>(imgResult->height);
             rgbaData.resize(imgResult->data.size());
             std::memcpy(rgbaData.data(), imgResult->data.data(), imgResult->data.size());
         }

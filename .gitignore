@@ -29,3 +29,6 @@ script/node_modules
 build_clang
 build_msvc
 build_gcc
+
+# Third-party source (downloaded, not committed)
+src/third/libjpeg-turbo/

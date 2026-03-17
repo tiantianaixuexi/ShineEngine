@@ -1,15 +1,9 @@
 #include "ObjAssetImporter.h"
 #include "ImporterAutoRegistry.h"
-#include "MeshBinUtil.h"
+#include "ModelImportUtil.h"
 
-#include <chrono>
-#include <system_error>
-
-#include <fmt/chrono.h>
 #include "imgui/imgui.h"
 
-#include "AssetTypes.h"
-#include "AssetUuidHelper.h"
 #include "loader/model/objLoader.h"
 
 namespace shine::editor::asset
@@ -60,62 +54,20 @@ namespace shine::editor::asset
         }
 
         // Create meshes/ subfolder alongside the .sasset
-        const std::filesystem::path meshesDir = ctx.outputSAssetPath.parent_path() / "meshes";
-        std::error_code ec;
-        std::filesystem::create_directories(meshesDir, ec);
-        if (ec)
-        {
-            result.errorMessage = "Failed to create meshes directory: " + meshesDir.string();
+        std::filesystem::path meshesDir;
+        if (!CreateMeshesDir(ctx.outputSAssetPath, meshesDir, result.errorMessage))
             return result;
-        }
 
         // Build AssetMetadata
-        auto& meta  = result.metadata;
-        meta.formatVersion = "2.0";
-
-        auto& asset = meta.asset;
-        asset.uuid           = ctx.rootUUID;
-        asset.type           = std::string(AssetTypeId::Model);
-        asset.sourceFile     = ctx.sourceFile.string();
-        asset.imported       = true;
-        asset.lastImportTime = fmt::format("{:%FT%TZ}",
-            std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()));
-        asset.importSettings = ctx.savedImportSettings;
+        InitModelAssetMeta(result.metadata, ctx);
+        auto& asset = result.metadata.asset;
 
         // Write each mesh as a binary file and record as a sub-asset
         for (std::size_t i = 0; i < allMeshes.size(); ++i)
         {
-            const auto& mesh = allMeshes[i];
-
-            const SString meshName    = MakeMeshName(mesh.name, i);
-            const SString binFilename = MakeMeshBinFilename(meshName, i);
-            SString relBinPath("meshes/");
-            relBinPath += binFilename;
-            const auto binPath = meshesDir / binFilename.c_str();
-
-            if (!WriteMeshBin(binPath, mesh, settings.scale, settings.flipUV))
-            {
-                result.errorMessage = "Failed to write mesh binary: " + binPath.string();
+            if (!WriteMeshSubAsset(asset, meshesDir, allMeshes[i], i,
+                                   settings.scale, settings.flipUV, {}, result.errorMessage))
                 return result;
-            }
-
-            SubAssetEntry sub;
-            sub.uuid = GenerateV7UUIDString().to_string();
-            sub.type = std::string(SubAssetTypeId::Mesh);
-            sub.name = meshName.to_string();
-
-            SString props("{\"vertexCount\":");
-            props += std::to_string(mesh.vertices.size());
-            props += ",\"indexCount\":";
-            props += std::to_string(mesh.indices.size());
-            props += ",\"materialIndex\":";
-            props += std::to_string(mesh.materialIndex);
-            props += ",\"binaryPath\":\"";
-            props += relBinPath;
-            props += "\"}";
-            sub.properties = glz::raw_json{ props.to_string() };
-
-            asset.subAssets.push_back(std::move(sub));
 
             if (ctx.onProgress)
             {
@@ -127,18 +79,7 @@ namespace shine::editor::asset
         }
 
         // Flat node tree: Root → all mesh sub-assets
-        {
-            AssetNode rootNode;
-            rootNode.name = ctx.sourceFile.stem().string();
-            for (const auto& sub : asset.subAssets)
-            {
-                NodeComponent comp;
-                comp.type = std::string(SubAssetTypeId::Mesh);
-                comp.uuid = sub.uuid;
-                rootNode.components.push_back(std::move(comp));
-            }
-            asset.nodeTree = std::move(rootNode);
-        }
+        BuildFlatNodeTree(asset, ctx.sourceFile.stem().string());
 
         if (ctx.onProgress)
             ctx.onProgress("Import complete", 1.0f);

@@ -1,16 +1,13 @@
 #include "GltfAssetImporter.h"
 #include "ImporterAutoRegistry.h"
 #include "MaterialImportUtil.h"
-#include "MeshBinUtil.h"
+#include "ModelImportUtil.h"
 
-#include <chrono>
 #include <fstream>
 #include <system_error>
 
-#include <fmt/chrono.h>
 #include "imgui/imgui.h"
 
-#include "AssetTypes.h"
 #include "AssetUuidHelper.h"
 #include "loader/model/gltfLoader.h"
 
@@ -21,24 +18,6 @@ namespace shine::editor::asset
     // -----------------------------------------------------------------------
     namespace
     {
-        // Sanitise a string for use as a filename stem.
-        static SString SafeStem(STextView name, STextView fallback)
-        {
-            if (name.empty()) return SString(fallback);
-            SString s(name);
-            for (char& c : s)
-            {
-                if (c == '/' || c == '\\' || c == ':' || c == '*' ||
-                    c == '?' || c == '"'  || c == '<' || c == '>'  ||
-                    c == '|' || c == ' ')
-                    c = '_';
-            }
-            return s;
-        }
-
-        // Write raw RGBA pixels to a simple 4-channel .bin (matches TextureAssetImporter format).
-        // (shared implementation lives in MaterialImportUtil)
-
         // Convert a GltfMaterial + resolved texture UUIDs into a format-agnostic
         // MaterialImportData ready for MakeMaterialMeta().
         static MaterialImportData ToMaterialImportData(
@@ -121,35 +100,21 @@ namespace shine::editor::asset
         }
 
         const std::filesystem::path assetDir    = ctx.outputSAssetPath.parent_path();
-        const std::filesystem::path meshesDir   = assetDir / "meshes";
-        const std::filesystem::path texturesDir = assetDir / "textures";
-        const std::filesystem::path materialsDir = assetDir / "materials";
-
-        std::error_code ec;
-        std::filesystem::create_directories(meshesDir, ec);
-        if (ec)
-        {
-            result.errorMessage = "Failed to create meshes directory: " + meshesDir.string();
+        std::filesystem::path meshesDir;
+        if (!CreateMeshesDir(ctx.outputSAssetPath, meshesDir, result.errorMessage))
             return result;
-        }
+
+        const std::filesystem::path texturesDir  = assetDir / "textures";
+        const std::filesystem::path materialsDir = assetDir / "materials";
+        std::error_code ec;
 
         const SString sourceStr(ctx.sourceFile.string());
-        const SString nowStr(fmt::format("{:%FT%TZ}",
-            std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now())));
 
         // -----------------------------------------------------------------------
         //  Build AssetMetadata for root model
         // -----------------------------------------------------------------------
-        auto& meta  = result.metadata;
-        meta.formatVersion = "2.0";
-
-        auto& asset = meta.asset;
-        asset.uuid           = ctx.rootUUID;
-        asset.type           = std::string(AssetTypeId::Model);
-        asset.sourceFile     = sourceStr.to_string();
-        asset.imported       = true;
-        asset.lastImportTime = nowStr.to_string();
-        asset.importSettings = ctx.savedImportSettings;
+        InitModelAssetMeta(result.metadata, ctx);
+        auto& asset = result.metadata.asset;
 
         // -----------------------------------------------------------------------
         //  Export embedded textures (images)
@@ -173,7 +138,9 @@ namespace shine::editor::asset
                     continue;
 
                 const SString defaultTexName(std::string("texture_") + std::to_string(imgIdx));
-                const SString stem = SafeStem(img.name.empty() ? defaultTexName : img.name, defaultTexName);
+                const SString stem = SafeFilenameStem(
+                    img.name.empty() ? STextView(defaultTexName) : STextView(img.name),
+                    defaultTexName);
 
                 SString binFilename = stem;
                 binFilename += ".bin";
@@ -233,7 +200,7 @@ namespace shine::editor::asset
             {
                 const auto& mat  = gltfModel.materials[mi];
                 const SString defaultMatName(std::string("material_") + std::to_string(mi));
-                const SString stem = SafeStem(
+                const SString stem = SafeFilenameStem(
                     mat.name.empty() ? STextView(defaultMatName) : STextView::from_string(mat.name),
                     defaultMatName);
 
@@ -262,42 +229,14 @@ namespace shine::editor::asset
         {
             const auto& mesh = allMeshes[i];
 
-            const SString meshName    = MakeMeshName(mesh.name, i);
-            const SString binFilename = MakeMeshBinFilename(meshName, i);
-            SString relBinPath("meshes/");
-            relBinPath += binFilename;
-            const auto binPath = meshesDir / binFilename.c_str();
-
-            if (!WriteMeshBin(binPath, mesh, settings.scale))
-            {
-                result.errorMessage = "Failed to write mesh binary: " + binPath.string();
-                return result;
-            }
-
             // Resolve which material UUID this mesh uses
             const SString matUuid = (mesh.materialIndex >= 0 &&
                 static_cast<size_t>(mesh.materialIndex) < materialUuids.size())
                 ? materialUuids[static_cast<size_t>(mesh.materialIndex)] : SString();
 
-            SubAssetEntry sub;
-            sub.uuid = GenerateV7UUIDString().to_string();
-            sub.type = std::string(SubAssetTypeId::Mesh);
-            sub.name = meshName.to_string();
-
-            SString props("{\"vertexCount\":");
-            props += std::to_string(mesh.vertices.size());
-            props += ",\"indexCount\":";
-            props += std::to_string(mesh.indices.size());
-            props += ",\"materialIndex\":";
-            props += std::to_string(mesh.materialIndex);
-            props += ",\"binaryPath\":\"";
-            props += relBinPath;
-            props += "\",\"materialUuids\":[";
-            if (!matUuid.empty()) { props += "\""; props += matUuid; props += "\""; }
-            props += "]}";
-            sub.properties = glz::raw_json{ props.to_string() };
-
-            asset.subAssets.push_back(std::move(sub));
+            if (!WriteMeshSubAsset(asset, meshesDir, mesh, i,
+                                   settings.scale, false, matUuid, result.errorMessage))
+                return result;
 
             if (ctx.onProgress)
             {
@@ -310,18 +249,7 @@ namespace shine::editor::asset
 
         // Build a flat node tree (Root → all mesh sub-assets)
         if (loader.getSceneCount() > 0)
-        {
-            AssetNode rootNode;
-            rootNode.name = "Root";
-            for (const auto& sub : asset.subAssets)
-            {
-                NodeComponent comp;
-                comp.type = std::string(SubAssetTypeId::Mesh);
-                comp.uuid = sub.uuid;
-                rootNode.components.push_back(std::move(comp));
-            }
-            asset.nodeTree = std::move(rootNode);
-        }
+            BuildFlatNodeTree(asset, "Root");
 
         if (ctx.onProgress)
             ctx.onProgress("Import complete", 1.0f);

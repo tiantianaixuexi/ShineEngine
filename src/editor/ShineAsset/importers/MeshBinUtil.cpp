@@ -36,14 +36,14 @@ namespace shine::editor::asset
         const uint32_t sign  = (h >> 15) & 0x1u;
         const uint32_t exp16 = (h >> 10) & 0x1Fu;
         const uint32_t mant  = h & 0x3FFu;
-        uint32_t x;
+        uint32_t x {};
         if (exp16 == 0)
             x = (sign << 31) | (mant << 13);            // subnormal
         else if (exp16 == 31)
             x = (sign << 31) | 0x7F800000u | (mant << 13); // inf/NaN
         else
             x = (sign << 31) | ((exp16 + 112u) << 23) | (mant << 13);
-        float f;
+        float f {};
         std::memcpy(&f, &x, sizeof(f));
         return f;
     }
@@ -174,7 +174,7 @@ namespace shine::editor::asset
                 static_cast<std::streamsize>(vertexCount * 3 * sizeof(float)));
 
         // Normals — float16×3
-        for (uint32_t i = 0; i < vertexCount; ++i)
+        for (std::uint32_t i = 0; i < vertexCount; ++i)
         {
             std::array<uint16_t, 3> h{};
             in.read(reinterpret_cast<char*>(h.data()), h.size() * sizeof(uint16_t));
@@ -182,7 +182,7 @@ namespace shine::editor::asset
         }
 
         // Texcoords — float16×2
-        for (uint32_t i = 0; i < vertexCount; ++i)
+        for (std::uint32_t i = 0; i < vertexCount; ++i)
         {
             std::array<uint16_t, 2> h{};
             in.read(reinterpret_cast<char*>(h.data()), h.size() * sizeof(uint16_t));

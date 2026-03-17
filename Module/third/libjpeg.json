@@ -1,0 +1,22 @@
+{
+    "name": "libjpeg",
+    "type": "subcmake",
+    "subcmake": {
+        "source": "src/third/libjpeg-turbo",
+        "build": "_deps/libjpeg-turbo",
+        "generator": "Visual Studio 18 2026",
+        "target": "jpeg-static;turbojpeg-static",
+        "configure": [
+            "-DENABLE_SHARED:BOOL=OFF",
+            "-DENABLE_STATIC:BOOL=ON",
+            "-DWITH_TURBOJPEG:BOOL=ON",
+            "-DWITH_JAVA:BOOL=OFF"
+        ]
+    },
+    "include_dirs": ["src/third/libjpeg-turbo/src"],
+    "link": {
+        "debug":   { "lib": ["jpeg-staticd.lib", "turbojpeg-staticd.lib"] },
+        "release": { "lib": ["jpeg-static.lib",  "turbojpeg-static.lib"] }
+    },
+    "comment": "libjpeg-turbo 3.1.4 via subcmake (SIMD auto-detected by NASM)"
+}

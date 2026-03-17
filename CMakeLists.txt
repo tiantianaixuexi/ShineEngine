@@ -164,11 +164,11 @@ set_property(GLOBAL PROPERTY MODULE_DATA_CACHE "")
 # ================================
 macro(parse_json_array json_content array_path result_var)
     set(${result_var} "")
-    string(JSON length ERROR_VARIABLE error LENGTH ${json_content} ${array_path})
+    string(JSON length ERROR_VARIABLE error LENGTH "${json_content}" "${array_path}")
     if(NOT error AND length GREATER 0)
         math(EXPR length "${length} - 1")
         foreach(i RANGE 0 ${length})
-            string(JSON item GET ${json_content} ${array_path} ${i})
+            string(JSON item GET "${json_content}" "${array_path}" ${i})
             if(item)
                 list(APPEND ${result_var} ${item})
             endif()
@@ -178,12 +178,12 @@ endmacro()
 
 function(parse_json_type json_content result_var)
     set(type_list "")
-    string(JSON type_type ERROR_VARIABLE type_error TYPE ${json_content} "type")
+    string(JSON type_type ERROR_VARIABLE type_error TYPE "${json_content}" "type")
     if(NOT type_error)
         if(type_type STREQUAL "ARRAY")
-            parse_json_array(${json_content} "type" type_list)
+            parse_json_array("${json_content}" "type" type_list)
         elseif(type_type STREQUAL "STRING")
-            string(JSON type_value GET ${json_content} "type")
+            string(JSON type_value GET "${json_content}" "type")
             set(type_list ${type_value})
         endif()
     endif()
@@ -198,12 +198,12 @@ function(parse_build_mode json_content result_var)
     set(build_mode_list "")
     
     # 检查 buildMode 字段
-    string(JSON buildmode_type ERROR_VARIABLE buildmode_error TYPE ${json_content} "buildMode")
+    string(JSON buildmode_type ERROR_VARIABLE buildmode_error TYPE "${json_content}" "buildMode")
     if(NOT buildmode_error)
         if(buildmode_type STREQUAL "ARRAY")
-            parse_json_array(${json_content} "buildMode" build_mode_list)
+            parse_json_array("${json_content}" "buildMode" build_mode_list)
         elseif(buildmode_type STREQUAL "STRING")
-            string(JSON buildmode_value GET ${json_content} "buildMode")
+            string(JSON buildmode_value GET "${json_content}" "buildMode")
             set(build_mode_list ${buildmode_value})
         endif()
     endif()
@@ -219,18 +219,18 @@ endfunction()
 function(parse_third_party_libs json_content result_debug result_release)
     set(debug_list "")
     set(release_list "")
-    string(JSON link_exists ERROR_VARIABLE link_error TYPE ${json_content} "link")
+    string(JSON link_exists ERROR_VARIABLE link_error TYPE "${json_content}" "link")
     if(NOT link_error)
         # CMake 的 string(JSON) 不支持点号分隔的嵌套路径，需要手动逐层解析
         # 先检查 link.debug 对象是否存在
-        string(JSON debug_obj_exists ERROR_VARIABLE debug_obj_error TYPE ${json_content} "link" "debug")
+        string(JSON debug_obj_exists ERROR_VARIABLE debug_obj_error TYPE "${json_content}" "link" "debug")
         if(NOT debug_obj_error)
             # 获取 link.debug.lib 数组长度
-            string(JSON debug_lib_length ERROR_VARIABLE debug_lib_error LENGTH ${json_content} "link" "debug" "lib")
+            string(JSON debug_lib_length ERROR_VARIABLE debug_lib_error LENGTH "${json_content}" "link" "debug" "lib")
             if(NOT debug_lib_error AND debug_lib_length GREATER 0)
                 math(EXPR debug_lib_length "${debug_lib_length} - 1")
                 foreach(i RANGE 0 ${debug_lib_length})
-                    string(JSON lib_item GET ${json_content} "link" "debug" "lib" ${i})
+                    string(JSON lib_item GET "${json_content}" "link" "debug" "lib" ${i})
                     if(lib_item)
                         list(APPEND debug_list ${lib_item})
                     endif()
@@ -239,14 +239,14 @@ function(parse_third_party_libs json_content result_debug result_release)
         endif()
         
         # 先检查 link.release 对象是否存在
-        string(JSON release_obj_exists ERROR_VARIABLE release_obj_error TYPE ${json_content} "link" "release")
+        string(JSON release_obj_exists ERROR_VARIABLE release_obj_error TYPE "${json_content}" "link" "release")
         if(NOT release_obj_error)
             # 获取 link.release.lib 数组长度
-            string(JSON release_lib_length ERROR_VARIABLE release_lib_error LENGTH ${json_content} "link" "release" "lib")
+            string(JSON release_lib_length ERROR_VARIABLE release_lib_error LENGTH "${json_content}" "link" "release" "lib")
             if(NOT release_lib_error AND release_lib_length GREATER 0)
                 math(EXPR release_lib_length "${release_lib_length} - 1")
                 foreach(i RANGE 0 ${release_lib_length})
-                    string(JSON lib_item GET ${json_content} "link" "release" "lib" ${i})
+                    string(JSON lib_item GET "${json_content}" "link" "release" "lib" ${i})
                     if(lib_item)
                         list(APPEND release_list ${lib_item})
                     endif()
@@ -293,7 +293,7 @@ function(categorize_modules_by_type)
     foreach(module_file ${modules})
         get_filename_component(module_name ${module_file} NAME_WE)
         file(READ ${module_file} json_content)
-        parse_json_type(${json_content} module_types)
+        parse_json_type("${json_content}" module_types)
         foreach(type ${module_types})
             set(type_modules ${${type}_MODULES})
             list(APPEND type_modules ${module_name})
@@ -327,21 +327,21 @@ function(parse_and_cache_modules)
         file(READ ${module_file} json_content)
 
         # 解析基本信息
-        string(JSON name ERROR_VARIABLE name_error GET ${json_content} "name")
+        string(JSON name ERROR_VARIABLE name_error GET "${json_content}" "name")
         if(name_error)
             set(name ${module_name})
         endif()
 
         # 解析数组字段
-        parse_json_array(${json_content} "files" files_list)
-        parse_json_array(${json_content} "files_module" files_module_list)
-        parse_json_array(${json_content} "files_header" files_header_list)
-        parse_json_array(${json_content} "files_compile" files_compile_list)
-        parse_json_array(${json_content} "deps" deps_list)
-        parse_json_array(${json_content} "defines" defines_list)
-        parse_json_array(${json_content} "dirs" dirs_list)
-        parse_json_array(${json_content} "platform" platform_list)
-        parse_json_array(${json_content} "include_dirs" include_dirs_list)
+        parse_json_array("${json_content}" "files" files_list)
+        parse_json_array("${json_content}" "files_module" files_module_list)
+        parse_json_array("${json_content}" "files_header" files_header_list)
+        parse_json_array("${json_content}" "files_compile" files_compile_list)
+        parse_json_array("${json_content}" "deps" deps_list)
+        parse_json_array("${json_content}" "defines" defines_list)
+        parse_json_array("${json_content}" "dirs" dirs_list)
+        parse_json_array("${json_content}" "platform" platform_list)
+        parse_json_array("${json_content}" "include_dirs" include_dirs_list)
 
         # 处理条件文件选择：根据 SHINE_BUILD_MODULE 选择 files_module 或 files_header
         if(files_module_list OR files_header_list)
@@ -354,11 +354,11 @@ function(parse_and_cache_modules)
 
         # 处理平台特定文件
         if(WIN32)
-            parse_json_array(${json_content} "files_windows" platform_files_list)
+            parse_json_array("${json_content}" "files_windows" platform_files_list)
             list(APPEND files_list ${platform_files_list})
 
         elseif(ANDROID)
-            parse_json_array(${json_content} "files_android" platform_files_list)
+            parse_json_array("${json_content}" "files_android" platform_files_list)
             list(APPEND files_list ${platform_files_list})
         endif()
 
@@ -388,13 +388,13 @@ function(parse_and_cache_modules)
         endif()
 
         # 解析第三方库链接配置
-        parse_third_party_libs(${json_content} third_lib_debug_list third_lib_release_list)
+        parse_third_party_libs("${json_content}" third_lib_debug_list third_lib_release_list)
 
         # 解析类型
-        parse_json_type(${json_content} type_list)
+        parse_json_type("${json_content}" type_list)
 
         # 解析 buildMode 配置（Editor/Runtime 区分）
-        parse_build_mode(${json_content} build_mode_list)
+        parse_build_mode("${json_content}" build_mode_list)
 
         # 解析 subcmake 配置（可选）
         set(subcmake_source "")
@@ -402,18 +402,18 @@ function(parse_and_cache_modules)
         set(subcmake_generator "")
         set(subcmake_target "")
         set(subcmake_configure_args "")
-        string(JSON subcmake_type ERROR_VARIABLE subcmake_err TYPE ${json_content} "subcmake")
+        string(JSON subcmake_type ERROR_VARIABLE subcmake_err TYPE "${json_content}" "subcmake")
         if(NOT subcmake_err)
-            string(JSON subcmake_source ERROR_VARIABLE _e1 GET ${json_content} "subcmake" "source")
-            string(JSON subcmake_build ERROR_VARIABLE _e2 GET ${json_content} "subcmake" "build")
-            string(JSON subcmake_generator ERROR_VARIABLE _e3 GET ${json_content} "subcmake" "generator")
-            string(JSON subcmake_target ERROR_VARIABLE _e4 GET ${json_content} "subcmake" "target")
+            string(JSON subcmake_source ERROR_VARIABLE _e1 GET "${json_content}" "subcmake" "source")
+            string(JSON subcmake_build ERROR_VARIABLE _e2 GET "${json_content}" "subcmake" "build")
+            string(JSON subcmake_generator ERROR_VARIABLE _e3 GET "${json_content}" "subcmake" "generator")
+            string(JSON subcmake_target ERROR_VARIABLE _e4 GET "${json_content}" "subcmake" "target")
             # NOTE: string(JSON) does NOT support dot-path. Must parse nested arrays via path segments.
-            string(JSON cfg_len ERROR_VARIABLE cfg_err LENGTH ${json_content} "subcmake" "configure")
+            string(JSON cfg_len ERROR_VARIABLE cfg_err LENGTH "${json_content}" "subcmake" "configure")
             if(NOT cfg_err AND cfg_len GREATER 0)
                 math(EXPR cfg_len "${cfg_len} - 1")
                 foreach(i RANGE 0 ${cfg_len})
-                    string(JSON cfg_item GET ${json_content} "subcmake" "configure" ${i})
+                    string(JSON cfg_item GET "${json_content}" "subcmake" "configure" ${i})
                     if(cfg_item)
                         list(APPEND subcmake_configure_args ${cfg_item})
                     endif()
@@ -441,7 +441,7 @@ function(parse_and_cache_modules)
         
         # 预判断是否是 INTERFACE 库（用于后续依赖链接）
         set(is_interface_predicted FALSE)
-        if("${type_list}" MATCHES "third" OR "${type_list}" MATCHES "interface")
+        if("${type_list}" MATCHES "third" OR "${type_list}" MATCHES "interface" OR "${type_list}" MATCHES "subcmake")
             set(is_interface_predicted TRUE)
         else()
             # 检查是否是 header-only 库（只有头文件，没有源文件）
@@ -815,8 +815,103 @@ foreach(module_name ${MODULE_LIST})
         endforeach()
     endif()
 
-    # subcmake：独立子工程构建（UTILITY target），不参与本工程编译/链接
+    # subcmake：独立子工程构建
     if(is_subcmake)
+        # ── Library 模式：subcmake 产出可链接的静态库（当 link 字段存在时） ──
+        if(third_libs_debug OR third_libs_release)
+            if(NOT subcmake_source)
+                message(FATAL_ERROR "subcmake library module '${name}' requires 'subcmake.source'")
+            endif()
+            set(_sub_src "${CMAKE_SOURCE_DIR}/${subcmake_source}")
+            if(NOT EXISTS "${_sub_src}/CMakeLists.txt")
+                message(WARNING "subcmake source not found: ${_sub_src} — skipping ${name}")
+                continue()
+            endif()
+            if(NOT subcmake_build)
+                set(subcmake_build "_deps/${module_name}")
+            endif()
+            if(NOT subcmake_generator)
+                set(subcmake_generator "${CMAKE_GENERATOR}")
+            endif()
+            if(NOT subcmake_target)
+                set(subcmake_target "all")
+            endif()
+
+            # 架构参数（VS generator 需要 -A x64）
+            set(_sub_arch_args "")
+            if(subcmake_generator MATCHES "Visual Studio" AND CMAKE_GENERATOR_PLATFORM)
+                set(_sub_arch_args -A ${CMAKE_GENERATOR_PLATFORM})
+            endif()
+
+            # 不同配置写到不同 build 目录
+            set(_sub_bld_base "${CMAKE_BINARY_DIR}/${subcmake_build}")
+            set(_sub_bld "${_sub_bld_base}/$<CONFIG>")
+
+            # 自动将 .lib 输出到 exe/ 目录，加 d 后缀区分 Debug
+            set(_output_args
+                "-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG=${CMAKE_SOURCE_DIR}/exe"
+                "-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE=${CMAKE_SOURCE_DIR}/exe"
+                "-DCMAKE_DEBUG_POSTFIX=d"
+            )
+
+            # 解析多个 build target（支持 "target": "a;b" 或 "target": "a"）
+            string(REPLACE ";" ";" _target_list "${subcmake_target}")
+            set(_target_flags "")
+            foreach(_t ${_target_list})
+                list(APPEND _target_flags --target ${_t})
+            endforeach()
+
+            # 构建目标（custom target，增量构建）
+            add_custom_target(${name}_build
+                COMMAND ${CMAKE_COMMAND} -S "${_sub_src}" -B "${_sub_bld}"
+                        -G "${subcmake_generator}" ${_sub_arch_args}
+                        -DCMAKE_BUILD_TYPE=$<CONFIG>
+                        ${subcmake_configure_args} ${_output_args}
+                COMMAND ${CMAKE_COMMAND} --build "${_sub_bld}"
+                        --config $<CONFIG> ${_target_flags}
+                WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                VERBATIM
+            )
+
+            # INTERFACE 库：其他模块通过 deps 引用此名称即可链接
+            add_library(${name} INTERFACE)
+            add_dependencies(${name} ${name}_build)
+
+            # include 目录（源码头文件 + 构建生成的头文件如 jconfig.h）
+            if(include_dirs)
+                foreach(_inc ${include_dirs})
+                    target_include_directories(${name} INTERFACE "${CMAKE_SOURCE_DIR}/${_inc}")
+                endforeach()
+            endif()
+            target_include_directories(${name} INTERFACE "${_sub_bld_base}/$<CONFIG>")
+
+            # 链接产出的 .lib（输出到 exe/ 目录）
+            foreach(_dlib ${third_libs_debug})
+                target_link_libraries(${name} INTERFACE
+                    $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/exe/${_dlib}>)
+            endforeach()
+            foreach(_rlib ${third_libs_release})
+                target_link_libraries(${name} INTERFACE
+                    $<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/exe/${_rlib}>)
+            endforeach()
+
+            set_property(GLOBAL PROPERTY "MODULE_${module_name}_IS_INTERFACE" TRUE)
+
+            if(NOT SHINE_QUIET_MODULE_MESSAGES)
+                message(STATUS "  ${name} -> SUBCMAKE (library)")
+            endif()
+
+            get_vs_folder_path(${module_file} vs_folder_path)
+            set_target_properties(${name}_build PROPERTIES FOLDER "${vs_folder_path}")
+
+            should_show_module(${name})
+            if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
+                message(STATUS "Module: ${name}")
+            endif()
+            continue()
+        endif()
+
+        # ── External 模式（默认）：UTILITY target，不参与本工程编译/链接 ──
         if(NOT subcmake_source)
             set(subcmake_source "dev/Program/${module_name}")
         endif()
@@ -1238,10 +1333,11 @@ foreach(module_name ${MODULE_LIST})
             check_module_type("${dep_types}" "third" dep_is_third)
             check_module_type("${dep_types}" "static" dep_is_static)
             check_module_type("${dep_types}" "interface" dep_is_interface_type)
+            check_module_type("${dep_types}" "subcmake" dep_is_subcmake)
 
             set(needs_link FALSE)
             # third 或 static 类型的模块总是需要链接（即使只有头文件也能生成 .lib）
-            if(dep_is_third OR dep_is_static OR dep_is_interface_type)
+            if(dep_is_third OR dep_is_static OR dep_is_interface_type OR dep_is_subcmake)
                 set(needs_link TRUE)
             elseif(NOT dep_is_executable AND (dep STREQUAL "fmt" OR "${dep_files}" MATCHES "\\.(cpp|ixx|cppm)$"))
                 set(needs_link TRUE)

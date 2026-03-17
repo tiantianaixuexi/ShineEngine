@@ -2,6 +2,7 @@
 
 #include "EngineCore/engine_context.h"
 #include "editor/mainEditor.h"
+#include "editor/IconCache.h"
 #include "editor/ShineAsset/core/RuntimeAssetRegistry.h"
 #include "editor/ShineAsset/registry/EditorAssetRegistry.h"
 #include "editor/ShineAsset/importers/ImportPipeline.h"
@@ -13,6 +14,7 @@ namespace shine::editor::main_editor
         context.Register(new shine::asset::RuntimeAssetRegistry());
         context.Register(new shine::editor::asset::EditorAssetRegistry());
         context.Register(new shine::editor::asset::ImportPipeline());
+        context.Register(new shine::editor::IconCache());
     }
 
     std::unique_ptr<MainEditor> EditorCompositionRoot::BuildMainEditor(EngineContext& context)

@@ -10,6 +10,7 @@
 
 #include "string/shine_string.h"
 #include "string/shine_text_view.h"
+#include "Algorithm/FNV1a.h"
 
 
 namespace shine::util
@@ -399,16 +400,7 @@ namespace shine::util
 
         [[nodiscard]] static std::uint32_t HashFNV1a(STextView str)
         {
-            constexpr std::uint32_t kFnvOffset = 2166136261u;
-            constexpr std::uint32_t kFnvPrime  = 16777619u;
-
-            std::uint32_t h = kFnvOffset;
-            for (char c : str)
-            {
-                h ^= static_cast<unsigned char>(c);
-                h *= kFnvPrime;
-            }
-            return h;
+            return shine::algorithm::hash32(str);
         }
 
         [[nodiscard]] static SString Interpolate(

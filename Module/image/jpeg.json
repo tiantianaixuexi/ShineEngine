@@ -5,7 +5,7 @@
       "src/image/jpeg.h",
       "src/image/jpeg.cpp"
     ],
-    "deps": ["file_util","timer","byte_convert","shine_define","fmt","loader"],
+    "deps": ["loader", "libjpeg"],
     "defines": ["NOMINMAX"]
 }
 

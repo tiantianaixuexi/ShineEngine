@@ -12,7 +12,7 @@
 #include "string/shine_string.h"
 #include "editor/browers/IAssetThumbnailProvider.h"
 #include "editor/browers/ThumbnailProviderRegistry.h"
-#include "editor/browers/EditorIconCache.h"
+#include "editor/IconCache.h"
 
 namespace shine::editor::asset
 {
@@ -70,6 +70,12 @@ namespace shine::editor::assets_brower
             bool PassesSearchFilter(const std::filesystem::path& path) const;
             static ImGuiID PathToID(const std::filesystem::path& path);
 
+            /// 根据资产类型字符串返回图标缓存 key，供 IconCache::Get() 使用。
+            /// 对应表：model→"icon_asset_model"，texture→"icon_asset_texture"，
+            /// material→"icon_asset_material"，animation→"icon_asset_animation" 等。
+            /// 未知类型返回 "icon_asset_default"。
+            static const char* GetAssetTypeIconKey(STextView type) noexcept;
+
         private:
             // -----------------------------------------------------------------------
             //  待导入数据（由 EnqueueExternalDrop 或右键菜单"导入"填充）
@@ -86,8 +92,11 @@ namespace shine::editor::assets_brower
             std::filesystem::path contextEntryPath_;     // 网格右键目标文件
             std::filesystem::path contextDirPath_;       // 目录树右键目标文件夹
 
-            // 网格条目缓存（每帧重建，供 AdapterIndexToStorageId 访问）
+            // 网格条目缓存（仅在目录/过滤器变化或 gridDirty_ 时重建）
             std::vector<std::filesystem::directory_entry> gridEntries_;
+            std::filesystem::path cachedGridDirectory_;   // 上次扫描的目录
+            char                  cachedSearchFilter_[128]{};  // 上次扫描时的搜索词
+            bool                  gridDirty_ = true;      // 强制下次刷新
 
             ImGuiSelectionBasicStorage selection_;       // 多选状态
 
@@ -125,8 +134,8 @@ namespace shine::editor::assets_brower
 
         shine::editor::asset::EditorAssetRegistry* editorAssetRegistry_ = nullptr;
         shine::editor::asset::ImportPipeline*       importPipeline_       = nullptr;
+        shine::editor::IconCache*                   iconCache_            = nullptr;
 
         ThumbnailProviderRegistry thumbnailRegistry_;
-        EditorIconCache           iconCache_;
     };
 }

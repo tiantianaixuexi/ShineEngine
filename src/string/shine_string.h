@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "shine_text_view.h"
+#include "util/Algorithm/FNV1a.h"
 
 // Portable lifetime-bound annotation: warns when a returned view outlives *this
 #if defined(__clang__)
@@ -941,16 +942,7 @@ namespace shine
 
         [[nodiscard]] static constexpr size_type static_hash(std::string_view sv_arg) noexcept
         {
-            constexpr size_type kFnvOffset = 14695981039346656037ull;
-            constexpr size_type kFnvPrime = 1099511628211ull;
-
-            size_type h = kFnvOffset;
-            for (size_type i = 0; i < sv_arg.size(); ++i)
-            {
-                h ^= static_cast<unsigned char>(sv_arg[i]);
-                h *= kFnvPrime;
-            }
-            return h;
+            return static_cast<size_type>(shine::algorithm::hash64(sv_arg));
         }
 
         [[nodiscard]] static SString from_view(STextView view_arg)
