@@ -102,8 +102,8 @@ SString normalize_asset_path(STextView path) {
     return normalized;
 }
 
-std::optional<SString> to_absolute_path(const SString &relative_path, const SString &base_path) {
-    SString effective_base = base_path.empty() ? get_executable_directory().value_or(SString()) : base_path;
+std::optional<SString> to_absolute_path(const SString &relative_path, STextView base_path) {
+    SString effective_base = base_path.empty() ? get_executable_directory().value_or(SString()) : SString::from_view(base_path);
     if (effective_base.empty()) return std::nullopt;
 
     try {

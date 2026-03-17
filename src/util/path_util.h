@@ -55,7 +55,7 @@ namespace shine::util
      * @param base_path 基准路径（默认为可执行文件目录）
      * @return 绝对路径，如果转换失败返回空
      */
-    std::optional<SString> to_absolute_path(const SString& relative_path, const SString& base_path = "");
+    std::optional<SString> to_absolute_path(const SString& relative_path, STextView base_path = "");
 
     std::vector<SString> split_path_components(STextView path);
     STextView get_file_extension(STextView path);

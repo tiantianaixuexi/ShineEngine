@@ -338,7 +338,7 @@ namespace shine::util {
         const auto _index = path.find_last_of("/\\");
 
         if(_index == STextView::npos){
-            return "";
+            return {};
         }
 
         return SString::from_view(path.substr(0,_index+1));

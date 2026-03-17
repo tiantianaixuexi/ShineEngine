@@ -86,7 +86,7 @@ namespace shine
             }
         }
 
-        explicit SString(const char* cstr)
+        SString(const char* cstr)
         {
             if (cstr != nullptr)
             {
