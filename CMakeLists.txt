@@ -861,8 +861,8 @@ foreach(module_name ${MODULE_LIST})
                 list(APPEND _target_flags --target ${_t})
             endforeach()
 
-            # 构建目标（custom target，增量构建）
-            add_custom_target(${name}_build
+                # 构建目标（custom target，增量构建）
+                add_custom_target(${name}
                 COMMAND ${CMAKE_COMMAND} -S "${_sub_src}" -B "${_sub_bld}"
                         -G "${subcmake_generator}" ${_sub_arch_args}
                         -DCMAKE_BUILD_TYPE=$<CONFIG>
@@ -874,24 +874,26 @@ foreach(module_name ${MODULE_LIST})
             )
 
             # INTERFACE 库：其他模块通过 deps 引用此名称即可链接
-            add_library(${name} INTERFACE)
-            add_dependencies(${name} ${name}_build)
+            set(_subcmake_iface_target "${name}_iface")
+            add_library(${_subcmake_iface_target} INTERFACE)
+            add_dependencies(${_subcmake_iface_target} ${name})
+            set_property(GLOBAL PROPERTY "MODULE_${module_name}_LINK_TARGET" "${_subcmake_iface_target}")
 
             # include 目录（源码头文件 + 构建生成的头文件如 jconfig.h）
             if(include_dirs)
                 foreach(_inc ${include_dirs})
-                    target_include_directories(${name} INTERFACE "${CMAKE_SOURCE_DIR}/${_inc}")
+                    target_include_directories(${_subcmake_iface_target} INTERFACE "${CMAKE_SOURCE_DIR}/${_inc}")
                 endforeach()
             endif()
-            target_include_directories(${name} INTERFACE "${_sub_bld_base}/$<CONFIG>")
+            target_include_directories(${_subcmake_iface_target} INTERFACE "${_sub_bld_base}/$<CONFIG>")
 
             # 链接产出的 .lib（输出到 exe/ 目录）
             foreach(_dlib ${third_libs_debug})
-                target_link_libraries(${name} INTERFACE
+                target_link_libraries(${_subcmake_iface_target} INTERFACE
                     $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/exe/${_dlib}>)
             endforeach()
             foreach(_rlib ${third_libs_release})
-                target_link_libraries(${name} INTERFACE
+                target_link_libraries(${_subcmake_iface_target} INTERFACE
                     $<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/exe/${_rlib}>)
             endforeach()
 
@@ -902,7 +904,8 @@ foreach(module_name ${MODULE_LIST})
             endif()
 
             get_vs_folder_path(${module_file} vs_folder_path)
-            set_target_properties(${name}_build PROPERTIES FOLDER "${vs_folder_path}")
+            set_target_properties(${name} PROPERTIES FOLDER "${vs_folder_path}")
+            set_target_properties(${_subcmake_iface_target} PROPERTIES FOLDER "${vs_folder_path}")
 
             should_show_module(${name})
             if(SHOULD_SHOW AND NOT SHINE_QUIET_MODULE_MESSAGES)
@@ -1300,6 +1303,11 @@ foreach(module_name ${MODULE_LIST})
     get_property(name GLOBAL PROPERTY "MODULE_${module_name}_NAME")
     get_property(types GLOBAL PROPERTY "MODULE_${module_name}_TYPES")
     get_property(direct_deps GLOBAL PROPERTY "MODULE_${module_name}_DEPS")
+    get_property(link_target GLOBAL PROPERTY "MODULE_${module_name}_LINK_TARGET")
+
+    if(NOT link_target)
+        set(link_target ${name})
+    endif()
 
     if(TARGET ${name} AND direct_deps)
         resolve_all_dependencies(${module_name} all_deps)
@@ -1334,6 +1342,11 @@ foreach(module_name ${MODULE_LIST})
             check_module_type("${dep_types}" "static" dep_is_static)
             check_module_type("${dep_types}" "interface" dep_is_interface_type)
             check_module_type("${dep_types}" "subcmake" dep_is_subcmake)
+
+            get_property(dep_link_target GLOBAL PROPERTY "MODULE_${dep}_LINK_TARGET")
+            if(NOT dep_link_target)
+                set(dep_link_target ${dep})
+            endif()
 
             set(needs_link FALSE)
             # third 或 static 类型的模块总是需要链接（即使只有头文件也能生成 .lib）
@@ -1375,26 +1388,26 @@ foreach(module_name ${MODULE_LIST})
                         # 如果依赖是 INTERFACE 库，必须使用 INTERFACE 或 PUBLIC
                         if(current_is_interface)
                             # 当前目标也是 INTERFACE 库，使用 INTERFACE
-                            target_link_libraries(${name} INTERFACE ${dep})
+                            target_link_libraries(${link_target} INTERFACE ${dep_link_target})
                         else()
                             # 当前目标是普通库，使用 PUBLIC（这样依赖会传递）
-                            target_link_libraries(${name} PUBLIC ${dep})
+                            target_link_libraries(${link_target} PUBLIC ${dep_link_target})
                         endif()
                     else()
                         # 依赖是普通库
                         if(current_is_interface)
                             # 当前目标是 INTERFACE 库，使用 INTERFACE
-                            target_link_libraries(${name} INTERFACE ${dep})
+                            target_link_libraries(${link_target} INTERFACE ${dep_link_target})
                         else()
                             # 当前目标是普通库，使用 PRIVATE
-                            target_link_libraries(${name} PRIVATE ${dep})
+                            target_link_libraries(${link_target} PRIVATE ${dep_link_target})
                         endif()
                     endif()
                     
                     # 如果依赖是 shared 类型，自动添加 {DEP}_IMPORTS 定义
                     if(dep_is_shared AND NOT current_is_interface)
                         string(TOUPPER ${dep} dep_upper)
-                        target_compile_definitions(${name} PRIVATE ${dep_upper}_IMPORTS)
+                        target_compile_definitions(${link_target} PRIVATE ${dep_upper}_IMPORTS)
                     endif()
                 endif()
             endif()

@@ -289,6 +289,22 @@ namespace shine
                 return npos;
             }
 
+            if (chars._size <= 4)
+            {
+                size_type best = npos;
+
+                for (size_type i = 0; i < chars._size; ++i)
+                {
+                    const size_type pos = find(chars._data[i], start);
+                    if (pos != npos && (best == npos || pos < best))
+                    {
+                        best = pos;
+                    }
+                }
+
+                return best;
+            }
+
             std::array<bool, 256> table{};
             for (size_type i = 0; i < chars._size; ++i)
             {
@@ -318,6 +334,29 @@ namespace shine
                 return start;
             }
 
+            if (chars._size <= 4)
+            {
+                const unsigned char c0 = static_cast<unsigned char>(chars._data[0]);
+                const unsigned char c1 = (chars._size > 1) ? static_cast<unsigned char>(chars._data[1]) : 0;
+                const unsigned char c2 = (chars._size > 2) ? static_cast<unsigned char>(chars._data[2]) : 0;
+                const unsigned char c3 = (chars._size > 3) ? static_cast<unsigned char>(chars._data[3]) : 0;
+
+                for (size_type i = start; i < _size; ++i)
+                {
+                    const unsigned char candidate = static_cast<unsigned char>(_data[i]);
+
+                    if (candidate != c0
+                        && (chars._size <= 1 || candidate != c1)
+                        && (chars._size <= 2 || candidate != c2)
+                        && (chars._size <= 3 || candidate != c3))
+                    {
+                        return i;
+                    }
+                }
+
+                return npos;
+            }
+
             std::array<bool, 256> table{};
             for (size_type i = 0; i < chars._size; ++i)
             {
@@ -339,6 +378,37 @@ namespace shine
         {
             if (_size == 0 || chars.empty())
             {
+                return npos;
+            }
+
+            if (chars._size <= 4)
+            {
+                const unsigned char c0 = static_cast<unsigned char>(chars._data[0]);
+                const unsigned char c1 = (chars._size > 1) ? static_cast<unsigned char>(chars._data[1]) : 0;
+                const unsigned char c2 = (chars._size > 2) ? static_cast<unsigned char>(chars._data[2]) : 0;
+                const unsigned char c3 = (chars._size > 3) ? static_cast<unsigned char>(chars._data[3]) : 0;
+
+                size_type pos = (start == npos || start >= _size) ? (_size - 1) : start;
+                while (true)
+                {
+                    const unsigned char candidate = static_cast<unsigned char>(_data[pos]);
+
+                    if (candidate == c0
+                        || (chars._size > 1 && candidate == c1)
+                        || (chars._size > 2 && candidate == c2)
+                        || (chars._size > 3 && candidate == c3))
+                    {
+                        return pos;
+                    }
+
+                    if (pos == 0)
+                    {
+                        break;
+                    }
+
+                    --pos;
+                }
+
                 return npos;
             }
 
@@ -388,20 +458,22 @@ namespace shine
 
         [[nodiscard]] constexpr bool starts_with(STextView prefix) const noexcept
         {
-            return prefix._size <= _size
-                && std::memcmp(_data, prefix._data, prefix._size) == 0;
+            return prefix._size == 0
+                || (prefix._size <= _size
+                    && std::memcmp(_data, prefix._data, prefix._size) == 0);
         }
 
         [[nodiscard]] constexpr bool ends_with(STextView suffix) const noexcept
         {
-            return suffix._size <= _size
-                && std::memcmp(_data + (_size - suffix._size), suffix._data, suffix._size) == 0;
+            return suffix._size == 0
+                || (suffix._size <= _size
+                    && std::memcmp(_data + (_size - suffix._size), suffix._data, suffix._size) == 0);
         }
 
         [[nodiscard]] constexpr bool equals(STextView rhs) const noexcept
         {
             return _size == rhs._size
-                && (_data == rhs._data || std::memcmp(_data, rhs._data, _size) == 0);
+                && (_size == 0 || _data == rhs._data || std::memcmp(_data, rhs._data, _size) == 0);
         }
 
         // -----------------------------------------------------

@@ -18,8 +18,8 @@ namespace shine::launcher
     {
         SString name;
         SString path;
-        SString category = "Games"; // Games, Templates, Samples, etc.
-        SString engineVersion = "1.0.0";
+        SString category{"Games"}; // Games, Templates, Samples, etc.
+        SString engineVersion{"1.0.0"};
         SString description;
         SString thumbnail; // path to thumbnail image
         time_t lastModified = 0;

@@ -25,7 +25,7 @@ namespace shine::util::crash_handler
 
         /// Base name prefix for crash files (e.g. "MyApp").
         /// Files will be named "<prefix>_YYYYMMDD_HHMMSS.{dmp,log}".
-        SString filePrefix = "crash";
+        SString filePrefix{"crash"};
 
         /// Write a MiniDump (.dmp) on crash (requires DbgHelp.dll).
         bool writeMiniDump = true;

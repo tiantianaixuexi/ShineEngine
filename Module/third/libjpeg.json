@@ -10,6 +10,7 @@
             "-DENABLE_SHARED:BOOL=OFF",
             "-DENABLE_STATIC:BOOL=ON",
             "-DWITH_TURBOJPEG:BOOL=ON",
+            "-DWITH_TESTS:BOOL=OFF",
             "-DWITH_JAVA:BOOL=OFF"
         ]
     },

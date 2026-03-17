@@ -46,7 +46,7 @@ namespace shine::util {
             absolutePath = path;
         }
 
-        SString result = "file://";
+        SString result{"file://"};
 
         // 在Windows中，路径需要特殊处理
 #ifdef _WIN32
@@ -73,7 +73,7 @@ namespace shine::util {
 
     // 创建数据URI
     SString createDataURI(const std::vector<uint8_t>& data, STextView mimeType, bool useBase64) {
-        SString uri = "data:";
+        SString uri{"data:"};
 
         // 添加MIME类型
         if (!mimeType.empty()) {

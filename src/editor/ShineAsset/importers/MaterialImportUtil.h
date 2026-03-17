@@ -30,7 +30,7 @@ namespace shine::editor::asset
     struct MaterialImportData
     {
         SString name;
-        SString alphaMode         = "OPAQUE";
+        SString alphaMode{"OPAQUE"};
         bool    doubleSided       = false;
 
         std::array<float, 4> baseColorFactor    = {1.f, 1.f, 1.f, 1.f};

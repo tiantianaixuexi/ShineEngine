@@ -52,8 +52,8 @@ static_assert(!std::is_convertible_v<STextView, SString>,
     "STextView -> SString must NOT be implicit (explicit SString(STextView))");
 
 // ---- SString as destination ----
-static_assert( std::is_convertible_v<const char*, SString>,
-    "const char* -> SString must be implicit (non-explicit SString(const char*))");
+static_assert(!std::is_convertible_v<const char*, SString>,
+    "const char* -> SString must NOT be implicit (explicit SString(const char*))");
 static_assert(!std::is_convertible_v<STextView,          SString>,
     "STextView -> SString must NOT be implicit (explicit ctor)");
 static_assert(!std::is_convertible_v<std::string_view,  SString>,
@@ -141,9 +141,9 @@ static void test_implicit_positive()
 
     // ---- const char* -> SString ----
     {
-        SString s = cstr;
+        SString s(cstr);
         CHECK("const char* -> SString  (value)", s == "hello world");
-        SString s2 = accept_sstring(cstr);
+        SString s2 = accept_sstring(SString(cstr));
         CHECK("const char* -> SString  (fn arg)", s2 == "hello world");
     }
 
@@ -246,7 +246,7 @@ static void test_size_boundaries()
     // SSO range (≤ 30 bytes)
     const std::string sso_str(20, 'x');
     {
-        SString   ss  = sso_str.c_str();          // const char* -> SString
+        SString   ss  = SString(sso_str.c_str()); // explicit SString(const char*)
         STextView tv  = ss;                        // SString -> STextView
         std::string_view sv = tv;                  // STextView -> string_view
         CHECK("SSO: const char* -> SString -> STextView -> string_view (size)",
@@ -257,7 +257,7 @@ static void test_size_boundaries()
     // Exactly at SSO boundary (30 bytes)
     {
         const std::string edge30(30, 'y');
-        SString   ss  = edge30.c_str();
+        SString   ss  (edge30.c_str());
         STextView tv  = ss;
         CHECK("SSO edge 30: SString -> STextView size", tv.size() == 30);
         CHECK("SSO edge 30: content", tv == STextView(edge30.c_str(), 30));
@@ -266,7 +266,7 @@ static void test_size_boundaries()
     // Heap range (> 30 bytes)
     {
         const std::string heap_str(64, 'z');
-        SString   ss  = heap_str.c_str();
+        SString   ss  (heap_str.c_str());
         STextView tv  = ss;
         std::string_view sv = tv;
         CHECK("Heap: SString -> STextView -> string_view (size)", sv.size() == 64);
@@ -275,7 +275,7 @@ static void test_size_boundaries()
 
     // Empty string
     {
-        SString   ss  = "";
+        SString   ss("");
         STextView tv  = ss;
         std::string_view sv = tv;
         CHECK("Empty: SString -> STextView -> string_view (size 0)", sv.size() == 0);
@@ -293,7 +293,7 @@ static void test_utf8_roundtrip()
 
     const char* utf8_cstr = "你好，引擎！";        // 18 UTF-8 bytes
 
-    SString ss = utf8_cstr;                        // const char* -> SString (implicit)
+    SString ss(utf8_cstr);                         // const char* -> SString (explicit)
     STextView tv = ss;                             // SString -> STextView  (implicit)
     std::string_view sv = tv;                      // STextView -> string_view (implicit)
 
@@ -336,7 +336,7 @@ static void print_conversion_table()
     row("STextView",        "SString",           false);
     row("STextView",        "std::string",       false);
     fmt::println("╠═══════════════════════╬════════════════════════╬════════════════╣");
-    row("const char*",      "SString",           true);
+    row("const char*",      "SString",           false);
     row("STextView",        "SString",           false);
     row("std::string_view", "SString",           false);
     row("std::string",      "SString",           false);

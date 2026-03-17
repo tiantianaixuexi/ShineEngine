@@ -86,7 +86,7 @@ namespace shine
             }
         }
 
-        SString(const char* cstr)
+        explicit SString(const char* cstr)
         {
             if (cstr != nullptr)
             {
@@ -1136,10 +1136,21 @@ namespace shine
                 return;
             }
 
+            const char* current = data();
+            const size_type current_size = size();
+            const bool overlaps = src >= current && src < (current + current_size);
+
             if (len <= kSsoCapacity)
             {
                 char* old_heap = _is_sso() ? nullptr : _storage.heap.ptr;
-                std::memmove(_storage.sso.data(), src, len); // memmove: src may alias SSO buffer
+                if (overlaps)
+                {
+                    std::memmove(_storage.sso.data(), src, len);
+                }
+                else
+                {
+                    std::memcpy(_storage.sso.data(), src, len);
+                }
                 _storage.sso[len] = '\0';
                 _storage.sso[kTagIndex] = static_cast<char>(len);
                 delete[] old_heap;
@@ -1148,7 +1159,14 @@ namespace shine
 
             if (!_is_sso() && _storage.heap.cap >= len)
             {
-                std::memmove(_storage.heap.ptr, src, len); // memmove: src may be a subview of heap
+                if (overlaps)
+                {
+                    std::memmove(_storage.heap.ptr, src, len);
+                }
+                else
+                {
+                    std::memcpy(_storage.heap.ptr, src, len);
+                }
                 _storage.heap.ptr[len] = '\0';
                 _storage.heap.size = len;
                 return;
@@ -1244,7 +1262,7 @@ namespace shine
 
     [[nodiscard]] inline bool operator==(const SString& lhs, const SString& rhs) noexcept
     {
-        return lhs.sv() == rhs.sv();
+        return lhs.view() == rhs.view();
     }
 
     [[nodiscard]] inline bool operator==(const SString& lhs, std::string_view rhs) noexcept
@@ -1284,7 +1302,7 @@ struct std::hash<shine::SString>
     std::size_t operator()(const shine::SString& s) const noexcept
     {
         // Consistent with SString::hash() and static_hash() — single FNV-1a path.
-        return shine::SString::static_hash(s.sv());
+        return shine::SString::static_hash(std::string_view(s.data(), s.size()));
     }
 };
 

@@ -27,7 +27,7 @@ namespace shine::editor::assets_brower
     class AssetsBrower : public views::BaseView
     {
         public:
-            shine::SString title = "资产浏览器";
+            shine::SString title{"资产浏览器"};
             
             void SetEditorAssetRegistry(shine::editor::asset::EditorAssetRegistry* registry) { editorAssetRegistry_ = registry; }
 
