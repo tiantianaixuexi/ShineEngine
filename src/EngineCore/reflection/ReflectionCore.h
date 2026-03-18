@@ -14,12 +14,14 @@
 #include <concepts>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <source_location>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
+#include "Core/ReflectionOwnerHandle.h"
 #include "string/shine_string.h"
 #include "string/shine_text_view.h"
 #include "util/EnumFlags.h"
@@ -258,6 +260,37 @@ struct MapTrait {
 
 struct TypeInfo;
 
+struct MethodCallCache {
+    const TypeInfo*              returnTypeInfo = nullptr;
+    std::vector<const TypeInfo*> paramTypeInfos;
+    std::vector<std::size_t>     paramOffsets;
+    std::size_t                  returnOffset = 0;
+    std::size_t                  frameSize = 0;
+    std::size_t                  frameAlignment = alignof(std::max_align_t);
+    bool                         valid = false;
+};
+
+struct FieldBuiltinMetadata {
+    shine::STextView category;
+    shine::STextView displayName;
+    shine::STextView editCondition;
+    float            minValue = 0.0f;
+    float            maxValue = 0.0f;
+    bool             hasRange = false;
+};
+
+struct FieldColdData {
+    UI::Schema          uiSchema = UI::None{};
+    shine::STextView    name;
+    FieldBuiltinMetadata builtinMetadata;
+    MetadataContainer   metadata;
+};
+
+struct MethodColdData {
+    shine::STextView  name;
+    MetadataContainer metadata;
+};
+
 // =============================================================================
 // Compile-time field access - 完全模板化，编译期绑定
 // =============================================================================
@@ -311,6 +344,7 @@ void RegisterCompileTimeAccessor(uint32_t fieldId) {
 struct FieldInfo {
     TypeId          typeId        = 0;
     ContainerType   containerType = ContainerType::None;
+    ReflectionOwnerHandle owner;
     std::size_t     offset        = 0;
     std::size_t     size          = 0;
     std::size_t     alignment     = 0;
@@ -327,10 +361,8 @@ struct FieldInfo {
     // ---- Metadata -----------------------------------------------------------
     const void*       containerTrait = nullptr;
     PropertyFlags     flags    = PropertyFlags::None;
-    UI::Schema        uiSchema = UI::None{};
-    shine::STextView  name;
     uint32_t          nameHash = 0;
-    MetadataContainer metadata;
+    std::unique_ptr<FieldColdData> coldData;
 
     // ---- Accessors ----------------------------------------------------------
 
@@ -391,13 +423,152 @@ struct FieldInfo {
 
     // ---- Metadata -----------------------------------------------------------
 
-    const MetadataValue* GetMeta(MetadataKey key) const {
-        for (const auto& [k, v] : metadata)
+    [[nodiscard]] const MetadataValue* GetMeta(MetadataKey key) const {
+        for (const auto& [k, v] : GetMetadata())
             if (k == key) return &v;
         return nullptr;
     }
 
-    bool HasMeta(MetadataKey key) const { return GetMeta(key) != nullptr; }
+    [[nodiscard]] bool HasMeta(MetadataKey key) const { return GetMeta(key) != nullptr; }
+
+    void SetName(shine::STextView value) {
+        EnsureColdData().name = value;
+    }
+
+    [[nodiscard]] shine::STextView GetNameView() const noexcept {
+        return coldData ? coldData->name : shine::STextView{};
+    }
+
+    void SetUISchema(UI::Schema value) {
+        EnsureColdData().uiSchema = std::move(value);
+    }
+
+    [[nodiscard]] const UI::Schema& GetUISchema() const noexcept {
+        static const UI::Schema kDefaultSchema = UI::None{};
+        return coldData ? coldData->uiSchema : kDefaultSchema;
+    }
+
+    [[nodiscard]] const MetadataContainer& GetMetadata() const noexcept {
+        static const MetadataContainer kEmptyMetadata;
+        return coldData ? coldData->metadata : kEmptyMetadata;
+    }
+
+    MetadataContainer& MutableMetadata() {
+        return EnsureColdData().metadata;
+    }
+
+    [[nodiscard]] const TypeInfo* GetOwnerType() const {
+        return owner.AsType();
+    }
+
+    void SetRange(float min, float max) {
+        auto& builtin = EnsureColdData().builtinMetadata;
+        builtin.minValue = min;
+        builtin.maxValue = max;
+        builtin.hasRange = true;
+    }
+
+    void SetCategory(shine::STextView value) {
+        EnsureColdData().builtinMetadata.category = value;
+    }
+
+    void SetDisplayName(shine::STextView value) {
+        EnsureColdData().builtinMetadata.displayName = value;
+    }
+
+    void SetEditCondition(shine::STextView value) {
+        EnsureColdData().builtinMetadata.editCondition = value;
+    }
+
+    [[nodiscard]] bool TrySetBuiltinMetadata(MetadataKey key, const MetadataValue& value) {
+        if (key == MetaKeys::Category) {
+            if (const auto* text = std::get_if<shine::STextView>(&value)) {
+                SetCategory(*text);
+                return true;
+            }
+            return false;
+        }
+
+        if (key == MetaKeys::DisplayName) {
+            if (const auto* text = std::get_if<shine::STextView>(&value)) {
+                SetDisplayName(*text);
+                return true;
+            }
+            return false;
+        }
+
+        if (key == MetaKeys::EditCondition) {
+            if (const auto* text = std::get_if<shine::STextView>(&value)) {
+                SetEditCondition(*text);
+                return true;
+            }
+            return false;
+        }
+
+        if (key == MetaKeys::Min || key == MetaKeys::Max) {
+            float converted = 0.0f;
+            if (const auto* asFloat = std::get_if<float>(&value)) {
+                converted = *asFloat;
+            } else if (const auto* asInt = std::get_if<int>(&value)) {
+                converted = static_cast<float>(*asInt);
+            } else if (const auto* asDouble = std::get_if<double>(&value)) {
+                converted = static_cast<float>(*asDouble);
+            } else {
+                return false;
+            }
+
+            if (key == MetaKeys::Min) {
+                EnsureColdData().builtinMetadata.minValue = converted;
+            } else {
+                EnsureColdData().builtinMetadata.maxValue = converted;
+            }
+            EnsureColdData().builtinMetadata.hasRange = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    [[nodiscard]] bool HasCategory() const noexcept {
+        return coldData && !coldData->builtinMetadata.category.empty();
+    }
+    [[nodiscard]] bool HasDisplayName() const noexcept {
+        return coldData && !coldData->builtinMetadata.displayName.empty();
+    }
+    [[nodiscard]] bool HasEditCondition() const noexcept {
+        return coldData && !coldData->builtinMetadata.editCondition.empty();
+    }
+    [[nodiscard]] bool HasRange() const noexcept {
+        return coldData && coldData->builtinMetadata.hasRange;
+    }
+    [[nodiscard]] shine::STextView GetCategoryView() const noexcept {
+        return coldData ? coldData->builtinMetadata.category : shine::STextView{};
+    }
+    [[nodiscard]] shine::STextView GetDisplayNameView() const noexcept {
+        if (coldData && !coldData->builtinMetadata.displayName.empty()) {
+            return coldData->builtinMetadata.displayName;
+        }
+        return GetNameView();
+    }
+    [[nodiscard]] shine::STextView GetEditConditionView() const noexcept {
+        return coldData ? coldData->builtinMetadata.editCondition : shine::STextView{};
+    }
+    [[nodiscard]] float GetMinValue() const noexcept {
+        return coldData ? coldData->builtinMetadata.minValue : 0.0f;
+    }
+    [[nodiscard]] float GetMaxValue() const noexcept {
+        return coldData ? coldData->builtinMetadata.maxValue : 0.0f;
+    }
+
+private:
+    FieldColdData& EnsureColdData() {
+        if (!coldData) {
+            coldData = std::make_unique<FieldColdData>();
+        }
+        return *coldData;
+    }
+
+public:
 };
 
 // =============================================================================
@@ -405,31 +576,53 @@ struct FieldInfo {
 // =============================================================================
 
 struct MethodInfo {
-    shine::STextView    name;
     uint32_t            nameHash      = 0;
     InvokeFn            invokeFn      = nullptr;
     TypeId              returnType    = 0;
     std::vector<TypeId> paramTypes;
     uint64_t            signatureHash = 0;
     FunctionFlags       flags         = FunctionFlags::None;
-    MetadataContainer   metadata;
-    const TypeInfo*     owner         = nullptr;
-    mutable const TypeInfo*               cachedReturnTypeInfo = nullptr;
-    mutable std::vector<const TypeInfo*>  cachedParamTypeInfos;
-    mutable std::vector<std::size_t>      cachedParamOffsets;
-    mutable std::size_t                   cachedReturnOffset = 0;
-    mutable std::size_t                   cachedFrameSize = 0;
-    mutable std::size_t                   cachedFrameAlignment = alignof(std::max_align_t);
-    mutable bool                          callCacheValid = false;
+    ReflectionOwnerHandle owner;
+    mutable MethodCallCache callCache{};
+    std::unique_ptr<MethodColdData> coldData;
 
     void Invoke(void* inst, void** args, void* ret) const {
         if (invokeFn) invokeFn(inst, args, ret);
     }
 
     const MetadataValue* GetMeta(MetadataKey key) const {
-        for (const auto& [k, v] : metadata)
+        for (const auto& [k, v] : GetMetadata())
             if (k == key) return &v;
         return nullptr;
+    }
+
+    void SetName(shine::STextView value) {
+        EnsureColdData().name = value;
+    }
+
+    [[nodiscard]] shine::STextView GetNameView() const noexcept {
+        return coldData ? coldData->name : shine::STextView{};
+    }
+
+    [[nodiscard]] const MetadataContainer& GetMetadata() const noexcept {
+        static const MetadataContainer kEmptyMetadata;
+        return coldData ? coldData->metadata : kEmptyMetadata;
+    }
+
+    MetadataContainer& MutableMetadata() {
+        return EnsureColdData().metadata;
+    }
+
+    [[nodiscard]] const TypeInfo* GetOwnerType() const {
+        return owner.AsType();
+    }
+
+private:
+    MethodColdData& EnsureColdData() {
+        if (!coldData) {
+            coldData = std::make_unique<MethodColdData>();
+        }
+        return *coldData;
     }
 };
 
@@ -467,7 +660,7 @@ struct TypeInfo {
         // Handle collisions and multiple matches (rare)
         while (it != fieldLookup_.end() && it->hash == hash) {
             const auto& f = fields[it->index];
-            if (f.name == fieldName) return &f;
+            if (f.GetNameView() == fieldName) return &f;
             ++it;
         }
         return nullptr;
@@ -479,7 +672,7 @@ struct TypeInfo {
 
         while (it != methodLookup_.end() && it->hash == hash) {
             const auto& m = methods[it->index];
-            if (m.name == methodName) return &m;
+            if (m.GetNameView() == methodName) return &m;
             ++it;
         }
         return nullptr;
@@ -492,14 +685,14 @@ public:
         fieldLookup_.clear();
         fieldLookup_.reserve(fields.size());
         for (uint32_t i = 0; i < (uint32_t)fields.size(); ++i) {
-            fieldLookup_.push_back({Hash(fields[i].name), i});
+            fieldLookup_.push_back({fields[i].nameHash, i});
         }
         std::ranges::sort(fieldLookup_, {}, &LookupEntry::hash);
 
         methodLookup_.clear();
         methodLookup_.reserve(methods.size());
         for (uint32_t i = 0; i < (uint32_t)methods.size(); ++i) {
-            methodLookup_.push_back({Hash(methods[i].name), i});
+            methodLookup_.push_back({methods[i].nameHash, i});
         }
         std::ranges::sort(methodLookup_, {}, &LookupEntry::hash);
 
@@ -509,6 +702,13 @@ public:
     std::size_t GetFieldCount()  const { return fields.size(); }
     std::size_t GetMethodCount() const { return methods.size(); }
 };
+
+static_assert(alignof(TypeInfo) >= ReflectionOwnerHandle::kRequiredAlignment,
+    "TypeInfo alignment must preserve owner handle tag bits");
+static_assert(alignof(FieldInfo) >= ReflectionOwnerHandle::kRequiredAlignment,
+    "FieldInfo alignment must preserve owner handle tag bits");
+static_assert(alignof(MethodInfo) >= ReflectionOwnerHandle::kRequiredAlignment,
+    "MethodInfo alignment must preserve owner handle tag bits");
 
 // =============================================================================
 // ListThunks — builds a runtime SequenceTrait for any sequence container

@@ -87,7 +87,10 @@ namespace shine::reflection {
         // Allocate a new block (via operator new → engine Memory)
         size_t blockCap = std::max(BLOCK_SIZE, required);
         Block block;
-        block.buffer   = std::make_unique<char[]>(blockCap);
+        {
+            shine::co::MemoryScope scope(shine::co::MemoryTag::ReflectionString);
+            block.buffer = std::make_unique<char[]>(blockCap);
+        }
         block.capacity = blockCap;
         block.used     = 0;
 

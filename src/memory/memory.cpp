@@ -1,10 +1,12 @@
 
-
+#include "memory.ixx"
 #include "memory_backend.h"
+#include <fmt/format.h>
 #include "util/profiling/shine_profiling.h"
 
 #ifndef SHINE_MEMORY_BACKEND_UE_B2
 #define SHINE_MEMORY_BACKEND_UE_B2 0
+#endif
 
 
 namespace shine::co {
@@ -31,8 +33,17 @@ namespace shine::co {
         "AI",
         "Gameplay",
         "Reflection",
-        "Script"
+        "ReflectionMeta",
+        "ReflectionCold",
+        "ReflectionTemp",
+        "ReflectionString",
+        "Script",
+        "ScriptBridgeTemp",
+        "EditorInspectorTemp"
     };
+
+    static_assert((sizeof(g_memoryTagNames) / sizeof(g_memoryTagNames[0])) == static_cast<size_t>(MemoryTag::Count),
+        "g_memoryTagNames must match MemoryTag::Count");
 
     // ============================================================
     // Thread-Local Statistics Buffering
@@ -342,7 +353,7 @@ namespace shine::co {
                 continue;
 
             fmt::println(
-                "[Memory][%-9s] allocs=%llu frees=%llu current=%.2fMB peak=%.2fMB",
+                "[Memory][%-18s] allocs=%llu frees=%llu current=%.2fMB peak=%.2fMB",
                 g_memoryTagNames[i],
                 static_cast<unsigned long long>(allocs),
                 static_cast<unsigned long long>(frees),

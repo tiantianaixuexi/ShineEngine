@@ -44,6 +44,13 @@ public:
         info.BuildLookup();
         
         auto typeInfo = std::make_shared<TypeInfo>(std::move(info));
+        const auto ownerHandle = ReflectionOwnerHandle::FromType(typeInfo.get());
+        for (auto& field : typeInfo->fields) {
+            field.owner = ownerHandle;
+        }
+        for (auto& method : typeInfo->methods) {
+            method.owner = ownerHandle;
+        }
         registry_[id] = typeInfo;
         nameRegistry_[shine::SString(typeInfo->name)] = typeInfo;
         return {};

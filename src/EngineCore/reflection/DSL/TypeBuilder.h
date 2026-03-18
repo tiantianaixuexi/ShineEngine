@@ -80,12 +80,11 @@ struct TypeBuilder {
         TypeBuilder&  builder;
 
         FieldBuilder& Range(float lo, float hi) {
-            field.metadata.push_back({MetaKeys::Min, lo});
-            field.metadata.push_back({MetaKeys::Max, hi});
+            field.SetRange(lo, hi);
             return *this;
         }
 
-        FieldBuilder& UI(UI::Schema s)      { field.uiSchema = std::move(s); return *this; }
+        FieldBuilder& UI(UI::Schema s)      { field.SetUISchema(std::move(s)); return *this; }
         FieldBuilder& EditAnywhere()         { field.flags |= PropertyFlags::EditAnywhere;    return *this; }
         FieldBuilder& ReadOnly()             { field.flags |= PropertyFlags::ReadOnly;        return *this; }
         FieldBuilder& ScriptRead()           { field.flags |= PropertyFlags::ScriptRead;      return *this; }
@@ -93,23 +92,30 @@ struct TypeBuilder {
         FieldBuilder& ScriptReadWrite()      { field.flags |= PropertyFlags::ScriptReadWrite; return *this; }
         FieldBuilder& Transient()            { field.flags |= PropertyFlags::Transient;       return *this; }
         FieldBuilder& SaveGame()             { field.flags |= PropertyFlags::SaveGame;        return *this; }
-        FieldBuilder& FunctionSelect()       { field.uiSchema = UI::FunctionSelector{};       return *this; }
+        FieldBuilder& FunctionSelect()       { field.SetUISchema(UI::FunctionSelector{});     return *this; }
         FieldBuilder& DisplayName(shine::STextView dn) {
-            field.metadata.push_back({MetaKeys::DisplayName, MetadataValue{dn}});
+            field.SetDisplayName(dn);
             return *this;
         }
 
         /// Single template replaces five per-type Meta overloads (C++23).
         template <typename V>
         FieldBuilder& Meta(shine::STextView key, V&& value) {
-            field.metadata.push_back({Hash(key), MakeMetadataValue(std::forward<V>(value))});
+            const auto metadataKey = Hash(key);
+            auto metadataValue = MakeMetadataValue(std::forward<V>(value));
+            if (!field.TrySetBuiltinMetadata(metadataKey, metadataValue)) {
+                field.MutableMetadata().push_back({metadataKey, std::move(metadataValue)});
+            }
             return *this;
         }
 
         /// Overload accepting a pre-computed MetadataKey (consteval-friendly).
         template <typename V>
         FieldBuilder& Meta(MetadataKey key, V&& value) {
-            field.metadata.push_back({key, MakeMetadataValue(std::forward<V>(value))});
+            auto metadataValue = MakeMetadataValue(std::forward<V>(value));
+            if (!field.TrySetBuiltinMetadata(key, metadataValue)) {
+                field.MutableMetadata().push_back({key, std::move(metadataValue)});
+            }
             return *this;
         }
 
@@ -134,9 +140,10 @@ struct TypeBuilder {
         using CType = typename DSL::FieldDSLNode<MemberPtr>::ClassType;
 
         FieldInfo f{};
-        f.name      = node.name;
+        f.SetName(node.name);
         f.nameHash  = Hash(node.name);
         f.typeId    = GetTypeId<MType>();
+        f.owner     = ReflectionOwnerHandle{};
         f.offset    = ComputeOffset<CType, MType>(MemberPtr);
         f.size      = sizeof(MType);
         f.alignment = alignof(MType);
@@ -195,14 +202,14 @@ struct TypeBuilder {
 
         template <typename V>
         MethodBuilder& Meta(shine::STextView key, V&& value) {
-            method.metadata.push_back({Hash(key), MakeMetadataValue(std::forward<V>(value))});
+            method.MutableMetadata().push_back({Hash(key), MakeMetadataValue(std::forward<V>(value))});
             return *this;
         }
 
         /// Overload accepting a pre-computed MetadataKey (consteval-friendly).
         template <typename V>
         MethodBuilder& Meta(MetadataKey key, V&& value) {
-            method.metadata.push_back({key, MakeMetadataValue(std::forward<V>(value))});
+            method.MutableMetadata().push_back({key, MakeMetadataValue(std::forward<V>(value))});
             return *this;
         }
     };
@@ -212,10 +219,10 @@ struct TypeBuilder {
         using Traits = MethodTraits<decltype(MethodPtr)>;
 
         MethodInfo m{};
-        m.name       = node.name;
+        m.SetName(node.name);
         m.nameHash   = Hash(node.name);
         m.returnType = GetTypeId<typename Traits::ReturnType>();
-        m.owner      = nullptr;   // patched after TypeInfo is complete
+        m.owner      = ReflectionOwnerHandle{};   // patched after TypeInfo is complete
         m.paramTypes.reserve(Traits::Arity);
 
         // Record parameter types

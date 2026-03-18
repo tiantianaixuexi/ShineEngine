@@ -2,7 +2,7 @@
   "name": "ReflectionTest",
   "type": "exe",
   "dirs": ["dev/test/ReflectionTest"],
-  "deps": ["engine_core", "fmt"],
+  "deps": ["engine_core", "memory", "fmt"],
   "defines": ["TEST_BUILD"],
   "platform": ["Windows"],
   "output": "exe/ReflectionTest.exe"

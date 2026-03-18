@@ -43,7 +43,8 @@ constexpr TypeInfo BuildTypeInfo(shine::STextView name);
         _info.isEnum    = std::is_enum_v<Type>;                                 \
         shine::reflection::TypeBuilder<Type> _builder(_info);                   \
         _ReflectRegFn_##Type(_builder);                                         \
-        for (auto& _m : _info.methods) _m.owner = &_info;                      \
+        for (auto& _f : _info.fields) _f.owner = shine::reflection::ReflectionOwnerHandle::FromType(&_info); \
+        for (auto& _m : _info.methods) _m.owner = shine::reflection::ReflectionOwnerHandle::FromType(&_info); \
         (void)shine::reflection::TypeRegistry::Get().Register(std::move(_info));\
         return true;                                                            \
     }();                                                                        \

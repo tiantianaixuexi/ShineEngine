@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <new>
 
+#include "memory/memory.ixx"
 #include "../ReflectionCore.h"
 #include "../TypeRegistry.h"
 #include "../Script/ScriptValue.h"
@@ -48,56 +49,58 @@ struct ScratchBuffer {
             return;
         }
 
-        ptr = ::operator new(requestedSize, std::align_val_t{requestedAlign});
+        shine::co::MemoryScope scope(shine::co::MemoryTag::ScriptBridgeTemp);
+        ptr = shine::co::Memory::Alloc(requestedSize, requestedAlign);
         heapAlignment = requestedAlign;
     }
 
     ~ScratchBuffer() {
         if (heapAlignment != 0) {
-            ::operator delete(ptr, std::align_val_t{heapAlignment});
+            shine::co::Memory::Free(ptr);
         }
     }
 };
 
 inline bool BuildMethodCallCache(const MethodInfo& method) {
-    method.cachedReturnTypeInfo = nullptr;
-    method.cachedParamTypeInfos.clear();
-    method.cachedParamOffsets.clear();
-    method.cachedReturnOffset = 0;
-    method.cachedFrameSize = 0;
-    method.cachedFrameAlignment = alignof(std::max_align_t);
+    auto& cache = method.callCache;
+    cache.returnTypeInfo = nullptr;
+    cache.paramTypeInfos.clear();
+    cache.paramOffsets.clear();
+    cache.returnOffset = 0;
+    cache.frameSize = 0;
+    cache.frameAlignment = alignof(std::max_align_t);
 
     if (method.returnType != GetTypeId<void>()) {
         const auto* returnType = TypeRegistry::Get().FindFast(method.returnType);
         if (!returnType) {
-            method.callCacheValid = false;
+            cache.valid = false;
             return false;
         }
 
-        method.cachedReturnTypeInfo = returnType;
-        method.cachedFrameAlignment = std::max(method.cachedFrameAlignment, returnType->alignment);
-        method.cachedReturnOffset = AlignUp(method.cachedFrameSize, returnType->alignment);
-        method.cachedFrameSize = method.cachedReturnOffset + returnType->size;
+        cache.returnTypeInfo = returnType;
+        cache.frameAlignment = std::max(cache.frameAlignment, returnType->alignment);
+        cache.returnOffset = AlignUp(cache.frameSize, returnType->alignment);
+        cache.frameSize = cache.returnOffset + returnType->size;
     }
 
-    method.cachedParamTypeInfos.reserve(method.paramTypes.size());
-    method.cachedParamOffsets.reserve(method.paramTypes.size());
+    cache.paramTypeInfos.reserve(method.paramTypes.size());
+    cache.paramOffsets.reserve(method.paramTypes.size());
     for (const auto paramTypeId : method.paramTypes) {
         const auto* paramType = TypeRegistry::Get().FindFast(paramTypeId);
         if (!paramType) {
-            method.callCacheValid = false;
+            cache.valid = false;
             return false;
         }
 
-        method.cachedParamTypeInfos.push_back(paramType);
-        method.cachedFrameAlignment = std::max(method.cachedFrameAlignment, paramType->alignment);
-        const auto offset = AlignUp(method.cachedFrameSize, paramType->alignment);
-        method.cachedParamOffsets.push_back(offset);
-        method.cachedFrameSize = offset + paramType->size;
+        cache.paramTypeInfos.push_back(paramType);
+        cache.frameAlignment = std::max(cache.frameAlignment, paramType->alignment);
+        const auto offset = AlignUp(cache.frameSize, paramType->alignment);
+        cache.paramOffsets.push_back(offset);
+        cache.frameSize = offset + paramType->size;
     }
 
-    method.cachedFrameSize = AlignUp(method.cachedFrameSize, method.cachedFrameAlignment);
-    method.callCacheValid = true;
+    cache.frameSize = AlignUp(cache.frameSize, cache.frameAlignment);
+    cache.valid = true;
     return true;
 }
 
@@ -163,22 +166,23 @@ struct ScriptView : TypeView {
             return {};
         if (args.size() != method->paramTypes.size())
             return {};
-        if (!method->callCacheValid && !detail::BuildMethodCallCache(*method))
+        if (!method->callCache.valid && !detail::BuildMethodCallCache(*method))
             return {};
 
-        detail::ScratchBuffer buffer(method->cachedFrameSize, method->cachedFrameAlignment);
+        const auto& cache = method->callCache;
+        detail::ScratchBuffer buffer(cache.frameSize, cache.frameAlignment);
         char* current = static_cast<char*>(buffer.ptr);
 
         void* retPtr = nullptr;
-        if (const auto* returnType = method->cachedReturnTypeInfo) {
-            retPtr = current + method->cachedReturnOffset;
+        if (const auto* returnType = cache.returnTypeInfo) {
+            retPtr = current + cache.returnOffset;
             if (!returnType->isPod) Construct(retPtr, returnType->id);
         }
 
         std::vector<void*> rawArgs(args.size());
         for (std::size_t i = 0; i < args.size(); ++i) {
-            const TypeInfo* paramType = method->cachedParamTypeInfos[i];
-            void* argPtr = current + method->cachedParamOffsets[i];
+            const TypeInfo* paramType = cache.paramTypeInfos[i];
+            void* argPtr = current + cache.paramOffsets[i];
             if (!paramType->isPod) Construct(argPtr, paramType->id);
             bridge.FromScript(args[i], argPtr, paramType->id);
             rawArgs[i] = argPtr;
@@ -186,16 +190,16 @@ struct ScriptView : TypeView {
 
         method->Invoke(instance, rawArgs.data(), retPtr);
 
-        ScriptValue result = (retPtr && method->cachedReturnTypeInfo)
+        ScriptValue result = (retPtr && cache.returnTypeInfo)
             ? bridge.ToScript(retPtr, method->returnType)
             : ScriptValue{};
 
         // Cleanup
-        if (retPtr && method->cachedReturnTypeInfo && !method->cachedReturnTypeInfo->isPod)
-            Destruct(retPtr, method->cachedReturnTypeInfo->id);
+        if (retPtr && cache.returnTypeInfo && !cache.returnTypeInfo->isPod)
+            Destruct(retPtr, cache.returnTypeInfo->id);
         for (std::size_t i = 0; i < args.size(); ++i) {
-            if (!method->cachedParamTypeInfos[i]->isPod)
-                Destruct(rawArgs[i], method->cachedParamTypeInfos[i]->id);
+            if (!cache.paramTypeInfos[i]->isPod)
+                Destruct(rawArgs[i], cache.paramTypeInfos[i]->id);
         }
 
         return result;

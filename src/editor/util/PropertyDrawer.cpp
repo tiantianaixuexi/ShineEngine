@@ -15,6 +15,10 @@ namespace shine::editor::util {
         const reflection::FieldInfo& field;
         const reflection::TypeInfo* ownerType;
 
+        const char* Label() const {
+            return field.GetDisplayNameView().data();
+        }
+
         // 1. None / Auto-Deduce — automatically select UI control based on C++ type
         //    Like UE5 UPROPERTY: no explicit UI schema needed; type determines the widget.
         //    If .Range() metadata is present, numeric types use Slider; otherwise DragFloat/DragInt.
@@ -25,7 +29,7 @@ namespace shine::editor::util {
                 bool val;
                 field.Get(instance, &val);
                 bool oldVal = val;
-                if (ImGui::Checkbox(field.name.data(), &val)) {
+                if (ImGui::Checkbox(Label(), &val)) {
                     field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
                 }
@@ -34,24 +38,21 @@ namespace shine::editor::util {
 
             // --- float → SliderFloat (if Range) or DragFloat ---
             if (field.typeId == GetTypeId<float>()) {
-                const auto* metaMin = field.GetMeta(MetaKeys::Min);
-                const auto* metaMax = field.GetMeta(MetaKeys::Max);
-                bool hasRange = metaMin && metaMax;
+                const bool hasRange = field.HasRange();
 
                 float val;
                 field.Get(instance, &val);
                 float oldVal = val;
 
                 if (hasRange) {
-                    float min = 0.f, max = 100.f;
-                    if (std::holds_alternative<float>(*metaMin)) min = std::get<float>(*metaMin);
-                    if (std::holds_alternative<float>(*metaMax)) max = std::get<float>(*metaMax);
-                    if (ImGui::SliderFloat(field.name.data(), &val, min, max)) {
+                    const float min = field.GetMinValue();
+                    const float max = field.GetMaxValue();
+                    if (ImGui::SliderFloat(Label(), &val, min, max)) {
                         field.Set(instance, &val);
                         field.OnChange(instance, &oldVal);
                     }
                 } else {
-                    if (ImGui::DragFloat(field.name.data(), &val)) {
+                    if (ImGui::DragFloat(Label(), &val)) {
                         field.Set(instance, &val);
                         field.OnChange(instance, &oldVal);
                     }
@@ -61,26 +62,21 @@ namespace shine::editor::util {
 
             // --- int → SliderInt (if Range) or DragInt ---
             if (field.typeId == GetTypeId<int>()) {
-                const auto* metaMin = field.GetMeta(MetaKeys::Min);
-                const auto* metaMax = field.GetMeta(MetaKeys::Max);
-                bool hasRange = metaMin && metaMax;
+                const bool hasRange = field.HasRange();
 
                 int val;
                 field.Get(instance, &val);
                 int oldVal = val;
 
                 if (hasRange) {
-                    int minI = 0, maxI = 100;
-                    if (std::holds_alternative<float>(*metaMin)) minI = (int)std::get<float>(*metaMin);
-                    else if (std::holds_alternative<int>(*metaMin)) minI = std::get<int>(*metaMin);
-                    if (std::holds_alternative<float>(*metaMax)) maxI = (int)std::get<float>(*metaMax);
-                    else if (std::holds_alternative<int>(*metaMax)) maxI = std::get<int>(*metaMax);
-                    if (ImGui::SliderInt(field.name.data(), &val, minI, maxI)) {
+                    const int minI = static_cast<int>(field.GetMinValue());
+                    const int maxI = static_cast<int>(field.GetMaxValue());
+                    if (ImGui::SliderInt(Label(), &val, minI, maxI)) {
                         field.Set(instance, &val);
                         field.OnChange(instance, &oldVal);
                     }
                 } else {
-                    if (ImGui::DragInt(field.name.data(), &val)) {
+                    if (ImGui::DragInt(Label(), &val)) {
                         field.Set(instance, &val);
                         field.OnChange(instance, &oldVal);
                     }
@@ -94,7 +90,7 @@ namespace shine::editor::util {
                 field.Get(instance, &val);
                 double oldVal = val;
                 float speed = 0.1f;
-                if (ImGui::DragScalar(field.name.data(), ImGuiDataType_Double, &val, speed)) {
+                if (ImGui::DragScalar(Label(), ImGuiDataType_Double, &val, speed)) {
                     field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
                 }
@@ -110,7 +106,7 @@ namespace shine::editor::util {
                 char buffer[256];
                 strncpy_s(buffer, val.c_str(), sizeof(buffer) - 1);
 
-                if (ImGui::InputText(field.name.data(), buffer, sizeof(buffer))) {
+                if (ImGui::InputText(Label(), buffer, sizeof(buffer))) {
                     val = shine::SString(buffer);
                     field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
@@ -134,7 +130,7 @@ namespace shine::editor::util {
                     if (e.value == currentVal) { currentName = e.name.data(); break; }
                 }
 
-                if (ImGui::BeginCombo(field.name.data(), currentName)) {
+                if (ImGui::BeginCombo(Label(), currentName)) {
                     for (const auto& e : fieldTypeInfo->enumEntries) {
                         bool isSelected = (currentVal == e.value);
                         if (ImGui::Selectable(e.name.data(), isSelected)) {
@@ -154,7 +150,7 @@ namespace shine::editor::util {
 
             // --- Struct (recursive) ---
             if (fieldTypeInfo && !fieldTypeInfo->fields.empty()) {
-                if (ImGui::TreeNode(field.name.data())) {
+                if (ImGui::TreeNode(Label())) {
                     void* fieldInstance = static_cast<char*>(instance) + field.offset;
                     InspectorBuilder::DrawInspector(fieldInstance, fieldTypeInfo);
                     ImGui::TreePop();
@@ -165,7 +161,7 @@ namespace shine::editor::util {
             // --- Array/Vector ---
             if (field.containerType == ContainerType::Sequence) {
                 const auto* trait = static_cast<const reflection::SequenceTrait*>(field.containerTrait);
-                if (trait && ImGui::TreeNode(field.name.data())) {
+                if (trait && ImGui::TreeNode(Label())) {
                     void* arrayPtr = static_cast<char*>(instance) + field.offset;
                     size_t size = trait->GetSize(arrayPtr);
 
@@ -190,7 +186,7 @@ namespace shine::editor::util {
             }
 
             // --- Final fallback ---
-            ImGui::Text("%s", field.name.data());
+            ImGui::Text("%s", Label());
             ImGui::SameLine();
             ImGui::TextDisabled("(Unknown Type)");
         }
@@ -200,18 +196,17 @@ namespace shine::editor::util {
             float min = slider.min;
             float max = slider.max;
 
-            const auto* metaMin = field.GetMeta(MetaKeys::Min);
-            const auto* metaMax = field.GetMeta(MetaKeys::Max);
-
             // Float Slider
             if (field.typeId == GetTypeId<float>()) {
-                if (metaMin && std::holds_alternative<float>(*metaMin)) min = std::get<float>(*metaMin);
-                if (metaMax && std::holds_alternative<float>(*metaMax)) max = std::get<float>(*metaMax);
+                if (field.HasRange()) {
+                    min = field.GetMinValue();
+                    max = field.GetMaxValue();
+                }
 
                 float val;
                 field.Get(instance, &val);
                 float oldVal = val;
-                if (ImGui::SliderFloat(field.name.data(), &val, min, max)) {
+                if (ImGui::SliderFloat(Label(), &val, min, max)) {
                     field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
                 }
@@ -221,19 +216,15 @@ namespace shine::editor::util {
                 int minI = (int)min;
                 int maxI = (int)max;
 
-                if (metaMin) {
-                    if (std::holds_alternative<int>(*metaMin)) minI = std::get<int>(*metaMin);
-                    else if (std::holds_alternative<float>(*metaMin)) minI = (int)std::get<float>(*metaMin);
-                }
-                if (metaMax) {
-                    if (std::holds_alternative<int>(*metaMax)) maxI = std::get<int>(*metaMax);
-                    else if (std::holds_alternative<float>(*metaMax)) maxI = (int)std::get<float>(*metaMax);
+                if (field.HasRange()) {
+                    minI = static_cast<int>(field.GetMinValue());
+                    maxI = static_cast<int>(field.GetMaxValue());
                 }
 
                 int val;
                 field.Get(instance, &val);
                 int oldVal = val;
-                if (ImGui::SliderInt(field.name.data(), &val, minI, maxI)) {
+                if (ImGui::SliderInt(Label(), &val, minI, maxI)) {
                     field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
                 }
@@ -246,7 +237,7 @@ namespace shine::editor::util {
                 bool val;
                 field.Get(instance, &val);
                 bool oldVal = val;
-                if (ImGui::Checkbox(field.name.data(), &val)) {
+                if (ImGui::Checkbox(Label(), &val)) {
                     field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
                 }
@@ -263,7 +254,7 @@ namespace shine::editor::util {
                 char buffer[256];
                 strncpy_s(buffer, val.c_str(), sizeof(buffer) - 1);
                 
-                if (ImGui::InputText(field.name.data(), buffer, sizeof(buffer))) {
+                if (ImGui::InputText(Label(), buffer, sizeof(buffer))) {
                     val = shine::SString(buffer);
                     field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
@@ -281,7 +272,7 @@ namespace shine::editor::util {
             shine::SString currentFunc;
             field.Get(instance, &currentFunc);
             
-            if (ImGui::BeginCombo(field.name.data(), currentFunc.c_str())) {
+            if (ImGui::BeginCombo(Label(), currentFunc.c_str())) {
                 if (ownerType) {
                     for (const auto& method : ownerType->methods) {
                         bool show = !selector.onlyScriptCallable;
@@ -294,10 +285,11 @@ namespace shine::editor::util {
                         }
                         
                         if (show) {
-                            bool isSelected = (currentFunc == method.name);
-                            if (ImGui::Selectable(method.name.data(), isSelected)) {
+                            const auto methodName = method.GetNameView();
+                            bool isSelected = (currentFunc == methodName);
+                            if (ImGui::Selectable(methodName.data(), isSelected)) {
                                 shine::SString oldVal = currentFunc;
-                                currentFunc = shine::SString(method.name);
+                                currentFunc = shine::SString(methodName);
                                 field.Set(instance, &currentFunc);
                                 field.OnChange(instance, &oldVal);
                             }
@@ -317,7 +309,7 @@ namespace shine::editor::util {
                 float val;
                 field.Get(instance, &val);
                 float oldVal = val;
-                if (ImGui::DragFloat(field.name.data(), &val)) {
+                if (ImGui::DragFloat(Label(), &val)) {
                     field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
                 }
@@ -325,7 +317,7 @@ namespace shine::editor::util {
                 int val;
                 field.Get(instance, &val);
                 int oldVal = val;
-                if (ImGui::DragInt(field.name.data(), &val)) {
+                if (ImGui::DragInt(Label(), &val)) {
                     field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
                 }
@@ -354,7 +346,7 @@ namespace shine::editor::util {
     };
 
     void PropertyDrawer::DrawField(void* instance, const reflection::FieldInfo& field, const reflection::TypeInfo* ownerType) {
-        std::visit(FieldRendererVisitor{ instance, field, ownerType }, field.uiSchema);
+        std::visit(FieldRendererVisitor{ instance, field, ownerType }, field.GetUISchema());
     }
 
     bool PropertyDrawer::DrawFloat(const char* label, float& value, float min, float max) {

@@ -18,9 +18,8 @@ namespace shine::editor::util {
 
         for (auto& field : view) {
             // Category Grouping Logic
-            const auto* meta = field.GetMeta(reflection::MetaKeys::Category);
-            if (meta && std::holds_alternative<shine::STextView>(*meta)) {
-                shine::STextView cat = std::get<shine::STextView>(*meta);
+            if (field.HasCategory()) {
+                shine::STextView cat = field.GetCategoryView();
                 if (cat != currentCategory) {
                     currentCategory = cat;
                     ImGui::Separator();

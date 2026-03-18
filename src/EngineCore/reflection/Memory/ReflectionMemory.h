@@ -3,8 +3,6 @@
 // =============================================================================
 // ReflectionMemory.h — Reflection-specific memory management
 // =============================================================================
-//
-// All allocations are routed through shine::co::Memory (mimalloc backend)
 // and tagged with MemoryTag::Reflection for unified profiling.
 //
 // Key subsystems:
@@ -80,8 +78,8 @@ namespace shine::reflection {
         template <typename T = void>
         [[nodiscard]]
         T* Allocate(size_t size, size_t alignment = alignof(std::max_align_t)) {
-            // Use engine's memory system with Reflection tag
-            shine::co::MemoryScope scope(shine::co::MemoryTag::Reflection);
+            // Reflection metadata objects should not be merged with temp/script traffic.
+            shine::co::MemoryScope scope(shine::co::MemoryTag::ReflectionMeta);
             return static_cast<T*>(shine::co::Memory::Alloc(size, alignment));
         }
 
@@ -102,7 +100,7 @@ namespace shine::reflection {
 
         [[nodiscard]]
         MemoryStats GetStatistics() const noexcept {
-            auto engineStats = shine::co::Memory::GetTagStats(shine::co::MemoryTag::Reflection);
+            auto engineStats = shine::co::Memory::GetTagStats(shine::co::MemoryTag::ReflectionMeta);
             
             MemoryStats s;
             s.totalAllocated   = engineStats.bytes_current;

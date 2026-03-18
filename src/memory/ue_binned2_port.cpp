@@ -75,6 +75,18 @@ namespace shine::co::ue_binned2_port {
         constexpr size_t kPoolHeaderBytes = sizeof(PoolPage);
         constexpr size_t kPoolUsableBytes = kPoolPageSize - kPoolHeaderBytes;
 
+        static_assert((kMinAlign & (kMinAlign - 1)) == 0, "kMinAlign must be a power of two");
+        static_assert(kMinAlign >= 16, "kMinAlign must preserve at least 4 low zero bits for tagged pointers");
+
+        constexpr size_t CountLowZeroBits(size_t value) noexcept {
+            size_t bits = 0;
+            while ((value & 1u) == 0u) {
+                ++bits;
+                value >>= 1u;
+            }
+            return bits;
+        }
+
         class Allocator {
         public:
             Allocator() {
@@ -214,9 +226,23 @@ namespace shine::co::ue_binned2_port {
                         capBins += page->Capacity;
                     }
                     if (pages != 0) {
-                        std::printf("[UEB2][bin=%u] pages=%zu free=%zu cap=%zu\n",
+                        const auto tlsHits = ThreadCacheAllocHits[poolIndex].load(std::memory_order_relaxed);
+                        const auto centralHits = CentralAllocHits[poolIndex].load(std::memory_order_relaxed);
+                        const auto freePushes = ThreadCacheFreePushes[poolIndex].load(std::memory_order_relaxed);
+                        const auto totalHits = tlsHits + centralHits;
+                        const double tlsHitRate = totalHits > 0
+                            ? (static_cast<double>(tlsHits) * 100.0) / static_cast<double>(totalHits)
+                            : 0.0;
+
+                        std::printf("[UEB2][bin=%u] pages=%zu free=%zu cap=%zu tls_hits=%llu central_hits=%llu tls_hit_rate=%.1f%% tls_free_push=%llu\n",
                             static_cast<unsigned>(kSmallBinSizes[poolIndex]),
-                            pages, freeBins, capBins);
+                            pages,
+                            freeBins,
+                            capBins,
+                            static_cast<unsigned long long>(tlsHits),
+                            static_cast<unsigned long long>(centralHits),
+                            tlsHitRate,
+                            static_cast<unsigned long long>(freePushes));
                         SHINE_PROFILE_CPU_PLOT("UEB2.BinPages", static_cast<double>(pages));
                         SHINE_PROFILE_CPU_PLOT("UEB2.BinFreeBins", static_cast<double>(freeBins));
                     }
@@ -224,8 +250,12 @@ namespace shine::co::ue_binned2_port {
                     totalFree += freeBins;
                     totalCapacity += capBins;
                 }
-                std::printf("[UEB2] totalPages=%zu totalFree=%zu totalCap=%zu\n",
-                    totalPages, totalFree, totalCapacity);
+                std::printf("[UEB2] totalPages=%zu totalFree=%zu totalCap=%zu tagged_ptr_min_align=%zu tagged_ptr_low_bits=%zu\n",
+                    totalPages,
+                    totalFree,
+                    totalCapacity,
+                    kMinAlign,
+                    CountLowZeroBits(kMinAlign));
                 SHINE_PROFILE_CPU_PLOT("UEB2.TotalPages", static_cast<double>(totalPages));
                 SHINE_PROFILE_CPU_PLOT("UEB2.TotalFreeBins", static_cast<double>(totalFree));
                 SHINE_PROFILE_CPU_PLOT("UEB2.TotalCapacityBins", static_cast<double>(totalCapacity));
@@ -241,6 +271,9 @@ namespace shine::co::ue_binned2_port {
             std::array<uint8_t, (kMaxSmallPoolSize / 16) + 2> SizeToPoolIndex{};
             std::array<std::mutex, kPoolCount> PoolMutexes;
             std::array<PoolPage*, kPoolCount> PartialLists{};
+            std::array<std::atomic<uint64_t>, kPoolCount> ThreadCacheAllocHits{};
+            std::array<std::atomic<uint64_t>, kPoolCount> CentralAllocHits{};
+            std::array<std::atomic<uint64_t>, kPoolCount> ThreadCacheFreePushes{};
 
             void BuildSizeMap() {
                 for (size_t i = 0; i < SizeToPoolIndex.size(); ++i) {
@@ -421,11 +454,13 @@ namespace shine::co::ue_binned2_port {
                 uint8_t poolIndex = GetPoolIndex(size);
                 ThreadCache& cache = GetThreadCache();
                 if (cache.Heads[poolIndex]) {
+                    ThreadCacheAllocHits[poolIndex].fetch_add(1, std::memory_order_relaxed);
                     FreeNode* node = cache.Heads[poolIndex];
                     cache.Heads[poolIndex] = node->Next;
                     cache.Counts[poolIndex] = static_cast<uint16_t>(cache.Counts[poolIndex] - 1);
                     return node;
                 }
+                CentralAllocHits[poolIndex].fetch_add(1, std::memory_order_relaxed);
                 return AllocSmallCentral(poolIndex);
             }
 
@@ -440,6 +475,7 @@ namespace shine::co::ue_binned2_port {
                 node->Next = cache.Heads[poolIndex];
                 cache.Heads[poolIndex] = node;
                 cache.Counts[poolIndex] = static_cast<uint16_t>(cache.Counts[poolIndex] + 1);
+                ThreadCacheFreePushes[poolIndex].fetch_add(1, std::memory_order_relaxed);
                 if (cache.Counts[poolIndex] >= kTlsCacheLimit) {
                     FlushThreadCacheToCentral(poolIndex, static_cast<uint16_t>(kTlsCacheLimit / 2));
                 }
@@ -535,6 +571,18 @@ namespace shine::co::ue_binned2_port {
 
     void* Alloc(size_t size, size_t align) noexcept {
         return GetAllocator().Alloc(size, align);
+    }
+
+    size_t GetTaggedPointerMinAlign() noexcept {
+        return kMinAlign;
+    }
+
+    size_t GetTaggedPointerUsableLowBits() noexcept {
+        return CountLowZeroBits(kMinAlign);
+    }
+
+    bool SupportsTaggedPointerTagBits(size_t tagBits) noexcept {
+        return tagBits <= CountLowZeroBits(kMinAlign);
     }
 
     void Free(void* p) noexcept {

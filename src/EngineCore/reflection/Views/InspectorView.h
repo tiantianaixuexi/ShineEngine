@@ -36,13 +36,12 @@ struct InspectorView : TypeView {
             && !HasFlag(f.flags, PropertyFlags::ReadOnly);
     }
 
-    const UI::Schema& GetUISchema(const FieldInfo& f) const { return f.uiSchema; }
+    const UI::Schema& GetUISchema(const FieldInfo& f) const { return f.GetUISchema(); }
 
     bool IsVisible(const FieldInfo& f, const void* instance) const {
-        if (auto* m = f.GetMeta(MetaKeys::EditCondition);
-            m && std::holds_alternative<shine::STextView>(*m))
+        if (f.HasEditCondition())
         {
-            auto condField = std::get<shine::STextView>(*m);
+            auto condField = f.GetEditConditionView();
             if (auto* ci = typeInfo->FindField(condField);
                 ci && ci->typeId == GetTypeId<bool>())
             {
@@ -55,10 +54,7 @@ struct InspectorView : TypeView {
     }
 
     shine::STextView GetCategory(const FieldInfo& f) const {
-        if (auto* m = f.GetMeta(MetaKeys::Category);
-            m && std::holds_alternative<shine::STextView>(*m))
-            return std::get<shine::STextView>(*m);
-        return {};
+        return f.GetCategoryView();
     }
 
     void SetValue(void* instance, const FieldInfo& f, const void* value) const {

@@ -314,20 +314,8 @@ namespace shine::editor::util {
                     }
 
                     if (isFunctionSelector) {
-                        // We need access to TypeInfo to list methods.
-                        // StaticInspector doesn't have runtime TypeInfo easily available unless we register it.
-                        // But we can look it up via TypeRegistry::Get().Find<ObjectType>()
-                        // or better, use the owner type T from StaticInspectorBuilder<T>
-                        
-                        // Current object type is ObjectType (T)
                         using namespace shine::reflection;
                         const TypeInfo* typeInfo = TypeRegistry::Get().FindFast(GetTypeId<ObjectType>());
-
-                        if (!typeInfo) {
-                            auto tempInfo = shine::reflection::BuildTypeInfo<ObjectType>("Temp");
-                            (void)TypeRegistry::Get().Register(std::move(tempInfo));
-                            typeInfo = TypeRegistry::Get().FindFast(GetTypeId<ObjectType>());
-                        }
                         
                         if (typeInfo) {
                             if (ImGui::BeginCombo(labelC, value.c_str())) {
@@ -335,17 +323,14 @@ namespace shine::editor::util {
                                     bool show = !onlyScriptCallable;
                                     if (onlyScriptCallable) {
                                         if (reflection::HasFlag(method.flags, FunctionFlags::ScriptCallable)) show = true;
-                                        // Check metadata "BlueprintFunction"
-                                        TypeId bpKey = MetaKeys::BlueprintFunction;
-                                        auto it = std::lower_bound(method.metadata.begin(), method.metadata.end(), bpKey, 
-                                            [](const auto& pair, TypeId k) { return pair.first < k; });
-                                        if (it != method.metadata.end() && it->first == bpKey) show = true;
+                                        if (method.GetMeta(MetaKeys::BlueprintFunction)) show = true;
                                     }
 
                                     if (show) {
-                                        bool isSelected = (value == method.name);
-                                        if (ImGui::Selectable(method.name.data(), isSelected)) {
-                                            value = shine::SString(method.name);
+                                        const auto methodName = method.GetNameView();
+                                        bool isSelected = (value == methodName);
+                                        if (ImGui::Selectable(methodName.data(), isSelected)) {
+                                            value = shine::SString(methodName);
                                             changed = true;
                                         }
                                         if (isSelected) ImGui::SetItemDefaultFocus();

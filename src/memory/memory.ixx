@@ -57,7 +57,13 @@ namespace shine::co {
         AI,
         Gameplay,
         Reflection,
+        ReflectionMeta,
+        ReflectionCold,
+        ReflectionTemp,
+        ReflectionString,
         Script,
+        ScriptBridgeTemp,
+        EditorInspectorTemp,
         Count
     };
 

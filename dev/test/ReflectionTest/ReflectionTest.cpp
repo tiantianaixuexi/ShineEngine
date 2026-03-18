@@ -24,6 +24,7 @@
 
 #include <iostream>
 #include <chrono>
+#include <cstddef>
 #include <vector>
 #include <string>
 #include <random>
@@ -31,6 +32,9 @@
 #include <cstring>
 
 #include "EngineCore/reflection/Reflection.h"
+#include "EngineCore/reflection/Views/ScriptView.h"
+#include "memory/memory.ixx"
+#include "memory/ue_binned2_port.h"
 
 // 使用 fmt 进行输出
 #include <fmt/format.h>
@@ -137,15 +141,30 @@ REFLECTION_STRUCT(Vec3) {
 };
 
 REFLECTION_STRUCT(Transform) {
-    REFLECT_FIELD(position);
-    REFLECT_FIELD(rotation);
-    REFLECT_FIELD(scale);
-    REFLECT_FIELD(name);
-    REFLECT_FIELD(id);
-    REFLECT_FIELD(enabled);
-    REFLECT_FIELD(tags);
-    REFLECT_FIELD(properties);
-    REFLECT_FIELD(flags);
+    REFLECT_FIELD(position)
+        .DisplayName(shine::STextView::from_literal("World Position"))
+        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Transform"));
+    REFLECT_FIELD(rotation)
+        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Transform"));
+    REFLECT_FIELD(scale)
+        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Transform"));
+    REFLECT_FIELD(name)
+        .DisplayName(shine::STextView::from_literal("Actor Name"))
+        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Identity"));
+    REFLECT_FIELD(id)
+        .DisplayName(shine::STextView::from_literal("Actor Id"))
+        .Range(0.0f, 100.0f)
+        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Identity"))
+        .Meta(shine::reflection::MetaKeys::EditCondition, shine::STextView::from_literal("enabled"));
+    REFLECT_FIELD(enabled)
+        .DisplayName(shine::STextView::from_literal("Enabled"))
+        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Identity"));
+    REFLECT_FIELD(tags)
+        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Collections"));
+    REFLECT_FIELD(properties)
+        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Collections"));
+    REFLECT_FIELD(flags)
+        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Collections"));
     
     // 使用优化的方法注册
     REFLECT_METHOD_FAST(SetPosition);
@@ -191,6 +210,179 @@ void PrintSeparator(const char* title) {
     fmt::print("============================================================\n");
     fmt::print("  {}\n", title);
     fmt::print("============================================================\n");
+}
+
+constexpr std::size_t kAuditCacheLineBytes = 64;
+
+template <typename T>
+void PrintLayoutHeader(shine::STextView typeName, std::size_t hotBytes = 0) {
+    const auto cacheLines = (sizeof(T) + kAuditCacheLineBytes - 1) / kAuditCacheLineBytes;
+    fmt::print("  {:<28} sizeof={:<4} align={:<3} cache_lines={}", typeName, sizeof(T), alignof(T), cacheLines);
+    if (hotBytes != 0) {
+        fmt::print(" hot_bytes={} hot_cache_lines={}", hotBytes, (hotBytes + kAuditCacheLineBytes - 1) / kAuditCacheLineBytes);
+    }
+    fmt::print("\n");
+}
+
+void PrintMemberLayout(shine::STextView memberName, std::size_t offset, std::size_t size, std::size_t alignment) {
+    const auto firstCacheLine = offset / kAuditCacheLineBytes;
+    const auto lastCacheLine = size == 0 ? firstCacheLine : (offset + size - 1) / kAuditCacheLineBytes;
+    fmt::print("    {:<24} offset={:<4} size={:<4} align={:<3} cache_line_span={}..{}\n",
+        memberName,
+        offset,
+        size,
+        alignment,
+        firstCacheLine,
+        lastCacheLine);
+}
+
+void TestReflectionLayoutBaseline() {
+    PrintSeparator("基线: 反射对象尺寸与布局");
+
+    fmt::print("结构摘要:\n");
+    PrintLayoutHeader<shine::reflection::TypeInfo>(shine::STextView::from_literal("TypeInfo"),
+        offsetof(shine::reflection::TypeInfo, enumEntries) + sizeof(std::vector<shine::reflection::EnumEntry>));
+    PrintLayoutHeader<shine::reflection::FieldInfo>(shine::STextView::from_literal("FieldInfo"),
+        offsetof(shine::reflection::FieldInfo, coldData));
+    PrintLayoutHeader<shine::reflection::MethodInfo>(shine::STextView::from_literal("MethodInfo"),
+        offsetof(shine::reflection::MethodInfo, coldData));
+    PrintLayoutHeader<shine::reflection::FieldColdData>(shine::STextView::from_literal("FieldColdData"));
+    PrintLayoutHeader<shine::reflection::MethodColdData>(shine::STextView::from_literal("MethodColdData"));
+    PrintLayoutHeader<shine::reflection::ReflectionOwnerHandle>(shine::STextView::from_literal("ReflectionOwnerHandle"));
+    PrintLayoutHeader<shine::reflection::MethodCallCache>(shine::STextView::from_literal("MethodCallCache"));
+    PrintLayoutHeader<shine::reflection::MetadataValue>(shine::STextView::from_literal("MetadataValue"));
+    PrintLayoutHeader<shine::reflection::EnumEntry>(shine::STextView::from_literal("EnumEntry"));
+    PrintLayoutHeader<shine::reflection::ScriptValue>(shine::STextView::from_literal("ScriptValue"));
+    PrintLayoutHeader<shine::reflection::detail::ScratchBuffer>(shine::STextView::from_literal("ScratchBuffer"));
+
+    fmt::print("\nFieldInfo 成员布局:\n");
+    PrintMemberLayout(shine::STextView::from_literal("typeId"), offsetof(shine::reflection::FieldInfo, typeId), sizeof(shine::reflection::TypeId), alignof(shine::reflection::TypeId));
+    PrintMemberLayout(shine::STextView::from_literal("containerType"), offsetof(shine::reflection::FieldInfo, containerType), sizeof(shine::reflection::ContainerType), alignof(shine::reflection::ContainerType));
+    PrintMemberLayout(shine::STextView::from_literal("owner"), offsetof(shine::reflection::FieldInfo, owner), sizeof(shine::reflection::ReflectionOwnerHandle), alignof(shine::reflection::ReflectionOwnerHandle));
+    PrintMemberLayout(shine::STextView::from_literal("offset"), offsetof(shine::reflection::FieldInfo, offset), sizeof(std::size_t), alignof(std::size_t));
+    PrintMemberLayout(shine::STextView::from_literal("size"), offsetof(shine::reflection::FieldInfo, size), sizeof(std::size_t), alignof(std::size_t));
+    PrintMemberLayout(shine::STextView::from_literal("alignment"), offsetof(shine::reflection::FieldInfo, alignment), sizeof(std::size_t), alignof(std::size_t));
+    PrintMemberLayout(shine::STextView::from_literal("getterFn"), offsetof(shine::reflection::FieldInfo, getterFn), sizeof(shine::reflection::GetterFn), alignof(shine::reflection::GetterFn));
+    PrintMemberLayout(shine::STextView::from_literal("setterFn"), offsetof(shine::reflection::FieldInfo, setterFn), sizeof(shine::reflection::SetterFn), alignof(shine::reflection::SetterFn));
+    PrintMemberLayout(shine::STextView::from_literal("onChangeFn"), offsetof(shine::reflection::FieldInfo, onChangeFn), sizeof(shine::reflection::OnChangeFn), alignof(shine::reflection::OnChangeFn));
+    PrintMemberLayout(shine::STextView::from_literal("equalsFn"), offsetof(shine::reflection::FieldInfo, equalsFn), sizeof(shine::reflection::EqualsFn), alignof(shine::reflection::EqualsFn));
+    PrintMemberLayout(shine::STextView::from_literal("copyFn"), offsetof(shine::reflection::FieldInfo, copyFn), sizeof(shine::reflection::CopyFn), alignof(shine::reflection::CopyFn));
+    PrintMemberLayout(shine::STextView::from_literal("invokeFn"), offsetof(shine::reflection::FieldInfo, invokeFn), sizeof(shine::reflection::InvokeFn), alignof(shine::reflection::InvokeFn));
+    PrintMemberLayout(shine::STextView::from_literal("containerTrait"), offsetof(shine::reflection::FieldInfo, containerTrait), sizeof(const void*), alignof(const void*));
+    PrintMemberLayout(shine::STextView::from_literal("flags"), offsetof(shine::reflection::FieldInfo, flags), sizeof(shine::reflection::PropertyFlags), alignof(shine::reflection::PropertyFlags));
+    PrintMemberLayout(shine::STextView::from_literal("nameHash"), offsetof(shine::reflection::FieldInfo, nameHash), sizeof(uint32_t), alignof(uint32_t));
+    PrintMemberLayout(shine::STextView::from_literal("coldData"), offsetof(shine::reflection::FieldInfo, coldData), sizeof(std::unique_ptr<shine::reflection::FieldColdData>), alignof(std::unique_ptr<shine::reflection::FieldColdData>));
+
+    fmt::print("\nMethodInfo 成员布局:\n");
+    PrintMemberLayout(shine::STextView::from_literal("nameHash"), offsetof(shine::reflection::MethodInfo, nameHash), sizeof(uint32_t), alignof(uint32_t));
+    PrintMemberLayout(shine::STextView::from_literal("invokeFn"), offsetof(shine::reflection::MethodInfo, invokeFn), sizeof(shine::reflection::InvokeFn), alignof(shine::reflection::InvokeFn));
+    PrintMemberLayout(shine::STextView::from_literal("returnType"), offsetof(shine::reflection::MethodInfo, returnType), sizeof(shine::reflection::TypeId), alignof(shine::reflection::TypeId));
+    PrintMemberLayout(shine::STextView::from_literal("paramTypes"), offsetof(shine::reflection::MethodInfo, paramTypes), sizeof(std::vector<shine::reflection::TypeId>), alignof(std::vector<shine::reflection::TypeId>));
+    PrintMemberLayout(shine::STextView::from_literal("signatureHash"), offsetof(shine::reflection::MethodInfo, signatureHash), sizeof(uint64_t), alignof(uint64_t));
+    PrintMemberLayout(shine::STextView::from_literal("flags"), offsetof(shine::reflection::MethodInfo, flags), sizeof(shine::reflection::FunctionFlags), alignof(shine::reflection::FunctionFlags));
+    PrintMemberLayout(shine::STextView::from_literal("owner"), offsetof(shine::reflection::MethodInfo, owner), sizeof(shine::reflection::ReflectionOwnerHandle), alignof(shine::reflection::ReflectionOwnerHandle));
+    PrintMemberLayout(shine::STextView::from_literal("callCache"), offsetof(shine::reflection::MethodInfo, callCache), sizeof(shine::reflection::MethodCallCache), alignof(shine::reflection::MethodCallCache));
+    PrintMemberLayout(shine::STextView::from_literal("coldData"), offsetof(shine::reflection::MethodInfo, coldData), sizeof(std::unique_ptr<shine::reflection::MethodColdData>), alignof(std::unique_ptr<shine::reflection::MethodColdData>));
+
+    fmt::print("\nReflectionOwnerHandle 布局:\n");
+    PrintMemberLayout(shine::STextView::from_literal("rawValue"), 0, sizeof(shine::reflection::ReflectionOwnerHandle), alignof(shine::reflection::ReflectionOwnerHandle));
+
+    fmt::print("\nTypeInfo 成员布局:\n");
+    PrintMemberLayout(shine::STextView::from_literal("id"), offsetof(shine::reflection::TypeInfo, id), sizeof(shine::reflection::TypeId), alignof(shine::reflection::TypeId));
+    PrintMemberLayout(shine::STextView::from_literal("name"), offsetof(shine::reflection::TypeInfo, name), sizeof(shine::STextView), alignof(shine::STextView));
+    PrintMemberLayout(shine::STextView::from_literal("size"), offsetof(shine::reflection::TypeInfo, size), sizeof(std::size_t), alignof(std::size_t));
+    PrintMemberLayout(shine::STextView::from_literal("alignment"), offsetof(shine::reflection::TypeInfo, alignment), sizeof(std::size_t), alignof(std::size_t));
+    PrintMemberLayout(shine::STextView::from_literal("isEnum"), offsetof(shine::reflection::TypeInfo, isEnum), sizeof(bool), alignof(bool));
+    PrintMemberLayout(shine::STextView::from_literal("isPod"), offsetof(shine::reflection::TypeInfo, isPod), sizeof(bool), alignof(bool));
+    PrintMemberLayout(shine::STextView::from_literal("fields"), offsetof(shine::reflection::TypeInfo, fields), sizeof(std::vector<shine::reflection::FieldInfo>), alignof(std::vector<shine::reflection::FieldInfo>));
+    PrintMemberLayout(shine::STextView::from_literal("methods"), offsetof(shine::reflection::TypeInfo, methods), sizeof(std::vector<shine::reflection::MethodInfo>), alignof(std::vector<shine::reflection::MethodInfo>));
+    PrintMemberLayout(shine::STextView::from_literal("enumEntries"), offsetof(shine::reflection::TypeInfo, enumEntries), sizeof(std::vector<shine::reflection::EnumEntry>), alignof(std::vector<shine::reflection::EnumEntry>));
+    PrintMemberLayout(shine::STextView::from_literal("fieldLookup_"), offsetof(shine::reflection::TypeInfo, fieldLookup_), sizeof(std::vector<shine::reflection::TypeInfo::LookupEntry>), alignof(std::vector<shine::reflection::TypeInfo::LookupEntry>));
+    PrintMemberLayout(shine::STextView::from_literal("methodLookup_"), offsetof(shine::reflection::TypeInfo, methodLookup_), sizeof(std::vector<shine::reflection::TypeInfo::LookupEntry>), alignof(std::vector<shine::reflection::TypeInfo::LookupEntry>));
+    PrintMemberLayout(shine::STextView::from_literal("lookupSorted_"), offsetof(shine::reflection::TypeInfo, lookupSorted_), sizeof(bool), alignof(bool));
+
+    fmt::print("\nMethodCallCache 成员布局:\n");
+    PrintMemberLayout(shine::STextView::from_literal("returnTypeInfo"), offsetof(shine::reflection::MethodCallCache, returnTypeInfo), sizeof(const shine::reflection::TypeInfo*), alignof(const shine::reflection::TypeInfo*));
+    PrintMemberLayout(shine::STextView::from_literal("paramTypeInfos"), offsetof(shine::reflection::MethodCallCache, paramTypeInfos), sizeof(std::vector<const shine::reflection::TypeInfo*>), alignof(std::vector<const shine::reflection::TypeInfo*>));
+    PrintMemberLayout(shine::STextView::from_literal("paramOffsets"), offsetof(shine::reflection::MethodCallCache, paramOffsets), sizeof(std::vector<std::size_t>), alignof(std::vector<std::size_t>));
+    PrintMemberLayout(shine::STextView::from_literal("returnOffset"), offsetof(shine::reflection::MethodCallCache, returnOffset), sizeof(std::size_t), alignof(std::size_t));
+    PrintMemberLayout(shine::STextView::from_literal("frameSize"), offsetof(shine::reflection::MethodCallCache, frameSize), sizeof(std::size_t), alignof(std::size_t));
+    PrintMemberLayout(shine::STextView::from_literal("frameAlignment"), offsetof(shine::reflection::MethodCallCache, frameAlignment), sizeof(std::size_t), alignof(std::size_t));
+    PrintMemberLayout(shine::STextView::from_literal("valid"), offsetof(shine::reflection::MethodCallCache, valid), sizeof(bool), alignof(bool));
+
+    fmt::print("\nScratchBuffer 成员布局:\n");
+    PrintMemberLayout(shine::STextView::from_literal("stackBuf"), offsetof(shine::reflection::detail::ScratchBuffer, stackBuf), shine::reflection::detail::ScratchBuffer::kStack, alignof(std::max_align_t));
+    PrintMemberLayout(shine::STextView::from_literal("ptr"), offsetof(shine::reflection::detail::ScratchBuffer, ptr), sizeof(void*), alignof(void*));
+    PrintMemberLayout(shine::STextView::from_literal("heapAlignment"), offsetof(shine::reflection::detail::ScratchBuffer, heapAlignment), sizeof(std::size_t), alignof(std::size_t));
+
+    fmt::print("\nScriptValue 成员布局:\n");
+    PrintMemberLayout(shine::STextView::from_literal("data"), offsetof(shine::reflection::ScriptValue, data), sizeof(shine::reflection::ScriptValue), alignof(shine::reflection::ScriptValue));
+
+    fmt::print("\nTagged pointer 前提: min_align={} usable_low_bits={} supports_2_bits={} supports_4_bits={}\n",
+        shine::co::ue_binned2_port::GetTaggedPointerMinAlign(),
+        shine::co::ue_binned2_port::GetTaggedPointerUsableLowBits(),
+        shine::co::ue_binned2_port::SupportsTaggedPointerTagBits(2),
+        shine::co::ue_binned2_port::SupportsTaggedPointerTagBits(4));
+}
+
+void TestReflectionMemoryTags() {
+    PrintSeparator("基线: 反射内存标签路由");
+
+    using shine::co::Memory;
+    using shine::co::MemoryTag;
+    using shine::co::MemoryTagStats;
+
+    const auto printDelta = [](const char* label, const MemoryTagStats& before, const MemoryTagStats& after) {
+        fmt::print("  {:<20} alloc_delta={:<4} free_delta={:<4} current_delta={} peak_delta={}\n",
+            label,
+            static_cast<long long>(after.alloc_count) - static_cast<long long>(before.alloc_count),
+            static_cast<long long>(after.free_count) - static_cast<long long>(before.free_count),
+            static_cast<long long>(after.bytes_current) - static_cast<long long>(before.bytes_current),
+            static_cast<long long>(after.bytes_peak) - static_cast<long long>(before.bytes_peak));
+    };
+
+    Memory::FlushAllThreadStats();
+    const auto metaBefore = Memory::GetTagStats(MemoryTag::ReflectionMeta);
+    void* reflectionMetaBlock = nullptr;
+    {
+        shine::co::MemoryScope scope(MemoryTag::ReflectionMeta);
+        reflectionMetaBlock = Memory::Alloc(256, alignof(std::max_align_t));
+    }
+    Memory::FlushAllThreadStats();
+    const auto metaDuring = Memory::GetTagStats(MemoryTag::ReflectionMeta);
+    Memory::Free(reflectionMetaBlock);
+    Memory::FlushAllThreadStats();
+    const auto metaAfter = Memory::GetTagStats(MemoryTag::ReflectionMeta);
+    printDelta("ReflectionMeta", metaBefore, metaDuring);
+    printDelta("ReflectionMeta/free", metaDuring, metaAfter);
+
+    Memory::FlushAllThreadStats();
+    const auto stringBefore = Memory::GetTagStats(MemoryTag::ReflectionString);
+    void* reflectionStringBlock = nullptr;
+    {
+        shine::co::MemoryScope scope(MemoryTag::ReflectionString);
+        reflectionStringBlock = Memory::Alloc(1024, alignof(std::max_align_t));
+    }
+    Memory::FlushAllThreadStats();
+    const auto stringDuring = Memory::GetTagStats(MemoryTag::ReflectionString);
+    Memory::Free(reflectionStringBlock);
+    Memory::FlushAllThreadStats();
+    const auto stringAfter = Memory::GetTagStats(MemoryTag::ReflectionString);
+    printDelta("ReflectionString", stringBefore, stringDuring);
+    printDelta("ReflectionString/free", stringDuring, stringAfter);
+
+    Memory::FlushAllThreadStats();
+    const auto tempBefore = Memory::GetTagStats(MemoryTag::ScriptBridgeTemp);
+    {
+        shine::reflection::detail::ScratchBuffer scratch(512, alignof(std::max_align_t));
+        std::memset(scratch.ptr, 0, 512);
+        Memory::FlushAllThreadStats();
+        const auto tempDuring = Memory::GetTagStats(MemoryTag::ScriptBridgeTemp);
+        printDelta("ScriptBridgeTemp", tempBefore, tempDuring);
+    }
+    Memory::FlushAllThreadStats();
+    const auto tempAfter = Memory::GetTagStats(MemoryTag::ScriptBridgeTemp);
+    printDelta("ScriptBridgeTemp/free", tempBefore, tempAfter);
 }
 
 // =============================================================================
@@ -250,7 +442,7 @@ void TestConstexprLimitation() {
         fmt::print("运行时类型信息:\n");
         fmt::print("  - 字段数量: {}\n", rt_info->fields.size());
         for (const auto& f : rt_info->fields) {
-            fmt::print("    - {}: offset={}, size={}\n", f.name, f.offset, f.size);
+            fmt::print("    - {}: offset={}, size={}\n", f.GetNameView(), f.offset, f.size);
         }
     }
 }
@@ -275,7 +467,7 @@ void TestSerializationGap() {
         fmt::print("手动序列化 Transform 实例:\n");
         for (const auto& field : typeInfo->fields) {
             // 简化: 只打印字段信息，实际序列化需要处理类型
-            fmt::print("  {}: offset={}\n", field.name, field.offset);
+            fmt::print("  {}: offset={}\n", field.GetNameView(), field.offset);
         }
     }
 }
@@ -548,7 +740,7 @@ void TestAllFieldsPerformance() {
     
     // 预热查找缓存
     for (auto& field : typeInfo->fields) {
-        typeInfo->FindField(field.name);
+        typeInfo->FindField(field.GetNameView());
     }
     
     // 对每个字段进行性能测试
@@ -557,7 +749,7 @@ void TestAllFieldsPerformance() {
     fmt::print("--------------------------------------------------------\n");
     
     for (auto& field : typeInfo->fields) {
-        const char* fieldName = field.name.data();
+        const char* fieldName = field.GetNameView().data();
         
         // 原生访问 - 对于容器类型只测 size() 操作
         double nativeTime = 0;
@@ -700,7 +892,7 @@ void TestAllFieldsPerformance() {
     fmt::print("{:<15} {:>10} {:>10}\n", "字段名", "大小", "类型");
     fmt::print("--------------------------------------------------------\n");
     for (auto& field : typeInfo->fields) {
-        const char* fieldName = field.name.data();
+        const char* fieldName = field.GetNameView().data();
         fmt::print("{:<15} {:>10} {:>10}\n", fieldName, field.size, field.isPod ? "POD" : "Non-POD");
     }
     
@@ -709,7 +901,7 @@ void TestAllFieldsPerformance() {
     double totalNative = 0, totalReflect = 0;
     int count = 0;
     for (auto& field : typeInfo->fields) {
-        const char* fieldName = field.name.data();
+        const char* fieldName = field.GetNameView().data();
 
         double nativeTime = 0;
         if (strcmp(fieldName, "position") == 0) nativeTime = Benchmark([&]() { Vec3 v = t.position; (void)v; }, 100000);
@@ -785,7 +977,7 @@ void TestMethodCallPerformance() {
     
     fmt::print("已注册方法数量: {}\n", typeInfo->methods.size());
     for (const auto& m : typeInfo->methods) {
-        fmt::print("  - {} (返回类型: {})\n", m.name, m.returnType);
+        fmt::print("  - {} (返回类型: {})\n", m.GetNameView(), m.returnType);
     }
     
     // 测试方法调用
@@ -878,6 +1070,7 @@ void TestBasicFunctionality() {
             Vec3 pos;
             posField->Get(&t, &pos);
             fmt::print("[PASS] Get position: ({}, {}, {})\n", pos.x, pos.y, pos.z);
+            fmt::print("[PASS] position owner handle -> type: {}\n", posField->GetOwnerType() == typeInfo ? "OK" : "FAIL");
         }
         
         // Set position
@@ -902,6 +1095,11 @@ void TestBasicFunctionality() {
             idField->Get(&t, &id);
             fmt::print("[PASS] Get id: {}\n", id);
         }
+
+        auto* method = typeInfo->FindMethod("GetPosition");
+        if (method) {
+            fmt::print("[PASS] method owner handle -> type: {}\n", method->GetOwnerType() == typeInfo ? "OK" : "FAIL");
+        }
     }
     
     // 3. 枚举测试
@@ -917,11 +1115,35 @@ void TestFlagsAndMetadata() {
     
     auto* typeInfo = shine::reflection::TypeRegistry::Get().FindFast(shine::reflection::GetTypeId<Transform>());
     if (typeInfo) {
+        shine::reflection::InspectorView view;
+        view.typeInfo = typeInfo;
+
         for (const auto& field : typeInfo->fields) {
-            fmt::print("字段: {}\n", field.name);
+            fmt::print("字段: {}\n", field.GetNameView());
             fmt::print("  - Is POD: {}\n", field.isPod ? "Yes" : "No");
             fmt::print("  - Size: {} bytes\n", field.size);
             fmt::print("  - Alignment: {} bytes\n", field.alignment);
+            if (field.HasCategory()) {
+                fmt::print("  - Category: {}\n", field.GetCategoryView());
+            }
+            if (field.HasDisplayName()) {
+                fmt::print("  - DisplayName: {}\n", field.GetDisplayNameView());
+            }
+            if (field.HasRange()) {
+                fmt::print("  - Range: [{}, {}]\n", field.GetMinValue(), field.GetMaxValue());
+            }
+            if (field.HasEditCondition()) {
+                fmt::print("  - EditCondition: {}\n", field.GetEditConditionView());
+            }
+        }
+
+        Transform enabledInstance;
+        enabledInstance.enabled = true;
+        Transform disabledInstance;
+        disabledInstance.enabled = false;
+        if (const auto* idField = typeInfo->FindField("id")) {
+            fmt::print("[PASS] id visible when enabled=true: {}\n", view.IsVisible(*idField, &enabledInstance) ? "Yes" : "No");
+            fmt::print("[PASS] id visible when enabled=false: {}\n", view.IsVisible(*idField, &disabledInstance) ? "Yes" : "No");
         }
     }
 }
@@ -942,6 +1164,8 @@ int main() {
     TestFlagsAndMetadata();
     
     // 问题发现测试
+    TestReflectionLayoutBaseline();
+    TestReflectionMemoryTags();
     TestHashInconsistency();
     TestConstexprLimitation();
     TestSerializationGap();
