@@ -343,10 +343,9 @@ namespace shine::editor::util {
                         }
                     } else {
                         // Standard InputText
-                        char buffer[256];
-                        strncpy_s(buffer, sizeof(buffer), value.c_str(), sizeof(buffer) - 1);
-                        if (ImGui::InputText(labelC, buffer, sizeof(buffer))) {
-                            value = shine::SString(buffer);
+                        detail::ScopedInputTextBuffer inputBuffer(value);
+                        if (ImGui::InputText(labelC, inputBuffer.data(), inputBuffer.size())) {
+                            value = shine::SString(inputBuffer.data());
                             changed = true;
                         }
                     }

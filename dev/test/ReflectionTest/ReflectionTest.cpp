@@ -33,6 +33,7 @@
 
 #include "EngineCore/reflection/Reflection.h"
 #include "EngineCore/reflection/Views/ScriptView.h"
+#include "editor/util/PropertyDrawer.h"
 #include "memory/memory.ixx"
 #include "memory/ue_binned2_port.h"
 
@@ -143,12 +144,16 @@ REFLECTION_STRUCT(Vec3) {
 REFLECTION_STRUCT(Transform) {
     REFLECT_FIELD(position)
         .DisplayName(shine::STextView::from_literal("World Position"))
-        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Transform"));
+        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Transform"))
+        .Meta(shine::STextView::from_literal("Tooltip"), shine::STextView::from_literal("World transform origin"));
     REFLECT_FIELD(rotation)
         .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Transform"));
     REFLECT_FIELD(scale)
         .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Transform"));
     REFLECT_FIELD(name)
+        .EditAnywhere()
+        .ScriptReadWrite()
+        .UI(shine::reflection::UI::TextInput{128, false})
         .DisplayName(shine::STextView::from_literal("Actor Name"))
         .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Identity"));
     REFLECT_FIELD(id)
@@ -167,9 +172,12 @@ REFLECTION_STRUCT(Transform) {
         .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Collections"));
     
     // 使用优化的方法注册
-    REFLECT_METHOD_FAST(SetPosition);
+    REFLECT_METHOD_FAST(SetPosition)
+        .ScriptCallable();
     REFLECT_METHOD_FAST(GetPosition);
-    REFLECT_METHOD_FAST(AddTag);
+    REFLECT_METHOD_FAST(AddTag)
+        .ScriptCallable()
+        .Meta(shine::reflection::MetaKeys::BlueprintFunction, true);
     REFLECT_METHOD_FAST(SetProperty);
     REFLECT_METHOD_FAST(GetProperty);
 };
@@ -224,6 +232,21 @@ void PrintLayoutHeader(shine::STextView typeName, std::size_t hotBytes = 0) {
     fmt::print("\n");
 }
 
+template <typename T>
+void EnsurePrimitiveReflectionType() {
+    if (shine::reflection::TypeRegistry::Get().FindFast(shine::reflection::GetTypeId<T>())) {
+        return;
+    }
+
+    shine::reflection::TypeInfo typeInfo{};
+    typeInfo.id = shine::reflection::GetTypeId<T>();
+    typeInfo.size = sizeof(T);
+    typeInfo.alignment = alignof(T);
+    typeInfo.isPod = std::is_trivially_copyable_v<T>;
+    typeInfo.SetName(shine::reflection::GetTypeName<T>());
+    std::ignore = shine::reflection::TypeRegistry::Get().Register(std::move(typeInfo));
+}
+
 void PrintMemberLayout(shine::STextView memberName, std::size_t offset, std::size_t size, std::size_t alignment) {
     const auto firstCacheLine = offset / kAuditCacheLineBytes;
     const auto lastCacheLine = size == 0 ? firstCacheLine : (offset + size - 1) / kAuditCacheLineBytes;
@@ -250,6 +273,8 @@ void TestReflectionLayoutBaseline() {
     PrintLayoutHeader<shine::reflection::FieldColdData>(shine::STextView::from_literal("FieldColdData"));
     PrintLayoutHeader<shine::reflection::MethodColdData>(shine::STextView::from_literal("MethodColdData"));
     PrintLayoutHeader<shine::reflection::ReflectionOwnerHandle>(shine::STextView::from_literal("ReflectionOwnerHandle"));
+    PrintLayoutHeader<shine::reflection::ReflectionMetadataStorage>(shine::STextView::from_literal("ReflectionMetadataStorage"));
+    PrintLayoutHeader<shine::reflection::MethodCallParamStorage>(shine::STextView::from_literal("MethodCallParamStorage"));
     PrintLayoutHeader<shine::reflection::MethodCallCache>(shine::STextView::from_literal("MethodCallCache"));
     PrintLayoutHeader<shine::reflection::MetadataValue>(shine::STextView::from_literal("MetadataValue"));
     PrintLayoutHeader<shine::reflection::EnumEntry>(shine::STextView::from_literal("EnumEntry"));
@@ -282,7 +307,7 @@ void TestReflectionLayoutBaseline() {
     PrintMemberLayout(shine::STextView::from_literal("signatureHash"), offsetof(shine::reflection::MethodInfo, signatureHash), sizeof(uint64_t), alignof(uint64_t));
     PrintMemberLayout(shine::STextView::from_literal("flags"), offsetof(shine::reflection::MethodInfo, flags), sizeof(shine::reflection::FunctionFlags), alignof(shine::reflection::FunctionFlags));
     PrintMemberLayout(shine::STextView::from_literal("owner"), offsetof(shine::reflection::MethodInfo, owner), sizeof(shine::reflection::ReflectionOwnerHandle), alignof(shine::reflection::ReflectionOwnerHandle));
-    PrintMemberLayout(shine::STextView::from_literal("callCache"), offsetof(shine::reflection::MethodInfo, callCache), sizeof(shine::reflection::MethodCallCache), alignof(shine::reflection::MethodCallCache));
+    PrintMemberLayout(shine::STextView::from_literal("callCache"), offsetof(shine::reflection::MethodInfo, callCache), sizeof(shine::reflection::ReflectionColdPtr<shine::reflection::MethodCallCache>), alignof(shine::reflection::ReflectionColdPtr<shine::reflection::MethodCallCache>));
     PrintMemberLayout(shine::STextView::from_literal("coldData"), offsetof(shine::reflection::MethodInfo, coldData), sizeof(shine::reflection::ReflectionColdPtr<shine::reflection::MethodColdData>), alignof(shine::reflection::ReflectionColdPtr<shine::reflection::MethodColdData>));
 
     fmt::print("\nReflectionOwnerHandle 布局:\n");
@@ -303,12 +328,21 @@ void TestReflectionLayoutBaseline() {
 
     fmt::print("\nTypeColdData 成员布局:\n");
     PrintMemberLayout(shine::STextView::from_literal("name"), offsetof(shine::reflection::TypeColdData, name), sizeof(shine::STextView), alignof(shine::STextView));
-    PrintMemberLayout(shine::STextView::from_literal("enumEntries"), offsetof(shine::reflection::TypeColdData, enumEntries), sizeof(std::vector<shine::reflection::EnumEntry>), alignof(std::vector<shine::reflection::EnumEntry>));
+    PrintMemberLayout(shine::STextView::from_literal("enumEntries"), offsetof(shine::reflection::TypeColdData, enumEntries), sizeof(shine::reflection::ReflectionColdVector<shine::reflection::EnumEntry>), alignof(shine::reflection::ReflectionColdVector<shine::reflection::EnumEntry>));
+
+    fmt::print("\nReflectionMetadataStorage 成员布局:\n");
+    PrintMemberLayout(shine::STextView::from_literal("data"), 0, sizeof(shine::reflection::ReflectionMetadataStorage), alignof(shine::reflection::ReflectionMetadataStorage));
+
+    fmt::print("\nMethodCallParamStorage 成员布局:\n");
+    PrintMemberLayout(shine::STextView::from_literal("inlineTypeInfos"), offsetof(shine::reflection::MethodCallParamStorage, inlineTypeInfos), sizeof(decltype(shine::reflection::MethodCallParamStorage::inlineTypeInfos)), alignof(decltype(shine::reflection::MethodCallParamStorage::inlineTypeInfos)));
+    PrintMemberLayout(shine::STextView::from_literal("inlineOffsets"), offsetof(shine::reflection::MethodCallParamStorage, inlineOffsets), sizeof(decltype(shine::reflection::MethodCallParamStorage::inlineOffsets)), alignof(decltype(shine::reflection::MethodCallParamStorage::inlineOffsets)));
+    PrintMemberLayout(shine::STextView::from_literal("overflowStorage"), offsetof(shine::reflection::MethodCallParamStorage, overflowStorage), sizeof(std::byte*), alignof(std::byte*));
+    PrintMemberLayout(shine::STextView::from_literal("paramCount"), offsetof(shine::reflection::MethodCallParamStorage, paramCount), sizeof(std::size_t), alignof(std::size_t));
+    PrintMemberLayout(shine::STextView::from_literal("overflowCapacity"), offsetof(shine::reflection::MethodCallParamStorage, overflowCapacity), sizeof(std::size_t), alignof(std::size_t));
 
     fmt::print("\nMethodCallCache 成员布局:\n");
     PrintMemberLayout(shine::STextView::from_literal("returnTypeInfo"), offsetof(shine::reflection::MethodCallCache, returnTypeInfo), sizeof(const shine::reflection::TypeInfo*), alignof(const shine::reflection::TypeInfo*));
-    PrintMemberLayout(shine::STextView::from_literal("paramTypeInfos"), offsetof(shine::reflection::MethodCallCache, paramTypeInfos), sizeof(std::vector<const shine::reflection::TypeInfo*>), alignof(std::vector<const shine::reflection::TypeInfo*>));
-    PrintMemberLayout(shine::STextView::from_literal("paramOffsets"), offsetof(shine::reflection::MethodCallCache, paramOffsets), sizeof(std::vector<std::size_t>), alignof(std::vector<std::size_t>));
+    PrintMemberLayout(shine::STextView::from_literal("params"), offsetof(shine::reflection::MethodCallCache, params), sizeof(shine::reflection::MethodCallParamStorage), alignof(shine::reflection::MethodCallParamStorage));
     PrintMemberLayout(shine::STextView::from_literal("returnOffset"), offsetof(shine::reflection::MethodCallCache, returnOffset), sizeof(std::size_t), alignof(std::size_t));
     PrintMemberLayout(shine::STextView::from_literal("frameSize"), offsetof(shine::reflection::MethodCallCache, frameSize), sizeof(std::size_t), alignof(std::size_t));
     PrintMemberLayout(shine::STextView::from_literal("frameAlignment"), offsetof(shine::reflection::MethodCallCache, frameAlignment), sizeof(std::size_t), alignof(std::size_t));
@@ -463,6 +497,152 @@ void TestReflectionMemoryTags() {
     Memory::FlushAllThreadStats();
     const auto tempAfter = Memory::GetTagStats(MemoryTag::ScriptBridgeTemp);
     printDelta("ScriptBridgeTemp/free", tempBefore, tempAfter);
+
+    struct ReflectionTempBridge final : shine::reflection::ScriptBridge {
+        void FromScript(const shine::reflection::ScriptValue& value, void* target, shine::reflection::TypeId typeId) const override {
+            if (typeId == shine::reflection::GetTypeId<float>()) {
+                if (const auto* asFloat = std::get_if<float>(&value.data)) {
+                    *static_cast<float*>(target) = *asFloat;
+                }
+            }
+        }
+    };
+
+    Memory::FlushAllThreadStats();
+    const auto reflectionTempBefore = Memory::GetTagStats(MemoryTag::ReflectionTemp);
+    bool methodCallCacheBefore = false;
+    bool methodCallCacheAfter = false;
+    EnsurePrimitiveReflectionType<float>();
+    EnsurePrimitiveReflectionType<int>();
+    if (const auto* transformType = shine::reflection::TypeRegistry::Get().FindFast(shine::reflection::GetTypeId<Transform>())) {
+        shine::reflection::ScriptView view;
+        view.typeInfo = transformType;
+        if (const auto* setPositionMethod = view.GetMethodInfo(shine::STextView::from_literal("SetPosition"))) {
+            methodCallCacheBefore = setPositionMethod->HasCallCache();
+            Transform instance;
+            ReflectionTempBridge bridge;
+            const std::vector<shine::reflection::ScriptValue> methodArgs = {
+                shine::reflection::ScriptValue(1.0f),
+                shine::reflection::ScriptValue(2.0f),
+                shine::reflection::ScriptValue(3.0f)
+            };
+            std::ignore = view.CallMethod(&instance, setPositionMethod, methodArgs, bridge);
+            methodCallCacheAfter = setPositionMethod->GetCallCache() && setPositionMethod->GetCallCache()->valid;
+            fmt::print("  MethodCallCache storage SetPosition={} inline_capacity={} cached_params={}\n",
+                (setPositionMethod->GetCallCache() && setPositionMethod->GetCallCache()->UsesOverflowParamStorage()) ? "Overflow" : "Inline",
+                shine::reflection::MethodCallParamStorage::kInlineParamCount,
+                setPositionMethod->GetCallCache() ? setPositionMethod->GetCallCache()->ParamCount() : 0);
+        }
+        if (const auto* addTagMethod = view.GetMethodInfo(shine::STextView::from_literal("AddTag"))) {
+            Transform instance;
+            ReflectionTempBridge bridge;
+            const std::vector<shine::reflection::ScriptValue> methodArgs = {
+                shine::reflection::ScriptValue(7)
+            };
+            std::ignore = view.CallMethod(&instance, addTagMethod, methodArgs, bridge);
+            fmt::print("  MethodCallCache storage AddTag={} inline_capacity={} cached_params={}\n",
+                (addTagMethod->GetCallCache() && addTagMethod->GetCallCache()->UsesOverflowParamStorage()) ? "Overflow" : "Inline",
+                shine::reflection::MethodCallParamStorage::kInlineParamCount,
+                addTagMethod->GetCallCache() ? addTagMethod->GetCallCache()->ParamCount() : 0);
+        }
+    }
+    Memory::FlushAllThreadStats();
+    const auto reflectionTempAfter = Memory::GetTagStats(MemoryTag::ReflectionTemp);
+    printDelta("ReflectionTemp/call", reflectionTempBefore, reflectionTempAfter);
+
+    fmt::print("  MethodCallCache lazy state before_call={} after_call={}\n",
+        methodCallCacheBefore ? "Warm" : "Cold",
+        methodCallCacheAfter ? "Warm" : "Cold");
+
+    Memory::FlushAllThreadStats();
+    const auto editorInspectorBefore = Memory::GetTagStats(MemoryTag::EditorInspectorTemp);
+    {
+        shine::SString inspectorText;
+        inspectorText.resize(512, 'x');
+        shine::editor::util::detail::ScopedInputTextBuffer inspectorBuffer(inspectorText);
+        inspectorBuffer.data()[0] = 'y';
+        fmt::print("  EditorInspector buffer bytes={} heap_fallback={}\n",
+            inspectorBuffer.size(),
+            inspectorBuffer.size() > shine::editor::util::detail::ScopedInputTextBuffer::kStackCapacity ? "Yes" : "No");
+    }
+    Memory::FlushAllThreadStats();
+    const auto editorInspectorAfter = Memory::GetTagStats(MemoryTag::EditorInspectorTemp);
+    printDelta("EditorInspectorTemp", editorInspectorBefore, editorInspectorAfter);
+}
+
+void TestReflectionStringInterning() {
+    PrintSeparator("基线: 反射名字驻留");
+
+    auto& stringManager = shine::reflection::StringMemoryManager::GetInstance();
+    const auto stringCountBefore = stringManager.GetStringCount();
+
+    shine::SString typeName = "DynamicTypeName";
+    shine::SString fieldName = "DynamicFieldName";
+    shine::SString displayName = "DynamicDisplayName";
+    shine::SString methodName = "DynamicMethodName";
+    shine::SString enumName = "DynamicEnumName";
+
+    shine::reflection::TypeInfo dynamicInfo{};
+    dynamicInfo.id = shine::reflection::Hash("DynamicInternProbeType") ^ 0x31415926u;
+    dynamicInfo.SetName(typeName);
+    dynamicInfo.size = sizeof(Transform);
+    dynamicInfo.alignment = alignof(Transform);
+    dynamicInfo.isPod = false;
+    dynamicInfo.isEnum = false;
+
+    {
+        shine::reflection::TypeBuilder<Transform> builder(dynamicInfo, {.fieldCount = 1, .methodCount = 1});
+        auto fieldBuilder = builder.RegisterFieldFromDSL(shine::reflection::DSL::FieldDSLNode<&Transform::id>(fieldName));
+        fieldBuilder.DisplayName(displayName);
+        std::ignore = builder.RegisterMethodFromDSL(shine::reflection::DSL::MakeMethodDSL<&Transform::AddTag>(methodName));
+    }
+    dynamicInfo.BuildLookup();
+
+    shine::reflection::TypeInfo dynamicEnumInfo{};
+    dynamicEnumInfo.id = shine::reflection::Hash("DynamicInternProbeEnum") ^ 0x27182818u;
+    dynamicEnumInfo.SetName(shine::STextView::from_literal("DynamicInternProbeEnum"));
+    dynamicEnumInfo.size = sizeof(ETestEnum);
+    dynamicEnumInfo.alignment = alignof(ETestEnum);
+    dynamicEnumInfo.isPod = false;
+    dynamicEnumInfo.isEnum = true;
+
+    {
+        shine::reflection::TypeBuilder<ETestEnum> enumBuilder(dynamicEnumInfo, {.enumCount = 1});
+        enumBuilder.Enums({
+            {ETestEnum::Value1, enumName}
+        });
+    }
+
+    typeName[0] = 'X';
+    fieldName[0] = 'Y';
+    displayName[0] = 'Z';
+    methodName[0] = 'Q';
+    enumName[0] = 'W';
+
+    const auto stringCountAfter = stringManager.GetStringCount();
+    const auto* dynamicField = dynamicInfo.FindField(shine::STextView::from_literal("DynamicFieldName"));
+    const auto* dynamicMethod = dynamicInfo.FindMethod(shine::STextView::from_literal("DynamicMethodName"));
+    const auto& dynamicEnumEntries = dynamicEnumInfo.GetEnumEntries();
+
+    fmt::print("  reflection string manager count before={} after={} delta={} total_bytes={}\n",
+        stringCountBefore,
+        stringCountAfter,
+        static_cast<long long>(stringCountAfter) - static_cast<long long>(stringCountBefore),
+        stringManager.GetTotalBytes());
+    fmt::print("[PASS] type name survives source mutation: {}\n",
+        dynamicInfo.GetNameView() == shine::STextView::from_literal("DynamicTypeName") ? "Yes" : "No");
+    fmt::print("[PASS] field name survives source mutation: {}\n",
+        dynamicField && dynamicField->GetNameView() == shine::STextView::from_literal("DynamicFieldName") ? "Yes" : "No");
+    fmt::print("[PASS] display name survives source mutation: {}\n",
+        dynamicField && dynamicField->GetDisplayNameView() == shine::STextView::from_literal("DynamicDisplayName") ? "Yes" : "No");
+    fmt::print("[PASS] method name survives source mutation: {}\n",
+        dynamicMethod && dynamicMethod->GetNameView() == shine::STextView::from_literal("DynamicMethodName") ? "Yes" : "No");
+    fmt::print("[PASS] enum name survives source mutation: {}\n",
+        dynamicEnumEntries.size() == 1 && dynamicEnumEntries[0].name == shine::STextView::from_literal("DynamicEnumName") ? "Yes" : "No");
+    fmt::print("[PASS] interned type pointer detached from source buffer: {}\n",
+        dynamicInfo.GetNameView().data() != typeName.data() ? "Yes" : "No");
+    fmt::print("[PASS] reflection string manager observed new entries: {}\n",
+        stringCountAfter >= stringCountBefore + 5 ? "Yes" : "No");
 }
 
 void TestReflectionColdBatchReservation() {
@@ -491,24 +671,56 @@ void TestReflectionColdBatchReservation() {
 
     std::vector<FieldColdPtr> batchedColdData;
     batchedColdData.reserve(requestedBatch);
+    FieldColdPtr strayColdData;
+    size_t reservedPageBefore = static_cast<size_t>(-1);
+    size_t reservedBeginBefore = static_cast<size_t>(-1);
+    size_t reservedEndBefore = static_cast<size_t>(-1);
+    size_t issuedAfterHalf = 0;
+    size_t remainingAfterHalf = 0;
     {
         auto batch = fieldPool.BeginContiguousBatch(requestedBatch);
-        for (size_t index = 0; index < requestedBatch; ++index) {
-            batchedColdData.push_back(shine::reflection::MakeReflectionColdData<shine::reflection::FieldColdData>());
+        reservedPageBefore = batch.ReservedPageIndex();
+        reservedBeginBefore = batch.ReservedBeginSlot();
+        reservedEndBefore = batch.ReservedEndSlot();
+        for (size_t index = 0; index < requestedBatch / 2; ++index) {
+            batchedColdData.push_back(batch.Create());
+        }
+        issuedAfterHalf = batch.IssuedCount();
+        remainingAfterHalf = batch.Remaining();
+        strayColdData = shine::reflection::MakeReflectionColdData<shine::reflection::FieldColdData>();
+        for (size_t index = requestedBatch / 2; index < requestedBatch; ++index) {
+            batchedColdData.push_back(batch.Create());
         }
     }
 
     const size_t firstPage = batchedColdData.empty() ? fieldPool.PageIndexOf(nullptr) : fieldPool.PageIndexOf(batchedColdData.front().get());
     const size_t lastPage = batchedColdData.empty() ? fieldPool.PageIndexOf(nullptr) : fieldPool.PageIndexOf(batchedColdData.back().get());
+    const size_t strayPage = fieldPool.PageIndexOf(strayColdData.get());
+    const size_t firstSlot = batchedColdData.empty() ? fieldPool.SlotIndexInPageOf(nullptr) : fieldPool.SlotIndexInPageOf(batchedColdData.front().get());
+    const size_t lastSlot = batchedColdData.empty() ? fieldPool.SlotIndexInPageOf(nullptr) : fieldPool.SlotIndexInPageOf(batchedColdData.back().get());
+    const size_t straySlot = fieldPool.SlotIndexInPageOf(strayColdData.get());
 
-    fmt::print("  field batch pages: first={} last={} fillers_page={} committed_before={} slots_per_page={} requested_batch={}\n",
+    fmt::print("  field batch pages: first={} last={} stray_page={} fillers_page={} committed_before={} slots_per_page={} requested_batch={} reserved_page={} reserved_begin={} reserved_end={} issued_after_half={} remaining_after_half={} first_slot={} last_slot={} stray_slot={}\n",
         firstPage,
         lastPage,
+        strayPage,
         fillerPage,
         committedBefore,
         slotsPerPage,
-        requestedBatch);
+        requestedBatch,
+        reservedPageBefore,
+        reservedBeginBefore,
+        reservedEndBefore,
+        issuedAfterHalf,
+        remainingAfterHalf,
+        firstSlot,
+        lastSlot,
+        straySlot);
     fmt::print("[PASS] batched cold fields stay on one page: {}\n", firstPage == lastPage ? "Yes" : "No");
+    fmt::print("[PASS] reserved slot range matches batch size: {}\n",
+        reservedEndBefore > reservedBeginBefore && (reservedEndBefore - reservedBeginBefore) == requestedBatch ? "Yes" : "No");
+    fmt::print("[PASS] stray cold alloc stays outside reserved batch range: {}\n",
+        strayColdData && ((strayPage != firstPage) || (straySlot > lastSlot)) ? "Yes" : "No");
     if (!fillers.empty()) {
         fmt::print("[PASS] batch moved off the partially used tail page: {}\n", firstPage != fillerPage ? "Yes" : "No");
     }
@@ -517,24 +729,91 @@ void TestReflectionColdBatchReservation() {
 void TestReflectionRegistrationPlan() {
     PrintSeparator("基线: 注册计划与容量预留");
 
-    shine::reflection::TypeRegistrationPlan transformPlan{};
-    shine::reflection::TypeBuilderPlanCounter<Transform> transformCounter(transformPlan);
-    _ReflectRegFn_Transform(transformCounter);
+    const auto sumFieldMetadata = [](const auto& plans) {
+        size_t total = 0;
+        for (const auto& plan : plans) {
+            total += plan.runtimeMetadataCount;
+        }
+        return total;
+    };
+
+    const auto sumMethodMetadata = [](const auto& plans) {
+        size_t total = 0;
+        for (const auto& plan : plans) {
+            total += plan.runtimeMetadataCount;
+        }
+        return total;
+    };
+
+    shine::co::Memory::FlushAllThreadStats();
+    const auto planStageMetaBefore = shine::co::Memory::GetTagStats(shine::co::MemoryTag::ReflectionMeta);
+    shine::reflection::TypeRegistrationPlan stagedTransformPlan{};
+    {
+        shine::reflection::TypeBuilderPlanCounter<Transform> counter(stagedTransformPlan);
+        _ReflectRegFn_Transform(counter);
+    }
+    shine::co::Memory::FlushAllThreadStats();
+    const auto planStageMetaAfterMeasure = shine::co::Memory::GetTagStats(shine::co::MemoryTag::ReflectionMeta);
+    const auto stagedFieldPlanPages = stagedTransformPlan.fieldPlans.StagingPageCount();
+    const auto stagedMethodPlanPages = stagedTransformPlan.methodPlans.StagingPageCount();
+    const auto stagedMetadataPages = stagedTransformPlan.runtimeMetadataEntries.StagingPageCount();
+    const auto stagedParamPages = stagedTransformPlan.methodParamTypeEntries.StagingPageCount();
+    const bool fieldPlansFrozenBeforeFreeze = stagedTransformPlan.fieldPlans.is_frozen();
+    const bool methodPlansFrozenBeforeFreeze = stagedTransformPlan.methodPlans.is_frozen();
+    stagedTransformPlan.FreezeSharedBlocks();
+    const auto frozenFieldPlanPages = stagedTransformPlan.fieldPlans.StagingPageCount();
+    const auto frozenMethodPlanPages = stagedTransformPlan.methodPlans.StagingPageCount();
+    const auto frozenMetadataPages = stagedTransformPlan.runtimeMetadataEntries.StagingPageCount();
+    const auto frozenParamPages = stagedTransformPlan.methodParamTypeEntries.StagingPageCount();
+
+    fmt::print("  plan staging meta delta: alloc={} current={} field_pages={} method_pages={} metadata_pages={} param_pages={}\n",
+        planStageMetaAfterMeasure.alloc_count - planStageMetaBefore.alloc_count,
+        planStageMetaAfterMeasure.bytes_current - planStageMetaBefore.bytes_current,
+        stagedFieldPlanPages,
+        stagedMethodPlanPages,
+        stagedMetadataPages,
+        stagedParamPages);
+    fmt::print("[PASS] plan staging uses ReflectionMeta pages: {}\n",
+        planStageMetaAfterMeasure.alloc_count > planStageMetaBefore.alloc_count
+            && planStageMetaAfterMeasure.bytes_current > planStageMetaBefore.bytes_current ? "Yes" : "No");
+    fmt::print("[PASS] plan staging pages exist before freeze: {}\n",
+        stagedFieldPlanPages != 0
+            && stagedMethodPlanPages != 0
+            && stagedMetadataPages != 0
+            && stagedParamPages != 0
+            && !fieldPlansFrozenBeforeFreeze
+            && !methodPlansFrozenBeforeFreeze ? "Yes" : "No");
+    fmt::print("[PASS] freeze releases plan staging pages: {}\n",
+        frozenFieldPlanPages == 0
+            && frozenMethodPlanPages == 0
+            && frozenMetadataPages == 0
+            && frozenParamPages == 0
+            && stagedTransformPlan.fieldPlans.is_frozen()
+            && stagedTransformPlan.methodPlans.is_frozen()
+            && stagedTransformPlan.runtimeMetadataEntries.is_frozen()
+            && stagedTransformPlan.methodParamTypeEntries.is_frozen() ? "Yes" : "No");
+
+    auto transformGraph = shine::reflection::BuildTypeRegistrationGraph<Transform>(
+        shine::STextView::from_literal("TransformPlanProbe"),
+        []<typename TBuilder>(TBuilder& builder) {
+            _ReflectRegFn_Transform(builder);
+        },
+        false);
+    const auto& transformPlan = transformGraph.Plan();
+    const auto& transformLayout = transformPlan.GetEmitLayout();
+    const auto& transformEmit = transformPlan.GetEmitView();
 
     fmt::print("  Transform plan: fields={} methods={} enums={}\n",
         transformPlan.fieldCount,
         transformPlan.methodCount,
         transformPlan.enumCount);
+    fmt::print("  Transform runtime metadata plan: field_total={} method_total={}\n",
+        sumFieldMetadata(transformPlan.fieldPlans),
+        sumMethodMetadata(transformPlan.methodPlans));
 
-    shine::reflection::TypeInfo transformInfo{};
-    transformInfo.id = shine::reflection::GetTypeId<Transform>();
-    transformInfo.SetName(shine::STextView::from_literal("TransformPlanProbe"));
-    transformInfo.size = sizeof(Transform);
-    transformInfo.alignment = alignof(Transform);
-    transformInfo.isPod = std::is_trivially_copyable_v<Transform>;
-    transformInfo.isEnum = false;
-
-    shine::reflection::TypeBuilder<Transform> transformBuilder(transformInfo, transformPlan);
+    auto transformInfo = transformGraph.BuildTypeInfo([]<typename TBuilder>(TBuilder& builder) {
+        _ReflectRegFn_Transform(builder);
+    });
     fmt::print("  reserved capacities: fields={} methods={} enums={}\n",
         transformInfo.fields.capacity(),
         transformInfo.methods.capacity(),
@@ -543,24 +822,130 @@ void TestReflectionRegistrationPlan() {
         transformInfo.fields.capacity() >= transformPlan.fieldCount ? "Yes" : "No");
     fmt::print("[PASS] transform method reserve matches plan: {}\n",
         transformInfo.methods.capacity() >= transformPlan.methodCount ? "Yes" : "No");
+    fmt::print("[PASS] transform field metadata plan captured runtime extras: {}\n",
+        sumFieldMetadata(transformPlan.fieldPlans) == 1 ? "Yes" : "No");
+    fmt::print("[PASS] transform method metadata plan captured runtime extras: {}\n",
+        sumMethodMetadata(transformPlan.methodPlans) == 1 ? "Yes" : "No");
 
-    shine::reflection::TypeRegistrationPlan enumPlan{};
-    shine::reflection::TypeBuilderPlanCounter<ETestEnum> enumCounter(enumPlan);
-    _ReflectRegFn_ETestEnum(enumCounter);
+    const auto positionPlan = std::find_if(transformLayout.fieldPlans.begin(), transformLayout.fieldPlans.end(), [](const auto& plan) {
+        return plan.nameHash == shine::reflection::Hash(shine::STextView::from_literal("position"));
+    });
+    const auto namePlan = std::find_if(transformLayout.fieldPlans.begin(), transformLayout.fieldPlans.end(), [](const auto& plan) {
+        return plan.nameHash == shine::reflection::Hash(shine::STextView::from_literal("name"));
+    });
+    const auto idPlan = std::find_if(transformLayout.fieldPlans.begin(), transformLayout.fieldPlans.end(), [](const auto& plan) {
+        return plan.nameHash == shine::reflection::Hash(shine::STextView::from_literal("id"));
+    });
+    const auto addTagPlan = std::find_if(transformLayout.methodPlans.begin(), transformLayout.methodPlans.end(), [](const auto& plan) {
+        return plan.nameHash == shine::reflection::Hash(shine::STextView::from_literal("AddTag"));
+    });
+    const auto positionDescriptor = positionPlan != transformLayout.fieldPlans.end()
+        ? transformLayout.GetFieldDescriptor(static_cast<size_t>(std::distance(transformLayout.fieldPlans.begin(), positionPlan)))
+        : shine::reflection::TypeRegistrationPlan::EmitLayout::FieldEmitDescriptor{};
+    const auto addTagDescriptor = addTagPlan != transformLayout.methodPlans.end()
+        ? transformLayout.GetMethodDescriptor(static_cast<size_t>(std::distance(transformLayout.methodPlans.begin(), addTagPlan)))
+        : shine::reflection::TypeRegistrationPlan::EmitLayout::MethodEmitDescriptor{};
+    fmt::print("[PASS] position plan captured custom metadata: {}\n",
+        positionPlan != transformLayout.fieldPlans.end() && positionPlan->runtimeMetadataCount == 1 && positionPlan->hasDisplayName && positionPlan->hasCategory ? "Yes" : "No");
+    fmt::print("[PASS] emit layout exposes planned entries: {}\n",
+        transformLayout.fieldPlans.size() == transformPlan.fieldCount
+            && transformLayout.methodPlans.size() == transformPlan.methodCount
+            && transformLayout.runtimeMetadataEntries.size() == transformPlan.runtimeMetadataEntries.size()
+            && transformLayout.methodParamTypeEntries.size() == transformPlan.methodParamTypeEntries.size()
+            && transformLayout.fieldDescriptors.size() == transformPlan.fieldCount
+            && transformLayout.methodDescriptors.size() == transformPlan.methodCount ? "Yes" : "No");
+    fmt::print("[PASS] emit layout aliases legacy view: {}\n",
+        &transformLayout == &transformEmit ? "Yes" : "No");
+    fmt::print("[PASS] emit descriptors resolve slices eagerly: {}\n",
+        positionDescriptor.plan == (positionPlan != transformLayout.fieldPlans.end() ? &*positionPlan : nullptr)
+            && positionDescriptor.runtimeMetadata.size() == 1
+            && addTagDescriptor.plan == (addTagPlan != transformLayout.methodPlans.end() ? &*addTagPlan : nullptr)
+            && addTagDescriptor.runtimeMetadata.size() == 1
+            && addTagDescriptor.paramTypes.size() == 1 ? "Yes" : "No");
+    fmt::print("[PASS] frozen descriptor blocks mirror plan order: {}\n",
+        !transformLayout.fieldDescriptors.empty()
+            && transformLayout.fieldDescriptors[0].plan == &transformLayout.fieldPlans[0]
+            && !transformLayout.methodDescriptors.empty()
+            && transformLayout.methodDescriptors[0].plan == &transformLayout.methodPlans[0] ? "Yes" : "No");
+    fmt::print("[PASS] graph metadata block captured field/method slices: {}\n",
+        transformPlan.runtimeMetadataEntries.size() == 2
+            && positionPlan != transformLayout.fieldPlans.end()
+            && positionPlan->runtimeMetadataCount == 1
+            && transformLayout.GetRuntimeMetadata(*positionPlan).size() == 1
+            && transformLayout.GetRuntimeMetadata(*positionPlan)[0].first
+                == shine::reflection::Hash(shine::STextView::from_literal("Tooltip"))
+            && addTagPlan != transformLayout.methodPlans.end()
+            && addTagPlan->runtimeMetadataCount == 1
+            && transformLayout.GetRuntimeMetadata(*addTagPlan).size() == 1
+            && transformLayout.GetRuntimeMetadata(*addTagPlan)[0].first
+                == shine::reflection::MetaKeys::BlueprintFunction ? "Yes" : "No");
+    fmt::print("[PASS] position plan captured concrete builtin text: {}\n",
+        positionPlan != transformLayout.fieldPlans.end()
+            && positionPlan->typeId == shine::reflection::GetTypeId<Vec3>()
+            && positionPlan->offset == offsetof(Transform, position)
+            && positionPlan->size == sizeof(Vec3)
+            && positionPlan->displayName == shine::STextView::from_literal("World Position")
+            && positionPlan->category == shine::STextView::from_literal("Transform") ? "Yes" : "No");
+    fmt::print("[PASS] name plan captured UI override: {}\n",
+        namePlan != transformLayout.fieldPlans.end() && namePlan->hasUISchema && namePlan->hasDisplayName && namePlan->hasCategory ? "Yes" : "No");
+    const auto* textInputPlan = namePlan != transformLayout.fieldPlans.end()
+        ? std::get_if<shine::reflection::UI::TextInput>(&namePlan->uiSchema)
+        : nullptr;
+    fmt::print("[PASS] name plan captured concrete text input schema: {}\n",
+        textInputPlan != nullptr
+            && textInputPlan->max_length == 128
+            && textInputPlan->multiline == false
+            && HasFlag(namePlan->flags, shine::reflection::PropertyFlags::EditAnywhere)
+            && HasFlag(namePlan->flags, shine::reflection::PropertyFlags::ScriptReadWrite)
+            && namePlan->displayName == shine::STextView::from_literal("Actor Name")
+            && namePlan->category == shine::STextView::from_literal("Identity") ? "Yes" : "No");
+    fmt::print("[PASS] id plan captured builtin range and edit condition: {}\n",
+        idPlan != transformLayout.fieldPlans.end() && idPlan->hasRange && idPlan->hasDisplayName && idPlan->hasCategory && idPlan->hasEditCondition ? "Yes" : "No");
+    fmt::print("[PASS] id plan captured concrete range and condition payload: {}\n",
+        idPlan != transformLayout.fieldPlans.end()
+            && idPlan->minValue == 0.0f
+            && idPlan->maxValue == 100.0f
+            && idPlan->editCondition == shine::STextView::from_literal("enabled") ? "Yes" : "No");
+    fmt::print("[PASS] AddTag plan captured runtime metadata: {}\n",
+        addTagPlan != transformLayout.methodPlans.end() && addTagPlan->runtimeMetadataCount == 1 ? "Yes" : "No");
+    fmt::print("[PASS] AddTag plan captured method identity: {}\n",
+        addTagPlan != transformLayout.methodPlans.end()
+            && addTagPlan->name == shine::STextView::from_literal("AddTag")
+            && addTagPlan->returnType == shine::reflection::GetTypeId<int>()
+            && addTagPlan->paramTypeCount == 1
+            && transformLayout.GetMethodParamTypes(*addTagPlan).size() == 1
+            && transformLayout.GetMethodParamTypes(*addTagPlan)[0] == shine::reflection::GetTypeId<int>()
+            && HasFlag(addTagPlan->flags, shine::reflection::FunctionFlags::ScriptCallable) ? "Yes" : "No");
+
+    auto enumGraph = shine::reflection::BuildTypeRegistrationGraph<ETestEnum>(
+        shine::STextView::from_literal("EnumPlanProbe"),
+        []<typename TBuilder>(TBuilder& builder) {
+            _ReflectRegFn_ETestEnum(builder);
+        },
+        true);
+    const auto& enumPlan = enumGraph.Plan();
+    const auto& enumLayout = enumPlan.GetEmitLayout();
+    const auto& enumEmit = enumPlan.GetEmitView();
     fmt::print("  ETestEnum plan: fields={} methods={} enums={}\n",
         enumPlan.fieldCount,
         enumPlan.methodCount,
         enumPlan.enumCount);
+    fmt::print("[PASS] enum plan captured concrete labels: {}\n",
+        enumLayout.enumPlans.size() == 4
+            && enumLayout.enumPlans[0].value == static_cast<int64_t>(ETestEnum::None)
+            && enumLayout.enumPlans[0].name == shine::STextView::from_literal("None")
+            && enumLayout.enumPlans[3].value == static_cast<int64_t>(ETestEnum::Value3)
+            && enumLayout.enumPlans[3].name == shine::STextView::from_literal("Value3") ? "Yes" : "No");
+    fmt::print("[PASS] enum layout aliases legacy view: {}\n",
+        &enumLayout == &enumEmit ? "Yes" : "No");
+    fmt::print("[PASS] enum descriptor block mirrors plan order: {}\n",
+        enumLayout.enumDescriptors.size() == enumPlan.enumCount
+            && !enumLayout.enumDescriptors.empty()
+            && enumLayout.enumDescriptors[0].plan == &enumLayout.enumPlans[0] ? "Yes" : "No");
 
-    shine::reflection::TypeInfo enumInfo{};
-    enumInfo.id = shine::reflection::GetTypeId<ETestEnum>();
-    enumInfo.SetName(shine::STextView::from_literal("EnumPlanProbe"));
-    enumInfo.size = sizeof(ETestEnum);
-    enumInfo.alignment = alignof(ETestEnum);
-    enumInfo.isPod = false;
-    enumInfo.isEnum = true;
-
-    shine::reflection::TypeBuilder<ETestEnum> enumBuilder(enumInfo, enumPlan);
+    auto enumInfo = enumGraph.BuildTypeInfo([]<typename TBuilder>(TBuilder& builder) {
+        _ReflectRegFn_ETestEnum(builder);
+    });
     fmt::print("  enum reserved capacity: {}\n", enumInfo.GetEnumEntries().capacity());
     fmt::print("[PASS] enum reserve matches plan: {}\n",
         enumInfo.GetEnumEntries().capacity() >= enumPlan.enumCount ? "Yes" : "No");
@@ -569,13 +954,20 @@ void TestReflectionRegistrationPlan() {
 void TestTypeBuilderStagedEmission() {
     PrintSeparator("基线: TypeBuilder 原地发射");
 
-    shine::reflection::TypeRegistrationPlan transformPlan{};
-    shine::reflection::TypeBuilderPlanCounter<Transform> transformCounter(transformPlan);
-    _ReflectRegFn_Transform(transformCounter);
+    auto transformGraph = shine::reflection::BuildTypeRegistrationGraph<Transform>(
+        shine::STextView::from_literal("TransformStageProbe"),
+        []<typename TBuilder>(TBuilder& builder) {
+            _ReflectRegFn_Transform(builder);
+        },
+        false);
+    const auto& transformPlan = transformGraph.Plan();
+    bool stagedPayloadReadyBeforeReplay = false;
+    bool bindingDeferredUntilReplay = false;
+    bool bindingCompletedAfterReplay = false;
 
     shine::reflection::TypeInfo transformInfo{};
     transformInfo.id = shine::reflection::GetTypeId<Transform>();
-    transformInfo.SetName(shine::STextView::from_literal("TransformStageProbe"));
+    transformInfo.SetName(transformGraph.GetTypeName());
     transformInfo.size = sizeof(Transform);
     transformInfo.alignment = alignof(Transform);
     transformInfo.isPod = std::is_trivially_copyable_v<Transform>;
@@ -587,11 +979,38 @@ void TestTypeBuilderStagedEmission() {
         shine::reflection::TypeBuilder<Transform> transformBuilder(transformInfo, transformPlan);
         stagedFieldBase = transformInfo.fields.data();
         stagedMethodBase = transformInfo.methods.data();
+        transformInfo.BuildLookup();
+        const auto* stagedPositionBeforeReplay = transformInfo.FindField(shine::STextView::from_literal("position"));
+        const auto* stagedAddTagBeforeReplay = transformInfo.FindMethod(shine::STextView::from_literal("AddTag"));
+        stagedPayloadReadyBeforeReplay = stagedPositionBeforeReplay != nullptr
+            && stagedPositionBeforeReplay->typeId == shine::reflection::GetTypeId<Vec3>()
+            && stagedPositionBeforeReplay->offset == offsetof(Transform, position)
+            && stagedPositionBeforeReplay->GetDisplayNameView() == shine::STextView::from_literal("World Position")
+            && stagedAddTagBeforeReplay != nullptr
+            && stagedAddTagBeforeReplay->returnType == shine::reflection::GetTypeId<int>()
+            && stagedAddTagBeforeReplay->paramTypes.size() == 1
+            && stagedAddTagBeforeReplay->paramTypes[0] == shine::reflection::GetTypeId<int>();
+        bindingDeferredUntilReplay = stagedPositionBeforeReplay != nullptr
+            && stagedPositionBeforeReplay->getterFn == nullptr
+            && stagedPositionBeforeReplay->setterFn == nullptr
+            && stagedPositionBeforeReplay->equalsFn == nullptr
+            && stagedPositionBeforeReplay->copyFn == nullptr
+            && stagedAddTagBeforeReplay != nullptr
+            && stagedAddTagBeforeReplay->invokeFn == nullptr;
         fmt::print("  staged before emit: fields={} methods={} enums={}\n",
             transformInfo.fields.size(),
             transformInfo.methods.size(),
             transformInfo.GetEnumEntries().size());
         _ReflectRegFn_Transform(transformBuilder);
+        const auto* stagedPositionAfterReplay = transformInfo.FindField(shine::STextView::from_literal("position"));
+        const auto* stagedAddTagAfterReplay = transformInfo.FindMethod(shine::STextView::from_literal("AddTag"));
+        bindingCompletedAfterReplay = stagedPositionAfterReplay != nullptr
+            && stagedPositionAfterReplay->getterFn != nullptr
+            && stagedPositionAfterReplay->setterFn != nullptr
+            && stagedPositionAfterReplay->equalsFn != nullptr
+            && stagedPositionAfterReplay->copyFn != nullptr
+            && stagedAddTagAfterReplay != nullptr
+            && stagedAddTagAfterReplay->invokeFn != nullptr;
     }
 
     fmt::print("  staged after emit: fields={} methods={} enums={}\n",
@@ -606,14 +1025,62 @@ void TestTypeBuilderStagedEmission() {
         transformInfo.fields.size() == transformPlan.fieldCount ? "Yes" : "No");
     fmt::print("[PASS] transform staged method count exact: {}\n",
         transformInfo.methods.size() == transformPlan.methodCount ? "Yes" : "No");
+    fmt::print("[PASS] staged payload ready before replay: {}\n",
+        stagedPayloadReadyBeforeReplay ? "Yes" : "No");
+    fmt::print("[PASS] replay deferred binding work only: {}\n",
+        bindingDeferredUntilReplay && bindingCompletedAfterReplay ? "Yes" : "No");
 
-    shine::reflection::TypeRegistrationPlan enumPlan{};
-    shine::reflection::TypeBuilderPlanCounter<ETestEnum> enumCounter(enumPlan);
-    _ReflectRegFn_ETestEnum(enumCounter);
+    transformInfo.BuildLookup();
+    const auto* positionField = transformInfo.FindField(shine::STextView::from_literal("position"));
+    const auto* nameField = transformInfo.FindField(shine::STextView::from_literal("name"));
+    const auto* idField = transformInfo.FindField(shine::STextView::from_literal("id"));
+    const auto* addTagMethod = transformInfo.FindMethod(shine::STextView::from_literal("AddTag"));
+    fmt::print("  staged metadata reserve: position size={} capacity={} AddTag size={} capacity={}\n",
+        positionField ? positionField->GetMetadata().size() : 0,
+        positionField ? positionField->GetMetadata().capacity() : 0,
+        addTagMethod ? addTagMethod->GetMetadata().size() : 0,
+        addTagMethod ? addTagMethod->GetMetadata().capacity() : 0);
+    const auto* stagedNameSchema = nameField != nullptr
+        ? std::get_if<shine::reflection::UI::TextInput>(&nameField->GetUISchema())
+        : nullptr;
+    fmt::print("[PASS] position metadata reserve exact: {}\n",
+        positionField && positionField->GetMetadata().size() == 1 && positionField->GetMetadata().capacity() == 1 ? "Yes" : "No");
+    fmt::print("[PASS] AddTag metadata reserve exact: {}\n",
+        addTagMethod && addTagMethod->GetMetadata().size() == 1 && addTagMethod->GetMetadata().capacity() == 1 ? "Yes" : "No");
+    fmt::print("[PASS] staged field payload consumed from plan: {}\n",
+        positionField != nullptr
+            && positionField->typeId == shine::reflection::GetTypeId<Vec3>()
+            && positionField->offset == offsetof(Transform, position)
+            && positionField->GetDisplayNameView() == shine::STextView::from_literal("World Position")
+            && positionField->GetCategoryView() == shine::STextView::from_literal("Transform")
+            && stagedNameSchema != nullptr
+            && stagedNameSchema->max_length == 128
+            && stagedNameSchema->multiline == false
+            && nameField != nullptr
+            && HasFlag(nameField->flags, shine::reflection::PropertyFlags::EditAnywhere)
+            && HasFlag(nameField->flags, shine::reflection::PropertyFlags::ScriptReadWrite)
+            && idField != nullptr
+            && idField->GetMinValue() == 0.0f
+            && idField->GetMaxValue() == 100.0f
+            && idField->GetEditConditionView() == shine::STextView::from_literal("enabled")
+            && addTagMethod != nullptr
+            && addTagMethod->GetNameView() == shine::STextView::from_literal("AddTag")
+            && addTagMethod->returnType == shine::reflection::GetTypeId<int>()
+            && addTagMethod->paramTypes.size() == 1
+            && addTagMethod->paramTypes[0] == shine::reflection::GetTypeId<int>()
+            && HasFlag(addTagMethod->flags, shine::reflection::FunctionFlags::ScriptCallable) ? "Yes" : "No");
+
+    auto enumGraph = shine::reflection::BuildTypeRegistrationGraph<ETestEnum>(
+        shine::STextView::from_literal("EnumStageProbe"),
+        []<typename TBuilder>(TBuilder& builder) {
+            _ReflectRegFn_ETestEnum(builder);
+        },
+        true);
+    const auto& enumPlan = enumGraph.Plan();
 
     shine::reflection::TypeInfo enumInfo{};
     enumInfo.id = shine::reflection::GetTypeId<ETestEnum>();
-    enumInfo.SetName(shine::STextView::from_literal("EnumStageProbe"));
+    enumInfo.SetName(enumGraph.GetTypeName());
     enumInfo.size = sizeof(ETestEnum);
     enumInfo.alignment = alignof(ETestEnum);
     enumInfo.isPod = false;
@@ -632,6 +1099,10 @@ void TestTypeBuilderStagedEmission() {
         enumInfo.GetEnumEntries().data() == stagedEnumBase ? "Yes" : "No");
     fmt::print("[PASS] enum staged count exact: {}\n",
         enumInfo.GetEnumEntries().size() == enumPlan.enumCount ? "Yes" : "No");
+    fmt::print("[PASS] enum staged payload consumed from plan: {}\n",
+        enumInfo.GetEnumEntries().size() == 4
+            && enumInfo.GetEnumEntries()[0].name == shine::STextView::from_literal("None")
+            && enumInfo.GetEnumEntries()[3].name == shine::STextView::from_literal("Value3") ? "Yes" : "No");
 }
 
 void TestRegisteredTypeColdLocality() {
@@ -648,33 +1119,51 @@ void TestRegisteredTypeColdLocality() {
 
     size_t firstFieldPage = static_cast<size_t>(-1);
     size_t lastFieldPage = static_cast<size_t>(-1);
+    size_t firstFieldSlot = static_cast<size_t>(-1);
+    size_t lastFieldSlot = static_cast<size_t>(-1);
     for (const auto& field : typeInfo->fields) {
         const size_t pageIndex = fieldPool.PageIndexOf(field.coldData.get());
+        const size_t slotIndex = fieldPool.SlotIndexInPageOf(field.coldData.get());
         if (firstFieldPage == static_cast<size_t>(-1)) {
             firstFieldPage = pageIndex;
+            firstFieldSlot = slotIndex;
         }
         lastFieldPage = pageIndex;
+        lastFieldSlot = slotIndex;
     }
 
     size_t firstMethodPage = static_cast<size_t>(-1);
     size_t lastMethodPage = static_cast<size_t>(-1);
+    size_t firstMethodSlot = static_cast<size_t>(-1);
+    size_t lastMethodSlot = static_cast<size_t>(-1);
     for (const auto& method : typeInfo->methods) {
         const size_t pageIndex = methodPool.PageIndexOf(method.coldData.get());
+        const size_t slotIndex = methodPool.SlotIndexInPageOf(method.coldData.get());
         if (firstMethodPage == static_cast<size_t>(-1)) {
             firstMethodPage = pageIndex;
+            firstMethodSlot = slotIndex;
         }
         lastMethodPage = pageIndex;
+        lastMethodSlot = slotIndex;
     }
 
-    fmt::print("  Transform cold pages: field_first={} field_last={} method_first={} method_last={}\n",
+    fmt::print("  Transform cold pages: field_first={} field_last={} field_slot_first={} field_slot_last={} method_first={} method_last={} method_slot_first={} method_slot_last={}\n",
         firstFieldPage,
         lastFieldPage,
+        firstFieldSlot,
+        lastFieldSlot,
         firstMethodPage,
-        lastMethodPage);
+        lastMethodPage,
+        firstMethodSlot,
+        lastMethodSlot);
     fmt::print("[PASS] transform fields share one cold page: {}\n",
         firstFieldPage == lastFieldPage ? "Yes" : "No");
     fmt::print("[PASS] transform methods share one cold page: {}\n",
         firstMethodPage == lastMethodPage ? "Yes" : "No");
+    fmt::print("[PASS] transform field cold slots are contiguous: {}\n",
+        firstFieldPage == lastFieldPage && (lastFieldSlot - firstFieldSlot + 1) == typeInfo->fields.size() ? "Yes" : "No");
+    fmt::print("[PASS] transform method cold slots are contiguous: {}\n",
+        firstMethodPage == lastMethodPage && (lastMethodSlot - firstMethodSlot + 1) == typeInfo->methods.size() ? "Yes" : "No");
 }
 
 void TestTypeRegistryArenaOwnership() {
@@ -1537,6 +2026,7 @@ int main() {
     // 问题发现测试
     TestReflectionLayoutBaseline();
     TestReflectionMemoryTags();
+    TestReflectionStringInterning();
     TestReflectionColdBatchReservation();
     TestReflectionRegistrationPlan();
     TestTypeBuilderStagedEmission();

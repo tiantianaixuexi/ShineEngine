@@ -24,6 +24,7 @@
 #include <vector>
 #include <unordered_set>
 #include <functional>
+#include <cstring>
 
 #include "string/shine_text_view.h"
 #include "util/EnumFlags.h"
@@ -265,6 +266,161 @@ namespace shine::reflection {
     };
 
     template <typename T>
+    class ReflectionColdPool;
+
+    template <typename T>
+    struct ReflectionColdDeleter {
+        void operator()(T* ptr) const noexcept {
+            ReflectionColdPool<T>::Get().Destroy(ptr);
+        }
+    };
+
+    template <typename T>
+    using ReflectionColdPtr = std::unique_ptr<T, ReflectionColdDeleter<T>>;
+
+    template <typename T>
+    class ReflectionColdVector {
+    public:
+        using value_type = T;
+        using size_type = std::size_t;
+        using iterator = T*;
+        using const_iterator = const T*;
+
+        ReflectionColdVector() = default;
+
+        ~ReflectionColdVector() {
+            Release();
+        }
+
+        ReflectionColdVector(const ReflectionColdVector&) = delete;
+        ReflectionColdVector& operator=(const ReflectionColdVector&) = delete;
+
+        ReflectionColdVector(ReflectionColdVector&& other) noexcept
+            : data_(other.data_)
+            , size_(other.size_)
+            , capacity_(other.capacity_) {
+            other.data_ = nullptr;
+            other.size_ = 0;
+            other.capacity_ = 0;
+        }
+
+        ReflectionColdVector& operator=(ReflectionColdVector&& other) noexcept {
+            if (this != &other) {
+                Release();
+                data_ = other.data_;
+                size_ = other.size_;
+                capacity_ = other.capacity_;
+                other.data_ = nullptr;
+                other.size_ = 0;
+                other.capacity_ = 0;
+            }
+            return *this;
+        }
+
+        void reserve(size_type newCapacity) {
+            if (newCapacity <= capacity_) {
+                return;
+            }
+
+            shine::co::MemoryScope scope(shine::co::MemoryTag::ReflectionCold);
+            auto* newData = static_cast<T*>(shine::co::Memory::Alloc(sizeof(T) * newCapacity, alignof(T)));
+            assert(newData && "ReflectionColdVector::reserve failed");
+            if (!newData) {
+                return;
+            }
+
+            for (size_type index = 0; index < size_; ++index) {
+                std::construct_at(newData + index, std::move(data_[index]));
+                std::destroy_at(data_ + index);
+            }
+
+            if (data_ != nullptr) {
+                shine::co::Memory::Free(data_);
+            }
+
+            data_ = newData;
+            capacity_ = newCapacity;
+        }
+
+        void resize(size_type newSize) {
+            if (newSize > capacity_) {
+                reserve(newSize);
+            }
+
+            if (newSize > size_) {
+                for (size_type index = size_; index < newSize; ++index) {
+                    std::construct_at(data_ + index);
+                }
+            } else {
+                for (size_type index = newSize; index < size_; ++index) {
+                    std::destroy_at(data_ + index);
+                }
+            }
+
+            size_ = newSize;
+        }
+
+        template <typename... TArgs>
+        T& emplace_back(TArgs&&... args) {
+            if (size_ == capacity_) {
+                reserve(capacity_ == 0 ? 4 : capacity_ * 2);
+            }
+
+            std::construct_at(data_ + size_, std::forward<TArgs>(args)...);
+            return data_[size_++];
+        }
+
+        void push_back(const T& value) {
+            (void)emplace_back(value);
+        }
+
+        void push_back(T&& value) {
+            (void)emplace_back(std::move(value));
+        }
+
+        void clear() noexcept {
+            for (size_type index = 0; index < size_; ++index) {
+                std::destroy_at(data_ + index);
+            }
+            size_ = 0;
+        }
+
+        [[nodiscard]] size_type size() const noexcept { return size_; }
+        [[nodiscard]] size_type capacity() const noexcept { return capacity_; }
+        [[nodiscard]] bool empty() const noexcept { return size_ == 0; }
+
+        [[nodiscard]] T* data() noexcept { return data_; }
+        [[nodiscard]] const T* data() const noexcept { return data_; }
+
+        [[nodiscard]] T& operator[](size_type index) noexcept { return data_[index]; }
+        [[nodiscard]] const T& operator[](size_type index) const noexcept { return data_[index]; }
+
+        [[nodiscard]] T& back() noexcept { return data_[size_ - 1]; }
+        [[nodiscard]] const T& back() const noexcept { return data_[size_ - 1]; }
+
+        [[nodiscard]] iterator begin() noexcept { return data_; }
+        [[nodiscard]] iterator end() noexcept { return data_ + size_; }
+        [[nodiscard]] const_iterator begin() const noexcept { return data_; }
+        [[nodiscard]] const_iterator end() const noexcept { return data_ + size_; }
+        [[nodiscard]] const_iterator cbegin() const noexcept { return data_; }
+        [[nodiscard]] const_iterator cend() const noexcept { return data_ + size_; }
+
+    private:
+        void Release() noexcept {
+            clear();
+            if (data_ != nullptr) {
+                shine::co::Memory::Free(data_);
+                data_ = nullptr;
+            }
+            capacity_ = 0;
+        }
+
+        T* data_ = nullptr;
+        size_type size_ = 0;
+        size_type capacity_ = 0;
+    };
+
+    template <typename T>
     class ReflectionColdPool {
     public:
         static constexpr size_t kTargetPageBytes = 16 * 1024;
@@ -274,24 +430,45 @@ namespace shine::reflection {
             ContiguousBatch() = default;
 
             ContiguousBatch(ReflectionColdPool* owner, size_t expectedCount) noexcept
-                : owner_(owner), expectedCount_(expectedCount) {}
+                : owner_(owner), remaining_(expectedCount) {}
 
             ContiguousBatch(const ContiguousBatch&) = delete;
             ContiguousBatch& operator=(const ContiguousBatch&) = delete;
 
             ContiguousBatch(ContiguousBatch&& other) noexcept
-                : owner_(other.owner_), expectedCount_(other.expectedCount_) {
+                : owner_(other.owner_)
+                , pageIndex_(other.pageIndex_)
+                , cursor_(other.cursor_)
+                , reservedBegin_(other.reservedBegin_)
+                , reservedEnd_(other.reservedEnd_)
+                , remaining_(other.remaining_)
+                , issuedCount_(other.issuedCount_) {
                 other.owner_ = nullptr;
-                other.expectedCount_ = 0;
+                other.pageIndex_ = kInvalidPageIndex;
+                other.cursor_ = 0;
+                other.reservedBegin_ = 0;
+                other.reservedEnd_ = 0;
+                other.remaining_ = 0;
+                other.issuedCount_ = 0;
             }
 
             ContiguousBatch& operator=(ContiguousBatch&& other) noexcept {
                 if (this != &other) {
                     Reset();
                     owner_ = other.owner_;
-                    expectedCount_ = other.expectedCount_;
+                    pageIndex_ = other.pageIndex_;
+                    cursor_ = other.cursor_;
+                    reservedBegin_ = other.reservedBegin_;
+                    reservedEnd_ = other.reservedEnd_;
+                    remaining_ = other.remaining_;
+                    issuedCount_ = other.issuedCount_;
                     other.owner_ = nullptr;
-                    other.expectedCount_ = 0;
+                    other.pageIndex_ = kInvalidPageIndex;
+                    other.cursor_ = 0;
+                    other.reservedBegin_ = 0;
+                    other.reservedEnd_ = 0;
+                    other.remaining_ = 0;
+                    other.issuedCount_ = 0;
                 }
                 return *this;
             }
@@ -301,20 +478,60 @@ namespace shine::reflection {
             }
 
             void Reset() noexcept {
-                if (owner_) {
-                    owner_->EndContiguousBatch();
-                    owner_ = nullptr;
-                    expectedCount_ = 0;
-                }
+                owner_ = nullptr;
+                pageIndex_ = kInvalidPageIndex;
+                cursor_ = 0;
+                reservedBegin_ = 0;
+                reservedEnd_ = 0;
+                remaining_ = 0;
+                issuedCount_ = 0;
             }
 
             [[nodiscard]] explicit operator bool() const noexcept {
                 return owner_ != nullptr;
             }
 
+            [[nodiscard]] size_t ReservedPageIndex() const noexcept {
+                return pageIndex_;
+            }
+
+            [[nodiscard]] size_t ReservedBeginSlot() const noexcept {
+                return reservedBegin_;
+            }
+
+            [[nodiscard]] size_t ReservedEndSlot() const noexcept {
+                return reservedEnd_;
+            }
+
+            [[nodiscard]] size_t Remaining() const noexcept {
+                return remaining_;
+            }
+
+            [[nodiscard]] size_t IssuedCount() const noexcept {
+                return issuedCount_;
+            }
+
+            template <typename... TArgs>
+            [[nodiscard]] ReflectionColdPtr<T> Create(TArgs&&... args) {
+                if (!owner_) {
+                    return {};
+                }
+
+                T* ptr = owner_->CreateReserved(*this, std::forward<TArgs>(args)...);
+                assert(ptr && "ReflectionColdPool::ContiguousBatch::Create failed");
+                return ReflectionColdPtr<T>(ptr);
+            }
+
         private:
+            friend class ReflectionColdPool;
+
             ReflectionColdPool* owner_ = nullptr;
-            size_t expectedCount_ = 0;
+            size_t pageIndex_ = kInvalidPageIndex;
+            size_t cursor_ = 0;
+            size_t reservedBegin_ = 0;
+            size_t reservedEnd_ = 0;
+            size_t remaining_ = 0;
+            size_t issuedCount_ = 0;
         };
 
         static ReflectionColdPool& Get() {
@@ -331,19 +548,7 @@ namespace shine::reflection {
             Page* page = nullptr;
             {
                 std::lock_guard<std::mutex> lock(mutex_);
-                if (batchRemaining_ != 0) {
-                    if (batchPageIndex_ >= pages_.size() || pages_[batchPageIndex_].nextUnused >= pages_[batchPageIndex_].capacity) {
-                        AllocatePageLocked();
-                        batchPageIndex_ = activePageIndex_;
-                    }
-
-                    if (batchPageIndex_ < pages_.size()) {
-                        page = &pages_[batchPageIndex_];
-                        slotMemory = page->memory + (page->nextUnused * kSlotStride);
-                        ++page->nextUnused;
-                        --batchRemaining_;
-                    }
-                } else if (freeList_) {
+                if (freeList_) {
                     auto* recycledSlot = freeList_;
                     freeList_ = freeList_->next;
                     slotMemory = recycledSlot;
@@ -395,18 +600,11 @@ namespace shine::reflection {
             }
 
             std::lock_guard<std::mutex> lock(mutex_);
-            const size_t minContiguousSlots = (std::min)(expectedCount, kSlotsPerPage);
-            if (activePageIndex_ >= pages_.size() || RemainingSlotsLocked(pages_[activePageIndex_]) < minContiguousSlots) {
-                AllocatePageLocked();
-            }
-
-            if (activePageIndex_ >= pages_.size()) {
+            ContiguousBatch batch(this, expectedCount);
+            if (!ReserveBatchChunkLocked(batch)) {
                 return {};
             }
-
-            batchPageIndex_ = activePageIndex_;
-            batchRemaining_ = expectedCount;
-            return ContiguousBatch(this, expectedCount);
+            return batch;
         }
 
         [[nodiscard]] size_t BlockCount() const noexcept {
@@ -455,6 +653,19 @@ namespace shine::reflection {
             return FindPageIndexForSlotLocked(ptr);
         }
 
+        [[nodiscard]] size_t SlotIndexInPageOf(const T* ptr) const noexcept {
+            std::lock_guard<std::mutex> lock(mutex_);
+            const size_t pageIndex = FindPageIndexForSlotLocked(ptr);
+            if (pageIndex == kInvalidPageIndex) {
+                return kInvalidPageIndex;
+            }
+
+            const auto& page = pages_[pageIndex];
+            const auto pageBegin = reinterpret_cast<std::uintptr_t>(page.memory);
+            const auto slotAddress = reinterpret_cast<std::uintptr_t>(ptr);
+            return (slotAddress - pageBegin) / kSlotStride;
+        }
+
     private:
         ReflectionColdPool() = default;
         ~ReflectionColdPool() {
@@ -498,10 +709,64 @@ namespace shine::reflection {
             activePageIndex_ = pages_.size() - 1;
         }
 
-        void EndContiguousBatch() noexcept {
-            std::lock_guard<std::mutex> lock(mutex_);
-            batchRemaining_ = 0;
-            batchPageIndex_ = kInvalidPageIndex;
+        [[nodiscard]] bool ReserveBatchChunkLocked(ContiguousBatch& batch) {
+            if (batch.remaining_ == 0) {
+                return true;
+            }
+
+            const size_t minContiguousSlots = (std::min)(batch.remaining_, kSlotsPerPage);
+            if (activePageIndex_ >= pages_.size() || RemainingSlotsLocked(pages_[activePageIndex_]) < minContiguousSlots) {
+                AllocatePageLocked();
+            }
+
+            if (activePageIndex_ >= pages_.size()) {
+                return false;
+            }
+
+            auto& page = pages_[activePageIndex_];
+            const size_t reserveCount = (std::min)(batch.remaining_, RemainingSlotsLocked(page));
+            if (reserveCount == 0) {
+                return false;
+            }
+
+            batch.pageIndex_ = activePageIndex_;
+            batch.cursor_ = page.nextUnused;
+            batch.reservedBegin_ = page.nextUnused;
+            batch.reservedEnd_ = page.nextUnused + reserveCount;
+            page.nextUnused += reserveCount;
+            return true;
+        }
+
+        template <typename... TArgs>
+        [[nodiscard]] T* CreateReserved(ContiguousBatch& batch, TArgs&&... args) {
+            void* slotMemory = nullptr;
+            Page* page = nullptr;
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                if (batch.owner_ != this || batch.remaining_ == 0) {
+                    return nullptr;
+                }
+
+                if (batch.cursor_ >= batch.reservedEnd_) {
+                    if (!ReserveBatchChunkLocked(batch)) {
+                        return nullptr;
+                    }
+                }
+
+                if (batch.pageIndex_ >= pages_.size()) {
+                    return nullptr;
+                }
+
+                page = &pages_[batch.pageIndex_];
+                slotMemory = page->memory + (batch.cursor_ * kSlotStride);
+                ++batch.cursor_;
+                --batch.remaining_;
+                ++batch.issuedCount_;
+                ++page->liveCount;
+                ++liveCount_;
+            }
+
+            return std::construct_at(static_cast<T*>(slotMemory), std::forward<TArgs>(args)...);
         }
 
         Page* FindPageForSlotLocked(const void* slotMemory) {
@@ -539,20 +804,8 @@ namespace shine::reflection {
         Slot* freeList_ = nullptr;
         std::vector<Page> pages_;
         size_t activePageIndex_ = kInvalidPageIndex;
-        size_t batchPageIndex_ = kInvalidPageIndex;
-        size_t batchRemaining_ = 0;
         size_t liveCount_ = 0;
     };
-
-    template <typename T>
-    struct ReflectionColdDeleter {
-        void operator()(T* ptr) const noexcept {
-            ReflectionColdPool<T>::Get().Destroy(ptr);
-        }
-    };
-
-    template <typename T>
-    using ReflectionColdPtr = std::unique_ptr<T, ReflectionColdDeleter<T>>;
 
     template <typename T, typename... TArgs>
     [[nodiscard]] ReflectionColdPtr<T> MakeReflectionColdData(TArgs&&... args) {
@@ -620,16 +873,38 @@ namespace shine::reflection {
 
         /// Store (or find existing) a string.  The returned pointer
         /// is valid for the lifetime of the manager.
-        const char* StoreString(shine::STextView str);
+        const char* StoreString(shine::STextView str) {
+            if (auto it = internSet_.find(str); it != internSet_.end()) {
+                return it->data();
+            }
 
-        void ClearStrings();
+            const char* stored = arena_.Store(str);
+            if (stored) {
+                internSet_.emplace(stored, str.size());
+                stringCount_.fetch_add(1, std::memory_order_relaxed);
+            }
+            return stored;
+        }
 
-        [[nodiscard]] size_t GetStringCount() const noexcept;
-        [[nodiscard]] size_t GetTotalBytes()  const noexcept;
+        void ClearStrings() {
+            internSet_.clear();
+            arena_.Clear();
+            stringCount_.store(0, std::memory_order_relaxed);
+        }
+
+        [[nodiscard]] size_t GetStringCount() const noexcept {
+            return stringCount_.load(std::memory_order_relaxed);
+        }
+
+        [[nodiscard]] size_t GetTotalBytes()  const noexcept {
+            return arena_.GetTotalStored();
+        }
 
     private:
         StringMemoryManager() = default;
-        ~StringMemoryManager();
+        ~StringMemoryManager() {
+            ClearStrings();
+        }
 
         // ---- String arena (linear bump allocator for characters) ----
         class StringArena {
@@ -637,9 +912,44 @@ namespace shine::reflection {
             static constexpr size_t BLOCK_SIZE = 8192;  // 8 KB per block
 
             /// Allocate room for 'len+1' bytes, copy str, null-terminate.
-            const char* Store(shine::STextView str);
+            const char* Store(shine::STextView str) {
+                const size_t required = str.size() + 1;
 
-            void Clear();
+                if (!blocks_.empty()) {
+                    auto& back = blocks_.back();
+                    if (back.used + required <= back.capacity) {
+                        char* dest = back.buffer.get() + back.used;
+                        std::memcpy(dest, str.data(), str.size());
+                        dest[str.size()] = '\0';
+                        back.used += required;
+                        totalStored_ += required;
+                        return dest;
+                    }
+                }
+
+                size_t blockCap = (std::max)(BLOCK_SIZE, required);
+                Block block;
+                {
+                    shine::co::MemoryScope scope(shine::co::MemoryTag::ReflectionString);
+                    block.buffer = std::make_unique<char[]>(blockCap);
+                }
+                block.capacity = blockCap;
+                block.used = 0;
+
+                char* dest = block.buffer.get();
+                std::memcpy(dest, str.data(), str.size());
+                dest[str.size()] = '\0';
+                block.used = required;
+                totalStored_ += required;
+
+                blocks_.push_back(std::move(block));
+                return dest;
+            }
+
+            void Clear() {
+                blocks_.clear();
+                totalStored_ = 0;
+            }
 
             [[nodiscard]] size_t GetTotalStored() const noexcept { return totalStored_; }
 
@@ -682,5 +992,14 @@ namespace shine::reflection {
         std::unordered_set<shine::STextView, SVHash, SVEqual> internSet_;
         mutable std::atomic<size_t> stringCount_{0};
     };
+
+    [[nodiscard]] inline shine::STextView InternReflectionText(shine::STextView text) {
+        if (text.empty()) {
+            return {};
+        }
+
+        const char* stored = StringMemoryManager::GetInstance().StoreString(text);
+        return stored ? shine::STextView(stored, text.size()) : shine::STextView{};
+    }
 
 } // namespace shine::reflection

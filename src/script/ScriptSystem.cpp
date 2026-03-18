@@ -285,17 +285,17 @@ namespace shine::script
                             auto* trait = static_cast<const reflection::MapTrait*>(field->containerTrait);
                             if (trait->Clear && trait->InsertKV) {
                                 trait->Clear(outNativePtr);
-
-                                // Temporary buffers for key and value since we don't know their types statically
-                                alignas(16) char keyBuf[128];
-                                alignas(16) char valBuf[128];
-
-
                                 const reflection::TypeInfo* kType = reflection::TypeRegistry::Get().FindFast(trait->keyType);
                                 const reflection::TypeInfo* vType = reflection::TypeRegistry::Get().FindFast(trait->valueType);
 
-                                void* kPtr = (kType->size <= 128) ? keyBuf : new char[kType->size];
-                                void* vPtr = (vType->size <= 128) ? valBuf : new char[vType->size];
+                                if (!kType || !vType) {
+                                    return;
+                                }
+
+                                reflection::detail::ScratchBuffer keyScratch(kType->size, kType->alignment);
+                                reflection::detail::ScratchBuffer valueScratch(vType->size, vType->alignment);
+                                void* kPtr = keyScratch.ptr;
+                                void* vPtr = valueScratch.ptr;
 
                                 for (const auto& [k, v] : map->elements) {
 
@@ -311,9 +311,6 @@ namespace shine::script
                                     if (kType && !kType->isPod) reflection::Destruct(kPtr, trait->keyType);
                                     if (vType && !vType->isPod) reflection::Destruct(vPtr, trait->valueType);
                                 }
-
-                                if (kPtr != &keyBuf[0]) delete[] kPtr;
-                                if (vPtr != &valBuf[0]) delete[] vPtr;
                             }
                         }
                     }

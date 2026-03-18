@@ -34,20 +34,14 @@ constexpr TypeInfo BuildTypeInfo(shine::STextView name);
         _ReflectRegFn_##Type(builder);                                          \
     }                                                                           \
     inline auto _ReflectInit_##Type = []() {                                    \
-        shine::reflection::TypeInfo _info{};                                    \
-        _info.id        = shine::reflection::GetTypeId<Type>();                 \
-        _info.SetName(#Type);                                                   \
-        _info.size      = sizeof(Type);                                         \
-        _info.alignment = alignof(Type);                                        \
-        _info.isPod     = std::is_trivially_copyable_v<Type>;                   \
-        _info.isEnum    = std::is_enum_v<Type>;                                 \
-        shine::reflection::TypeRegistrationPlan _plan{};                        \
-        shine::reflection::TypeBuilderPlanCounter<Type> _counter(_plan);        \
-        _ReflectRegFn_##Type(_counter);                                         \
-        shine::reflection::TypeBuilder<Type> _builder(_info, _plan);            \
-        _ReflectRegFn_##Type(_builder);                                         \
-        for (auto& _f : _info.fields) _f.owner = shine::reflection::ReflectionOwnerHandle::FromType(&_info); \
-        for (auto& _m : _info.methods) _m.owner = shine::reflection::ReflectionOwnerHandle::FromType(&_info); \
+        auto _reflectGraphFn = []<typename _RB>(_RB& builder) {                 \
+            _ReflectRegFn_##Type(builder);                                      \
+        };                                                                      \
+        auto _graph = shine::reflection::BuildTypeRegistrationGraph<Type>(      \
+            shine::STextView::from_literal(#Type),                              \
+            _reflectGraphFn,                                                    \
+            std::is_enum_v<Type>);                                              \
+        shine::reflection::TypeInfo _info = _graph.BuildTypeInfo(_reflectGraphFn); \
         (void)shine::reflection::TypeRegistry::Get().Register(std::move(_info));\
         return true;                                                            \
     }();                                                                        \
@@ -93,18 +87,14 @@ constexpr TypeInfo BuildTypeInfo(shine::STextView name);
     template<typename _RB>                                                      \
     inline void _ReflectRegFn_##Type(_RB& builder);                             \
     inline auto _ReflectInit_##Type = []() {                                    \
-        shine::reflection::TypeInfo _info{};                                    \
-        _info.id        = shine::reflection::GetTypeId<Type>();                 \
-        _info.SetName(#Type);                                                   \
-        _info.size      = sizeof(Type);                                         \
-        _info.alignment = alignof(Type);                                        \
-        _info.isPod     = false;                                                \
-        _info.isEnum    = true;                                                 \
-        shine::reflection::TypeRegistrationPlan _plan{};                        \
-        shine::reflection::TypeBuilderPlanCounter<Type> _counter(_plan);        \
-        _ReflectRegFn_##Type(_counter);                                         \
-        shine::reflection::TypeBuilder<Type> _builder(_info, _plan);            \
-        _ReflectRegFn_##Type(_builder);                                         \
+        auto _reflectGraphFn = []<typename _RB>(_RB& builder) {                 \
+            _ReflectRegFn_##Type(builder);                                      \
+        };                                                                      \
+        auto _graph = shine::reflection::BuildTypeRegistrationGraph<Type>(      \
+            shine::STextView::from_literal(#Type),                              \
+            _reflectGraphFn,                                                    \
+            true);                                                              \
+        shine::reflection::TypeInfo _info = _graph.BuildTypeInfo(_reflectGraphFn); \
         shine::reflection::TypeRegistry::Get().Register(std::move(_info));      \
         return true;                                                            \
     }();                                                                        \

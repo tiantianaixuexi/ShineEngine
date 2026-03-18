@@ -34,7 +34,7 @@
 
 不只关注“能分配”和“统计字节数”，而是围绕对齐、缓存行、对象尺寸、分配路径和生命周期做约束与验证。
 
-## 当前执行状态（截至 2026-03-18）
+## 当前执行状态（截至 2026-03-19）
 
 下面这一节用于给新窗口或后续继续开发时快速接手，记录的是当前代码已经落地的状态，而不是计划目标。
 
@@ -45,36 +45,48 @@
 - Issue 03 已完成第一阶段并稳定：Category、DisplayName、Min、Max、EditCondition 不再走高频 metadata 线性扫描，已提升为内建元数据访问路径。InspectorView、InspectorBuilder、PropertyDrawer 已优先消费这些固定访问器。
 - Issue 04 已完成第一阶段：FieldInfo 和 MethodInfo 已完成热冷分离。当前热区保留哈希、偏移、flags、访问器、owner handle、调用缓存，名字、UI schema、扩展 metadata 已收敛到 FieldColdData 和 MethodColdData。
 - Issue 08 已部分完成：InspectorView、PropertyDrawer、StaticInspector 的主要消费路径已适配热区/冷区访问器，不再依赖旧的直接成员访问。
-- Issue 09 已完成：MemoryTag 已细化出 ReflectionMeta、ReflectionCold、ReflectionTemp、ReflectionString、ScriptBridgeTemp、EditorInspectorTemp，ReflectionTest 已能输出相关 tag 的分配增量。
+- Issue 09 已完成第二阶段：MemoryTag 已细化出 ReflectionMeta、ReflectionCold、ReflectionTemp、ReflectionString、ScriptBridgeTemp、EditorInspectorTemp，ReflectionTest 已能输出相关 tag 的分配增量，且 ReflectionTemp 与 EditorInspectorTemp 都已有真实、可复测的调用路径。
+- 名字集中存储已完成：TypeInfo / FieldInfo / MethodInfo / EnumEntry 的 name，以及字段内建 metadata 里的 Category / DisplayName / EditCondition，现已统一通过 ReflectionString 驻留为稳定文本视图，不再借用 DSL 或外部临时字符串的生命周期。
 - Issue 10 已完成：底层分配器已显式提供 tagged pointer 对齐前提和可用低位 bit 查询，UE Binned2 统计已增加 bin 维度、线程缓存命中和 tagged pointer 对齐信息。
+- Issue 11 已继续推进：ReflectionColdPool::ContiguousBatch 已改为显式保留区间对象，TypeBuilder 通过 batch.Create() 发射字段/方法冷块，enumEntries 已切到 ReflectionColdVector，字段/方法扩展 metadata 也已切到 runtime 专用的 ReflectionMetadataStorage，并已提供 reserved page / slot range / issued count / remaining 等可观测性。
+- 主项 2 已完成：TypeRegistrationPlan 内部所有注册期 plan block 现已从 std::vector staging 切到 ReflectionMeta 页式 staging，再在 Measure() 结束后统一冻结为连续块；注册期采样已不再依赖通用 heap vector 扩容路径。
+- Issue 05 已继续推进第一阶段：宏注册入口不再手写“plan counter + TypeBuilder”双段流程，现已统一通过 TypeRegistrationGraph 显式收口注册期测量与发射；graph 当前除了 field / method / enum 总数外，还能按条目记录 field / method 的稳定名字、nameHash、flags、field 的 typeId/offset/size/alignment/containerTrait，method 的 returnType/paramTypes slice、runtime metadata 实体、具体 UI schema、字段侧内建 metadata 文本/范围载荷（DisplayName / Category / EditCondition / Min / Max），以及 enum label 计划；同时 field / method / enum 主计划块、runtime metadata / method param types 共享 block 以及 descriptor block 都已进一步冻结到 ReflectionMeta 专用连续块，由每个 field / method plan 仅记录 offset + count slice；TypeRegistrationPlan 现已把这些块与对应 spans 收口为单一 EmitLayout 对象，并继续保留 GetEmitView 兼容别名；字段/方法的 runtime metadata slice 和方法参数类型 slice 在发射前就解析成单一描述对象；TypeBuilder 发射阶段也已改为先按 plan 预填冷数据、热区 flags 与稳定类型/参数布局，再由 DSL replay 仅补 callback、getter/setter、equals/copy、invoke thunk 等绑定逻辑，不再重复写入已计划的 flags / UI / builtin metadata / runtime metadata / enum label；ReflectionTest 已改为直接验证 graph 的 plan、emit layout、兼容视图别名路径，以及“payload 先到位、binding 后回放”的分离语义。
 - Issue 12 已部分完成：StaticInspector 的 FunctionSelector 分支已移除运行时补注册，UI 绘制路径不再在查询时偷偷修改 TypeRegistry。
 
 ### 当前关键实现结果
 
-- 当前 ReflectionTest 在本地 MSVC Debug 运行下给出的布局基线为：TypeInfo 176 B，TypeColdData 48 B，FieldInfo 128 B，MethodInfo 192 B，FieldColdData 144 B，MethodColdData 48 B，MethodCallCache 104 B，MetadataValue 40 B，EnumEntry 24 B，ScriptValue 40 B，ScratchBuffer 144 B。
-- 当前热区跨度基线为：TypeInfo hot_bytes=96，FieldInfo hot_bytes=120，MethodInfo hot_bytes=184。也就是说，TypeInfo 已因为 enumEntries 与 type name 冷化从 216 B/144 hot bytes 继续压到 176 B/96 hot bytes，FieldInfo 已压到 2 个缓存线内，但 MethodInfo 热区仍然偏大，后续仍有继续瘦身空间。
+- 当前 ReflectionTest 在本地 MSVC Debug 运行下给出的布局基线为：TypeInfo 176 B，TypeColdData 40 B，FieldInfo 128 B，MethodInfo 96 B，FieldColdData 136 B，MethodColdData 40 B，ReflectionMetadataStorage 24 B，MethodCallParamStorage 56 B，MethodCallCache 96 B，MetadataValue 40 B，EnumEntry 24 B，ScriptValue 40 B，ScratchBuffer 144 B。
+- 当前热区跨度基线为：TypeInfo hot_bytes=96，FieldInfo hot_bytes=120，MethodInfo hot_bytes=88。也就是说，TypeInfo 已因为 enumEntries 与 type name 冷化从 216 B/144 hot bytes 继续压到 176 B/96 hot bytes，FieldInfo 已压到 2 个缓存线内，而 MethodInfo 已因为 callCache 外置化从 192 B/184 hot bytes 进一步压到 96 B/88 hot bytes。
 - 当前 tagged pointer 前提已被运行时基线直接打印：min_align=16，usable_low_bits=4，当前底层分配器满足 2 bit 和 4 bit tag 的使用前提。
-- 当前 ReflectionTest 已能直接验证：owner handle 正确、内建 metadata 可读、EditCondition 可见性正确、内存 tag 路由正确、tagged pointer 前提正确输出。
-- 当前冷区已经从按类型分池推进到 ReflectionCold 冷数据页。FieldColdData 和 MethodColdData 现在按类型落到页内连续槽位，优先顺序填充当前页、回收后复用旧槽位；注册宏会先跑一次计数 builder，再让真实 TypeBuilder 按字段数/方法数进入批量页保留，并按计划预铺 fields、methods、enumEntries 的热区槽位，然后用写指针原地发射描述对象；同时 TypeInfo 的 type name 与 enumEntries 都已经移入 TypeColdData，字段/方法注册时也会先分配冷块、直接写入 name 与后续 fluent builder 的 UI schema、DisplayName、Range、扩展 metadata，避免在注册阶段反复走 EnsureColdData 和冷区回填；TypeRegistry 现在已经进一步切到 ReflectionMeta arena 持有，types_ 只保留稳定槽位视图，idRegistry_ / nameRegistry_ 继续把 TypeId 和类型名映射到槽位索引，按名查找的回退路径不再需要额外对象所有权。同一批次注册的 TypeInfo 已能稳定聚集到 arena 页内，但最终的 arena/graph builder 目标还没完成。
+- 当前 ReflectionTest 已能直接验证：owner handle 正确、内建 metadata 可读、EditCondition 可见性正确、内存 tag 路由正确、tagged pointer 前提正确输出，并能看到 MethodCallCache 在首次脚本调用前后从 Cold 变为 Warm 的 lazy 状态变化。
+- 当前冷区已经从按类型分池推进到 ReflectionCold 冷数据页。FieldColdData 和 MethodColdData 现在按类型落到页内连续槽位，优先顺序填充当前页、回收后复用旧槽位；注册宏现在不再手写“先 counter、再 builder”的零散样板，而是统一先构造 TypeRegistrationGraph，再由 graph 驱动测量与发射；graph 当前除了记录 field / method / enum 总量，还会按条目记录 field / method 的稳定名字、nameHash、flags、field 的 typeId/offset/size/alignment/containerTrait、method 的 returnType/paramTypes slice、runtime metadata 实体、具体 UI schema 和字段侧内建 metadata 载荷，其中 field / method / enum 主计划块、runtime metadata 与 method param types 的共享 block、field / method / enum descriptor block 以及对应 spans 已进一步收口为 plan 内单一 EmitLayout 对象，并冻结进 ReflectionMeta；发射阶段则由 TypeBuilder 先按 plan 预铺 fields、methods、enumEntries 的热区槽位并写入 FieldColdData / MethodColdData / EnumEntry 的冷数据内容，再由 DSL replay 只补 callback、getter/setter、equals/copy、invoke thunk 等绑定逻辑，避免对 flags / UI / builtin metadata / runtime metadata / enum label 以及稳定类型描述再做二次写入；同时 TypeInfo 的 type name 与 enumEntries 都已经移入 TypeColdData，其中 enumEntries 已不再依赖 std::vector，而是切到 ReflectionColdVector 连续冷块；字段/方法注册时也会先分配冷块、直接写入 name 与后续 fluent builder 的 UI schema、DisplayName、Range、扩展 metadata，其中 name、DisplayName、Category、EditCondition 与 enum label 都已统一走 ReflectionString 驻留，runtime 扩展 metadata 也已不再挂在 std::vector，而是切到 ReflectionMetadataStorage 连续冷块，避免在注册阶段反复走 EnsureColdData 和冷区回填；TypeRegistry 现在已经进一步切到 ReflectionMeta arena 持有，types_ 只保留稳定槽位视图，idRegistry_ / nameRegistry_ 继续把 TypeId 和类型名映射到槽位索引，按名查找的回退路径不再需要额外对象所有权。同一批次注册的 TypeInfo 已能稳定聚集到 arena 页内，graph builder 主路径也已完成单一布局收口。
+- MethodInfo 当前的调用缓存已不再内嵌在热对象内，而是通过 lazy ReflectionColdPtr 外置到冷区；当前继续推进到第二步后，MethodCallCache 的参数布局也不再依赖 std::vector，而是改为“内联少量参数 + ReflectionCold 溢出块”的专用存储，避免常见低参数个数方法在建 cache 时落到通用堆。
 
 ### 当前验证结果
 
-- ReflectionTest 已构建并运行通过。
-- MainEngine 已构建通过。
-- ReflectionTest 的内存标签基线样例已经可直接看到：ReflectionMeta 分配增量 256 B、ReflectionCold 在当前预热后对 96 个字段/96 个方法的批量冷数据构造保持 alloc_delta=0、current_delta=0，同时页级统计显示 FieldColdData 为 1 页、113 槽每页、burst 后 tail_used=108，MethodColdData 为 1 页、341 槽每页、burst 后 tail_used=101；新增的冷区批量页保留测试还能直接看到 batch 会因为当前页剩余槽位不足而切到新页；注册计划测试还能直接验证 Transform 计划为 9 字段/5 方法且 reserve 容量完全命中，ETestEnum 计划为 4 个枚举项且 enumEntries reserve 命中；新增的 TypeBuilder 原地发射测试还能直接验证 Transform 字段、方法以及 ETestEnum 的 enumEntries 都是在预铺槽位上原地写入且计数精确命中；新增的已注册类型冷页局部性测试还能直接验证 Transform 的字段冷块和方法冷块各自都落在单一冷页；新增的 TypeRegistry arena 持有测试还能直接验证顺序注册的 probe 类型会进入有效 arena 页，并共享同一 ReflectionMeta arena 页；同时基础功能测试里 ETestEnum 的注册结果现在已经正确显示 4 个枚举项，TypeInfo 的名称查找路径也已切到冷区访问器，FindByNameFast("Transform") 与按 TypeId 查找已验证返回同一稳定地址，新增的 RegistryFallbackProbe 也已验证名字查找的 fallback index 路径会回到和按 id 查找相同的稳定 TypeInfo 指针；ReflectionString 分配增量 1024 B，ScriptBridgeTemp 分配增量 512 B。
+- ReflectionTest 已通过 .\build.bat test ReflectionTest --no-pause 构建并运行通过。
+- MainEngine 已通过 .\build.bat exe MainEngine --no-pause 构建通过。
+- ReflectionTest 的内存标签基线样例已经可直接看到：ReflectionMeta 分配增量 256 B、ReflectionCold 在当前预热后对 96 个字段/96 个方法的批量冷数据构造保持 alloc_delta=0、current_delta=0，同时页级统计显示 FieldColdData 为 1 页、120 槽每页、burst 后 tail_used=108，MethodColdData 为 1 页、409 槽每页、burst 后 tail_used=101；新增的冷区批量页保留测试还能直接看到 batch 会因为当前页剩余槽位不足而切到新页，且可直接读出 reserved_page / reserved_begin / reserved_end / issued_count / remaining；注册计划测试与原地发射测试现在都已直接走 TypeRegistrationGraph 路径，能够验证 graph 输出的 Transform 计划为 9 字段/5 方法、ETestEnum 计划为 4 个枚举项，同时还能验证 Transform 的 field runtime metadata plan=1、method runtime metadata plan=1，position 条目已记录 custom metadata + display/category 文本载荷以及 Vec3 的 typeId/offset/size，name 条目已记录 TextInput{128,false} UI schema、EditAnywhere/ScriptReadWrite flags 与显示文本，id 条目已记录 min/max/edit-condition 载荷，AddTag 条目已记录 method name、ScriptCallable flag、returnType=int 与单参数 int 的 paramTypes slice，ETestEnum 计划也已记录具体 value/label 对；此外，graph metadata block 测试现在还能直接验证通过统一 emit view 读取 field / method / enum 计划、共享 runtime metadata block、method param block 和冻结后的 descriptor block，staged emission 测试现在还能直接验证 FieldColdData / MethodColdData / EnumEntry、FieldInfo / MethodInfo 的 flags 热区，以及稳定 field/method 类型布局在原地发射后确实消费了这些 plan payload，而不是依赖 DSL replay 再次补写，且 position 与 AddTag 的 ReflectionMetadataStorage 都命中 size=1 / capacity=1 的精确 reserve；本轮还新增了 plan staging meta delta / plan staging pages exist before freeze / freeze releases plan staging pages 三个断言，直接验证注册期 plan block 已通过 ReflectionMeta 页式 staging 采样并在冻结后释放 staging 页；新增的已注册类型冷页局部性测试还能直接验证 Transform 的字段冷块和方法冷块各自都落在单一冷页；新增的 TypeRegistry arena 持有测试还能直接验证顺序注册的 probe 类型会进入有效 arena 页，并共享同一 ReflectionMeta arena 页；新增的反射名字驻留测试还能直接验证 type / field / display / method / enum 名字在源字符串内容被修改后仍保持原值，且 ReflectionString manager count 从 39 增至 45；同时对 reflection/views 和 editor 消费链的本轮窄审计未发现新的 TypeRegistry 运行时注册入口，ScriptView 当前显式堆分配仍局限于带标签的临时缓冲路径，editor 侧可见的超栈字符串输入仍收口在 EditorInspectorTemp；基础功能测试里 ETestEnum 的注册结果现在已经正确显示 4 个枚举项，TypeInfo 的名称查找路径也已切到冷区访问器，FindByNameFast("Transform") 与按 TypeId 查找已验证返回同一稳定地址，新增的 RegistryFallbackProbe 也已验证名字查找的 fallback index 路径会回到和按 id 查找相同的稳定 TypeInfo 指针；ReflectionString 分配增量 1024 B，ScriptBridgeTemp 分配增量 512 B，ReflectionTemp/call 与 EditorInspectorTemp 也已分别出现稳定非零流量。
 - 当前已知构建输出中的 wmic 缺失、Draco PDB 缺失、LNK4098 等均为环境或既有警告，不是本轮改动引入的功能性回归。
 
 ### 当前量化基线说明
 
 - 上面的尺寸数字以当前本地 MSVC Debug 构建下的 ReflectionTest 输出为准，不应手工推断或跨编译器硬套。
 - 如果后续继续调整成员顺序、容器类型或所有权模型，应先重新运行 ReflectionTest，再更新本节，避免文档中的尺寸预算与真实 ABI 漂移。
-- 当前真正已打通并被测试验证的 tag 路由是 ReflectionMeta、ReflectionCold、ReflectionString、ScriptBridgeTemp；ReflectionTemp、EditorInspectorTemp 目前还是“标签已定义但尚未形成稳定流量”的状态。
+- 当前真正已打通并被测试验证的 tag 路由是 ReflectionMeta、ReflectionCold、ReflectionString、ScriptBridgeTemp、ReflectionTemp、EditorInspectorTemp；其中 ReflectionTemp 当前由 ScriptView::CallMethod 的 rawArgs 临时数组提供真实流量，EditorInspectorTemp 当前由 inspector 字符串输入缓冲的超栈容量路径提供真实流量。
+
+### 当前剩余主项
+
+- 剩余 0 个主项。本轮已完成最后一轮 editor / script 消费链边界复核，不再保留未闭合的大项。
+- 主项 1 已完成：TypeRegistrationGraph 现已统一收口注册期测量与发射主路径，并覆盖 per-field / per-method 的稳定名字、nameHash、flags、field 类型布局、method 参数布局、具体 UI schema、内建 metadata 载荷、runtime metadata 实体，以及 enum label 计划；TypeRegistrationPlan 现已把主计划块、共享 block、descriptor block 与对应 spans 收口为单一 EmitLayout 对象，并保留 EmitView 兼容别名；TypeBuilder 现已实现“先按 plan 发射，再由 DSL 仅做 callback / getter/setter / equals/copy / invoke thunk 绑定”的闭合模型；ReflectionTest 已验证 payload 会在 replay 前到位，replay 只补绑定工作。
+- 主项 2 已完成：TypeRegistrationPlan 的主计划块、runtime metadata / method param types 共享 block 与 descriptor block 现已统一改为 ReflectionMeta 页式 staging，再在 Measure() 结束时冻结到连续块；注册阶段的采样过程已不再依赖 vector staging。
+- 主项 3 已完成：script 侧已把 ScriptSystem 里关联容器桥接的裸 new char[]/delete[] 临时键值缓冲替换成 ScriptView 同款 ScratchBuffer；editor 侧复核结果显示当前仅保留 PropertyDrawer 的 EditorInspectorTemp 显式临时缓冲路径，未再发现新的未标记通用堆分配，也未发现 reflection/views 或 editor 消费链里的 TypeRegistry 运行时注册入口。
 
 ### 当前代码约定
 
 - 对字段名、方法名、UI schema、扩展 metadata 的读取，不应再直接访问旧成员，而应统一通过 GetNameView、GetUISchema、GetMetadata、GetMeta、GetDisplayNameView、GetCategoryView、GetEditConditionView、HasRange 等访问器。
 - TypeInfo::BuildLookup 现在依赖 nameHash 作为热路径哈希数据，碰撞确认阶段仍比较 GetNameView。
-- ScriptSystem 侧的字段读写路径已切到 ScriptView 同款 ScratchBuffer，超出栈缓冲时会进入 ScriptBridgeTemp；当前仍需继续复核的主要是其它脚本桥接临时对象是否还残留在局部堆分配路径里。
+- ScriptSystem 侧的字段读写路径已切到 ScriptView 同款 ScratchBuffer，超出栈缓冲时会进入 ScriptBridgeTemp；本轮已进一步把关联容器 map 桥接里的临时 key/value 缓冲从裸 new char[]/delete[] 收口到同一 ScratchBuffer 路径。editor 侧当前保留的字符串输入缓冲继续统一走 EditorInspectorTemp，未发现额外裸堆分配。
 - 如果继续做消费侧适配，默认原则应保持为“消费路径只读查询，构建路径集中注册”，不要重新引入 UI 或脚本路径内的隐式 Register。
 
 ## 当前系统问题清单
@@ -724,41 +736,12 @@ ScratchBuffer 只是局部优化。需要把：
 
 原因是当前真正需要先解决的是“反射对象设计太重”，而不是“分配器算法不够复杂”。如果对象模型不先压缩，直接增强底层分配器收益会很有限。
 
-## 未完成更新与下一窗口接手建议
+## 收尾备注与后续可选事项
 
-### 仍未完成的主项
-
-- Issue 05 已部分推进：ReflectionArena 已经落到 TypeRegistry 持有层，但还没有 ReflectionGraphBuilder，TypeBuilder 当前已经具备 dry-run 计数、热区预铺、原地发射和冷块直写，注册过程不再只是简单的 push_back 加常规对象回填。
-- Issue 06 已完成第二阶段的持有切换：TypeRegistry 现在由 ReflectionMeta arena 统一持有 TypeInfo，types_ 只保留稳定槽位视图，idRegistry_ 和 nameRegistry_ 都只保存槽位索引；按名查找除了直接 Hash(typeName) 的快路径外，也已经验证了 fallback name index 会回到同一稳定 TypeInfo 指针，顺序注册的 probe 也会聚集到同一 arena 页。它仍然不是独立句柄表或冻结 registry 视图模型，但 shared_ptr / unique_ptr 过渡持有已经退出主路径。
-- Issue 07 已部分推进：ScriptView::CallMethod 与 ScriptSystem 的 JsReflectGetField、JsReflectSetField 都已统一到 ScratchBuffer/ScriptBridgeTemp 路径，但仍未系统梳理所有脚本桥接热点，ReflectionTemp 也还没有形成独立稳定流量。
-- Issue 08 未完成第二阶段：虽然 InspectorView、PropertyDrawer、StaticInspector 已适配冷数据访问器，但还没有系统性清理所有 editor/runtime 消费点的旧式 metadata 扫描和旧成员直接访问。
-- Issue 09 仍有第二阶段：MemoryTag 枚举和统计输出已经齐备，ReflectionCold 已形成稳定、可复测且可复用的真实分配路径；ReflectionTemp、EditorInspectorTemp 仍停留在标签基础设施阶段。
-- Issue 11 已部分推进：当前 ReflectionColdPool 已切到按类型冷数据页，FieldColdData/MethodColdData 不再逐对象直连底层分配，且同一 burst 会优先落入页内连续槽位；注册宏还会先做字段数/方法数/枚举项计数，再让 TypeBuilder 进入对应的批量页保留并预留热区 vector 容量。但还没有统一的 MetadataPool/ArenaPool，也还没有让 TypeBuilder 直接产出连续冷区块。
-- Issue 12 未完全结束：StaticInspector 已不再补注册，但脚本路径虽然保持只读查询，仍需在整体注册图谱完成后再复核一次“消费期不补洞”的边界。
-
-### 建议的新窗口起手顺序
-
-1. 先补 Issue 11 的下一步：把当前“计数 builder + 页保留 + 热区 reserve”的 ReflectionCold 再推进到 builder 直接写块或冷区批量装配，减少字段/方法交错注册带来的页内空洞，并让同一 TypeInfo 的冷区更稳定地聚集。
-2. 再补 Issue 09 第二阶段：为 ReflectionTemp、EditorInspectorTemp 各建立至少一条真实、可复测的调用路径，避免标签只停留在声明层。
-3. 然后继续做 Issue 05 的第二阶段：把当前 TypeBuilder 从“预铺热区 + 冷块直写”推进到“连续图谱 + builder 直接装配”，让字段、方法、枚举、扩展 metadata 和名字存储都能在同一注册期图谱里闭合。这仍然是后续所有内存优化真正放大的关键。
-4. 最后回头系统复核 Issue 07 和 Issue 12 的消费链边界，确认脚本/UI 路径已经完全收敛为只读查询，不再夹带构建或隐式补洞逻辑。
-
-### 下一阶段落地建议
-
-- 如果目标是尽快把“热冷分离”从对象模型扩展到真实内存布局，当前最先该做的不是再压 FieldInfo 字节数，而是把已经页化的 coldData 接到 builder 批量写入。当前热区已经压进预算，真正还没完全兑现的是“同一类型冷区一起生成、一起贴近放置”的局部性。
-- MethodInfo 当前 192 B、hot_bytes 184，说明调用缓存仍然占据大头。后续如果继续优化 MethodInfo，应优先考虑把 callCache 从“始终常驻热对象”调整为“延迟构建 + 外置缓存块”或“共享缓存页”，而不是继续在 metadata 上做小修小补。
-- Script 路径现在最明显的缺口不是 API 设计，而是临时内存模型还没有完全统一。只要脚本桥接里还残留独立 malloc/free 或其它绕开 ReflectionTemp / ScriptBridgeTemp 的分配路径，统计就无法真实反映脚本桥接成本。
-- TypeRegistry 已经跨过 shared_ptr 和 unique_ptr 过渡持有模型，当前由 ReflectionMeta arena 提供稳定地址，types_ 只保留槽位视图，双 unordered_map 仍负责查询索引。这已经兑现了“注册表自身不再逐类型独立堆分配”的目标，但它还没有进一步压成冻结表、独立句柄层或完整 graph builder 输出；Issue 05 仍然是决定这轮改造是否真正完成的主轴，不应长期后置。
-
-### 新窗口继续时优先检查的文件
-
-- src/EngineCore/reflection/ReflectionCore.h
-- src/EngineCore/reflection/DSL/TypeBuilder.h
-- src/EngineCore/reflection/TypeRegistry.h
-- src/EngineCore/reflection/Views/ScriptView.h
-- src/script/ScriptSystem.cpp
-- src/editor/util/StaticInspector.h
-- dev/test/ReflectionTest/ReflectionTest.cpp
+- 当前任务书前半部分记录的是“本轮已经落地并验证通过的状态”，后半部分的 issue 清单和执行顺序保留为历史设计拆解，供后续做更深一层优化时参考，不再表示本轮存在未闭合阻塞项。
+- 如果后续继续扩展反射内存布局，优先方向仍然是增强连续装配和进一步降低冷区碎片，而不是单纯继续压缩 FieldInfo / MethodInfo 的表面字节数。
+- 如果后续继续补消费链审计，默认基线应保持不变：script 侧统一走 ScratchBuffer / ScriptBridgeTemp 或 ReflectionTemp，editor 侧统一走 EditorInspectorTemp，消费路径只读查询，不重新引入运行时补注册。
+- 若后续有人接手本主题，建议优先检查以下文件：src/EngineCore/reflection/ReflectionCore.h、src/EngineCore/reflection/DSL/TypeBuilder.h、src/EngineCore/reflection/TypeRegistry.h、src/EngineCore/reflection/Views/ScriptView.h、src/script/ScriptSystem.cpp、src/editor/util/StaticInspector.h、dev/test/ReflectionTest/ReflectionTest.cpp。
 
 ## 最终验收要求
 

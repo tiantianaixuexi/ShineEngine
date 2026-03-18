@@ -12,7 +12,6 @@
 
 #include "EngineCore/log/LogSystem.h"
 #include "string/shine_string.h"
-#include "string/shine_text_view.h"
 
 namespace shine::util::crash_handler
 {

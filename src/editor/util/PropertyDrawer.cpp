@@ -103,11 +103,9 @@ namespace shine::editor::util {
                 field.Get(instance, &val);
                 shine::SString oldVal = val;
 
-                char buffer[256];
-                strncpy_s(buffer, val.c_str(), sizeof(buffer) - 1);
-
-                if (ImGui::InputText(Label(), buffer, sizeof(buffer))) {
-                    val = shine::SString(buffer);
+                detail::ScopedInputTextBuffer inputBuffer(val);
+                if (ImGui::InputText(Label(), inputBuffer.data(), inputBuffer.size())) {
+                    val = shine::SString(inputBuffer.data());
                     field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
                 }
@@ -250,12 +248,10 @@ namespace shine::editor::util {
                 shine::SString val;
                 field.Get(instance, &val);
                 shine::SString oldVal = val;
-                
-                char buffer[256];
-                strncpy_s(buffer, val.c_str(), sizeof(buffer) - 1);
-                
-                if (ImGui::InputText(Label(), buffer, sizeof(buffer))) {
-                    val = shine::SString(buffer);
+
+                detail::ScopedInputTextBuffer inputBuffer(val);
+                if (ImGui::InputText(Label(), inputBuffer.data(), inputBuffer.size())) {
+                    val = shine::SString(inputBuffer.data());
                     field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
                 }
@@ -368,10 +364,9 @@ namespace shine::editor::util {
     }
 
     bool PropertyDrawer::DrawString(const char* label, shine::SString& value) {
-        char buffer[256];
-        strncpy_s(buffer, value.c_str(), sizeof(buffer) - 1);
-        if (ImGui::InputText(label, buffer, sizeof(buffer))) {
-            value = shine::SString(buffer);
+        detail::ScopedInputTextBuffer inputBuffer(value);
+        if (ImGui::InputText(label, inputBuffer.data(), inputBuffer.size())) {
+            value = shine::SString(inputBuffer.data());
             return true;
         }
         return false;

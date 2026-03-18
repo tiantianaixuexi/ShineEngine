@@ -11,6 +11,8 @@
 // =============================================================================
 
 #include <algorithm>
+#include <array>
+#include <cassert>
 #include <cstddef>
 #include <new>
 
@@ -61,11 +63,55 @@ struct ScratchBuffer {
     }
 };
 
+template <typename T, std::size_t StackCount, shine::co::MemoryTag Tag>
+struct TaggedTempArray {
+    static_assert(StackCount > 0, "TaggedTempArray requires at least one inline slot");
+
+    std::array<T, StackCount> stackStorage{};
+    T* ptr = stackStorage.data();
+    std::size_t count = 0;
+    bool usesHeap = false;
+
+    explicit TaggedTempArray(std::size_t requestedCount)
+        : count(requestedCount) {
+        if (requestedCount <= StackCount) {
+            return;
+        }
+
+        shine::co::MemoryScope scope(Tag);
+        ptr = static_cast<T*>(shine::co::Memory::Alloc(sizeof(T) * requestedCount, alignof(T)));
+        assert(ptr && "TaggedTempArray allocation failed");
+        usesHeap = ptr != nullptr;
+    }
+
+    ~TaggedTempArray() {
+        if (usesHeap) {
+            shine::co::Memory::Free(ptr);
+        }
+    }
+
+    TaggedTempArray(const TaggedTempArray&) = delete;
+    TaggedTempArray& operator=(const TaggedTempArray&) = delete;
+    TaggedTempArray(TaggedTempArray&&) = delete;
+    TaggedTempArray& operator=(TaggedTempArray&&) = delete;
+
+    T& operator[](std::size_t index) noexcept {
+        return ptr[index];
+    }
+
+    const T& operator[](std::size_t index) const noexcept {
+        return ptr[index];
+    }
+
+    T* data() noexcept {
+        return ptr;
+    }
+};
+
 inline bool BuildMethodCallCache(const MethodInfo& method) {
-    auto& cache = method.callCache;
+    auto& cache = method.EnsureCallCache();
     cache.returnTypeInfo = nullptr;
-    cache.paramTypeInfos.clear();
-    cache.paramOffsets.clear();
+    cache.ClearParams();
     cache.returnOffset = 0;
     cache.frameSize = 0;
     cache.frameAlignment = alignof(std::max_align_t);
@@ -83,8 +129,7 @@ inline bool BuildMethodCallCache(const MethodInfo& method) {
         cache.frameSize = cache.returnOffset + returnType->size;
     }
 
-    cache.paramTypeInfos.reserve(method.paramTypes.size());
-    cache.paramOffsets.reserve(method.paramTypes.size());
+    cache.ReserveParams(method.paramTypes.size());
     for (const auto paramTypeId : method.paramTypes) {
         const auto* paramType = TypeRegistry::Get().FindFast(paramTypeId);
         if (!paramType) {
@@ -92,10 +137,9 @@ inline bool BuildMethodCallCache(const MethodInfo& method) {
             return false;
         }
 
-        cache.paramTypeInfos.push_back(paramType);
         cache.frameAlignment = std::max(cache.frameAlignment, paramType->alignment);
         const auto offset = AlignUp(cache.frameSize, paramType->alignment);
-        cache.paramOffsets.push_back(offset);
+        cache.AddParam(paramType, offset);
         cache.frameSize = offset + paramType->size;
     }
 
@@ -166,10 +210,15 @@ struct ScriptView : TypeView {
             return {};
         if (args.size() != method->paramTypes.size())
             return {};
-        if (!method->callCache.valid && !detail::BuildMethodCallCache(*method))
+        if ((!method->GetCallCache() || !method->GetCallCache()->valid) && !detail::BuildMethodCallCache(*method))
             return {};
 
-        const auto& cache = method->callCache;
+        const auto* cachePtr = method->GetCallCache();
+        if (!cachePtr) {
+            return {};
+        }
+
+        const auto& cache = *cachePtr;
         detail::ScratchBuffer buffer(cache.frameSize, cache.frameAlignment);
         char* current = static_cast<char*>(buffer.ptr);
 
@@ -179,10 +228,10 @@ struct ScriptView : TypeView {
             if (!returnType->isPod) Construct(retPtr, returnType->id);
         }
 
-        std::vector<void*> rawArgs(args.size());
+        detail::TaggedTempArray<void*, 2, shine::co::MemoryTag::ReflectionTemp> rawArgs(args.size());
         for (std::size_t i = 0; i < args.size(); ++i) {
-            const TypeInfo* paramType = cache.paramTypeInfos[i];
-            void* argPtr = current + cache.paramOffsets[i];
+            const TypeInfo* paramType = cache.GetParamTypeInfo(i);
+            void* argPtr = current + cache.GetParamOffset(i);
             if (!paramType->isPod) Construct(argPtr, paramType->id);
             bridge.FromScript(args[i], argPtr, paramType->id);
             rawArgs[i] = argPtr;
@@ -198,8 +247,9 @@ struct ScriptView : TypeView {
         if (retPtr && cache.returnTypeInfo && !cache.returnTypeInfo->isPod)
             Destruct(retPtr, cache.returnTypeInfo->id);
         for (std::size_t i = 0; i < args.size(); ++i) {
-            if (!cache.paramTypeInfos[i]->isPod)
-                Destruct(rawArgs[i], cache.paramTypeInfos[i]->id);
+            const TypeInfo* paramType = cache.GetParamTypeInfo(i);
+            if (!paramType->isPod)
+                Destruct(rawArgs[i], paramType->id);
         }
 
         return result;

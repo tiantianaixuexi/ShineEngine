@@ -195,6 +195,7 @@ using Schema = std::variant<
 using MetadataKey       = TypeId;
 using MetadataValue     = std::variant<std::monostate, bool, int, float, double, shine::STextView,shine::SString>;
 using MetadataContainer = std::vector<std::pair<MetadataKey, MetadataValue>>;
+using ReflectionMetadataStorage = ReflectionColdVector<std::pair<MetadataKey, MetadataValue>>;
 
 inline MetadataValue MakeMetadataValue(shine::STextView value) {
     return MetadataValue{value};
@@ -263,14 +264,164 @@ struct MapTrait {
 
 struct TypeInfo;
 
+struct MethodCallParamStorage {
+    static constexpr std::size_t kInlineParamCount = 2;
+
+    std::array<const TypeInfo*, kInlineParamCount> inlineTypeInfos{};
+    std::array<std::size_t, kInlineParamCount> inlineOffsets{};
+    std::byte* overflowStorage = nullptr;
+    std::size_t paramCount = 0;
+    std::size_t overflowCapacity = 0;
+
+    MethodCallParamStorage() = default;
+    ~MethodCallParamStorage() {
+        ReleaseOverflow();
+    }
+
+    MethodCallParamStorage(const MethodCallParamStorage&) = delete;
+    MethodCallParamStorage& operator=(const MethodCallParamStorage&) = delete;
+    MethodCallParamStorage(MethodCallParamStorage&&) = delete;
+    MethodCallParamStorage& operator=(MethodCallParamStorage&&) = delete;
+
+    void Clear() noexcept {
+        paramCount = 0;
+    }
+
+    [[nodiscard]] std::size_t Size() const noexcept {
+        return paramCount;
+    }
+
+    [[nodiscard]] bool UsesOverflow() const noexcept {
+        return overflowStorage != nullptr;
+    }
+
+    void Reserve(std::size_t requiredCount) {
+        const std::size_t requiredOverflow = OverflowCount(requiredCount);
+        if (requiredOverflow <= overflowCapacity) {
+            return;
+        }
+
+        const std::size_t alignedTypeBytes = AlignUp(requiredOverflow * sizeof(const TypeInfo*), alignof(std::size_t));
+        const std::size_t totalBytes = alignedTypeBytes + (requiredOverflow * sizeof(std::size_t));
+
+        shine::co::MemoryScope scope(shine::co::MemoryTag::ReflectionCold);
+        auto* newStorage = static_cast<std::byte*>(shine::co::Memory::Alloc(totalBytes, alignof(std::max_align_t)));
+        assert(newStorage && "MethodCallParamStorage::Reserve failed");
+        if (!newStorage) {
+            return;
+        }
+
+        const std::size_t existingOverflow = OverflowCount(paramCount);
+        if (existingOverflow != 0 && overflowStorage != nullptr) {
+            std::memcpy(newStorage, overflowStorage, alignedTypeBytesFor(overflowCapacity));
+            std::memcpy(newStorage + alignedTypeBytes,
+                overflowStorage + alignedTypeBytesFor(overflowCapacity),
+                existingOverflow * sizeof(std::size_t));
+        }
+
+        if (overflowStorage != nullptr) {
+            shine::co::Memory::Free(overflowStorage);
+        }
+
+        overflowStorage = newStorage;
+        overflowCapacity = requiredOverflow;
+    }
+
+    void Push(const TypeInfo* typeInfo, std::size_t offset) {
+        Reserve(paramCount + 1);
+        if (paramCount < kInlineParamCount) {
+            inlineTypeInfos[paramCount] = typeInfo;
+            inlineOffsets[paramCount] = offset;
+        } else {
+            const std::size_t overflowIndex = paramCount - kInlineParamCount;
+            OverflowTypeInfos()[overflowIndex] = typeInfo;
+            OverflowOffsets()[overflowIndex] = offset;
+        }
+        ++paramCount;
+    }
+
+    [[nodiscard]] const TypeInfo* GetTypeInfo(std::size_t index) const noexcept {
+        return index < kInlineParamCount ? inlineTypeInfos[index] : OverflowTypeInfos()[index - kInlineParamCount];
+    }
+
+    [[nodiscard]] std::size_t GetOffset(std::size_t index) const noexcept {
+        return index < kInlineParamCount ? inlineOffsets[index] : OverflowOffsets()[index - kInlineParamCount];
+    }
+
+private:
+    [[nodiscard]] static constexpr std::size_t AlignUp(std::size_t value, std::size_t alignment) noexcept {
+        return (value + alignment - 1) & ~(alignment - 1);
+    }
+
+    [[nodiscard]] static constexpr std::size_t OverflowCount(std::size_t totalCount) noexcept {
+        return totalCount > kInlineParamCount ? (totalCount - kInlineParamCount) : 0;
+    }
+
+    [[nodiscard]] static constexpr std::size_t alignedTypeBytesFor(std::size_t overflowCount) noexcept {
+        return AlignUp(overflowCount * sizeof(const TypeInfo*), alignof(std::size_t));
+    }
+
+    [[nodiscard]] const TypeInfo** OverflowTypeInfos() noexcept {
+        return reinterpret_cast<const TypeInfo**>(overflowStorage);
+    }
+
+    [[nodiscard]] const TypeInfo* const* OverflowTypeInfos() const noexcept {
+        return reinterpret_cast<const TypeInfo* const*>(overflowStorage);
+    }
+
+    [[nodiscard]] std::size_t* OverflowOffsets() noexcept {
+        return reinterpret_cast<std::size_t*>(overflowStorage + alignedTypeBytesFor(overflowCapacity));
+    }
+
+    [[nodiscard]] const std::size_t* OverflowOffsets() const noexcept {
+        return reinterpret_cast<const std::size_t*>(overflowStorage + alignedTypeBytesFor(overflowCapacity));
+    }
+
+    void ReleaseOverflow() noexcept {
+        if (overflowStorage != nullptr) {
+            shine::co::Memory::Free(overflowStorage);
+            overflowStorage = nullptr;
+        }
+        overflowCapacity = 0;
+        paramCount = 0;
+    }
+};
+
 struct MethodCallCache {
-    const TypeInfo*              returnTypeInfo = nullptr;
-    std::vector<const TypeInfo*> paramTypeInfos;
-    std::vector<std::size_t>     paramOffsets;
-    std::size_t                  returnOffset = 0;
-    std::size_t                  frameSize = 0;
-    std::size_t                  frameAlignment = alignof(std::max_align_t);
-    bool                         valid = false;
+    const TypeInfo*       returnTypeInfo = nullptr;
+    MethodCallParamStorage params;
+    std::size_t           returnOffset = 0;
+    std::size_t           frameSize = 0;
+    std::size_t           frameAlignment = alignof(std::max_align_t);
+    bool                  valid = false;
+
+    void ClearParams() noexcept {
+        params.Clear();
+    }
+
+    void ReserveParams(std::size_t count) {
+        params.Reserve(count);
+    }
+
+    void AddParam(const TypeInfo* typeInfo, std::size_t offset) {
+        params.Push(typeInfo, offset);
+    }
+
+    [[nodiscard]] std::size_t ParamCount() const noexcept {
+        return params.Size();
+    }
+
+    [[nodiscard]] const TypeInfo* GetParamTypeInfo(std::size_t index) const noexcept {
+        return params.GetTypeInfo(index);
+    }
+
+    [[nodiscard]] std::size_t GetParamOffset(std::size_t index) const noexcept {
+        return params.GetOffset(index);
+    }
+
+    [[nodiscard]] bool UsesOverflowParamStorage() const noexcept {
+        return params.UsesOverflow();
+    }
 };
 
 struct FieldBuiltinMetadata {
@@ -286,12 +437,12 @@ struct FieldColdData {
     UI::Schema          uiSchema = UI::None{};
     shine::STextView    name;
     FieldBuiltinMetadata builtinMetadata;
-    MetadataContainer   metadata;
+    ReflectionMetadataStorage metadata;
 };
 
 struct MethodColdData {
     shine::STextView  name;
-    MetadataContainer metadata;
+    ReflectionMetadataStorage metadata;
 };
 
 struct EnumEntry {
@@ -301,7 +452,7 @@ struct EnumEntry {
 
 struct TypeColdData {
     shine::STextView name;
-    std::vector<EnumEntry> enumEntries;
+    ReflectionColdVector<EnumEntry> enumEntries;
 };
 
 // =============================================================================
@@ -445,7 +596,7 @@ struct FieldInfo {
     [[nodiscard]] bool HasMeta(MetadataKey key) const { return GetMeta(key) != nullptr; }
 
     void SetName(shine::STextView value) {
-        EnsureColdData().name = value;
+        EnsureColdData().name = InternReflectionText(value);
     }
 
     [[nodiscard]] shine::STextView GetNameView() const noexcept {
@@ -461,12 +612,12 @@ struct FieldInfo {
         return coldData ? coldData->uiSchema : kDefaultSchema;
     }
 
-    [[nodiscard]] const MetadataContainer& GetMetadata() const noexcept {
-        static const MetadataContainer kEmptyMetadata;
+    [[nodiscard]] const ReflectionMetadataStorage& GetMetadata() const noexcept {
+        static const ReflectionMetadataStorage kEmptyMetadata;
         return coldData ? coldData->metadata : kEmptyMetadata;
     }
 
-    MetadataContainer& MutableMetadata() {
+    ReflectionMetadataStorage& MutableMetadata() {
         return EnsureColdData().metadata;
     }
 
@@ -482,15 +633,15 @@ struct FieldInfo {
     }
 
     void SetCategory(shine::STextView value) {
-        EnsureColdData().builtinMetadata.category = value;
+        EnsureColdData().builtinMetadata.category = InternReflectionText(value);
     }
 
     void SetDisplayName(shine::STextView value) {
-        EnsureColdData().builtinMetadata.displayName = value;
+        EnsureColdData().builtinMetadata.displayName = InternReflectionText(value);
     }
 
     void SetEditCondition(shine::STextView value) {
-        EnsureColdData().builtinMetadata.editCondition = value;
+        EnsureColdData().builtinMetadata.editCondition = InternReflectionText(value);
     }
 
     [[nodiscard]] bool TrySetBuiltinMetadata(MetadataKey key, const MetadataValue& value) {
@@ -596,7 +747,7 @@ struct MethodInfo {
     uint64_t            signatureHash = 0;
     FunctionFlags       flags         = FunctionFlags::None;
     ReflectionOwnerHandle owner;
-    mutable MethodCallCache callCache{};
+    mutable ReflectionColdPtr<MethodCallCache> callCache;
     ReflectionColdPtr<MethodColdData> coldData;
 
     void Invoke(void* inst, void** args, void* ret) const {
@@ -610,24 +761,39 @@ struct MethodInfo {
     }
 
     void SetName(shine::STextView value) {
-        EnsureColdData().name = value;
+        EnsureColdData().name = InternReflectionText(value);
     }
 
     [[nodiscard]] shine::STextView GetNameView() const noexcept {
         return coldData ? coldData->name : shine::STextView{};
     }
 
-    [[nodiscard]] const MetadataContainer& GetMetadata() const noexcept {
-        static const MetadataContainer kEmptyMetadata;
+    [[nodiscard]] const ReflectionMetadataStorage& GetMetadata() const noexcept {
+        static const ReflectionMetadataStorage kEmptyMetadata;
         return coldData ? coldData->metadata : kEmptyMetadata;
     }
 
-    MetadataContainer& MutableMetadata() {
+    ReflectionMetadataStorage& MutableMetadata() {
         return EnsureColdData().metadata;
     }
 
     [[nodiscard]] const TypeInfo* GetOwnerType() const {
         return owner.AsType();
+    }
+
+    [[nodiscard]] bool HasCallCache() const noexcept {
+        return static_cast<bool>(callCache);
+    }
+
+    [[nodiscard]] const MethodCallCache* GetCallCache() const noexcept {
+        return callCache.get();
+    }
+
+    [[nodiscard]] MethodCallCache& EnsureCallCache() const {
+        if (!callCache) {
+            callCache = MakeReflectionColdData<MethodCallCache>();
+        }
+        return *callCache;
     }
 
 private:
@@ -687,19 +853,19 @@ struct TypeInfo {
 
 public:
     void SetName(shine::STextView value) {
-        MutableColdData().name = value;
+        MutableColdData().name = InternReflectionText(value);
     }
 
     [[nodiscard]] shine::STextView GetNameView() const noexcept {
         return coldData ? coldData->name : shine::STextView{};
     }
 
-    [[nodiscard]] const std::vector<EnumEntry>& GetEnumEntries() const noexcept {
-        static const std::vector<EnumEntry> kEmptyEnumEntries;
+    [[nodiscard]] const ReflectionColdVector<EnumEntry>& GetEnumEntries() const noexcept {
+        static const ReflectionColdVector<EnumEntry> kEmptyEnumEntries;
         return coldData ? coldData->enumEntries : kEmptyEnumEntries;
     }
 
-    std::vector<EnumEntry>& MutableEnumEntries() {
+    ReflectionColdVector<EnumEntry>& MutableEnumEntries() {
         return MutableColdData().enumEntries;
     }
 
