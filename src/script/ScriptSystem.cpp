@@ -1492,18 +1492,15 @@ namespace shine::script
             return JS_UNDEFINED;
         }
 
-        // Optimization: Use stack buffer for small types to avoid heap allocation
-        alignas(16) char stackBuffer[64];
-        void* valueBuffer = (fieldInfo->size <= sizeof(stackBuffer)) ? stackBuffer : std::malloc(fieldInfo->size);
+        reflection::detail::ScratchBuffer valueBuffer(fieldInfo->size, fieldInfo->alignment);
 
-        if (!fieldInfo->isPod) reflection::Construct(valueBuffer, fieldInfo->typeId);
-        fieldInfo->Get(actor, valueBuffer);
+        if (!fieldInfo->isPod) reflection::Construct(valueBuffer.ptr, fieldInfo->typeId);
+        fieldInfo->Get(actor, valueBuffer.ptr);
 
         QuickJSScriptBridge bridge(ctx);
-        JSValue result = bridge.ToJSValue(bridge.ToScript(valueBuffer, fieldInfo->typeId));
+        JSValue result = bridge.ToJSValue(bridge.ToScript(valueBuffer.ptr, fieldInfo->typeId));
 
-        if (!fieldInfo->isPod) reflection::Destruct(valueBuffer, fieldInfo->typeId);
-        if (valueBuffer != stackBuffer) std::free(valueBuffer);
+        if (!fieldInfo->isPod) reflection::Destruct(valueBuffer.ptr, fieldInfo->typeId);
 
         JS_FreeCString(ctx, fieldName);
         JS_FreeCString(ctx, typeName);
@@ -1538,15 +1535,13 @@ namespace shine::script
         QuickJSScriptBridge bridge(ctx);
         reflection::ScriptValue value = bridge.FromJSValue(argv[3]);
 
-        alignas(16) char stackBuffer[64];
-        void* valueBuffer = (fieldInfo->size <= sizeof(stackBuffer)) ? stackBuffer : std::malloc(fieldInfo->size);
+        reflection::detail::ScratchBuffer valueBuffer(fieldInfo->size, fieldInfo->alignment);
 
-        if (!fieldInfo->isPod) reflection::Construct(valueBuffer, fieldInfo->typeId);
-        bridge.FromScript(value, valueBuffer, fieldInfo->typeId);
-        fieldInfo->Set(actor, valueBuffer);
+        if (!fieldInfo->isPod) reflection::Construct(valueBuffer.ptr, fieldInfo->typeId);
+        bridge.FromScript(value, valueBuffer.ptr, fieldInfo->typeId);
+        fieldInfo->Set(actor, valueBuffer.ptr);
 
-        if (!fieldInfo->isPod) reflection::Destruct(valueBuffer, fieldInfo->typeId);
-        if (valueBuffer != stackBuffer) std::free(valueBuffer);
+        if (!fieldInfo->isPod) reflection::Destruct(valueBuffer.ptr, fieldInfo->typeId);
 
         JS_FreeCString(ctx, fieldName);
         JS_FreeCString(ctx, typeName);

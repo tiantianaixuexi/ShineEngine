@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <new>
 #include <source_location>
 #include <string_view>
 #include <type_traits>
@@ -22,6 +23,8 @@
 #include <variant>
 #include <vector>
 #include "Core/ReflectionOwnerHandle.h"
+#include "Memory/ReflectionMemory.h"
+#include "memory/memory.ixx"
 #include "string/shine_string.h"
 #include "string/shine_text_view.h"
 #include "util/EnumFlags.h"
@@ -291,6 +294,16 @@ struct MethodColdData {
     MetadataContainer metadata;
 };
 
+struct EnumEntry {
+    int64_t value = 0;
+    shine::STextView name;
+};
+
+struct TypeColdData {
+    shine::STextView name;
+    std::vector<EnumEntry> enumEntries;
+};
+
 // =============================================================================
 // Compile-time field access - 完全模板化，编译期绑定
 // =============================================================================
@@ -362,7 +375,7 @@ struct FieldInfo {
     const void*       containerTrait = nullptr;
     PropertyFlags     flags    = PropertyFlags::None;
     uint32_t          nameHash = 0;
-    std::unique_ptr<FieldColdData> coldData;
+    ReflectionColdPtr<FieldColdData> coldData;
 
     // ---- Accessors ----------------------------------------------------------
 
@@ -563,7 +576,7 @@ struct FieldInfo {
 private:
     FieldColdData& EnsureColdData() {
         if (!coldData) {
-            coldData = std::make_unique<FieldColdData>();
+            coldData = MakeReflectionColdData<FieldColdData>();
         }
         return *coldData;
     }
@@ -584,7 +597,7 @@ struct MethodInfo {
     FunctionFlags       flags         = FunctionFlags::None;
     ReflectionOwnerHandle owner;
     mutable MethodCallCache callCache{};
-    std::unique_ptr<MethodColdData> coldData;
+    ReflectionColdPtr<MethodColdData> coldData;
 
     void Invoke(void* inst, void** args, void* ret) const {
         if (invokeFn) invokeFn(inst, args, ret);
@@ -620,7 +633,7 @@ struct MethodInfo {
 private:
     MethodColdData& EnsureColdData() {
         if (!coldData) {
-            coldData = std::make_unique<MethodColdData>();
+            coldData = MakeReflectionColdData<MethodColdData>();
         }
         return *coldData;
     }
@@ -630,14 +643,8 @@ private:
 // TypeInfo — complete runtime type descriptor
 // =============================================================================
 
-struct EnumEntry {
-    int64_t value = 0;
-    shine::STextView name;
-};
-
 struct TypeInfo {
     TypeId              id        = 0;
-    shine::STextView    name;
     std::size_t         size      = 0;
     std::size_t         alignment = 0;
     bool                isEnum    = false;
@@ -645,7 +652,7 @@ struct TypeInfo {
 
     std::vector<FieldInfo>  fields;
     std::vector<MethodInfo> methods;
-    std::vector<EnumEntry>  enumEntries;
+    ReflectionColdPtr<TypeColdData> coldData;
 
     // Fast lookup sorted indices for performance
     struct LookupEntry { uint32_t hash; uint32_t index; };
@@ -679,6 +686,37 @@ struct TypeInfo {
     }
 
 public:
+    void SetName(shine::STextView value) {
+        MutableColdData().name = value;
+    }
+
+    [[nodiscard]] shine::STextView GetNameView() const noexcept {
+        return coldData ? coldData->name : shine::STextView{};
+    }
+
+    [[nodiscard]] const std::vector<EnumEntry>& GetEnumEntries() const noexcept {
+        static const std::vector<EnumEntry> kEmptyEnumEntries;
+        return coldData ? coldData->enumEntries : kEmptyEnumEntries;
+    }
+
+    std::vector<EnumEntry>& MutableEnumEntries() {
+        return MutableColdData().enumEntries;
+    }
+
+    [[nodiscard]] bool HasEnumEntries() const noexcept {
+        return coldData && !coldData->enumEntries.empty();
+    }
+
+private:
+    TypeColdData& MutableColdData() {
+        if (!coldData) {
+            coldData = MakeReflectionColdData<TypeColdData>();
+        }
+        return *coldData;
+    }
+
+public:
+
     void BuildLookup() {
         if (lookupSorted_) return;
 
@@ -701,6 +739,7 @@ public:
 
     std::size_t GetFieldCount()  const { return fields.size(); }
     std::size_t GetMethodCount() const { return methods.size(); }
+    std::size_t GetEnumCount()   const { return GetEnumEntries().size(); }
 };
 
 static_assert(alignof(TypeInfo) >= ReflectionOwnerHandle::kRequiredAlignment,

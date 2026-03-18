@@ -205,14 +205,14 @@ namespace shine::editor::util {
                          if (typeInfo && typeInfo->isEnum) {
                              int64_t currentVal = (int64_t)value;
                              const char* currentName = "Unknown";
-                             for(const auto& e : typeInfo->enumEntries) {
+                             for(const auto& e : typeInfo->GetEnumEntries()) {
                                  if (e.value == currentVal) { currentName = e.name.data(); break; }
                              }
 
                              shine::SString label = "##";
                              label += desc.name;
                              if (ImGui::BeginCombo(label.c_str(), currentName)) {
-                                 for(const auto& e : typeInfo->enumEntries) {
+                                 for(const auto& e : typeInfo->GetEnumEntries()) {
                                      bool isSelected = (currentVal == e.value);
                                      if (ImGui::Selectable(e.name.data(), isSelected)) {
                                          value = (MemberType)e.value;

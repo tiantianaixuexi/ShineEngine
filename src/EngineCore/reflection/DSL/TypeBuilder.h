@@ -23,6 +23,12 @@
 
 namespace shine::reflection {
 
+struct TypeRegistrationPlan {
+    size_t fieldCount = 0;
+    size_t methodCount = 0;
+    size_t enumCount = 0;
+};
+
 // Traits detection
 template<typename T> struct is_sequence_container : std::false_type {};
 template<typename T> struct is_associative_container : std::false_type {};
@@ -71,20 +77,84 @@ struct TypeBuilder {
     using ObjectType = T;
 
     TypeInfo& info;
-    explicit TypeBuilder(TypeInfo& ti) : info(ti) {}
+
+    TypeBuilder(const TypeBuilder&) = delete;
+    TypeBuilder& operator=(const TypeBuilder&) = delete;
+    TypeBuilder(TypeBuilder&&) = delete;
+    TypeBuilder& operator=(TypeBuilder&&) = delete;
+
+    explicit TypeBuilder(TypeInfo& ti, TypeRegistrationPlan plan = {})
+        : info(ti)
+        , fieldBatch_(ReflectionColdPool<FieldColdData>::Get().BeginContiguousBatch(plan.fieldCount))
+        , methodBatch_(ReflectionColdPool<MethodColdData>::Get().BeginContiguousBatch(plan.methodCount)) {
+        if (plan.fieldCount != 0) {
+            if (info.fields.empty()) {
+                info.fields.resize(plan.fieldCount);
+                fieldsPreSized_ = true;
+            } else {
+                info.fields.reserve(info.fields.size() + plan.fieldCount);
+                fieldWriteIndex_ = info.fields.size();
+            }
+        }
+        if (plan.methodCount != 0) {
+            if (info.methods.empty()) {
+                info.methods.resize(plan.methodCount);
+                methodsPreSized_ = true;
+            } else {
+                info.methods.reserve(info.methods.size() + plan.methodCount);
+                methodWriteIndex_ = info.methods.size();
+            }
+        }
+        if (plan.enumCount != 0) {
+            auto& enumEntries = info.MutableEnumEntries();
+            if (enumEntries.empty()) {
+                enumEntries.resize(plan.enumCount);
+                enumsPreSized_ = true;
+            } else {
+                enumEntries.reserve(enumEntries.size() + plan.enumCount);
+                enumWriteIndex_ = enumEntries.size();
+            }
+        }
+    }
+
+    ~TypeBuilder() {
+        if (fieldsPreSized_) {
+            info.fields.resize(fieldWriteIndex_);
+        }
+        if (methodsPreSized_) {
+            info.methods.resize(methodWriteIndex_);
+        }
+        if (enumsPreSized_) {
+            info.MutableEnumEntries().resize(enumWriteIndex_);
+        }
+    }
 
     // ---- FieldBuilder (fluent API, C++23: unified Meta via template) --------
 
     struct FieldBuilder {
         FieldInfo&    field;
         TypeBuilder&  builder;
+        FieldColdData* coldData = nullptr;
 
         FieldBuilder& Range(float lo, float hi) {
-            field.SetRange(lo, hi);
+            if (coldData) {
+                coldData->builtinMetadata.minValue = lo;
+                coldData->builtinMetadata.maxValue = hi;
+                coldData->builtinMetadata.hasRange = true;
+            } else {
+                field.SetRange(lo, hi);
+            }
             return *this;
         }
 
-        FieldBuilder& UI(UI::Schema s)      { field.SetUISchema(std::move(s)); return *this; }
+        FieldBuilder& UI(UI::Schema s) {
+            if (coldData) {
+                coldData->uiSchema = std::move(s);
+            } else {
+                field.SetUISchema(std::move(s));
+            }
+            return *this;
+        }
         FieldBuilder& EditAnywhere()         { field.flags |= PropertyFlags::EditAnywhere;    return *this; }
         FieldBuilder& ReadOnly()             { field.flags |= PropertyFlags::ReadOnly;        return *this; }
         FieldBuilder& ScriptRead()           { field.flags |= PropertyFlags::ScriptRead;      return *this; }
@@ -92,9 +162,20 @@ struct TypeBuilder {
         FieldBuilder& ScriptReadWrite()      { field.flags |= PropertyFlags::ScriptReadWrite; return *this; }
         FieldBuilder& Transient()            { field.flags |= PropertyFlags::Transient;       return *this; }
         FieldBuilder& SaveGame()             { field.flags |= PropertyFlags::SaveGame;        return *this; }
-        FieldBuilder& FunctionSelect()       { field.SetUISchema(UI::FunctionSelector{});     return *this; }
+        FieldBuilder& FunctionSelect() {
+            if (coldData) {
+                coldData->uiSchema = UI::FunctionSelector{};
+            } else {
+                field.SetUISchema(UI::FunctionSelector{});
+            }
+            return *this;
+        }
         FieldBuilder& DisplayName(shine::STextView dn) {
-            field.SetDisplayName(dn);
+            if (coldData) {
+                coldData->builtinMetadata.displayName = dn;
+            } else {
+                field.SetDisplayName(dn);
+            }
             return *this;
         }
 
@@ -104,7 +185,11 @@ struct TypeBuilder {
             const auto metadataKey = Hash(key);
             auto metadataValue = MakeMetadataValue(std::forward<V>(value));
             if (!field.TrySetBuiltinMetadata(metadataKey, metadataValue)) {
-                field.MutableMetadata().push_back({metadataKey, std::move(metadataValue)});
+                if (coldData) {
+                    coldData->metadata.push_back({metadataKey, std::move(metadataValue)});
+                } else {
+                    field.MutableMetadata().push_back({metadataKey, std::move(metadataValue)});
+                }
             }
             return *this;
         }
@@ -114,7 +199,11 @@ struct TypeBuilder {
         FieldBuilder& Meta(MetadataKey key, V&& value) {
             auto metadataValue = MakeMetadataValue(std::forward<V>(value));
             if (!field.TrySetBuiltinMetadata(key, metadataValue)) {
-                field.MutableMetadata().push_back({key, std::move(metadataValue)});
+                if (coldData) {
+                    coldData->metadata.push_back({key, std::move(metadataValue)});
+                } else {
+                    field.MutableMetadata().push_back({key, std::move(metadataValue)});
+                }
             }
             return *this;
         }
@@ -139,8 +228,10 @@ struct TypeBuilder {
         using MType = typename DSL::FieldDSLNode<MemberPtr>::MemberType;
         using CType = typename DSL::FieldDSLNode<MemberPtr>::ClassType;
 
-        FieldInfo f{};
-        f.SetName(node.name);
+        auto& f = AcquireFieldSlot();
+        f = FieldInfo{};
+        auto fieldColdData = MakeReflectionColdData<FieldColdData>();
+        fieldColdData->name = node.name;
         f.nameHash  = Hash(node.name);
         f.typeId    = GetTypeId<MType>();
         f.owner     = ReflectionOwnerHandle{};
@@ -148,6 +239,7 @@ struct TypeBuilder {
         f.size      = sizeof(MType);
         f.alignment = alignof(MType);
         f.isPod     = std::is_trivially_copyable_v<MType>;
+        f.coldData  = std::move(fieldColdData);
 
         if constexpr (is_sequence_container<MType>::value) {
             f.containerType = ContainerType::Sequence;
@@ -187,8 +279,7 @@ struct TypeBuilder {
                 *static_cast<MType*>(dst) = *static_cast<const MType*>(src);
         };
 
-        info.fields.push_back(std::move(f));
-        return FieldBuilder{info.fields.back(), *this};
+        return FieldBuilder{f, *this, f.coldData.get()};
     }
 
     // ---- MethodBuilder (fluent API, C++23: unified Meta) --------------------
@@ -196,20 +287,31 @@ struct TypeBuilder {
     struct MethodBuilder {
         MethodInfo&  method;
         TypeBuilder& builder;
+        MethodColdData* coldData = nullptr;
 
         MethodBuilder& ScriptCallable() { method.flags |= FunctionFlags::ScriptCallable; return *this; }
         MethodBuilder& EditorCallable() { method.flags |= FunctionFlags::EditorCallable; return *this; }
 
         template <typename V>
         MethodBuilder& Meta(shine::STextView key, V&& value) {
-            method.MutableMetadata().push_back({Hash(key), MakeMetadataValue(std::forward<V>(value))});
+            auto metadataValue = MakeMetadataValue(std::forward<V>(value));
+            if (coldData) {
+                coldData->metadata.push_back({Hash(key), std::move(metadataValue)});
+            } else {
+                method.MutableMetadata().push_back({Hash(key), std::move(metadataValue)});
+            }
             return *this;
         }
 
         /// Overload accepting a pre-computed MetadataKey (consteval-friendly).
         template <typename V>
         MethodBuilder& Meta(MetadataKey key, V&& value) {
-            method.MutableMetadata().push_back({key, MakeMetadataValue(std::forward<V>(value))});
+            auto metadataValue = MakeMetadataValue(std::forward<V>(value));
+            if (coldData) {
+                coldData->metadata.push_back({key, std::move(metadataValue)});
+            } else {
+                method.MutableMetadata().push_back({key, std::move(metadataValue)});
+            }
             return *this;
         }
     };
@@ -218,12 +320,15 @@ struct TypeBuilder {
     MethodBuilder RegisterMethodFromDSL(DSL::MethodDSLNode<MethodPtr> node) {
         using Traits = MethodTraits<decltype(MethodPtr)>;
 
-        MethodInfo m{};
-        m.SetName(node.name);
+        auto& m = AcquireMethodSlot();
+        m = MethodInfo{};
+        auto methodColdData = MakeReflectionColdData<MethodColdData>();
+        methodColdData->name = node.name;
         m.nameHash   = Hash(node.name);
         m.returnType = GetTypeId<typename Traits::ReturnType>();
         m.owner      = ReflectionOwnerHandle{};   // patched after TypeInfo is complete
         m.paramTypes.reserve(Traits::Arity);
+        m.coldData   = std::move(methodColdData);
 
         // Record parameter types
         [&]<std::size_t... I>(std::index_sequence<I...>) {
@@ -250,8 +355,7 @@ struct TypeBuilder {
             }(std::make_index_sequence<Traits::Arity>{});
         };
 
-        info.methods.push_back(std::move(m));
-        return MethodBuilder{info.methods.back(), *this};
+        return MethodBuilder{m, *this, m.coldData.get()};
     }
 
     // ---- Enum registration --------------------------------------------------
@@ -260,8 +364,112 @@ struct TypeBuilder {
 
     void Enums(std::initializer_list<EnumPair> entries) {
         info.isEnum = true;
-        for (const auto& e : entries)
-            info.enumEntries.push_back({static_cast<int64_t>(e.value), e.name});
+        for (const auto& e : entries) {
+            auto& entry = AcquireEnumSlot();
+            entry = EnumEntry{static_cast<int64_t>(e.value), e.name};
+        }
+    }
+
+private:
+    FieldInfo& AcquireFieldSlot() {
+        if (fieldWriteIndex_ < info.fields.size()) {
+            return info.fields[fieldWriteIndex_++];
+        }
+        info.fields.emplace_back();
+        ++fieldWriteIndex_;
+        return info.fields.back();
+    }
+
+    MethodInfo& AcquireMethodSlot() {
+        if (methodWriteIndex_ < info.methods.size()) {
+            return info.methods[methodWriteIndex_++];
+        }
+        info.methods.emplace_back();
+        ++methodWriteIndex_;
+        return info.methods.back();
+    }
+
+    EnumEntry& AcquireEnumSlot() {
+        auto& enumEntries = info.MutableEnumEntries();
+        if (enumWriteIndex_ < enumEntries.size()) {
+            return enumEntries[enumWriteIndex_++];
+        }
+        enumEntries.emplace_back();
+        ++enumWriteIndex_;
+        return enumEntries.back();
+    }
+
+    size_t fieldWriteIndex_ = 0;
+    size_t methodWriteIndex_ = 0;
+    size_t enumWriteIndex_ = 0;
+    bool fieldsPreSized_ = false;
+    bool methodsPreSized_ = false;
+    bool enumsPreSized_ = false;
+    typename ReflectionColdPool<FieldColdData>::ContiguousBatch fieldBatch_;
+    typename ReflectionColdPool<MethodColdData>::ContiguousBatch methodBatch_;
+};
+
+template <typename T>
+struct TypeBuilderPlanCounter {
+    using ObjectType = T;
+
+    TypeRegistrationPlan& plan;
+
+    explicit TypeBuilderPlanCounter(TypeRegistrationPlan& registrationPlan)
+        : plan(registrationPlan) {}
+
+    struct FieldBuilder {
+        FieldBuilder& Range(float, float) { return *this; }
+        FieldBuilder& UI(UI::Schema) { return *this; }
+        FieldBuilder& EditAnywhere() { return *this; }
+        FieldBuilder& ReadOnly() { return *this; }
+        FieldBuilder& ScriptRead() { return *this; }
+        FieldBuilder& ScriptWrite() { return *this; }
+        FieldBuilder& ScriptReadWrite() { return *this; }
+        FieldBuilder& Transient() { return *this; }
+        FieldBuilder& SaveGame() { return *this; }
+        FieldBuilder& FunctionSelect() { return *this; }
+        FieldBuilder& DisplayName(shine::STextView) { return *this; }
+
+        template <typename V>
+        FieldBuilder& Meta(shine::STextView, V&&) { return *this; }
+
+        template <typename V>
+        FieldBuilder& Meta(MetadataKey, V&&) { return *this; }
+
+        template <auto Cb>
+        FieldBuilder& OnChange() { return *this; }
+    };
+
+    struct MethodBuilder {
+        MethodInfo method{};
+
+        MethodBuilder& ScriptCallable() { return *this; }
+        MethodBuilder& EditorCallable() { return *this; }
+
+        template <typename V>
+        MethodBuilder& Meta(shine::STextView, V&&) { return *this; }
+
+        template <typename V>
+        MethodBuilder& Meta(MetadataKey, V&&) { return *this; }
+    };
+
+    template <auto MemberPtr>
+    FieldBuilder RegisterFieldFromDSL(const DSL::FieldDSLNode<MemberPtr>&) {
+        ++plan.fieldCount;
+        return {};
+    }
+
+    template <auto MethodPtr>
+    MethodBuilder RegisterMethodFromDSL(const DSL::MethodDSLNode<MethodPtr>&) {
+        ++plan.methodCount;
+        return {};
+    }
+
+    struct EnumPair { T value; shine::STextView name; };
+
+    void Enums(std::initializer_list<EnumPair> entries) {
+        plan.enumCount += entries.size();
     }
 };
 
@@ -333,7 +541,7 @@ template <typename T>
 constexpr TypeInfo BuildTypeInfo(shine::STextView name) {
     TypeInfo i{};
     i.id        = GetTypeId<T>();
-    i.name      = name;
+    i.SetName(name);
     i.size      = sizeof(T);
     i.alignment = alignof(T);
     i.isPod     = std::is_trivially_copyable_v<T>;

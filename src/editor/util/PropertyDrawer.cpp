@@ -126,12 +126,12 @@ namespace shine::editor::util {
                 else if (field.size == 8) currentVal = *(int64_t*)fieldPtr;
 
                 const char* currentName = "Unknown";
-                for (const auto& e : fieldTypeInfo->enumEntries) {
+                for (const auto& e : fieldTypeInfo->GetEnumEntries()) {
                     if (e.value == currentVal) { currentName = e.name.data(); break; }
                 }
 
                 if (ImGui::BeginCombo(Label(), currentName)) {
-                    for (const auto& e : fieldTypeInfo->enumEntries) {
+                    for (const auto& e : fieldTypeInfo->GetEnumEntries()) {
                         bool isSelected = (currentVal == e.value);
                         if (ImGui::Selectable(e.name.data(), isSelected)) {
                             if (field.size == 4) *(int32_t*)fieldPtr = (int32_t)e.value;

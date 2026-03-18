@@ -241,11 +241,12 @@ void TestReflectionLayoutBaseline() {
 
     fmt::print("结构摘要:\n");
     PrintLayoutHeader<shine::reflection::TypeInfo>(shine::STextView::from_literal("TypeInfo"),
-        offsetof(shine::reflection::TypeInfo, enumEntries) + sizeof(std::vector<shine::reflection::EnumEntry>));
+        offsetof(shine::reflection::TypeInfo, coldData));
     PrintLayoutHeader<shine::reflection::FieldInfo>(shine::STextView::from_literal("FieldInfo"),
         offsetof(shine::reflection::FieldInfo, coldData));
     PrintLayoutHeader<shine::reflection::MethodInfo>(shine::STextView::from_literal("MethodInfo"),
         offsetof(shine::reflection::MethodInfo, coldData));
+    PrintLayoutHeader<shine::reflection::TypeColdData>(shine::STextView::from_literal("TypeColdData"));
     PrintLayoutHeader<shine::reflection::FieldColdData>(shine::STextView::from_literal("FieldColdData"));
     PrintLayoutHeader<shine::reflection::MethodColdData>(shine::STextView::from_literal("MethodColdData"));
     PrintLayoutHeader<shine::reflection::ReflectionOwnerHandle>(shine::STextView::from_literal("ReflectionOwnerHandle"));
@@ -271,7 +272,7 @@ void TestReflectionLayoutBaseline() {
     PrintMemberLayout(shine::STextView::from_literal("containerTrait"), offsetof(shine::reflection::FieldInfo, containerTrait), sizeof(const void*), alignof(const void*));
     PrintMemberLayout(shine::STextView::from_literal("flags"), offsetof(shine::reflection::FieldInfo, flags), sizeof(shine::reflection::PropertyFlags), alignof(shine::reflection::PropertyFlags));
     PrintMemberLayout(shine::STextView::from_literal("nameHash"), offsetof(shine::reflection::FieldInfo, nameHash), sizeof(uint32_t), alignof(uint32_t));
-    PrintMemberLayout(shine::STextView::from_literal("coldData"), offsetof(shine::reflection::FieldInfo, coldData), sizeof(std::unique_ptr<shine::reflection::FieldColdData>), alignof(std::unique_ptr<shine::reflection::FieldColdData>));
+    PrintMemberLayout(shine::STextView::from_literal("coldData"), offsetof(shine::reflection::FieldInfo, coldData), sizeof(shine::reflection::ReflectionColdPtr<shine::reflection::FieldColdData>), alignof(shine::reflection::ReflectionColdPtr<shine::reflection::FieldColdData>));
 
     fmt::print("\nMethodInfo 成员布局:\n");
     PrintMemberLayout(shine::STextView::from_literal("nameHash"), offsetof(shine::reflection::MethodInfo, nameHash), sizeof(uint32_t), alignof(uint32_t));
@@ -282,24 +283,27 @@ void TestReflectionLayoutBaseline() {
     PrintMemberLayout(shine::STextView::from_literal("flags"), offsetof(shine::reflection::MethodInfo, flags), sizeof(shine::reflection::FunctionFlags), alignof(shine::reflection::FunctionFlags));
     PrintMemberLayout(shine::STextView::from_literal("owner"), offsetof(shine::reflection::MethodInfo, owner), sizeof(shine::reflection::ReflectionOwnerHandle), alignof(shine::reflection::ReflectionOwnerHandle));
     PrintMemberLayout(shine::STextView::from_literal("callCache"), offsetof(shine::reflection::MethodInfo, callCache), sizeof(shine::reflection::MethodCallCache), alignof(shine::reflection::MethodCallCache));
-    PrintMemberLayout(shine::STextView::from_literal("coldData"), offsetof(shine::reflection::MethodInfo, coldData), sizeof(std::unique_ptr<shine::reflection::MethodColdData>), alignof(std::unique_ptr<shine::reflection::MethodColdData>));
+    PrintMemberLayout(shine::STextView::from_literal("coldData"), offsetof(shine::reflection::MethodInfo, coldData), sizeof(shine::reflection::ReflectionColdPtr<shine::reflection::MethodColdData>), alignof(shine::reflection::ReflectionColdPtr<shine::reflection::MethodColdData>));
 
     fmt::print("\nReflectionOwnerHandle 布局:\n");
     PrintMemberLayout(shine::STextView::from_literal("rawValue"), 0, sizeof(shine::reflection::ReflectionOwnerHandle), alignof(shine::reflection::ReflectionOwnerHandle));
 
     fmt::print("\nTypeInfo 成员布局:\n");
     PrintMemberLayout(shine::STextView::from_literal("id"), offsetof(shine::reflection::TypeInfo, id), sizeof(shine::reflection::TypeId), alignof(shine::reflection::TypeId));
-    PrintMemberLayout(shine::STextView::from_literal("name"), offsetof(shine::reflection::TypeInfo, name), sizeof(shine::STextView), alignof(shine::STextView));
     PrintMemberLayout(shine::STextView::from_literal("size"), offsetof(shine::reflection::TypeInfo, size), sizeof(std::size_t), alignof(std::size_t));
     PrintMemberLayout(shine::STextView::from_literal("alignment"), offsetof(shine::reflection::TypeInfo, alignment), sizeof(std::size_t), alignof(std::size_t));
     PrintMemberLayout(shine::STextView::from_literal("isEnum"), offsetof(shine::reflection::TypeInfo, isEnum), sizeof(bool), alignof(bool));
     PrintMemberLayout(shine::STextView::from_literal("isPod"), offsetof(shine::reflection::TypeInfo, isPod), sizeof(bool), alignof(bool));
     PrintMemberLayout(shine::STextView::from_literal("fields"), offsetof(shine::reflection::TypeInfo, fields), sizeof(std::vector<shine::reflection::FieldInfo>), alignof(std::vector<shine::reflection::FieldInfo>));
     PrintMemberLayout(shine::STextView::from_literal("methods"), offsetof(shine::reflection::TypeInfo, methods), sizeof(std::vector<shine::reflection::MethodInfo>), alignof(std::vector<shine::reflection::MethodInfo>));
-    PrintMemberLayout(shine::STextView::from_literal("enumEntries"), offsetof(shine::reflection::TypeInfo, enumEntries), sizeof(std::vector<shine::reflection::EnumEntry>), alignof(std::vector<shine::reflection::EnumEntry>));
+    PrintMemberLayout(shine::STextView::from_literal("coldData"), offsetof(shine::reflection::TypeInfo, coldData), sizeof(shine::reflection::ReflectionColdPtr<shine::reflection::TypeColdData>), alignof(shine::reflection::ReflectionColdPtr<shine::reflection::TypeColdData>));
     PrintMemberLayout(shine::STextView::from_literal("fieldLookup_"), offsetof(shine::reflection::TypeInfo, fieldLookup_), sizeof(std::vector<shine::reflection::TypeInfo::LookupEntry>), alignof(std::vector<shine::reflection::TypeInfo::LookupEntry>));
     PrintMemberLayout(shine::STextView::from_literal("methodLookup_"), offsetof(shine::reflection::TypeInfo, methodLookup_), sizeof(std::vector<shine::reflection::TypeInfo::LookupEntry>), alignof(std::vector<shine::reflection::TypeInfo::LookupEntry>));
     PrintMemberLayout(shine::STextView::from_literal("lookupSorted_"), offsetof(shine::reflection::TypeInfo, lookupSorted_), sizeof(bool), alignof(bool));
+
+    fmt::print("\nTypeColdData 成员布局:\n");
+    PrintMemberLayout(shine::STextView::from_literal("name"), offsetof(shine::reflection::TypeColdData, name), sizeof(shine::STextView), alignof(shine::STextView));
+    PrintMemberLayout(shine::STextView::from_literal("enumEntries"), offsetof(shine::reflection::TypeColdData, enumEntries), sizeof(std::vector<shine::reflection::EnumEntry>), alignof(std::vector<shine::reflection::EnumEntry>));
 
     fmt::print("\nMethodCallCache 成员布局:\n");
     PrintMemberLayout(shine::STextView::from_literal("returnTypeInfo"), offsetof(shine::reflection::MethodCallCache, returnTypeInfo), sizeof(const shine::reflection::TypeInfo*), alignof(const shine::reflection::TypeInfo*));
@@ -341,6 +345,37 @@ void TestReflectionMemoryTags() {
             static_cast<long long>(after.bytes_peak) - static_cast<long long>(before.bytes_peak));
     };
 
+    const auto printColdPoolState = [](const char* label,
+                                       size_t fieldBlocksBefore,
+                                       size_t fieldLiveBefore,
+                                       size_t methodBlocksBefore,
+                                       size_t methodLiveBefore) {
+        auto& fieldPool = shine::reflection::ReflectionColdPool<shine::reflection::FieldColdData>::Get();
+        auto& methodPool = shine::reflection::ReflectionColdPool<shine::reflection::MethodColdData>::Get();
+
+        const auto fieldBlocksAfter = fieldPool.PageCount();
+        const auto fieldLiveAfter = shine::reflection::ReflectionColdPool<shine::reflection::FieldColdData>::Get().LiveCount();
+        const auto methodBlocksAfter = methodPool.PageCount();
+        const auto methodLiveAfter = shine::reflection::ReflectionColdPool<shine::reflection::MethodColdData>::Get().LiveCount();
+
+        fmt::print("  {:<20} field_pages={} (delta={}) live_pages={} slots/page={} tail_used={} field_live={} (delta={}) method_pages={} (delta={}) live_pages={} slots/page={} tail_used={} method_live={} (delta={})\n",
+            label,
+            fieldBlocksAfter,
+            static_cast<long long>(fieldBlocksAfter) - static_cast<long long>(fieldBlocksBefore),
+            fieldPool.LivePageCount(),
+            fieldPool.SlotsPerPage(),
+            fieldPool.LastPageCommittedSlots(),
+            fieldLiveAfter,
+            static_cast<long long>(fieldLiveAfter) - static_cast<long long>(fieldLiveBefore),
+            methodBlocksAfter,
+            static_cast<long long>(methodBlocksAfter) - static_cast<long long>(methodBlocksBefore),
+            methodPool.LivePageCount(),
+            methodPool.SlotsPerPage(),
+            methodPool.LastPageCommittedSlots(),
+            methodLiveAfter,
+            static_cast<long long>(methodLiveAfter) - static_cast<long long>(methodLiveBefore));
+    };
+
     Memory::FlushAllThreadStats();
     const auto metaBefore = Memory::GetTagStats(MemoryTag::ReflectionMeta);
     void* reflectionMetaBlock = nullptr;
@@ -355,6 +390,51 @@ void TestReflectionMemoryTags() {
     const auto metaAfter = Memory::GetTagStats(MemoryTag::ReflectionMeta);
     printDelta("ReflectionMeta", metaBefore, metaDuring);
     printDelta("ReflectionMeta/free", metaDuring, metaAfter);
+
+    Memory::FlushAllThreadStats();
+    const auto coldBefore = Memory::GetTagStats(MemoryTag::ReflectionCold);
+    const auto fieldBlocksBefore = shine::reflection::ReflectionColdPool<shine::reflection::FieldColdData>::Get().PageCount();
+    const auto fieldLiveBefore = shine::reflection::ReflectionColdPool<shine::reflection::FieldColdData>::Get().LiveCount();
+    const auto methodBlocksBefore = shine::reflection::ReflectionColdPool<shine::reflection::MethodColdData>::Get().PageCount();
+    const auto methodLiveBefore = shine::reflection::ReflectionColdPool<shine::reflection::MethodColdData>::Get().LiveCount();
+
+    constexpr size_t kColdBurstCount = 96;
+    {
+        std::vector<shine::reflection::FieldInfo> coldFields(kColdBurstCount);
+        std::vector<shine::reflection::MethodInfo> coldMethods(kColdBurstCount);
+        for (auto& coldField : coldFields) {
+            coldField.SetName(shine::STextView::from_literal("ColdField"));
+            coldField.SetDisplayName(shine::STextView::from_literal("Cold Field"));
+        }
+        for (auto& coldMethod : coldMethods) {
+            coldMethod.SetName(shine::STextView::from_literal("ColdMethod"));
+        }
+
+        Memory::FlushAllThreadStats();
+        const auto coldDuring = Memory::GetTagStats(MemoryTag::ReflectionCold);
+        printDelta("ReflectionCold/burst1", coldBefore, coldDuring);
+        printColdPoolState("ReflectionColdPool1", fieldBlocksBefore, fieldLiveBefore, methodBlocksBefore, methodLiveBefore);
+    }
+    Memory::FlushAllThreadStats();
+    const auto coldAfterRelease = Memory::GetTagStats(MemoryTag::ReflectionCold);
+    printDelta("ReflectionCold/retain", coldBefore, coldAfterRelease);
+    printColdPoolState("ReflectionColdPoolR", fieldBlocksBefore, fieldLiveBefore, methodBlocksBefore, methodLiveBefore);
+
+    {
+        std::vector<shine::reflection::FieldInfo> coldFieldsReuse(kColdBurstCount);
+        std::vector<shine::reflection::MethodInfo> coldMethodsReuse(kColdBurstCount);
+        for (auto& coldFieldReuse : coldFieldsReuse) {
+            coldFieldReuse.SetName(shine::STextView::from_literal("ColdFieldReuse"));
+        }
+        for (auto& coldMethodReuse : coldMethodsReuse) {
+            coldMethodReuse.SetName(shine::STextView::from_literal("ColdMethodReuse"));
+        }
+
+        Memory::FlushAllThreadStats();
+        const auto coldReuse = Memory::GetTagStats(MemoryTag::ReflectionCold);
+        printDelta("ReflectionCold/reuse", coldAfterRelease, coldReuse);
+        printColdPoolState("ReflectionColdPool2", fieldBlocksBefore, fieldLiveBefore, methodBlocksBefore, methodLiveBefore);
+    }
 
     Memory::FlushAllThreadStats();
     const auto stringBefore = Memory::GetTagStats(MemoryTag::ReflectionString);
@@ -383,6 +463,279 @@ void TestReflectionMemoryTags() {
     Memory::FlushAllThreadStats();
     const auto tempAfter = Memory::GetTagStats(MemoryTag::ScriptBridgeTemp);
     printDelta("ScriptBridgeTemp/free", tempBefore, tempAfter);
+}
+
+void TestReflectionColdBatchReservation() {
+    PrintSeparator("基线: 冷区批量页保留");
+
+    using FieldColdPtr = shine::reflection::ReflectionColdPtr<shine::reflection::FieldColdData>;
+
+    auto& fieldPool = shine::reflection::ReflectionColdPool<shine::reflection::FieldColdData>::Get();
+    const size_t slotsPerPage = fieldPool.SlotsPerPage();
+    const size_t committedBefore = fieldPool.LastPageCommittedSlots();
+    const size_t remainingBefore = committedBefore < slotsPerPage ? (slotsPerPage - committedBefore) : 0;
+    const size_t requestedBatch = 24;
+
+    std::vector<FieldColdPtr> fillers;
+    if (remainingBefore > requestedBatch + 4) {
+        const size_t fillerCount = remainingBefore - (requestedBatch / 2);
+        fillers.reserve(fillerCount);
+        for (size_t index = 0; index < fillerCount; ++index) {
+            fillers.push_back(shine::reflection::MakeReflectionColdData<shine::reflection::FieldColdData>());
+        }
+    }
+
+    const size_t fillerPage = fillers.empty()
+        ? fieldPool.PageIndexOf(nullptr)
+        : fieldPool.PageIndexOf(fillers.front().get());
+
+    std::vector<FieldColdPtr> batchedColdData;
+    batchedColdData.reserve(requestedBatch);
+    {
+        auto batch = fieldPool.BeginContiguousBatch(requestedBatch);
+        for (size_t index = 0; index < requestedBatch; ++index) {
+            batchedColdData.push_back(shine::reflection::MakeReflectionColdData<shine::reflection::FieldColdData>());
+        }
+    }
+
+    const size_t firstPage = batchedColdData.empty() ? fieldPool.PageIndexOf(nullptr) : fieldPool.PageIndexOf(batchedColdData.front().get());
+    const size_t lastPage = batchedColdData.empty() ? fieldPool.PageIndexOf(nullptr) : fieldPool.PageIndexOf(batchedColdData.back().get());
+
+    fmt::print("  field batch pages: first={} last={} fillers_page={} committed_before={} slots_per_page={} requested_batch={}\n",
+        firstPage,
+        lastPage,
+        fillerPage,
+        committedBefore,
+        slotsPerPage,
+        requestedBatch);
+    fmt::print("[PASS] batched cold fields stay on one page: {}\n", firstPage == lastPage ? "Yes" : "No");
+    if (!fillers.empty()) {
+        fmt::print("[PASS] batch moved off the partially used tail page: {}\n", firstPage != fillerPage ? "Yes" : "No");
+    }
+}
+
+void TestReflectionRegistrationPlan() {
+    PrintSeparator("基线: 注册计划与容量预留");
+
+    shine::reflection::TypeRegistrationPlan transformPlan{};
+    shine::reflection::TypeBuilderPlanCounter<Transform> transformCounter(transformPlan);
+    _ReflectRegFn_Transform(transformCounter);
+
+    fmt::print("  Transform plan: fields={} methods={} enums={}\n",
+        transformPlan.fieldCount,
+        transformPlan.methodCount,
+        transformPlan.enumCount);
+
+    shine::reflection::TypeInfo transformInfo{};
+    transformInfo.id = shine::reflection::GetTypeId<Transform>();
+    transformInfo.SetName(shine::STextView::from_literal("TransformPlanProbe"));
+    transformInfo.size = sizeof(Transform);
+    transformInfo.alignment = alignof(Transform);
+    transformInfo.isPod = std::is_trivially_copyable_v<Transform>;
+    transformInfo.isEnum = false;
+
+    shine::reflection::TypeBuilder<Transform> transformBuilder(transformInfo, transformPlan);
+    fmt::print("  reserved capacities: fields={} methods={} enums={}\n",
+        transformInfo.fields.capacity(),
+        transformInfo.methods.capacity(),
+        transformInfo.GetEnumEntries().capacity());
+    fmt::print("[PASS] transform field reserve matches plan: {}\n",
+        transformInfo.fields.capacity() >= transformPlan.fieldCount ? "Yes" : "No");
+    fmt::print("[PASS] transform method reserve matches plan: {}\n",
+        transformInfo.methods.capacity() >= transformPlan.methodCount ? "Yes" : "No");
+
+    shine::reflection::TypeRegistrationPlan enumPlan{};
+    shine::reflection::TypeBuilderPlanCounter<ETestEnum> enumCounter(enumPlan);
+    _ReflectRegFn_ETestEnum(enumCounter);
+    fmt::print("  ETestEnum plan: fields={} methods={} enums={}\n",
+        enumPlan.fieldCount,
+        enumPlan.methodCount,
+        enumPlan.enumCount);
+
+    shine::reflection::TypeInfo enumInfo{};
+    enumInfo.id = shine::reflection::GetTypeId<ETestEnum>();
+    enumInfo.SetName(shine::STextView::from_literal("EnumPlanProbe"));
+    enumInfo.size = sizeof(ETestEnum);
+    enumInfo.alignment = alignof(ETestEnum);
+    enumInfo.isPod = false;
+    enumInfo.isEnum = true;
+
+    shine::reflection::TypeBuilder<ETestEnum> enumBuilder(enumInfo, enumPlan);
+    fmt::print("  enum reserved capacity: {}\n", enumInfo.GetEnumEntries().capacity());
+    fmt::print("[PASS] enum reserve matches plan: {}\n",
+        enumInfo.GetEnumEntries().capacity() >= enumPlan.enumCount ? "Yes" : "No");
+}
+
+void TestTypeBuilderStagedEmission() {
+    PrintSeparator("基线: TypeBuilder 原地发射");
+
+    shine::reflection::TypeRegistrationPlan transformPlan{};
+    shine::reflection::TypeBuilderPlanCounter<Transform> transformCounter(transformPlan);
+    _ReflectRegFn_Transform(transformCounter);
+
+    shine::reflection::TypeInfo transformInfo{};
+    transformInfo.id = shine::reflection::GetTypeId<Transform>();
+    transformInfo.SetName(shine::STextView::from_literal("TransformStageProbe"));
+    transformInfo.size = sizeof(Transform);
+    transformInfo.alignment = alignof(Transform);
+    transformInfo.isPod = std::is_trivially_copyable_v<Transform>;
+    transformInfo.isEnum = false;
+
+    const shine::reflection::FieldInfo* stagedFieldBase = nullptr;
+    const shine::reflection::MethodInfo* stagedMethodBase = nullptr;
+    {
+        shine::reflection::TypeBuilder<Transform> transformBuilder(transformInfo, transformPlan);
+        stagedFieldBase = transformInfo.fields.data();
+        stagedMethodBase = transformInfo.methods.data();
+        fmt::print("  staged before emit: fields={} methods={} enums={}\n",
+            transformInfo.fields.size(),
+            transformInfo.methods.size(),
+            transformInfo.GetEnumEntries().size());
+        _ReflectRegFn_Transform(transformBuilder);
+    }
+
+    fmt::print("  staged after emit: fields={} methods={} enums={}\n",
+        transformInfo.fields.size(),
+        transformInfo.methods.size(),
+        transformInfo.GetEnumEntries().size());
+    fmt::print("[PASS] transform fields emitted in-place: {}\n",
+        transformInfo.fields.data() == stagedFieldBase ? "Yes" : "No");
+    fmt::print("[PASS] transform methods emitted in-place: {}\n",
+        transformInfo.methods.data() == stagedMethodBase ? "Yes" : "No");
+    fmt::print("[PASS] transform staged field count exact: {}\n",
+        transformInfo.fields.size() == transformPlan.fieldCount ? "Yes" : "No");
+    fmt::print("[PASS] transform staged method count exact: {}\n",
+        transformInfo.methods.size() == transformPlan.methodCount ? "Yes" : "No");
+
+    shine::reflection::TypeRegistrationPlan enumPlan{};
+    shine::reflection::TypeBuilderPlanCounter<ETestEnum> enumCounter(enumPlan);
+    _ReflectRegFn_ETestEnum(enumCounter);
+
+    shine::reflection::TypeInfo enumInfo{};
+    enumInfo.id = shine::reflection::GetTypeId<ETestEnum>();
+    enumInfo.SetName(shine::STextView::from_literal("EnumStageProbe"));
+    enumInfo.size = sizeof(ETestEnum);
+    enumInfo.alignment = alignof(ETestEnum);
+    enumInfo.isPod = false;
+    enumInfo.isEnum = true;
+
+    const shine::reflection::EnumEntry* stagedEnumBase = nullptr;
+    {
+        shine::reflection::TypeBuilder<ETestEnum> enumBuilder(enumInfo, enumPlan);
+        stagedEnumBase = enumInfo.GetEnumEntries().data();
+        fmt::print("  enum staged before emit: entries={}\n", enumInfo.GetEnumEntries().size());
+        _ReflectRegFn_ETestEnum(enumBuilder);
+    }
+
+    fmt::print("  enum staged after emit: entries={}\n", enumInfo.GetEnumEntries().size());
+    fmt::print("[PASS] enum entries emitted in-place: {}\n",
+        enumInfo.GetEnumEntries().data() == stagedEnumBase ? "Yes" : "No");
+    fmt::print("[PASS] enum staged count exact: {}\n",
+        enumInfo.GetEnumEntries().size() == enumPlan.enumCount ? "Yes" : "No");
+}
+
+void TestRegisteredTypeColdLocality() {
+    PrintSeparator("基线: 已注册类型冷页局部性");
+
+    const auto* typeInfo = shine::reflection::TypeRegistry::Get().FindFast(shine::reflection::GetTypeId<Transform>());
+    if (!typeInfo) {
+        fmt::print("[PASS] transform type available: No\n");
+        return;
+    }
+
+    auto& fieldPool = shine::reflection::ReflectionColdPool<shine::reflection::FieldColdData>::Get();
+    auto& methodPool = shine::reflection::ReflectionColdPool<shine::reflection::MethodColdData>::Get();
+
+    size_t firstFieldPage = static_cast<size_t>(-1);
+    size_t lastFieldPage = static_cast<size_t>(-1);
+    for (const auto& field : typeInfo->fields) {
+        const size_t pageIndex = fieldPool.PageIndexOf(field.coldData.get());
+        if (firstFieldPage == static_cast<size_t>(-1)) {
+            firstFieldPage = pageIndex;
+        }
+        lastFieldPage = pageIndex;
+    }
+
+    size_t firstMethodPage = static_cast<size_t>(-1);
+    size_t lastMethodPage = static_cast<size_t>(-1);
+    for (const auto& method : typeInfo->methods) {
+        const size_t pageIndex = methodPool.PageIndexOf(method.coldData.get());
+        if (firstMethodPage == static_cast<size_t>(-1)) {
+            firstMethodPage = pageIndex;
+        }
+        lastMethodPage = pageIndex;
+    }
+
+    fmt::print("  Transform cold pages: field_first={} field_last={} method_first={} method_last={}\n",
+        firstFieldPage,
+        lastFieldPage,
+        firstMethodPage,
+        lastMethodPage);
+    fmt::print("[PASS] transform fields share one cold page: {}\n",
+        firstFieldPage == lastFieldPage ? "Yes" : "No");
+    fmt::print("[PASS] transform methods share one cold page: {}\n",
+        firstMethodPage == lastMethodPage ? "Yes" : "No");
+}
+
+void TestTypeRegistryArenaOwnership() {
+    PrintSeparator("基线: TypeRegistry arena 持有");
+
+    using shine::co::Memory;
+    using shine::co::MemoryTag;
+
+    auto& registry = shine::reflection::TypeRegistry::Get();
+    const size_t pageCountBefore = registry.GetArenaPageCount();
+    const size_t typeCountBefore = registry.GetRegisteredTypeCount();
+
+    Memory::FlushAllThreadStats();
+    const auto metaBefore = Memory::GetTagStats(MemoryTag::ReflectionMeta);
+
+    const auto registerProbe = [](shine::reflection::TypeId id, shine::STextView name) {
+        shine::reflection::TypeInfo info{};
+        info.id = id;
+        info.SetName(name);
+        info.size = sizeof(int);
+        info.alignment = alignof(int);
+        info.isPod = true;
+        info.isEnum = false;
+        return shine::reflection::TypeRegistry::Get().Register(std::move(info));
+    };
+
+    const auto resultA = registerProbe(shine::reflection::Hash("ArenaRegistryProbeA") ^ 0x13579BDFu,
+        shine::STextView::from_literal("ArenaRegistryProbeA"));
+    const auto resultB = registerProbe(shine::reflection::Hash("ArenaRegistryProbeB") ^ 0x2468ACE0u,
+        shine::STextView::from_literal("ArenaRegistryProbeB"));
+    const auto resultC = registerProbe(shine::reflection::Hash("ArenaRegistryProbeC") ^ 0x55AA55AAu,
+        shine::STextView::from_literal("ArenaRegistryProbeC"));
+
+    Memory::FlushAllThreadStats();
+    const auto metaAfter = Memory::GetTagStats(MemoryTag::ReflectionMeta);
+
+    const auto* probeA = registry.FindByNameFast(shine::STextView::from_literal("ArenaRegistryProbeA"));
+    const auto* probeB = registry.FindByNameFast(shine::STextView::from_literal("ArenaRegistryProbeB"));
+    const auto* probeC = registry.FindByNameFast(shine::STextView::from_literal("ArenaRegistryProbeC"));
+    const size_t pageA = registry.GetArenaPageIndex(probeA);
+    const size_t pageB = registry.GetArenaPageIndex(probeB);
+    const size_t pageC = registry.GetArenaPageIndex(probeC);
+    const size_t pageCountAfter = registry.GetArenaPageCount();
+
+    fmt::print("  registry arena: pages_before={} pages_after={} slots/page={} types_before={} types_after={} meta_alloc_delta={} meta_current_delta={}\n",
+        pageCountBefore,
+        pageCountAfter,
+        registry.GetArenaSlotsPerPage(),
+        typeCountBefore,
+        registry.GetRegisteredTypeCount(),
+        static_cast<long long>(metaAfter.alloc_count) - static_cast<long long>(metaBefore.alloc_count),
+        static_cast<long long>(metaAfter.bytes_current) - static_cast<long long>(metaBefore.bytes_current));
+
+    fmt::print("  probe pages: A={} B={} C={}\n", pageA, pageB, pageC);
+    fmt::print("[PASS] arena probe A registered: {}\n", resultA ? "Yes" : "No");
+    fmt::print("[PASS] arena probe B registered: {}\n", resultB ? "Yes" : "No");
+    fmt::print("[PASS] arena probe C registered: {}\n", resultC ? "Yes" : "No");
+    fmt::print("[PASS] arena page index valid: {}\n",
+        probeA && probeB && probeC && pageA < pageCountAfter && pageB < pageCountAfter && pageC < pageCountAfter ? "Yes" : "No");
+    fmt::print("[PASS] sequential registry probes share one arena page: {}\n",
+        probeA && probeB && probeC && pageA == pageB && pageB == pageC ? "Yes" : "No");
 }
 
 // =============================================================================
@@ -1044,6 +1397,21 @@ void TestMemoryUsage() {
 
 void TestBasicFunctionality() {
     PrintSeparator("功能测试: 基础功能");
+
+    {
+        shine::reflection::TypeInfo fallbackProbe{};
+        fallbackProbe.id = shine::reflection::Hash("RegistryFallbackProbe") ^ 0x9E3779B9u;
+        fallbackProbe.SetName(shine::STextView::from_literal("RegistryFallbackProbe"));
+        fallbackProbe.size = sizeof(int);
+        fallbackProbe.alignment = alignof(int);
+        fallbackProbe.isPod = true;
+        fallbackProbe.isEnum = false;
+        auto registerResult = shine::reflection::TypeRegistry::Get().Register(std::move(fallbackProbe));
+        fmt::print("[PASS] fallback registry probe registered: {}\n", registerResult ? "OK" : "FAIL");
+        const auto* fallbackByName = shine::reflection::TypeRegistry::Get().FindByNameFast(shine::STextView::from_literal("RegistryFallbackProbe"));
+        const auto* fallbackById = shine::reflection::TypeRegistry::Get().FindFast(shine::reflection::Hash("RegistryFallbackProbe") ^ 0x9E3779B9u);
+        fmt::print("[PASS] fallback name index -> same pointer: {}\n", fallbackByName == fallbackById ? "OK" : "FAIL");
+    }
     
     // 1. 类型查找
     auto result = shine::reflection::TypeRegistry::Get().Find<Transform>();
@@ -1064,6 +1432,9 @@ void TestBasicFunctionality() {
     
     auto* typeInfo = shine::reflection::TypeRegistry::Get().FindFast(shine::reflection::GetTypeId<Transform>());
     if (typeInfo) {
+        const auto* typeInfoByName = shine::reflection::TypeRegistry::Get().FindByNameFast(shine::STextView::from_literal("Transform"));
+        fmt::print("[PASS] type name lookup -> same pointer: {}\n", typeInfoByName == typeInfo ? "OK" : "FAIL");
+
         // Get position
         auto* posField = typeInfo->FindField("position");
         if (posField) {
@@ -1106,7 +1477,7 @@ void TestBasicFunctionality() {
     auto enumResult = shine::reflection::TypeRegistry::Get().Find<ETestEnum>();
     if (enumResult) {
         fmt::print("[PASS] ETestEnum 枚举注册成功\n");
-        fmt::print("       - Entries: {}\n", (*result)->enumEntries.size());
+        fmt::print("       - Entries: {}\n", (*enumResult)->GetEnumCount());
     }
 }
 
@@ -1166,6 +1537,11 @@ int main() {
     // 问题发现测试
     TestReflectionLayoutBaseline();
     TestReflectionMemoryTags();
+    TestReflectionColdBatchReservation();
+    TestReflectionRegistrationPlan();
+    TestTypeBuilderStagedEmission();
+    TestRegisteredTypeColdLocality();
+    TestTypeRegistryArenaOwnership();
     TestHashInconsistency();
     TestConstexprLimitation();
     TestSerializationGap();

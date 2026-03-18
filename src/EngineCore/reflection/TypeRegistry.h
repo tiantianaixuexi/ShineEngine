@@ -33,35 +33,43 @@ public:
     
     Result<void> Register(TypeInfo info) {
         auto id = info.id;
+        const auto typeName = info.GetNameView();
         
         // Check for duplicate registration
-        if (registry_.contains(id)) {
+        if (idRegistry_.contains(id)) {
             return MakeError(ErrorCode::TypeAlreadyRegistered, 
-                           shine::SString("Type ID ") + shine::SString(std::to_string(id)) + shine::SString(" (") + shine::SString(info.name) + shine::SString(") already registered"));
+                           shine::SString("Type ID ") + shine::SString(std::to_string(id)) + shine::SString(" (") + shine::SString(typeName) + shine::SString(") already registered"));
         }
         
         // Eagerly build lookup tables before sharing
         info.BuildLookup();
-        
-        auto typeInfo = std::make_shared<TypeInfo>(std::move(info));
-        const auto ownerHandle = ReflectionOwnerHandle::FromType(typeInfo.get());
+
+        TypeInfo* typeInfo = typeArena_.Create(std::move(info));
+        if (!typeInfo) {
+            return MakeError(ErrorCode::OutOfMemory,
+                           shine::SString("Failed to allocate reflected type arena slot for ") + shine::SString(typeName));
+        }
+
+        const auto ownerHandle = ReflectionOwnerHandle::FromType(typeInfo);
         for (auto& field : typeInfo->fields) {
             field.owner = ownerHandle;
         }
         for (auto& method : typeInfo->methods) {
             method.owner = ownerHandle;
         }
-        registry_[id] = typeInfo;
-        nameRegistry_[shine::SString(typeInfo->name)] = typeInfo;
+        const std::size_t index = types_.size();
+        types_.push_back(typeInfo);
+        idRegistry_[id] = index;
+        nameRegistry_[shine::SString(typeInfo->GetNameView())] = index;
         return {};
     }
     
     // ---- Safe lookup with Result<T> ----
     
     Result<const TypeInfo*> Find(TypeId id) const {
-        auto it = registry_.find(id);
-        if (it != registry_.end()) {
-            return it->second.get();
+        auto it = idRegistry_.find(id);
+        if (it != idRegistry_.end()) {
+            return types_[it->second];
         }
         return MakeError(ErrorCode::TypeNotFound, 
                         shine::SString("Type ID ") + shine::SString(std::to_string(id)) + shine::SString(" not found"));
@@ -71,34 +79,40 @@ public:
     
     [[gnu::always_inline]]
     const TypeInfo* FindFast(TypeId id) const noexcept {
-        auto it = registry_.find(id);
-        return (it != registry_.end()) ? it->second.get() : nullptr;
+        auto it = idRegistry_.find(id);
+        return (it != idRegistry_.end()) ? types_[it->second] : nullptr;
     }
 
     [[gnu::always_inline]]
     const TypeInfo* FindByNameFast(shine::STextView typeName) const noexcept {
         // Try direct hash lookup first as it's the most common case
         if (const auto* info = FindFast(Hash(typeName))) {
-            if (info->name == typeName) return info;
+            if (info->GetNameView() == typeName) return info;
         }
 
         // Fallback to name registry
         auto it = nameRegistry_.find(shine::SString(typeName));
-        return (it != nameRegistry_.end()) ? it->second.get() : nullptr;
+        return (it != nameRegistry_.end()) ? types_[it->second] : nullptr;
     }
     
     template <typename T>
     Result<const TypeInfo*> Find() const { 
         return Find(GetTypeId<T>()); 
     }
-    
 
-    std::size_t GetRegisteredTypeCount() const { return registry_.size(); }
+    std::size_t GetArenaPageCount() const noexcept { return typeArena_.PageCount(); }
+    std::size_t GetArenaSlotsPerPage() const noexcept { return typeArena_.SlotsPerPage(); }
+    std::size_t GetArenaPageIndex(const TypeInfo* typeInfo) const noexcept { return typeArena_.PageIndexOf(typeInfo); }
+
+
+    std::size_t GetRegisteredTypeCount() const { return types_.size(); }
 
 private:
     TypeRegistry() = default;
-    std::unordered_map<TypeId, std::shared_ptr<TypeInfo>> registry_;
-    std::unordered_map<shine::SString, std::shared_ptr<TypeInfo>> nameRegistry_;
+    ReflectionArena<TypeInfo> typeArena_;
+    std::vector<TypeInfo*> types_;
+    std::unordered_map<TypeId, std::size_t> idRegistry_;
+    std::unordered_map<shine::SString, std::size_t> nameRegistry_;
 };
 
 } // namespace shine::reflection

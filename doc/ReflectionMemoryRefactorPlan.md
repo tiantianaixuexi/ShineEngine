@@ -51,30 +51,30 @@
 
 ### 当前关键实现结果
 
-- 当前 ReflectionTest 在本地 MSVC Debug 运行下给出的布局基线为：TypeInfo 216 B，FieldInfo 128 B，MethodInfo 192 B，FieldColdData 144 B，MethodColdData 48 B，MethodCallCache 104 B，MetadataValue 40 B，EnumEntry 24 B，ScriptValue 40 B，ScratchBuffer 144 B。
-- 当前热区跨度基线为：TypeInfo hot_bytes=144，FieldInfo hot_bytes=120，MethodInfo hot_bytes=184。也就是说，FieldInfo 已压到 2 个缓存线内，但 MethodInfo 热区仍然偏大，后续仍有继续瘦身空间。
+- 当前 ReflectionTest 在本地 MSVC Debug 运行下给出的布局基线为：TypeInfo 176 B，TypeColdData 48 B，FieldInfo 128 B，MethodInfo 192 B，FieldColdData 144 B，MethodColdData 48 B，MethodCallCache 104 B，MetadataValue 40 B，EnumEntry 24 B，ScriptValue 40 B，ScratchBuffer 144 B。
+- 当前热区跨度基线为：TypeInfo hot_bytes=96，FieldInfo hot_bytes=120，MethodInfo hot_bytes=184。也就是说，TypeInfo 已因为 enumEntries 与 type name 冷化从 216 B/144 hot bytes 继续压到 176 B/96 hot bytes，FieldInfo 已压到 2 个缓存线内，但 MethodInfo 热区仍然偏大，后续仍有继续瘦身空间。
 - 当前 tagged pointer 前提已被运行时基线直接打印：min_align=16，usable_low_bits=4，当前底层分配器满足 2 bit 和 4 bit tag 的使用前提。
 - 当前 ReflectionTest 已能直接验证：owner handle 正确、内建 metadata 可读、EditCondition 可见性正确、内存 tag 路由正确、tagged pointer 前提正确输出。
-- 当前冷区虽然已在对象模型中拆出，但 FieldColdData 和 MethodColdData 仍通过 std::unique_ptr 独立分配，尚未进入连续布局或专用冷数据池阶段。
+- 当前冷区已经从按类型分池推进到 ReflectionCold 冷数据页。FieldColdData 和 MethodColdData 现在按类型落到页内连续槽位，优先顺序填充当前页、回收后复用旧槽位；注册宏会先跑一次计数 builder，再让真实 TypeBuilder 按字段数/方法数进入批量页保留，并按计划预铺 fields、methods、enumEntries 的热区槽位，然后用写指针原地发射描述对象；同时 TypeInfo 的 type name 与 enumEntries 都已经移入 TypeColdData，字段/方法注册时也会先分配冷块、直接写入 name 与后续 fluent builder 的 UI schema、DisplayName、Range、扩展 metadata，避免在注册阶段反复走 EnsureColdData 和冷区回填；TypeRegistry 现在已经进一步切到 ReflectionMeta arena 持有，types_ 只保留稳定槽位视图，idRegistry_ / nameRegistry_ 继续把 TypeId 和类型名映射到槽位索引，按名查找的回退路径不再需要额外对象所有权。同一批次注册的 TypeInfo 已能稳定聚集到 arena 页内，但最终的 arena/graph builder 目标还没完成。
 
 ### 当前验证结果
 
 - ReflectionTest 已构建并运行通过。
 - MainEngine 已构建通过。
-- ReflectionTest 的内存标签基线样例已经可直接看到：ReflectionMeta 分配增量 256 B、ReflectionString 分配增量 1024 B、ScriptBridgeTemp 分配增量 512 B，并且释放路径可回落到 0。
+- ReflectionTest 的内存标签基线样例已经可直接看到：ReflectionMeta 分配增量 256 B、ReflectionCold 在当前预热后对 96 个字段/96 个方法的批量冷数据构造保持 alloc_delta=0、current_delta=0，同时页级统计显示 FieldColdData 为 1 页、113 槽每页、burst 后 tail_used=108，MethodColdData 为 1 页、341 槽每页、burst 后 tail_used=101；新增的冷区批量页保留测试还能直接看到 batch 会因为当前页剩余槽位不足而切到新页；注册计划测试还能直接验证 Transform 计划为 9 字段/5 方法且 reserve 容量完全命中，ETestEnum 计划为 4 个枚举项且 enumEntries reserve 命中；新增的 TypeBuilder 原地发射测试还能直接验证 Transform 字段、方法以及 ETestEnum 的 enumEntries 都是在预铺槽位上原地写入且计数精确命中；新增的已注册类型冷页局部性测试还能直接验证 Transform 的字段冷块和方法冷块各自都落在单一冷页；新增的 TypeRegistry arena 持有测试还能直接验证顺序注册的 probe 类型会进入有效 arena 页，并共享同一 ReflectionMeta arena 页；同时基础功能测试里 ETestEnum 的注册结果现在已经正确显示 4 个枚举项，TypeInfo 的名称查找路径也已切到冷区访问器，FindByNameFast("Transform") 与按 TypeId 查找已验证返回同一稳定地址，新增的 RegistryFallbackProbe 也已验证名字查找的 fallback index 路径会回到和按 id 查找相同的稳定 TypeInfo 指针；ReflectionString 分配增量 1024 B，ScriptBridgeTemp 分配增量 512 B。
 - 当前已知构建输出中的 wmic 缺失、Draco PDB 缺失、LNK4098 等均为环境或既有警告，不是本轮改动引入的功能性回归。
 
 ### 当前量化基线说明
 
 - 上面的尺寸数字以当前本地 MSVC Debug 构建下的 ReflectionTest 输出为准，不应手工推断或跨编译器硬套。
 - 如果后续继续调整成员顺序、容器类型或所有权模型，应先重新运行 ReflectionTest，再更新本节，避免文档中的尺寸预算与真实 ABI 漂移。
-- 当前真正已打通并被测试验证的 tag 路由是 ReflectionMeta、ReflectionString、ScriptBridgeTemp；ReflectionCold、ReflectionTemp、EditorInspectorTemp 目前还是“标签已定义但尚未形成稳定流量”的状态。
+- 当前真正已打通并被测试验证的 tag 路由是 ReflectionMeta、ReflectionCold、ReflectionString、ScriptBridgeTemp；ReflectionTemp、EditorInspectorTemp 目前还是“标签已定义但尚未形成稳定流量”的状态。
 
 ### 当前代码约定
 
 - 对字段名、方法名、UI schema、扩展 metadata 的读取，不应再直接访问旧成员，而应统一通过 GetNameView、GetUISchema、GetMetadata、GetMeta、GetDisplayNameView、GetCategoryView、GetEditConditionView、HasRange 等访问器。
 - TypeInfo::BuildLookup 现在依赖 nameHash 作为热路径哈希数据，碰撞确认阶段仍比较 GetNameView。
-- ScriptSystem 侧的字段读写路径仍存在直接 std::malloc/std::free 的临时缓冲分配，这意味着 ScriptBridgeTemp 目前只覆盖了 ScriptView::CallMethod 的 ScratchBuffer 路径，还没有覆盖全部脚本桥接热点。
+- ScriptSystem 侧的字段读写路径已切到 ScriptView 同款 ScratchBuffer，超出栈缓冲时会进入 ScriptBridgeTemp；当前仍需继续复核的主要是其它脚本桥接临时对象是否还残留在局部堆分配路径里。
 - 如果继续做消费侧适配，默认原则应保持为“消费路径只读查询，构建路径集中注册”，不要重新引入 UI 或脚本路径内的隐式 Register。
 
 ## 当前系统问题清单
@@ -719,7 +719,7 @@ ScratchBuffer 只是局部优化。需要把：
 2. 先落地 ReflectionOwnerHandle，不先大改分配器。
 3. 然后做 FieldInfo/MethodInfo 热冷分离。
 4. 再改 metadata 存储模型。
-5. 再引入 ReflectionArena 和注册图谱化。
+5. 再把已经接到 TypeRegistry 持有层的 ReflectionArena 继续扩展到注册图谱化。
 6. 最后补底层内存专用路径与缓存行优化。
 
 原因是当前真正需要先解决的是“反射对象设计太重”，而不是“分配器算法不够复杂”。如果对象模型不先压缩，直接增强底层分配器收益会很有限。
@@ -728,27 +728,27 @@ ScratchBuffer 只是局部优化。需要把：
 
 ### 仍未完成的主项
 
-- Issue 05 未开始：还没有 ReflectionArena 或 ReflectionGraphBuilder，TypeBuilder 仍然主要通过 vector 和常规对象构建反射图谱。
-- Issue 06 未开始：TypeRegistry 仍然使用 shared_ptr 持有 TypeInfo，还没有切换到 arena 稳定地址或句柄索引模型。
-- Issue 07 未完成：ScriptView 的 ScratchBuffer 已接入 ScriptBridgeTemp，但 ScriptSystem 里的字段读写和方法调用临时对象仍然大量使用局部栈缓冲和 malloc/free，尚未完全统一到反射/脚本专用临时内存路径。
+- Issue 05 已部分推进：ReflectionArena 已经落到 TypeRegistry 持有层，但还没有 ReflectionGraphBuilder，TypeBuilder 当前已经具备 dry-run 计数、热区预铺、原地发射和冷块直写，注册过程不再只是简单的 push_back 加常规对象回填。
+- Issue 06 已完成第二阶段的持有切换：TypeRegistry 现在由 ReflectionMeta arena 统一持有 TypeInfo，types_ 只保留稳定槽位视图，idRegistry_ 和 nameRegistry_ 都只保存槽位索引；按名查找除了直接 Hash(typeName) 的快路径外，也已经验证了 fallback name index 会回到同一稳定 TypeInfo 指针，顺序注册的 probe 也会聚集到同一 arena 页。它仍然不是独立句柄表或冻结 registry 视图模型，但 shared_ptr / unique_ptr 过渡持有已经退出主路径。
+- Issue 07 已部分推进：ScriptView::CallMethod 与 ScriptSystem 的 JsReflectGetField、JsReflectSetField 都已统一到 ScratchBuffer/ScriptBridgeTemp 路径，但仍未系统梳理所有脚本桥接热点，ReflectionTemp 也还没有形成独立稳定流量。
 - Issue 08 未完成第二阶段：虽然 InspectorView、PropertyDrawer、StaticInspector 已适配冷数据访问器，但还没有系统性清理所有 editor/runtime 消费点的旧式 metadata 扫描和旧成员直接访问。
-- Issue 09 仍有第二阶段：MemoryTag 枚举和统计输出已经齐备，但 ReflectionCold、ReflectionTemp、EditorInspectorTemp 还没有形成稳定、可复测的真实分配路径，当前只能算“标签基础设施完成”。
-- Issue 11 未开始：当前还没有单独的 MetadataPool 或 ArenaPool，FieldColdData/MethodColdData 仍然通过 std::unique_ptr 单独分配，不符合最终的连续布局目标。
+- Issue 09 仍有第二阶段：MemoryTag 枚举和统计输出已经齐备，ReflectionCold 已形成稳定、可复测且可复用的真实分配路径；ReflectionTemp、EditorInspectorTemp 仍停留在标签基础设施阶段。
+- Issue 11 已部分推进：当前 ReflectionColdPool 已切到按类型冷数据页，FieldColdData/MethodColdData 不再逐对象直连底层分配，且同一 burst 会优先落入页内连续槽位；注册宏还会先做字段数/方法数/枚举项计数，再让 TypeBuilder 进入对应的批量页保留并预留热区 vector 容量。但还没有统一的 MetadataPool/ArenaPool，也还没有让 TypeBuilder 直接产出连续冷区块。
 - Issue 12 未完全结束：StaticInspector 已不再补注册，但脚本路径虽然保持只读查询，仍需在整体注册图谱完成后再复核一次“消费期不补洞”的边界。
 
 ### 建议的新窗口起手顺序
 
-1. 先做 Issue 11 的轻量版本：把 FieldColdData 和 MethodColdData 的分配从 std::unique_ptr 单独堆分配切到 ReflectionCold 或专用冷数据池，先把冷数据路径和 MemoryTag 对齐。
-2. 再做 Issue 07：优先替换 ScriptSystem 里字段读写路径上的 std::malloc/std::free，把 JsReflectGetField、JsReflectSetField、JsReflectCallMethod 的临时对象统一到 ScriptBridgeTemp 或 ReflectionTemp，顺手补临时分配统计。
-3. 然后补 Issue 09 第二阶段：让 ReflectionCold、ReflectionTemp、EditorInspectorTemp 至少各有一条可验证、可统计的真实调用路径，避免标签只停留在声明层。
-4. 最后做 Issue 05 和 Issue 06：把当前 TypeBuilder 和 TypeRegistry 从“vector + shared_ptr”推进到“连续图谱 + 稳定持有”。这是后续所有内存优化真正放大的关键。
+1. 先补 Issue 11 的下一步：把当前“计数 builder + 页保留 + 热区 reserve”的 ReflectionCold 再推进到 builder 直接写块或冷区批量装配，减少字段/方法交错注册带来的页内空洞，并让同一 TypeInfo 的冷区更稳定地聚集。
+2. 再补 Issue 09 第二阶段：为 ReflectionTemp、EditorInspectorTemp 各建立至少一条真实、可复测的调用路径，避免标签只停留在声明层。
+3. 然后继续做 Issue 05 的第二阶段：把当前 TypeBuilder 从“预铺热区 + 冷块直写”推进到“连续图谱 + builder 直接装配”，让字段、方法、枚举、扩展 metadata 和名字存储都能在同一注册期图谱里闭合。这仍然是后续所有内存优化真正放大的关键。
+4. 最后回头系统复核 Issue 07 和 Issue 12 的消费链边界，确认脚本/UI 路径已经完全收敛为只读查询，不再夹带构建或隐式补洞逻辑。
 
 ### 下一阶段落地建议
 
-- 如果目标是尽快把“热冷分离”从对象模型扩展到真实内存布局，最先该做的不是再压 FieldInfo 字节数，而是先消灭 coldData 的逐对象堆分配。当前热区已经压进预算，真正还没兑现的是冷区局部性。
+- 如果目标是尽快把“热冷分离”从对象模型扩展到真实内存布局，当前最先该做的不是再压 FieldInfo 字节数，而是把已经页化的 coldData 接到 builder 批量写入。当前热区已经压进预算，真正还没完全兑现的是“同一类型冷区一起生成、一起贴近放置”的局部性。
 - MethodInfo 当前 192 B、hot_bytes 184，说明调用缓存仍然占据大头。后续如果继续优化 MethodInfo，应优先考虑把 callCache 从“始终常驻热对象”调整为“延迟构建 + 外置缓存块”或“共享缓存页”，而不是继续在 metadata 上做小修小补。
-- Script 路径现在最明显的缺口不是 API 设计，而是临时内存模型不统一。只要 ScriptSystem 还保留独立 malloc/free，ReflectionTemp 和 ScriptBridgeTemp 的统计就无法真实反映脚本桥接成本。
-- TypeRegistry 的 shared_ptr 持有模型在当前阶段依然可工作，但它会抵消后续 arena 和连续布局收益。Issue 05/06 仍然是决定这轮改造是否真正完成的主轴，不应长期后置。
+- Script 路径现在最明显的缺口不是 API 设计，而是临时内存模型还没有完全统一。只要脚本桥接里还残留独立 malloc/free 或其它绕开 ReflectionTemp / ScriptBridgeTemp 的分配路径，统计就无法真实反映脚本桥接成本。
+- TypeRegistry 已经跨过 shared_ptr 和 unique_ptr 过渡持有模型，当前由 ReflectionMeta arena 提供稳定地址，types_ 只保留槽位视图，双 unordered_map 仍负责查询索引。这已经兑现了“注册表自身不再逐类型独立堆分配”的目标，但它还没有进一步压成冻结表、独立句柄层或完整 graph builder 输出；Issue 05 仍然是决定这轮改造是否真正完成的主轴，不应长期后置。
 
 ### 新窗口继续时优先检查的文件
 
