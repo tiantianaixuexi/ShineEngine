@@ -160,10 +160,12 @@ namespace shine::script
                     return reflection::ScriptValue{*static_cast<const float*>(nativePtr)};
                 if (typeId == reflection::GetTypeId<double>())
                     return reflection::ScriptValue{*static_cast<const double*>(nativePtr)};
-                if (typeId == reflection::GetTypeId<std::string>())
-                    return reflection::ScriptValue{*static_cast<const std::string*>(nativePtr)};
+                if(typeId == reflection::GetTypeId<shine::STextView>())
+                {
+                    return reflection::ScriptValue{*static_cast<const shine::STextView*>(nativePtr)};
+                }
                 if (typeId == reflection::GetTypeId<shine::SString>())
-                    return reflection::ScriptValue{static_cast<const shine::SString*>(nativePtr)->to_string()};
+                    return reflection::ScriptValue{*static_cast<const shine::SString*>(nativePtr)};
 
                 return {};
             }
@@ -193,15 +195,17 @@ namespace shine::script
                         reflection::TypeId valType;
                         std::shared_ptr<reflection::ScriptMap> map;
                     };
-                    IterData data{this, trait->keyType, trait->valueType, map};
+                    IterData data{.bridge=this, .keyType=trait->keyType, .valType=trait->valueType, .map=map};
 
                     if (trait->Iterate) {
                         trait->Iterate(nativePtr, &data, [](const void* k, const void* v, void* ud) {
                             auto* d = static_cast<IterData*>(ud);
                             auto keyVal = d->bridge->ToScript(k, d->keyType);
-                            std::string keyStr;
-                            if (std::holds_alternative<std::string>(keyVal.data)) {
-                                keyStr = std::get<std::string>(keyVal.data);
+                            shine::SString keyStr {};
+                            if (std::holds_alternative<shine::SString>(keyVal.data)) {
+                                keyStr = std::get<shine::SString>(keyVal.data);
+                            } else if (std::holds_alternative<shine::STextView>(keyVal.data)) {
+                                keyStr = std::get<shine::STextView>(keyVal.data).to_string();
                             } else if (std::holds_alternative<int>(keyVal.data)) {
                                 keyStr = std::to_string(std::get<int>(keyVal.data));
                             } else if (std::holds_alternative<float>(keyVal.data)) {
@@ -240,16 +244,16 @@ namespace shine::script
                     *static_cast<float*>(outNativePtr) = static_cast<float>(try_get_double());
                 } else if (targetType == reflection::GetTypeId<double>()) {
                     *static_cast<double*>(outNativePtr) = try_get_double();
-                } else if (targetType == reflection::GetTypeId<std::string>()) {
-                    if (std::holds_alternative<std::string>(value))
-                        *static_cast<std::string*>(outNativePtr) = std::get<std::string>(value);
-                    else
-                        static_cast<std::string*>(outNativePtr)->clear();
                 } else if (targetType == reflection::GetTypeId<shine::SString>()) {
-                    if (std::holds_alternative<std::string>(value))
-                        *static_cast<shine::SString*>(outNativePtr) = shine::SString(std::get<std::string>(value));
+                    if (std::holds_alternative<shine::SString>(value))
+                        *static_cast<shine::SString*>(outNativePtr) = std::get<shine::SString>(value);
                     else
                         *static_cast<shine::SString*>(outNativePtr) = shine::SString();
+                } else if(targetType == reflection::GetTypeId<shine::STextView>()){
+                    if (std::holds_alternative<shine::STextView>(value))
+                        *static_cast<shine::STextView*>(outNativePtr) = std::get<shine::STextView>(value);
+                    else
+                        *static_cast<shine::STextView*>(outNativePtr) = shine::STextView();
                 }
             }
 
@@ -343,7 +347,7 @@ namespace shine::script
                     {
                         return {};
                     }
-                    std::string text(str);
+                    shine::SString text(str);
                     JS_FreeCString(context_, str);
                     return reflection::ScriptValue{std::move(text)};
                 }
@@ -388,7 +392,7 @@ namespace shine::script
                 return {};
             }
 
-            JSValue ToJSValue(const reflection::ScriptValue& value) const
+            [[nodiscard]] JSValue ToJSValue(const reflection::ScriptValue& value) const
             {
                 if (std::holds_alternative<std::monostate>(value.data))
                 {
@@ -410,9 +414,13 @@ namespace shine::script
                 {
                     return JS_NewFloat64(context_, std::get<double>(value.data));
                 }
-                if (std::holds_alternative<std::string>(value.data))
+                if (std::holds_alternative<shine::SString>(value.data))
                 {
-                    return JS_NewString(context_, std::get<std::string>(value.data).c_str());
+                    return JS_NewString(context_, std::get<shine::SString>(value.data).c_str());
+                }
+                if (std::holds_alternative<shine::STextView>(value.data))
+                {
+                    return JS_NewString(context_, std::get<shine::STextView>(value.data).data());
                 }
                 if (std::holds_alternative<reflection::ScriptValue::ArrayWrapper>(value.data))
                 {

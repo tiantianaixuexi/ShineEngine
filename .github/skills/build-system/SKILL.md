@@ -27,6 +27,7 @@ All commands run from the project root (`E:\c++\ShineEngine`).
 .\build.bat run --release         # Release, build + run
 .\build.bat x64                   # Debug, build + run (alternative)
 .\build.bat release               # Release, build only (prompts to run)
+.\build.bat run --bt              # MSVC: keep normal output, write readable /Bt+ summary to Logs/
 ```
 
 ### Build a Named Executable
@@ -94,6 +95,7 @@ Each compiler uses a separate build directory (`build_msvc/`, `build_clang/`, `b
 | `--editor` | Enable editor mode — defines `BUILD_EDITOR` macro (default) |
 | `--no-editor` / `--runtime` | Disable editor — excludes editor-only modules |
 | `--enable-module` | Enable C++20 modules (`SHINE_BUILD_MODULE`) |
+| `--bt` | MSVC only: enable `/Bt+` per-file compile timing and write a readable summary file to `Logs/` |
 
 ---
 

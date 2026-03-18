@@ -1,10 +1,16 @@
 #pragma once
 
+#include <array>
 #include <string>
 #include <vector>
 #include "imgui/imgui.h"
+#include "string/shine_string.h"
 
 namespace shine::editor::widget {
+
+namespace utils {
+struct WidgetViewportTransform;
+}
 
 // Widget type enum, similar to UE5's widget palette categories
 enum class EWidgetType : int
@@ -56,12 +62,15 @@ enum class EAnchorPreset : int
     Custom
 };
 
-// A single widget in the editor (like UWidget in UE5)
-struct WidgetItem
+// Base component for all draggable editor widgets.
+class WidgetComponent
 {
+public:
+    virtual ~WidgetComponent() = default;
+
     int              id          = 0;
     EWidgetType      type        = EWidgetType::Button;
-    std::string      name        = "Widget";
+    SString          name        = "Widget";
     bool             alive       = true;
     bool             visible     = true;
     bool             isEnabled   = true;
@@ -79,30 +88,41 @@ struct WidgetItem
     ImVec4           tintColor   = ImVec4(1, 1, 1, 1);
     float            opacity     = 1.0f;
 
-    // Widget-specific values
-    std::string      label       = "Label";
-    std::string      textValue   = "";
-    bool             boolValue   = false;
-    float            floatValue  = 0.0f;
-    int              intValue    = 0;
-    float            floatVec[4] = {0, 0, 0, 0};
-    float            progress    = 0.5f;
-    float            minValue    = 0.0f;
-    float            maxValue    = 1.0f;
-    float            itemWidth   = 200.0f;
+    // Internal state
+    bool             initialized = false;
+
+    [[nodiscard]] virtual SString SerializeJson(bool prettify = true) const = 0;
+    virtual bool DeserializeJson(STextView json) = 0;
+    virtual void Draw(int* selectedId, bool isDesignMode, const utils::WidgetViewportTransform& transform) = 0;
+};
+
+// A single widget in the editor (like UWidget in UE5)
+struct WidgetItem final : WidgetComponent
+{
+    using Base = WidgetComponent;
+
+    SString      label       = "Label";
+    SString      textValue   = SString{};
+    bool         boolValue   = false;
+    float        floatValue  = 0.0f;
+    int          intValue    = 0;
+    float        floatVec[4] = {0, 0, 0, 0};
+    float        progress    = 0.5f;
+    float        minValue    = 0.0f;
+    float        maxValue    = 1.0f;
+    float        itemWidth   = 200.0f;
 
     // Children (for panel widgets like CanvasPanel)
     std::vector<WidgetItem> children;
 
-    // Internal state
-    bool             initialized = false;
-
-    void Draw(int* selectedId, bool isDesignMode);
+    void Draw(int* selectedId, bool isDesignMode, const utils::WidgetViewportTransform& transform) override;
+    [[nodiscard]] SString SerializeJson(bool prettify = true) const override;
+    bool DeserializeJson(STextView json) override;
     void Delete() { alive = false; }
 
 private:
     void DrawHighlight(int* selectedId);
-    void HandleDrag(int* selectedId);
+    void HandleDrag(int* selectedId, const utils::WidgetViewportTransform& transform);
 };
 
 // Canvas that holds all top-level widgets
@@ -110,16 +130,20 @@ struct WidgetCanvas
 {
     bool                    active       = true;
     ImVec2                  canvasSize   = ImVec2(1280, 720);
+    bool                    portraitMode = false;
     ImVec2                  canvasPos    = {};
     int                     idGen        = 0;
     int                     selectedId   = -1;
     std::vector<WidgetItem> widgets;
 
-    void DrawAll();
-    void Create(EWidgetType type, bool atCursor = false);
+    [[nodiscard]] ImVec2 GetResolvedCanvasSize() const;
+    void DrawAll(const utils::WidgetViewportTransform& transform);
+    void Create(EWidgetType type, bool atCursor = false, const utils::WidgetViewportTransform* transform = nullptr);
     WidgetItem* FindWidget(int id);
     void DeleteWidget(int id);
     void Clear();
+    [[nodiscard]] SString SaveToJson(bool prettify = true) const;
+    bool LoadFromJson(STextView json);
 };
 
 } // namespace shine::editor::widget

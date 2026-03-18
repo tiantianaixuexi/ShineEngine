@@ -9,8 +9,8 @@
 #pragma once
 
 #include <cstddef>
-#include <string_view>
 #include <tuple>
+#include "string/shine_text_view.h"
 
 namespace shine::reflection {
 
@@ -28,11 +28,11 @@ using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 namespace detail {
 
 template <typename T>
-constexpr std::string_view get_raw_name_impl() {
+constexpr shine::STextView get_raw_name_impl() {
 #if defined(_MSC_VER)
-    return __FUNCSIG__;
+    return shine::STextView::from_cstring(__FUNCSIG__);
 #else
-    return __PRETTY_FUNCTION__;
+    return shine::STextView::from_cstring(__PRETTY_FUNCTION__);
 #endif
 }
 
@@ -40,10 +40,10 @@ constexpr std::string_view get_raw_name_impl() {
 
 // 获取类型名（编译期）
 template <typename T>
-inline constexpr std::string_view type_string() {
-    constexpr std::string_view sample = detail::get_raw_name_impl<int>();
+inline constexpr shine::STextView type_string() {
+    constexpr shine::STextView sample = detail::get_raw_name_impl<int>();
     constexpr size_t prefix_length = sample.find("int");
-    constexpr std::string_view str = detail::get_raw_name_impl<T>();
+    constexpr shine::STextView str = detail::get_raw_name_impl<T>();
     constexpr size_t suffix_length = sample.size() - prefix_length - 3;
     constexpr auto name = 
         str.substr(prefix_length, str.size() - prefix_length - suffix_length);
@@ -68,25 +68,25 @@ std::tuple<Member, Base> get_types(Member Base::*);
 
 // 编译期获取成员名 - 使用 __FUNCSIG__
 template <auto member_ptr>
-inline constexpr std::string_view member_name() {
+inline constexpr shine::STextView member_name() {
 #if defined(_MSC_VER)
-    constexpr std::string_view sig = __FUNCSIG__;
+    constexpr shine::STextView sig = shine::STextView::from_cstring(__FUNCSIG__);
     
     // 查找 "member_name<" 之后的内容
-    constexpr std::string_view prefix = "member_name<";
+    constexpr shine::STextView prefix = shine::STextView::from_literal("member_name<");
     constexpr auto prefix_pos = sig.find(prefix);
-    if (prefix_pos == std::string_view::npos) return {};
+    if (prefix_pos == shine::STextView::npos) return {};
     
     constexpr auto start = prefix_pos + prefix.size();
     constexpr auto end = sig.find('>', start);
-    if (end == std::string_view::npos) return {};
+    if (end == shine::STextView::npos) return {};
     
     // 提取如 "&Vec3::x>" 的部分
     constexpr auto raw = sig.substr(start, end - start);
     
     // 找到 "::" 后的部分
     constexpr auto colon_pos = raw.find("::");
-    if (colon_pos == std::string_view::npos) return {};
+    if (colon_pos == shine::STextView::npos) return {};
     
     // 返回成员名 (去掉末尾的 >)
     constexpr auto name = raw.substr(colon_pos + 2);

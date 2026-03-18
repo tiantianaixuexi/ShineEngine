@@ -52,8 +52,8 @@ static_assert(!std::is_convertible_v<STextView, SString>,
     "STextView -> SString must NOT be implicit (explicit SString(STextView))");
 
 // ---- SString as destination ----
-static_assert(!std::is_convertible_v<const char*, SString>,
-    "const char* -> SString must NOT be implicit (explicit SString(const char*))");
+static_assert( std::is_convertible_v<const char*, SString>,
+    "const char* -> SString must be implicit");
 static_assert(!std::is_convertible_v<STextView,          SString>,
     "STextView -> SString must NOT be implicit (explicit ctor)");
 static_assert(!std::is_convertible_v<std::string_view,  SString>,
@@ -141,9 +141,9 @@ static void test_implicit_positive()
 
     // ---- const char* -> SString ----
     {
-        SString s(cstr);
+        SString s = cstr;
         CHECK("const char* -> SString  (value)", s == "hello world");
-        SString s2 = accept_sstring(SString(cstr));
+        SString s2 = accept_sstring(cstr);
         CHECK("const char* -> SString  (fn arg)", s2 == "hello world");
     }
 

@@ -12,7 +12,6 @@
 
 #include "../ReflectionCore.h"
 #include "MethodDSL.h"
-#include <string_view>
 
 namespace shine::reflection {
 
@@ -33,7 +32,7 @@ namespace DSL {
 // ---- FieldDescriptor --------------------------------------------------------
 
 struct FieldDescriptorBase {
-    std::string_view  name;
+    shine::STextView  name;
     UI::Schema        uiSchema = UI::None{};
     MetadataContainer metadata;
     OnChangeFn        onChange  = nullptr;
@@ -52,10 +51,10 @@ struct FieldDSLNode {
 
     static constexpr auto MemberPtrValue = MemberPtr;
 
-    std::string_view   name;
+    shine::STextView   name;
     FieldDescriptor<0> desc;
 
-    explicit FieldDSLNode(std::string_view n) : name(n) { desc.name = n; }
+    explicit FieldDSLNode(shine::STextView n) : name(n) { desc.name = n; }
 
     // Chaining (returns copy — enables StaticInspector DSL compatibility)
     auto EditAnywhere()    const { return *this; }
@@ -70,9 +69,9 @@ struct FieldDSLNode {
     }
 
     template <typename V>
-    auto Meta(std::string_view key, V&& val) const {
+    auto Meta(shine::STextView key, V&& val) const {
         auto c = *this;
-        c.desc.metadata.push_back({Hash(key), MetadataValue{std::forward<V>(val)}});
+        c.desc.metadata.push_back({Hash(key), MakeMetadataValue(std::forward<V>(val))});
         return c;
     }
 
@@ -80,7 +79,7 @@ struct FieldDSLNode {
     template <typename V>
     auto Meta(MetadataKey key, V&& val) const {
         auto c = *this;
-        c.desc.metadata.push_back({key, MetadataValue{std::forward<V>(val)}});
+        c.desc.metadata.push_back({key, MakeMetadataValue(std::forward<V>(val))});
         return c;
     }
 
@@ -98,7 +97,7 @@ struct FieldDSLNode {
         return c;
     }
 
-    auto DisplayName(std::string_view dn) const {
+    auto DisplayName(shine::STextView dn) const {
         auto c = *this;
         c.desc.metadata.push_back({MetaKeys::DisplayName, MetadataValue{dn}});
         return c;

@@ -29,7 +29,7 @@ namespace shine::reflection {
         ClearStrings();
     }
 
-    const char* StringMemoryManager::StoreString(std::string_view str) {
+    const char* StringMemoryManager::StoreString(shine::STextView str) {
         // ---- Fast-path: deduplicate via hash set ----
         //
         // If the exact string content was already interned, return
@@ -68,16 +68,16 @@ namespace shine::reflection {
     // StringArena — implementation
     // =========================================================================
 
-    const char* StringMemoryManager::StringArena::Store(std::string_view str) {
-        const size_t required = str.length() + 1;  // +1 for null terminator
+    const char* StringMemoryManager::StringArena::Store(shine::STextView str) {
+        const size_t required = str.size() + 1;  // +1 for null terminator
 
         // Try to fit in the last block
         if (!blocks_.empty()) {
             auto& back = blocks_.back();
             if (back.used + required <= back.capacity) {
                 char* dest = back.buffer.get() + back.used;
-                std::memcpy(dest, str.data(), str.length());
-                dest[str.length()] = '\0';
+                std::memcpy(dest, str.data(), str.size());
+                dest[str.size()] = '\0';
                 back.used += required;
                 totalStored_ += required;
                 return dest;
@@ -92,8 +92,8 @@ namespace shine::reflection {
         block.used     = 0;
 
         char* dest = block.buffer.get();
-        std::memcpy(dest, str.data(), str.length());
-        dest[str.length()] = '\0';
+        std::memcpy(dest, str.data(), str.size());
+        dest[str.size()] = '\0';
         block.used = required;
         totalStored_ += required;
 

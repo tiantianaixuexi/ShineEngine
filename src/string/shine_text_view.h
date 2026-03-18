@@ -68,7 +68,7 @@ namespace shine
         }
 
         constexpr STextView(const char* cstr) noexcept
-            : _data(cstr), _size(cstr ? std::char_traits<char>::length(cstr) : 0)
+            : _data(cstr), _size(_cstring_length(cstr))
         {
         }
 
@@ -88,7 +88,7 @@ namespace shine
 
         [[nodiscard]] static constexpr STextView from_cstring(const char* s) noexcept
         {
-            return s ? STextView(s, std::char_traits<char>::length(s)) : STextView{};
+            return s ? STextView(s, _cstring_length(s)) : STextView{};
         }
 
         
@@ -204,7 +204,7 @@ namespace shine
         // search (byte-based)
         // -----------------------------------------------------
 
-        [[nodiscard]] size_type find(STextView pattern, size_type start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find(STextView pattern, size_type start = 0) const noexcept
         {
             if (pattern._size == 0)
             {
@@ -213,6 +213,19 @@ namespace shine
 
             if (start >= _size || pattern._size > (_size - start))
             {
+                return npos;
+            }
+
+            if (std::is_constant_evaluated())
+            {
+                for (size_type i = start; i <= _size - pattern._size; ++i)
+                {
+                    if (_bytes_equal(_data + i, pattern._data, pattern._size))
+                    {
+                        return i;
+                    }
+                }
+
                 return npos;
             }
 
@@ -231,7 +244,7 @@ namespace shine
                     return npos;
                 }
 
-                if (std::memcmp(cur, pattern._data, pattern._size) == 0)
+                if (_bytes_equal(cur, pattern._data, pattern._size))
                 {
                     return static_cast<size_type>(cur - _data);
                 }
@@ -242,10 +255,23 @@ namespace shine
             return npos;
         }
 
-        [[nodiscard]] size_type find(char ch, size_type start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find(char ch, size_type start = 0) const noexcept
         {
             if (start >= _size)
             {
+                return npos;
+            }
+
+            if (std::is_constant_evaluated())
+            {
+                for (size_type i = start; i < _size; ++i)
+                {
+                    if (_data[i] == ch)
+                    {
+                        return i;
+                    }
+                }
+
                 return npos;
             }
 
@@ -256,7 +282,7 @@ namespace shine
             return p ? static_cast<size_type>(p - _data) : npos;
         }
 
-        [[nodiscard]] size_type rfind(char ch, size_type start = npos) const noexcept
+        [[nodiscard]] constexpr size_type rfind(char ch, size_type start = npos) const noexcept
         {
             if (_size == 0)
             {
@@ -282,7 +308,7 @@ namespace shine
             return npos;
         }
 
-        [[nodiscard]] size_type find_first_of(STextView chars, size_type start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find_first_of(STextView chars, size_type start = 0) const noexcept
         {
             if (start >= _size || chars.empty())
             {
@@ -322,7 +348,7 @@ namespace shine
             return npos;
         }
 
-        [[nodiscard]] size_type find_first_not_of(STextView chars, size_type start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find_first_not_of(STextView chars, size_type start = 0) const noexcept
         {
             if (start >= _size)
             {
@@ -374,7 +400,7 @@ namespace shine
             return npos;
         }
 
-        [[nodiscard]] size_type find_last_of(STextView chars, size_type start = npos) const noexcept
+        [[nodiscard]] constexpr size_type find_last_of(STextView chars, size_type start = npos) const noexcept
         {
             if (_size == 0 || chars.empty())
             {
@@ -437,17 +463,17 @@ namespace shine
             return npos;
         }
 
-        [[nodiscard]] size_type find_last_of(char ch, size_type start = npos) const noexcept
+        [[nodiscard]] constexpr size_type find_last_of(char ch, size_type start = npos) const noexcept
         {
             return rfind(ch, start);
         }
 
-        [[nodiscard]] bool contains(STextView pattern) const noexcept
+        [[nodiscard]] constexpr bool contains(STextView pattern) const noexcept
         {
             return find(pattern) != npos;
         }
 
-        [[nodiscard]] bool contains(char ch) const noexcept
+        [[nodiscard]] constexpr bool contains(char ch) const noexcept
         {
             return find(ch) != npos;
         }
@@ -460,20 +486,20 @@ namespace shine
         {
             return prefix._size == 0
                 || (prefix._size <= _size
-                    && std::memcmp(_data, prefix._data, prefix._size) == 0);
+                    && _bytes_equal(_data, prefix._data, prefix._size));
         }
 
         [[nodiscard]] constexpr bool ends_with(STextView suffix) const noexcept
         {
             return suffix._size == 0
                 || (suffix._size <= _size
-                    && std::memcmp(_data + (_size - suffix._size), suffix._data, suffix._size) == 0);
+                    && _bytes_equal(_data + (_size - suffix._size), suffix._data, suffix._size));
         }
 
         [[nodiscard]] constexpr bool equals(STextView rhs) const noexcept
         {
             return _size == rhs._size
-                && (_size == 0 || _data == rhs._data || std::memcmp(_data, rhs._data, _size) == 0);
+                && (_size == 0 || _data == rhs._data || _bytes_equal(_data, rhs._data, _size));
         }
 
         // -----------------------------------------------------
@@ -539,7 +565,7 @@ namespace shine
         // UTF-8 code point helpers
         // -----------------------------------------------------
 
-        [[nodiscard]] size_type code_point_count() const noexcept
+        [[nodiscard]] constexpr size_type code_point_count() const noexcept
         {
             size_type count = 0;
             const char* p = _data;
@@ -554,7 +580,7 @@ namespace shine
             return count;
         }
 
-        [[nodiscard]] size_type byte_index_from_code_point(size_type cp_index) const noexcept
+        [[nodiscard]] constexpr size_type byte_index_from_code_point(size_type cp_index) const noexcept
         {
             size_type current = 0;
             const char* p = _data;
@@ -569,7 +595,7 @@ namespace shine
             return (current == cp_index) ? static_cast<size_type>(p - _data) : npos;
         }
 
-        [[nodiscard]] STextView substr_code_points(size_type cp_pos, size_type cp_count = npos) const noexcept
+        [[nodiscard]] constexpr STextView substr_code_points(size_type cp_pos, size_type cp_count = npos) const noexcept
         {
             const size_type start = byte_index_from_code_point(cp_pos);
             if (start == npos)
@@ -595,7 +621,7 @@ namespace shine
             return STextView(_data + start, static_cast<size_type>(p - (_data + start)));
         }
 
-        [[nodiscard]] size_type find_code_point(char32_t cp, size_type byte_start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find_code_point(char32_t cp, size_type byte_start = 0) const noexcept
         {
             if (byte_start >= _size)
             {
@@ -617,12 +643,12 @@ namespace shine
             return npos;
         }
 
-        [[nodiscard]] bool contains_code_point(char32_t cp) const noexcept
+        [[nodiscard]] constexpr bool contains_code_point(char32_t cp) const noexcept
         {
             return find_code_point(cp) != npos;
         }
 
-        [[nodiscard]] int compare_code_points(STextView rhs) const noexcept
+        [[nodiscard]] constexpr int compare_code_points(STextView rhs) const noexcept
         {
             const char* p1 = _data;
             const char* const e1 = _data + _size;
@@ -659,28 +685,57 @@ namespace shine
         // compatibility aliases
         // -----------------------------------------------------
 
-        [[nodiscard]] size_type utf8_index_from_code_point(size_type cp_index) const noexcept
+        [[nodiscard]] constexpr size_type utf8_index_from_code_point(size_type cp_index) const noexcept
         {
             return byte_index_from_code_point(cp_index);
         }
 
-        [[nodiscard]] STextView substr_cp(size_type cp_pos, size_type cp_count) const noexcept
+        [[nodiscard]] constexpr STextView substr_cp(size_type cp_pos, size_type cp_count) const noexcept
         {
             return substr_code_points(cp_pos, cp_count);
         }
 
-        [[nodiscard]] size_type find_cp(char32_t cp, size_type byte_start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find_cp(char32_t cp, size_type byte_start = 0) const noexcept
         {
             return find_code_point(cp, byte_start);
         }
 
-        [[nodiscard]] int compare_cp(STextView rhs) const noexcept
+        [[nodiscard]] constexpr int compare_cp(STextView rhs) const noexcept
         {
             return compare_code_points(rhs);
         }
 
     private:
         static constexpr char32_t kReplacementChar = 0xFFFD;
+
+        [[nodiscard]] static constexpr size_type _cstring_length(const char* s) noexcept
+        {
+            if (s == nullptr)
+            {
+                return 0;
+            }
+
+            size_type len = 0;
+            while (s[len] != '\0')
+            {
+                ++len;
+            }
+
+            return len;
+        }
+
+        [[nodiscard]] static constexpr bool _bytes_equal(const char* lhs, const char* rhs, size_type count) noexcept
+        {
+            for (size_type i = 0; i < count; ++i)
+            {
+                if (lhs[i] != rhs[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         [[nodiscard]] static constexpr char32_t _decode_code_point(const char*& p, const char* end) noexcept
         {
@@ -838,23 +893,63 @@ namespace shine
         return STextView::from_literal(lhs) == rhs;
     }
 
-    [[nodiscard]] inline bool operator==(STextView lhs, const char* rhs) noexcept
+    [[nodiscard]] constexpr bool operator==(STextView lhs, const char* rhs) noexcept
     {
         return lhs == STextView::from_cstring(rhs);
     }
 
-    [[nodiscard]] inline bool operator==(const char* lhs, STextView rhs) noexcept
+    [[nodiscard]] constexpr bool operator==(const char* lhs, STextView rhs) noexcept
     {
         return STextView::from_cstring(lhs) == rhs;
     }
 
     [[nodiscard]] constexpr std::strong_ordering operator<=>(STextView lhs, STextView rhs) noexcept
     {
-        const int cmp = lhs.sv().compare(rhs.sv());
+        const auto lhs_size = lhs.size();
+        const auto rhs_size = rhs.size();
+        const auto min_size = lhs_size < rhs_size ? lhs_size : rhs_size;
+
+        int cmp = 0;
+        for (std::size_t i = 0; i < min_size; ++i)
+        {
+            const unsigned char left = static_cast<unsigned char>(lhs[i]);
+            const unsigned char right = static_cast<unsigned char>(rhs[i]);
+            if (left < right)
+            {
+                cmp = -1;
+                break;
+            }
+
+            if (left > right)
+            {
+                cmp = 1;
+                break;
+            }
+        }
+
+        if (cmp == 0)
+        {
+            if (lhs_size < rhs_size)
+            {
+                cmp = -1;
+            }
+            else if (lhs_size > rhs_size)
+            {
+                cmp = 1;
+            }
+        }
+
         if (cmp < 0) return std::strong_ordering::less;
         if (cmp > 0) return std::strong_ordering::greater;
         return std::strong_ordering::equal;
     }
+
+    static_assert(STextView::from_literal("  abc  ").trim() == "abc");
+    static_assert(STextView::from_literal("GetTypeName<int>").find(STextView::from_literal("Type")) == 3);
+    static_assert(STextView::from_literal("GetTypeName<int>").find_last_of('>') == STextView::from_literal("GetTypeName<int>").size() - 1);
+    static_assert(STextView::from_literal("alpha").contains(STextView::from_literal("ph")));
+    static_assert(STextView::from_literal("alpha").substr_code_points(2, 2) == "ph");
+    static_assert(STextView::from_literal("abc").compare_code_points(STextView::from_literal("abd")) < 0);
 }
 
 #if defined(__cpp_lib_format)
@@ -872,4 +967,17 @@ namespace std
         }
     };
 }
+#endif
+
+#if __has_include("fmt/format.h")
+#include "fmt/format.h"
+template <>
+struct fmt::formatter<shine::STextView> : fmt::formatter<std::string_view>
+{
+    auto format(const shine::STextView& v, fmt::format_context& ctx) const
+    {
+        return fmt::formatter<std::string_view>::format(
+            std::string_view(v.data(), v.size()), ctx);
+    }
+};
 #endif

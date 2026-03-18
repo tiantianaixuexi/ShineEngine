@@ -23,11 +23,7 @@
 #ifndef IMGUI_DISABLE
 #include "imgui_stdlib.h"
 
-// Clang warnings with -Weverything
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wsign-conversion"    // warning: implicit conversion changes signedness
-#endif
+#include <string>
 
 struct InputTextCallback_UserData
 {
@@ -38,15 +34,14 @@ struct InputTextCallback_UserData
 
 static int InputTextCallback(ImGuiInputTextCallbackData* data)
 {
-    InputTextCallback_UserData* user_data = (InputTextCallback_UserData*)data->UserData;
+    auto* user_data = static_cast<InputTextCallback_UserData*>(data->UserData);
     if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
     {
         // Resize string callback
         // If for some reason we refuse the new length (BufTextLen) and/or capacity (BufSize) we need to set them back to what we want.
-        std::string* str = user_data->Str;
-        IM_ASSERT(data->Buf == str->c_str());
-        str->resize(data->BufTextLen);
-        data->Buf = (char*)str->c_str();
+        IM_ASSERT(data->Buf == user_data->Str->data());
+        user_data->Str->resize(static_cast<std::string::size_type>(data->BufTextLen));
+        data->Buf = user_data->Str->data();
     }
     else if (user_data->ChainCallback)
     {
@@ -59,42 +54,41 @@ static int InputTextCallback(ImGuiInputTextCallbackData* data)
 
 bool ImGui::InputText(const char* label, std::string* str, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
 {
+    IM_ASSERT(str != nullptr);
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
     flags |= ImGuiInputTextFlags_CallbackResize;
 
-    InputTextCallback_UserData cb_user_data;
+    InputTextCallback_UserData cb_user_data{};
     cb_user_data.Str = str;
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
-    return InputText(label, (char*)str->c_str(), str->capacity() + 1, flags, InputTextCallback, &cb_user_data);
+    return ImGui::InputText(label, str->data(), str->capacity() + 1, flags, InputTextCallback, &cb_user_data);
 }
 
 bool ImGui::InputTextMultiline(const char* label, std::string* str, const ImVec2& size, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
 {
+    IM_ASSERT(str != nullptr);
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
     flags |= ImGuiInputTextFlags_CallbackResize;
 
-    InputTextCallback_UserData cb_user_data;
+    InputTextCallback_UserData cb_user_data{};
     cb_user_data.Str = str;
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
-    return InputTextMultiline(label, (char*)str->c_str(), str->capacity() + 1, size, flags, InputTextCallback, &cb_user_data);
+    return ImGui::InputTextMultiline(label, str->data(), str->capacity() + 1, size, flags, InputTextCallback, &cb_user_data);
 }
 
 bool ImGui::InputTextWithHint(const char* label, const char* hint, std::string* str, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
 {
+    IM_ASSERT(str != nullptr);
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
     flags |= ImGuiInputTextFlags_CallbackResize;
 
-    InputTextCallback_UserData cb_user_data;
+    InputTextCallback_UserData cb_user_data{};
     cb_user_data.Str = str;
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
-    return InputTextWithHint(label, hint, (char*)str->c_str(), str->capacity() + 1, flags, InputTextCallback, &cb_user_data);
+    return ImGui::InputTextWithHint(label, hint, str->data(), str->capacity() + 1, flags, InputTextCallback, &cb_user_data);
 }
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
 
 #endif // #ifndef IMGUI_DISABLE

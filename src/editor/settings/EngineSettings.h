@@ -1,10 +1,10 @@
 #pragma once
 #include "EngineCore/reflection/Reflection.h"
 #include "fmt/base.h"
+#include "string/shine_string.h"
 
 #include <iostream>
 #include <map>
-#include <string>
 
 namespace shine::editor::settings {
 
@@ -25,29 +25,29 @@ REFLECT_ENUM(GameDifficulty) {
 
 struct EngineSettings
 {
-    EngineSettings() {};
+    EngineSettings() = default;
 
     float                      masterVolume     = 1.0f;
     int                        resolutionWidth  = 1920;
     int                        resolutionHeight = 1080;
     bool                       fullScreen       = false;
     bool                       vsync            = true;
-    std::string                rendererType     = "OpenGL";
+    shine::SString             rendererType     = "OpenGL";
     float                      shadowDistance   = 50.0f;
     bool                       enableBloom      = true;
-    std::map<std::string, int> testMapData;
+    std::map<shine::SString, int> testMapData;
 
     // Test Function Selection
-    std::string onGameStart = "";
+    shine::SString onGameStart;
 
     // Enum Test
     GameDifficulty difficulty = GameDifficulty::Normal;
 
     void PlaySound() {
-        std::cout << "Playing Sound!" << std::endl;
+        std::cout << "Playing Sound!\n";
     }
     void SpawnPlayer() {
-        std::cout << "Spawning Player!" << std::endl;
+        std::cout << "Spawning Player!\n";
         for (auto &c : testMapData) {
             fmt::println("key :{}  , value:{}", c.first, c.second);
         }
@@ -55,11 +55,11 @@ struct EngineSettings
     void InternalReset() {}
 
     void OnVolumeChanged(float oldValue) {
-        std::cout << "Master Volume Changed: " << oldValue << " -> " << masterVolume << std::endl;
+        std::cout << "Master Volume Changed: " << oldValue << " -> " << masterVolume << '\n';
     }
 
     void OnDifficultyChanged(GameDifficulty oldValue) {
-        std::cout << "Difficulty Changed: " << (int)oldValue << " -> " << (int)difficulty << std::endl;
+        std::cout << "Difficulty Changed: " << static_cast<int>(oldValue) << " -> " << static_cast<int>(difficulty) << '\n';
     }
 };
 
@@ -71,7 +71,7 @@ REFLECTION_STRUCT(EngineSettings) {
     //   float + Range → Slider,  float → DragFloat
     //   int + Range   → Slider,  int   → DragInt
     //   bool          → Checkbox
-    //   std::string   → TextInput
+    //   SString       → TextInput
     //   enum          → Dropdown (Combo)
 
     REFLECT_FIELD(masterVolume)
@@ -79,58 +79,59 @@ REFLECTION_STRUCT(EngineSettings) {
         .EditAnywhere()
         .template OnChange<&ES::OnVolumeChanged>()
         .DisplayName("主音量")
-        .Meta("Category", std::string_view{"Audio"});
+        .Meta("Category", shine::STextView::from_literal("Audio"));
 
     REFLECT_FIELD(resolutionWidth)
         .Range(640.0f, 3840.0f)
         .EditAnywhere()
         .DisplayName("分辨率宽度")
-        .Meta("Category", std::string_view{"Display"});
+        .Meta("Category", shine::STextView::from_literal("Display"));
 
     REFLECT_FIELD(resolutionHeight)
         .Range(360.0f, 2160.0f)
         .EditAnywhere()
         .DisplayName("分辨率高度")
-        .Meta("Category", std::string_view{"Display"});
+        .Meta("Category", shine::STextView::from_literal("Display"));
 
     REFLECT_FIELD(fullScreen)
         .EditAnywhere()
         .DisplayName("全屏模式")
-        .Meta("Category", std::string_view{"Display"});
+        .Meta("Category", shine::STextView::from_literal("Display"));
 
     REFLECT_FIELD(vsync)
         .EditAnywhere()
         .DisplayName("垂直同步")
-        .Meta("Category", std::string_view{"Display"});
+        .Meta("Category", shine::STextView::from_literal("Display"));
 
     REFLECT_FIELD(rendererType)
         .EditAnywhere()
         .DisplayName("渲染器类型")
-        .Meta("Category", std::string_view{"Display"});
+        .Meta("Category", shine::STextView::from_literal("Display"));
 
     REFLECT_FIELD(shadowDistance)
         .Range(0.0f, 200.0f)
         .EditAnywhere()
         .DisplayName("阴影距离")
-        .Meta("Category", std::string_view{"Graphics"});
+        .Meta("Category", shine::STextView::from_literal("Graphics"));
 
     REFLECT_FIELD(enableBloom)
         .EditAnywhere()
         .DisplayName("开启泛光")
-        .Meta("Category", std::string_view{"Graphics"});
+        .Meta("Category", shine::STextView::from_literal("Graphics"));
 
     // Function Selector Test
     REFLECT_FIELD(onGameStart)
         .EditAnywhere()
+        .ScriptReadWrite()
         .FunctionSelect()
         .DisplayName("游戏开始事件")
-        .Meta("Category", std::string_view{"Events"});
+        .Meta("Category", shine::STextView::from_literal("Events"));
 
     REFLECT_FIELD(difficulty)
         .EditAnywhere()
         .template OnChange<&ES::OnDifficultyChanged>()
         .DisplayName("游戏难度")
-        .Meta("Category", std::string_view{"GamePlay"});
+        .Meta("Category", shine::STextView::from_literal("GamePlay"));
 
     // 方法注册 - 支持链式调用
     REFLECT_METHOD(PlaySound).ScriptCallable();

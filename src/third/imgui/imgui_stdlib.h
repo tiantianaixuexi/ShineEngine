@@ -23,12 +23,24 @@
 
 #ifndef IMGUI_DISABLE
 
+
+namespace shine
+{
+    class SString;
+}
+
+#include "imgui.h"
+
 #include <string>
 
 namespace ImGui
 {
-    // ImGui::InputText() with std::string
+    // ImGui::InputText() with dynamic string types
     // Because text input needs dynamic resizing, we need to setup a callback to grow the capacity
+    IMGUI_API bool  InputText(const char* label, shine::SString* str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
+    IMGUI_API bool  InputTextMultiline(const char* label, shine::SString* str, const ImVec2& size = ImVec2(0, 0), ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
+    IMGUI_API bool  InputTextWithHint(const char* label, const char* hint, shine::SString* str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
+
     IMGUI_API bool  InputText(const char* label, std::string* str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
     IMGUI_API bool  InputTextMultiline(const char* label, std::string* str, const ImVec2& size = ImVec2(0, 0), ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
     IMGUI_API bool  InputTextWithHint(const char* label, const char* hint, std::string* str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);

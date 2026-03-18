@@ -12,19 +12,11 @@
 
 #include "ReflectionCore.h"
 #include "ReflectionError.h"
+#include "string/shine_string.h"
 #include <memory>
 #include <unordered_map>
-#include <string>
 
 namespace shine::reflection {
-
-// Transparent hash for string_view to string comparisons without allocation
-struct StringHash {
-    using is_transparent = void;
-    [[nodiscard]] size_t operator()(std::string_view txt) const noexcept {
-        return std::hash<std::string_view>{}(txt);
-    }
-};
 
 // =============================================================================
 // Runtime Type Registry
@@ -45,7 +37,7 @@ public:
         // Check for duplicate registration
         if (registry_.contains(id)) {
             return MakeError(ErrorCode::TypeAlreadyRegistered, 
-                           std::string("Type ID ") + std::to_string(id) + " (" + std::string(info.name) + ") already registered");
+                           shine::SString("Type ID ") + shine::SString(std::to_string(id)) + shine::SString(" (") + shine::SString(info.name) + shine::SString(") already registered"));
         }
         
         // Eagerly build lookup tables before sharing
@@ -53,7 +45,7 @@ public:
         
         auto typeInfo = std::make_shared<TypeInfo>(std::move(info));
         registry_[id] = typeInfo;
-        nameRegistry_[std::string(typeInfo->name)] = typeInfo;
+        nameRegistry_[shine::SString(typeInfo->name)] = typeInfo;
         return {};
     }
     
@@ -65,7 +57,7 @@ public:
             return it->second.get();
         }
         return MakeError(ErrorCode::TypeNotFound, 
-                        std::string("Type ID ") + std::to_string(id) + " not found");
+                        shine::SString("Type ID ") + shine::SString(std::to_string(id)) + shine::SString(" not found"));
     }
     
     // ---- Fast lookup for performance-critical paths (hot path optimization) ----
@@ -77,14 +69,14 @@ public:
     }
 
     [[gnu::always_inline]]
-    const TypeInfo* FindByNameFast(std::string_view typeName) const noexcept {
+    const TypeInfo* FindByNameFast(shine::STextView typeName) const noexcept {
         // Try direct hash lookup first as it's the most common case
         if (const auto* info = FindFast(Hash(typeName))) {
             if (info->name == typeName) return info;
         }
 
         // Fallback to name registry
-        auto it = nameRegistry_.find(typeName);
+        auto it = nameRegistry_.find(shine::SString(typeName));
         return (it != nameRegistry_.end()) ? it->second.get() : nullptr;
     }
     
@@ -99,7 +91,7 @@ public:
 private:
     TypeRegistry() = default;
     std::unordered_map<TypeId, std::shared_ptr<TypeInfo>> registry_;
-    std::unordered_map<std::string, std::shared_ptr<TypeInfo>, StringHash, std::equal_to<>> nameRegistry_;
+    std::unordered_map<shine::SString, std::shared_ptr<TypeInfo>> nameRegistry_;
 };
 
 } // namespace shine::reflection

@@ -1,5 +1,6 @@
 #pragma once
 #include "EngineCore/reflection/Reflection.h"
+#include "string/shine_string.h"
 
 namespace shine::editor::util {
 
@@ -12,7 +13,7 @@ namespace shine::editor::util {
         static bool DrawFloat(const char* label, float& value, float min = 0.0f, float max = 0.0f);
         static bool DrawInt(const char* label, int& value, int min = 0, int max = 0);
         static bool DrawBool(const char* label, bool& value);
-        static bool DrawString(const char* label, std::string& value);
+        static bool DrawString(const char* label, shine::SString& value);
     };
 
 }

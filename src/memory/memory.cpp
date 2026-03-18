@@ -1,25 +1,12 @@
-#ifdef SHINE_USE_MODULE
-module shine.memory;
-import <algorithm>;
-import <cstdio>;
-import <cstring>;
-import <new>;
-#include <atomic>
-import <source_location>;
-#endif
 
 
-
-#ifndef SHINE_USE_MODULE
-#include "memory.ixx"
-#include "fmt/printf.h"
-#endif
 #include "memory_backend.h"
 #include "util/profiling/shine_profiling.h"
 
 #ifndef SHINE_MEMORY_BACKEND_UE_B2
 #define SHINE_MEMORY_BACKEND_UE_B2 0
-#endif
+
+
 namespace shine::co {
 
     // ============================================================

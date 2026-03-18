@@ -19,12 +19,12 @@
 #include <cstdint>
 #include <atomic>
 #include <memory>
-#include <string_view>
 #include <type_traits>
 #include <vector>
 #include <unordered_set>
 #include <functional>
 
+#include "string/shine_text_view.h"
 #include "util/EnumFlags.h"
 #include "memory/memory.ixx"
 
@@ -195,7 +195,7 @@ namespace shine::reflection {
 
         /// Store (or find existing) a string.  The returned pointer
         /// is valid for the lifetime of the manager.
-        const char* StoreString(std::string_view str);
+        const char* StoreString(shine::STextView str);
 
         void ClearStrings();
 
@@ -212,7 +212,7 @@ namespace shine::reflection {
             static constexpr size_t BLOCK_SIZE = 8192;  // 8 KB per block
 
             /// Allocate room for 'len+1' bytes, copy str, null-terminate.
-            const char* Store(std::string_view str);
+            const char* Store(shine::STextView str);
 
             void Clear();
 
@@ -235,7 +235,7 @@ namespace shine::reflection {
 
         struct SVHash {
             using is_transparent = void;
-            size_t operator()(std::string_view sv) const noexcept {
+            size_t operator()(shine::STextView sv) const noexcept {
                 // FNV-1a 64-bit
                 size_t h = 14695981039346656037ULL;
                 for (char c : sv) {
@@ -248,13 +248,13 @@ namespace shine::reflection {
 
         struct SVEqual {
             using is_transparent = void;
-            bool operator()(std::string_view a, std::string_view b) const noexcept {
+            bool operator()(shine::STextView a, shine::STextView b) const noexcept {
                 return a == b;
             }
         };
 
         StringArena arena_;
-        std::unordered_set<std::string_view, SVHash, SVEqual> internSet_;
+        std::unordered_set<shine::STextView, SVHash, SVEqual> internSet_;
         mutable std::atomic<size_t> stringCount_{0};
     };
 

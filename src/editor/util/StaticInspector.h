@@ -2,6 +2,7 @@
 #include "EngineCore/reflection/Reflection.h"
 #include "PropertyDrawer.h"
 #include "imgui/imgui.h"
+#include "string/shine_string.h"
 #include <variant>
 
 namespace shine::editor::util {
@@ -62,7 +63,7 @@ namespace shine::editor::util {
             auto ReadOnly() { return Chain(dsl.ReadOnly()); }
             auto ScriptReadWrite() { return Chain(dsl.ScriptReadWrite()); }
             template<typename U> auto UI(U&& schema) { return Chain(dsl.UI(std::forward<U>(schema))); }
-            template<typename V> auto Meta(std::string_view key, V&& val) { return Chain(dsl.Meta(key, std::forward<V>(val))); }
+            template<typename V> auto Meta(shine::STextView key, V&& val) { return Chain(dsl.Meta(key, std::forward<V>(val))); }
             // Fix: Add constexpr Meta with string literal capture
             template<size_t N, typename V> 
             constexpr auto Meta(const char (&key)[N], V&& val) { 
@@ -76,7 +77,7 @@ namespace shine::editor::util {
             }
 
             template<size_t N> auto DisplayName(const char (&name)[N]) { return Meta("DisplayName", name); }
-            auto DisplayName(std::string_view name) { return Meta("DisplayName", name); }
+            auto DisplayName(shine::STextView name) { return Meta("DisplayName", name); }
 
             // Helper to chain with new DSL type
             template<typename NewDSL>
@@ -114,10 +115,8 @@ namespace shine::editor::util {
                 const char* category = nullptr;
                 for(const auto& m : desc.metadata) {
                     if (m.first == MetaKeys::Category) {
-                        if (std::holds_alternative<std::string_view>(m.second)) {
-                            // Note: std::string_view might point to temporary if not careful, 
-                            // but in our DSL it points to string literal from .Meta("Category", "Audio")
-                             category = std::get<std::string_view>(m.second).data();
+                        if (std::holds_alternative<shine::STextView>(m.second)) {
+                             category = std::get<shine::STextView>(m.second).data();
                         }
                     }
                 }
@@ -172,7 +171,7 @@ namespace shine::editor::util {
                              if constexpr (std::is_same_v<ElementType, float>) PropertyDrawer::DrawFloat("##v", value[i]);
                              else if constexpr (std::is_same_v<ElementType, int>) PropertyDrawer::DrawInt("##v", value[i]);
                              else if constexpr (std::is_same_v<ElementType, bool>) PropertyDrawer::DrawBool("##v", value[i]);
-                             else if constexpr (std::is_same_v<ElementType, std::string>) PropertyDrawer::DrawString("##v", value[i]);
+                                else if constexpr (std::is_same_v<ElementType, shine::SString>) PropertyDrawer::DrawString("##v", value[i]);
                              else {
                                   // Recursive struct in vector
                                   StaticInspectorBuilder::Draw(&value[i]);
@@ -185,7 +184,7 @@ namespace shine::editor::util {
                      }
                      return;
                 }
-                else if constexpr (!std::is_same_v<MemberType, float> && !std::is_same_v<MemberType, int> && !std::is_same_v<MemberType, bool> && !std::is_same_v<MemberType, std::string>) {
+                else if constexpr (!std::is_same_v<MemberType, float> && !std::is_same_v<MemberType, int> && !std::is_same_v<MemberType, bool> && !std::is_same_v<MemberType, shine::SString>) {
                      if constexpr (std::is_enum_v<MemberType>) {
                          ImGui::Text("%s", desc.name.data());
                          ImGui::TableSetColumnIndex(1);
@@ -210,7 +209,8 @@ namespace shine::editor::util {
                                  if (e.value == currentVal) { currentName = e.name.data(); break; }
                              }
 
-                             std::string label = "##" + std::string(desc.name);
+                             shine::SString label = "##";
+                             label += desc.name;
                              if (ImGui::BeginCombo(label.c_str(), currentName)) {
                                  for(const auto& e : typeInfo->enumEntries) {
                                      bool isSelected = (currentVal == e.value);
@@ -226,7 +226,8 @@ namespace shine::editor::util {
 
                              int         val    = static_cast<int>(value);
                              int         oldVal = val;
-                             std::string label  = "##" + std::string(desc.name);
+                             shine::SString label  = "##";
+                             label += desc.name;
                              if (ImGui::InputInt(label.c_str(), &val)) {
                                  value = static_cast<MemberType>(val);
                                  if (desc.onChange) desc.onChange(builder.instance, &oldVal);
@@ -255,8 +256,8 @@ namespace shine::editor::util {
                 const char* displayName = desc.name.data();
                 for(const auto& m : desc.metadata) {
                     if (m.first == MetaKeys::DisplayName) {
-                        if (std::holds_alternative<std::string_view>(m.second)) {
-                            displayName = std::get<std::string_view>(m.second).data();
+                        if (std::holds_alternative<shine::STextView>(m.second)) {
+                            displayName = std::get<shine::STextView>(m.second).data();
                         }
                     }
                 }
@@ -265,7 +266,8 @@ namespace shine::editor::util {
                 ImGui::TableSetColumnIndex(1);
                 ImGui::PushItemWidth(-1);
 
-                std::string label = "##" + std::string(desc.name);
+                shine::SString label = "##";
+                label += desc.name;
                 const char* labelC = label.c_str();
 
                 // Helper to extract Range from metadata
@@ -302,7 +304,7 @@ namespace shine::editor::util {
                 else if constexpr (std::is_same_v<MemberType, bool>) {
                     if (ImGui::Checkbox(labelC, &value)) changed = true;
                 }
-                else if constexpr (std::is_same_v<MemberType, std::string>) {
+                else if constexpr (std::is_same_v<MemberType, shine::SString>) {
                     // Check for FunctionSelector schema
                     bool isFunctionSelector = false;
                     bool onlyScriptCallable = true;
@@ -343,7 +345,7 @@ namespace shine::editor::util {
                                     if (show) {
                                         bool isSelected = (value == method.name);
                                         if (ImGui::Selectable(method.name.data(), isSelected)) {
-                                            value = method.name;
+                                            value = shine::SString(method.name);
                                             changed = true;
                                         }
                                         if (isSelected) ImGui::SetItemDefaultFocus();
@@ -359,7 +361,7 @@ namespace shine::editor::util {
                         char buffer[256];
                         strncpy_s(buffer, sizeof(buffer), value.c_str(), sizeof(buffer) - 1);
                         if (ImGui::InputText(labelC, buffer, sizeof(buffer))) {
-                            value = buffer;
+                            value = shine::SString(buffer);
                             changed = true;
                         }
                     }
@@ -394,7 +396,7 @@ namespace shine::editor::util {
             // But here we return the same object (moved)
             auto ScriptCallable() { return std::move(*this); }
             auto EditorCallable() { return std::move(*this); }
-            template<typename V> auto Meta(std::string_view key, V&& val) { return std::move(*this); }
+            template<typename V> auto Meta(shine::STextView key, V&& val) { return std::move(*this); }
             template<size_t N, typename V> constexpr auto Meta(const char (&key)[N], V&& val) { return std::move(*this); }
 
             ~MethodProxy() {

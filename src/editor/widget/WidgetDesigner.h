@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WidgetObject.h"
+#include "WidgetEditorUtils.h"
 #include "imgui/imgui.h"
 
 namespace shine::editor::widget {
@@ -35,8 +36,7 @@ private:
 
 private:
     WidgetCanvas canvas;
-    float        zoom              = 1.0f;
-    ImVec2       canvasScroll      = ImVec2(0, 0);
+    utils::WidgetViewportTransform viewportTransform;
     bool         layoutBuilt_      = false;
 };
 

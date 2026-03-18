@@ -18,7 +18,7 @@ namespace shine::reflection {
 
 // Forward declarations for macro expansion
 template <typename T>
-constexpr TypeInfo BuildTypeInfo(std::string_view name);
+constexpr TypeInfo BuildTypeInfo(shine::STextView name);
 
 } // namespace shine::reflection
 

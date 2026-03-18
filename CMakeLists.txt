@@ -13,6 +13,8 @@ set(SHINE_TARGET_MODULE "" CACHE STRING "Target module name for selective output
  
 # C++20 模块支持
 option(SHINE_BUILD_MODULE "Enable C++20 modules support" OFF)
+# MSVC 下输出每个源文件的编译阶段耗时（/Bt+）
+option(SHINE_ENABLE_MSVC_BT "Enable MSVC /Bt+ compile-time output" OFF)
 
 # 设置C++标准
 set(CMAKE_CXX_STANDARD 23)
@@ -64,6 +66,9 @@ message(STATUS "Detected compiler: ${SHINE_COMPILER_NAME} (${CMAKE_CXX_COMPILER_
 # 平台特定配置
 if(SHINE_COMPILER_MSVC)
     add_compile_options(/utf-8 /MP /bigobj /Zc:__cplusplus /std:c++latest)
+    if(SHINE_ENABLE_MSVC_BT)
+        add_compile_options(/Bt+)
+    endif()
     set(CMAKE_CXX_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/modules)
     
     option(SHINE_ENABLE_AVX2 "Enable /arch:AVX2 for MSVC builds" OFF)

@@ -13,7 +13,6 @@
 #include "../ReflectionCore.h"
 #include "FieldDSL.h"
 #include "MethodDSL.h"
-#include <string_view>
 #include <type_traits>
 #include <vector>
 #include <map>
@@ -95,22 +94,22 @@ struct TypeBuilder {
         FieldBuilder& Transient()            { field.flags |= PropertyFlags::Transient;       return *this; }
         FieldBuilder& SaveGame()             { field.flags |= PropertyFlags::SaveGame;        return *this; }
         FieldBuilder& FunctionSelect()       { field.uiSchema = UI::FunctionSelector{};       return *this; }
-        FieldBuilder& DisplayName(std::string_view dn) {
+        FieldBuilder& DisplayName(shine::STextView dn) {
             field.metadata.push_back({MetaKeys::DisplayName, MetadataValue{dn}});
             return *this;
         }
 
         /// Single template replaces five per-type Meta overloads (C++23).
         template <typename V>
-        FieldBuilder& Meta(std::string_view key, V&& value) {
-            field.metadata.push_back({Hash(key), MetadataValue{std::forward<V>(value)}});
+        FieldBuilder& Meta(shine::STextView key, V&& value) {
+            field.metadata.push_back({Hash(key), MakeMetadataValue(std::forward<V>(value))});
             return *this;
         }
 
         /// Overload accepting a pre-computed MetadataKey (consteval-friendly).
         template <typename V>
         FieldBuilder& Meta(MetadataKey key, V&& value) {
-            field.metadata.push_back({key, MetadataValue{std::forward<V>(value)}});
+            field.metadata.push_back({key, MakeMetadataValue(std::forward<V>(value))});
             return *this;
         }
 
@@ -195,15 +194,15 @@ struct TypeBuilder {
         MethodBuilder& EditorCallable() { method.flags |= FunctionFlags::EditorCallable; return *this; }
 
         template <typename V>
-        MethodBuilder& Meta(std::string_view key, V&& value) {
-            method.metadata.push_back({Hash(key), MetadataValue{std::forward<V>(value)}});
+        MethodBuilder& Meta(shine::STextView key, V&& value) {
+            method.metadata.push_back({Hash(key), MakeMetadataValue(std::forward<V>(value))});
             return *this;
         }
 
         /// Overload accepting a pre-computed MetadataKey (consteval-friendly).
         template <typename V>
         MethodBuilder& Meta(MetadataKey key, V&& value) {
-            method.metadata.push_back({key, MetadataValue{std::forward<V>(value)}});
+            method.metadata.push_back({key, MakeMetadataValue(std::forward<V>(value))});
             return *this;
         }
     };
@@ -250,7 +249,7 @@ struct TypeBuilder {
 
     // ---- Enum registration --------------------------------------------------
 
-    struct EnumPair { T value; std::string_view name; };
+    struct EnumPair { T value; shine::STextView name; };
 
     void Enums(std::initializer_list<EnumPair> entries) {
         info.isEnum = true;
@@ -305,7 +304,7 @@ template<auto MethodPtr>
 template <auto MethodPtr>
 struct FastMethodRegistration {
     template<typename T>
-    static auto Register(T& builder, std::string_view name) {
+    static auto Register(T& builder, shine::STextView name) {
         //using MP = decltype(MethodPtr);
         
         // 使用 DSL 创建方法节点
@@ -324,7 +323,7 @@ struct FastMethodRegistration {
 // =============================================================================
 
 template <typename T>
-constexpr TypeInfo BuildTypeInfo(std::string_view name) {
+constexpr TypeInfo BuildTypeInfo(shine::STextView name) {
     TypeInfo i{};
     i.id        = GetTypeId<T>();
     i.name      = name;
@@ -337,6 +336,6 @@ constexpr TypeInfo BuildTypeInfo(std::string_view name) {
 
 // Legacy alias
 template <typename T>
-constexpr TypeInfo BuildTypeInfoCT(std::string_view name) { return BuildTypeInfo<T>(name); }
+constexpr TypeInfo BuildTypeInfoCT(shine::STextView name) { return BuildTypeInfo<T>(name); }
 
 } // namespace shine::reflection

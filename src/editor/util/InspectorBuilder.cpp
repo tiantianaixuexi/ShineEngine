@@ -1,7 +1,6 @@
 #include "InspectorBuilder.h"
 #include "PropertyDrawer.h"
 #include "imgui/imgui.h"
-#include <string>
 #include <variant>
 
 namespace shine::editor::util {
@@ -15,13 +14,13 @@ namespace shine::editor::util {
         reflection::InspectorView view;
         view.typeInfo = typeInfo;
 
-        std::string currentCategory = "";
+        shine::STextView currentCategory;
 
         for (auto& field : view) {
             // Category Grouping Logic
             const auto* meta = field.GetMeta(reflection::MetaKeys::Category);
-            if (meta && std::holds_alternative<std::string_view>(*meta)) {
-                std::string_view cat = std::get<std::string_view>(*meta);
+            if (meta && std::holds_alternative<shine::STextView>(*meta)) {
+                shine::STextView cat = std::get<shine::STextView>(*meta);
                 if (cat != currentCategory) {
                     currentCategory = cat;
                     ImGui::Separator();

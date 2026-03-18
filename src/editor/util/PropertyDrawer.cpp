@@ -1,8 +1,8 @@
 #include "PropertyDrawer.h"
 #include "InspectorBuilder.h"
 #include "imgui/imgui.h"
+#include "string/shine_string.h"
 #include <variant>
-#include <string>
 #include <algorithm>
 
 namespace shine::editor::util {
@@ -101,17 +101,17 @@ namespace shine::editor::util {
                 return;
             }
 
-            // --- std::string → TextInput ---
-            if (field.typeId == GetTypeId<std::string>()) {
-                std::string val;
+            // --- SString → TextInput ---
+            if (field.typeId == GetTypeId<shine::SString>()) {
+                shine::SString val;
                 field.Get(instance, &val);
-                std::string oldVal = val;
+                shine::SString oldVal = val;
 
                 char buffer[256];
                 strncpy_s(buffer, val.c_str(), sizeof(buffer) - 1);
 
                 if (ImGui::InputText(field.name.data(), buffer, sizeof(buffer))) {
-                    val = buffer;
+                    val = shine::SString(buffer);
                     field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
                 }
@@ -255,16 +255,16 @@ namespace shine::editor::util {
 
         // 4. TextInput (InputText alias)
         void operator()(const reflection::UI::TextInput&) {
-            if (field.typeId == GetTypeId<std::string>()) {
-                std::string val;
+            if (field.typeId == GetTypeId<shine::SString>()) {
+                shine::SString val;
                 field.Get(instance, &val);
-                std::string oldVal = val;
+                shine::SString oldVal = val;
                 
                 char buffer[256];
                 strncpy_s(buffer, val.c_str(), sizeof(buffer) - 1);
                 
                 if (ImGui::InputText(field.name.data(), buffer, sizeof(buffer))) {
-                    val = buffer;
+                    val = shine::SString(buffer);
                     field.Set(instance, &val);
                     field.OnChange(instance, &oldVal);
                 }
@@ -278,7 +278,7 @@ namespace shine::editor::util {
 
         // 6. Function Selector
         void operator()(const reflection::UI::FunctionSelector& selector) {
-            std::string currentFunc;
+            shine::SString currentFunc;
             field.Get(instance, &currentFunc);
             
             if (ImGui::BeginCombo(field.name.data(), currentFunc.c_str())) {
@@ -296,8 +296,8 @@ namespace shine::editor::util {
                         if (show) {
                             bool isSelected = (currentFunc == method.name);
                             if (ImGui::Selectable(method.name.data(), isSelected)) {
-                                std::string oldVal = currentFunc;
-                                currentFunc = method.name;
+                                shine::SString oldVal = currentFunc;
+                                currentFunc = shine::SString(method.name);
                                 field.Set(instance, &currentFunc);
                                 field.OnChange(instance, &oldVal);
                             }
@@ -375,11 +375,11 @@ namespace shine::editor::util {
         return ImGui::Checkbox(label, &value);
     }
 
-    bool PropertyDrawer::DrawString(const char* label, std::string& value) {
+    bool PropertyDrawer::DrawString(const char* label, shine::SString& value) {
         char buffer[256];
         strncpy_s(buffer, value.c_str(), sizeof(buffer) - 1);
         if (ImGui::InputText(label, buffer, sizeof(buffer))) {
-            value = buffer;
+            value = shine::SString(buffer);
             return true;
         }
         return false;

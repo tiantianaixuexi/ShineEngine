@@ -68,8 +68,11 @@ set MODULE_CONFIG=Debug
 set NO_PAUSE=1
 set SHINE_BUILD_EDITOR=ON
 set SHINE_BUILD_MODULE=OFF
+set SHINE_ENABLE_MSVC_BT=OFF
 set BUILD_MODE=editor
 set COMPILER=msvc
+set BUILD_BT_RAW_LOG=
+set BUILD_BT_SUMMARY_LOG=
 
 :parse_args
 if "%~1"=="" goto args_done
@@ -93,6 +96,11 @@ if /i "%~1"=="--editor" (
 )
 if /i "%~1"=="--enable-module" (
     set SHINE_BUILD_MODULE=ON
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--bt" (
+    set SHINE_ENABLE_MSVC_BT=ON
     shift
     goto parse_args
 )
@@ -169,6 +177,7 @@ goto parse_args
 :args_done
 set CMAKE_COMMON_FLAGS=%CMAKE_COMMON_FLAGS% -DSHINE_BUILD_EDITOR=%SHINE_BUILD_EDITOR%
 set CMAKE_COMMON_FLAGS=%CMAKE_COMMON_FLAGS% -DSHINE_BUILD_MODULE=%SHINE_BUILD_MODULE%
+set CMAKE_COMMON_FLAGS=%CMAKE_COMMON_FLAGS% -DSHINE_ENABLE_MSVC_BT=%SHINE_ENABLE_MSVC_BT%
 
 call :setup_compiler
 
@@ -209,6 +218,20 @@ cmake -B "%BUILD_DIR%" -S . -G "%GENERATOR_NAME%" %ARCH_ARGS% %CMAKE_COMMON_FLAG
 
 call :log_info "Starting build..."
 
+set BUILD_BT_RAW_LOG=
+set BUILD_BT_SUMMARY_LOG=
+if /i "%COMPILER%"=="msvc" if /i "%SHINE_ENABLE_MSVC_BT%"=="ON" (
+    if not exist "Logs" mkdir "Logs" >nul 2>nul
+    if "%TARGET_NAME%"=="" (
+        set BUILD_BT_RAW_LOG=Logs\msvc_bt_%BUILD_CONFIG%_all_raw.log
+        set BUILD_BT_SUMMARY_LOG=Logs\msvc_bt_%BUILD_CONFIG%_all_timing.txt
+    ) else (
+        set BUILD_BT_RAW_LOG=Logs\msvc_bt_%TARGET_NAME%_%BUILD_CONFIG%_raw.log
+        set BUILD_BT_SUMMARY_LOG=Logs\msvc_bt_%TARGET_NAME%_%BUILD_CONFIG%_timing.txt
+    )
+    call :log_info "MSVC /Bt+ timing summary will be written to %BUILD_BT_SUMMARY_LOG%"
+)
+
 :: Pre-build cleanup as requested
 if "%TARGET_NAME%"=="MainEngine" (
     if exist "exe\MainEngine.exe" (
@@ -221,10 +244,15 @@ if "%TARGET_NAME%"=="MainEngine" (
     )
 )
 
-cmake --build "%BUILD_DIR%" --config "%BUILD_CONFIG%" %TARGET_PARAM% --parallel %CLEAN_FIRST%
+if defined BUILD_BT_SUMMARY_LOG (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "& { $raw = '%BUILD_BT_RAW_LOG%'; $sum = '%BUILD_BT_SUMMARY_LOG%'; & cmake --build '%BUILD_DIR%' --config '%BUILD_CONFIG%' %TARGET_PARAM% --parallel %CLEAN_FIRST% 2>&1 | Tee-Object -FilePath $raw; $buildExit = $LASTEXITCODE; $items = Get-Content $raw | ForEach-Object { if ($_ -match 'time\((?<phase>[^)]+)\)=(?<secs>[0-9.]+)s .* \[(?<file>[^\]]+)\]') { [pscustomobject]@{ File = $matches.file; Phase = $matches.phase; Seconds = [double]$matches.secs } } }; if ($items) { $items | Group-Object File | ForEach-Object { $sumSec = ($_.Group | Measure-Object Seconds -Sum).Sum; [pscustomobject]@{ TotalSeconds = [double]$sumSec; File = $_.Name; Count = $_.Count } } | Sort-Object TotalSeconds -Descending | ForEach-Object { '{0,10:N3}s  {1}' -f $_.TotalSeconds, $_.File } | Set-Content -Encoding UTF8 $sum } else { 'No /Bt+ timing lines captured.' | Set-Content -Encoding UTF8 $sum }; exit $buildExit }"
+) else (
+    cmake --build "%BUILD_DIR%" --config "%BUILD_CONFIG%" %TARGET_PARAM% --parallel %CLEAN_FIRST%
+)
 if errorlevel 1 call :error_exit "Build failed" & exit /b 1
 
 call :log_success "Build successful!"
+if defined BUILD_BT_SUMMARY_LOG call :log_info "Build timing summary saved to %BUILD_BT_SUMMARY_LOG%"
 
 if exist "%BUILD_DIR%\compile_commands.json" (
     copy /Y "%BUILD_DIR%\compile_commands.json" "compile_commands.json" > nul 2>&1
@@ -368,6 +396,7 @@ echo   --no-editor      Disable editor features (removes BUILD_EDITOR macro)
 echo   --editor         Enable editor mode (default, same as without flag)
 echo   --runtime        Build in runtime mode (excludes editor-only modules)
 echo   --enable-module  Enable C++20 modules (adds SHINE_BUILD_MODULE macro)
+echo   --bt             Enable MSVC /Bt+ timing output and write a readable summary file to Logs\
 echo.
 echo Compiler selection:
 echo   --msvc           Use MSVC compiler (default)

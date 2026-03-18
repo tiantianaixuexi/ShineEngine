@@ -53,7 +53,6 @@ namespace shine::editor::views
         ) const;
         void DrawSelectedObjectOutline(const ImVec2& viewportMin, const ImVec2& viewportSize, gameplay::Camera* cam) const;
         void SpawnPlacementActor(EPlacementItemType type, float scale, gameplay::Camera* cam);
-        void SpawnAssetActor(const std::string& sassetPath, gameplay::Camera* cam);
 
     private:
 

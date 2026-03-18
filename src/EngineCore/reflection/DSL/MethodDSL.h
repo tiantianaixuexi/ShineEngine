@@ -11,7 +11,6 @@
 // =============================================================================
 
 #include "../ReflectionCore.h"
-#include <string_view>
 
 namespace shine::reflection {
 
@@ -46,7 +45,7 @@ namespace DSL {
 // ---- MethodDescriptor -------------------------------------------------------
 
 struct MethodDescriptorBase {
-    std::string_view  name;
+    shine::STextView  name;
     MetadataContainer metadata;
 };
 
@@ -59,18 +58,18 @@ template <auto MethodPtr>
 struct MethodDSLNode {
     static constexpr auto MethodPtrValue = MethodPtr;
 
-    std::string_view    name;
+    shine::STextView    name;
     MethodDescriptor<0> desc;
 
-    explicit MethodDSLNode(std::string_view n) : name(n) { desc.name = n; }
+    explicit MethodDSLNode(shine::STextView n) : name(n) { desc.name = n; }
 
     auto ScriptCallable() const { return *this; }
     auto EditorCallable() const { return *this; }
 
     template <typename V>
-    auto Meta(std::string_view key, V&& val) const {
+    auto Meta(shine::STextView key, V&& val) const {
         auto c = *this;
-        c.desc.metadata.push_back({Hash(key), MetadataValue{std::forward<V>(val)}});
+        c.desc.metadata.push_back({Hash(key), MakeMetadataValue(std::forward<V>(val))});
         return c;
     }
 
@@ -78,13 +77,13 @@ struct MethodDSLNode {
     template <typename V>
     auto Meta(MetadataKey key, V&& val) const {
         auto c = *this;
-        c.desc.metadata.push_back({key, MetadataValue{std::forward<V>(val)}});
+        c.desc.metadata.push_back({key, MakeMetadataValue(std::forward<V>(val))});
         return c;
     }
 };
 
 template <auto M>
-MethodDSLNode<M> MakeMethodDSL(std::string_view n) { return MethodDSLNode<M>{n}; }
+MethodDSLNode<M> MakeMethodDSL(shine::STextView n) { return MethodDSLNode<M>{n}; }
 
 } // namespace DSL
 } // namespace shine::reflection

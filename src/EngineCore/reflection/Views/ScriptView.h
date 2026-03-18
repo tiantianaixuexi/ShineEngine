@@ -112,11 +112,11 @@ struct ScriptView : TypeView {
         return TypeRegistry::Get().FindFast(id);
     }
 
-     [[nodiscard]] const FieldInfo*  GetFieldInfo(std::string_view n) const { return typeInfo->FindField(n); }
+    [[nodiscard]] const FieldInfo*  GetFieldInfo(shine::STextView n) const { return typeInfo->FindField(n); }
      [[nodiscard]] const FieldInfo*  GetFieldInfo(std::size_t i)      const {
         return i < typeInfo->fields.size() ? &typeInfo->fields[i] : nullptr;
     }
-     [[nodiscard]] const MethodInfo* GetMethodInfo(std::string_view n) const { return typeInfo->FindMethod(n); }
+    [[nodiscard]] const MethodInfo* GetMethodInfo(shine::STextView n) const { return typeInfo->FindMethod(n); }
      [[nodiscard]] const MethodInfo* GetMethodInfo(std::size_t i)      const {
         return i < typeInfo->methods.size() ? &typeInfo->methods[i] : nullptr;
     }
@@ -146,10 +146,10 @@ struct ScriptView : TypeView {
         if (!field->isPod) Destruct(buf.ptr, field->typeId);
     }
 
-    ScriptValue GetField(void* inst, std::string_view n, const ScriptBridge& br) const {
+    ScriptValue GetField(void* inst, shine::STextView n, const ScriptBridge& br) const {
         return GetField(inst, GetFieldInfo(n), br);
     }
-    void SetField(void* inst, std::string_view n, const ScriptValue& v, const ScriptBridge& br) const {
+    void SetField(void* inst, shine::STextView n, const ScriptValue& v, const ScriptBridge& br) const {
         SetField(inst, GetFieldInfo(n), v, br);
     }
 
@@ -201,7 +201,7 @@ struct ScriptView : TypeView {
         return result;
     }
 
-    ScriptValue CallMethod(void* inst, std::string_view n,
+    ScriptValue CallMethod(void* inst, shine::STextView n,
                            const std::vector<ScriptValue>& a, const ScriptBridge& br) const {
         return CallMethod(inst, GetMethodInfo(n), a, br);
     }

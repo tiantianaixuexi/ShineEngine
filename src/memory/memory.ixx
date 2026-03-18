@@ -1,19 +1,4 @@
-#ifdef SHINE_USE_MODULE
 
-export module shine.memory;
-
-import <cstddef>;
-import <cstdint>;
-import <atomic>;
-import <algorithm>;
-import <cstdio>;
-import <cstring>;
-import <new>;
-import <source_location>;
-import <type_traits>;
-import <utility>;
-
-#else
 
 #pragma once
 #include <cstddef>
@@ -26,9 +11,6 @@ import <utility>;
 #include <source_location>
 #include <type_traits>
 #include <utility>
-
-#endif
-
 
 
 namespace shine::co {

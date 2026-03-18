@@ -11,13 +11,17 @@
 // =============================================================================
 
 #include <algorithm>
+#include <concepts>
 #include <cstdint>
 #include <cstring>
+#include <source_location>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 #include <variant>
 #include <vector>
-#include <source_location>
+#include "string/shine_string.h"
+#include "string/shine_text_view.h"
 #include "util/EnumFlags.h"
 #include "constexpr/constexpr_vector.h"
 namespace shine::reflection {
@@ -49,6 +53,10 @@ constexpr TypeId Hash(std::string_view str) noexcept {
     return h;
 }
 
+constexpr TypeId Hash(shine::STextView str) noexcept {
+    return Hash(str.sv());
+}
+
 /// Compile-time overload for string literals.
 template <std::size_t N>
 consteval TypeId Hash(const char (&str)[N]) noexcept {
@@ -62,9 +70,9 @@ consteval TypeId Hash(const char (&str)[N]) noexcept {
 
 /// Extract a clean type name from __FUNCSIG__ (MSVC) at compile time.
 template <typename T>
-consteval std::string_view GetTypeName() noexcept {
+consteval shine::STextView GetTypeName() noexcept {
     constexpr std::source_location loc = std::source_location::current();
-    std::string_view sig = loc.function_name();
+    shine::STextView sig = shine::STextView::from_cstring(loc.function_name());
     auto start = sig.find("GetTypeName<") + 12;
     auto end   = sig.find_last_of('>');
     auto name  = sig.substr(start, end - start);
@@ -158,7 +166,7 @@ struct Slider          { float min = 0.f; float max = 100.f; float step = 1.f; }
 struct Dropdown        {};
 struct Checkbox        {};
 struct ColorPicker     {};
-struct FilePicker      { std::string_view filter; bool allow_multiple = false; };
+struct FilePicker      { shine::STextView filter; bool allow_multiple = false; };
 struct FunctionSelector{ bool onlyScriptCallable = true; };
 struct VectorEditor    { std::size_t dimensions = 3; double min_value = -1000.0; double max_value = 1000.0; };
 struct MatrixEditor    { std::size_t rows = 4; std::size_t cols = 4; };
@@ -180,8 +188,35 @@ using Schema = std::variant<
 // =============================================================================
 
 using MetadataKey       = TypeId;
-using MetadataValue     = std::variant<std::monostate, bool, int, float, double, std::string_view>;
+using MetadataValue     = std::variant<std::monostate, bool, int, float, double, shine::STextView,shine::SString>;
 using MetadataContainer = std::vector<std::pair<MetadataKey, MetadataValue>>;
+
+inline MetadataValue MakeMetadataValue(shine::STextView value) {
+    return MetadataValue{value};
+}
+
+inline MetadataValue MakeMetadataValue(shine::SString value) {
+    return MetadataValue{std::move(value)};
+}
+
+inline MetadataValue MakeMetadataValue(std::string_view value) {
+    return MetadataValue{shine::SString(value)};
+}
+
+inline MetadataValue MakeMetadataValue(const char* value) {
+    return MetadataValue{shine::SString(value != nullptr ? value : "")};
+}
+
+template <std::size_t N>
+inline MetadataValue MakeMetadataValue(const char (&value)[N]) {
+    return MetadataValue{shine::STextView::from_literal(value)};
+}
+
+template <typename T>
+    requires std::constructible_from<MetadataValue, T&&>
+inline MetadataValue MakeMetadataValue(T&& value) {
+    return MetadataValue{std::forward<T>(value)};
+}
 
 // =============================================================================
 // Type-erased function-pointer signatures (optimized)
@@ -293,7 +328,7 @@ struct FieldInfo {
     const void*       containerTrait = nullptr;
     PropertyFlags     flags    = PropertyFlags::None;
     UI::Schema        uiSchema = UI::None{};
-    std::string_view  name;
+    shine::STextView  name;
     uint32_t          nameHash = 0;
     MetadataContainer metadata;
 
@@ -370,7 +405,7 @@ struct FieldInfo {
 // =============================================================================
 
 struct MethodInfo {
-    std::string_view    name;
+    shine::STextView    name;
     uint32_t            nameHash      = 0;
     InvokeFn            invokeFn      = nullptr;
     TypeId              returnType    = 0;
@@ -404,12 +439,12 @@ struct MethodInfo {
 
 struct EnumEntry {
     int64_t value = 0;
-    std::string_view name;
+    shine::STextView name;
 };
 
 struct TypeInfo {
     TypeId              id        = 0;
-    std::string_view    name;
+    shine::STextView    name;
     std::size_t         size      = 0;
     std::size_t         alignment = 0;
     bool                isEnum    = false;
@@ -425,7 +460,7 @@ struct TypeInfo {
     std::vector<LookupEntry> methodLookup_;
     bool lookupSorted_ = false;
 
-    const FieldInfo* FindField(std::string_view fieldName) const {
+    const FieldInfo* FindField(shine::STextView fieldName) const {
         uint32_t hash = Hash(fieldName);
         auto it = std::ranges::lower_bound(fieldLookup_, hash, {}, &LookupEntry::hash);
 
@@ -438,7 +473,7 @@ struct TypeInfo {
         return nullptr;
     }
 
-    const MethodInfo* FindMethod(std::string_view methodName) const {
+    const MethodInfo* FindMethod(shine::STextView methodName) const {
         uint32_t hash = Hash(methodName);
         auto it = std::ranges::lower_bound(methodLookup_, hash, {}, &LookupEntry::hash);
 

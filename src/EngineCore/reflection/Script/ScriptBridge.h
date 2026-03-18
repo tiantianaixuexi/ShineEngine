@@ -16,7 +16,6 @@
 
 #include <cstdint>
 #include <new>
-#include <string>
 
 namespace shine::reflection {
 
@@ -48,11 +47,6 @@ inline void Construct(void* target, TypeId typeId)
 {
     if (!target)
     {
-        return;
-    }
-    if (typeId == GetTypeId<std::string>())
-    {
-        new (target) std::string();
         return;
     }
     if (typeId == GetTypeId<shine::SString>())
@@ -90,11 +84,6 @@ inline void Destruct(void* target, TypeId typeId)
 {
     if (!target)
     {
-        return;
-    }
-    if (typeId == GetTypeId<std::string>())
-    {
-        static_cast<std::string*>(target)->~basic_string();
         return;
     }
     if (typeId == GetTypeId<shine::SString>())

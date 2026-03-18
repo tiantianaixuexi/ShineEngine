@@ -2,17 +2,18 @@
 
 namespace shine::editor::widget::utils {
 
-ImVec2 GetLocalCursor()
+ImVec2 GetLocalCursor(const WidgetViewportTransform& transform)
 {
     ImGuiIO&      io         = ImGui::GetIO();
     ImGuiContext& g          = *ImGui::GetCurrentContext();
     ImGuiWindow*  w          = g.CurrentWindow;
-    ImVec2        cursor     = ImVec2(io.MousePos.x - w->Pos.x, io.MousePos.y - w->Pos.y);
+    ImVec2        cursor     = ImVec2(io.MousePos.x - w->Pos.x - transform.canvasOrigin.x,
+                                      io.MousePos.y - w->Pos.y - transform.canvasOrigin.y);
     ImRect        itemrect   = ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
-    float         itemwidth  = itemrect.Max.x - itemrect.Min.x;
-    float         itemheight = itemrect.Max.y - itemrect.Min.y;
-    cursor.x                -= itemwidth / 2;
-    cursor.y                -= itemheight / 2;
+    float         itemwidth  = (itemrect.Max.x - itemrect.Min.x) / ImMax(transform.zoom, 0.0001f);
+    float         itemheight = (itemrect.Max.y - itemrect.Min.y) / ImMax(transform.zoom, 0.0001f);
+    cursor.x                = cursor.x / ImMax(transform.zoom, 0.0001f) - itemwidth / 2.0f;
+    cursor.y                = cursor.y / ImMax(transform.zoom, 0.0001f) - itemheight / 2.0f;
     return cursor;
 }
 
@@ -25,18 +26,21 @@ float CenterHorizontal()
     return (w->Size.x - itemwidth) * 0.5f;
 }
 
-void DrawGrid(float gridSize)
+void DrawGrid(const WidgetViewportTransform& transform, float gridSize)
 {
     ImVec2 winPos  = ImGui::GetWindowPos();
-    ImVec2 winSize = ImGui::GetWindowSize();
+    ImVec2 winSize = ImVec2(transform.canvasSize.x * transform.zoom,
+                            transform.canvasSize.y * transform.zoom);
+    ImVec2 gridOrigin = ImVec2(winPos.x + transform.canvasOrigin.x, winPos.y + transform.canvasOrigin.y);
     ImDrawList* dl = ImGui::GetWindowDrawList();
     ImU32 col = IM_COL32(88, 88, 88, 50);
+    const float step = ImMax(gridSize * transform.zoom, 4.0f);
 
-    for (float y = winPos.y; y < winPos.y + winSize.y; y += gridSize)
-        dl->AddLine(ImVec2(winPos.x, y), ImVec2(winPos.x + winSize.x, y), col);
+    for (float y = gridOrigin.y; y < gridOrigin.y + winSize.y; y += step)
+        dl->AddLine(ImVec2(gridOrigin.x, y), ImVec2(gridOrigin.x + winSize.x, y), col);
 
-    for (float x = winPos.x; x < winPos.x + winSize.x; x += gridSize)
-        dl->AddLine(ImVec2(x, winPos.y), ImVec2(x, winPos.y + winSize.y), col);
+    for (float x = gridOrigin.x; x < gridOrigin.x + winSize.x; x += step)
+        dl->AddLine(ImVec2(x, gridOrigin.y), ImVec2(x, gridOrigin.y + winSize.y), col);
 }
 
 void HelpMarker(const char* desc)

@@ -3,8 +3,34 @@
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui_stdlib.h"
 #include "fmt/format.h"
+#include <string>
 
 namespace shine::editor::widget {
+
+namespace
+{
+    static bool InputTextS(const char* label, SString& value, ImGuiInputTextFlags flags = 0)
+    {
+        std::string temp = value.to_string();
+        if (ImGui::InputText(label, &temp, flags))
+        {
+            value = SString::from_utf8(temp);
+            return true;
+        }
+        return false;
+    }
+
+    static bool InputTextMultilineS(const char* label, SString& value, const ImVec2& size, ImGuiInputTextFlags flags = 0)
+    {
+        std::string temp = value.to_string();
+        if (ImGui::InputTextMultiline(label, &temp, size, flags))
+        {
+            value = SString::from_utf8(temp);
+            return true;
+        }
+        return false;
+    }
+}
 
 // ──────────────────────────────────────────────────────────────
 // Main Render — host window with embedded DockSpace
@@ -166,9 +192,13 @@ void WidgetDesigner::ShowDesignerViewport()
         // Toolbar
         ImGui::Text("Canvas: %.0fx%.0f", canvas.canvasSize.x, canvas.canvasSize.y);
         ImGui::SameLine();
-        ImGui::Text("| Zoom: %.0f%%", zoom * 100.0f);
+        ImGui::Text("| Zoom: %.0f%%", viewportTransform.zoom * 100.0f);
         ImGui::SameLine();
-        if (ImGui::SmallButton("Reset")) { zoom = 1.0f; canvasScroll = ImVec2(0,0); }
+        if (ImGui::SmallButton("Reset"))
+        {
+            viewportTransform.zoom = 1.0f;
+            viewportTransform.canvasOrigin = ImVec2(0.0f, 0.0f);
+        }
         ImGui::SameLine();
         ImGui::Text("| Widgets: %d", (int)canvas.widgets.size());
         if (canvas.selectedId >= 0)
@@ -191,9 +221,13 @@ void WidgetDesigner::ShowDesignerViewport()
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove);
         {
             canvas.canvasPos = ImGui::GetWindowPos();
+            viewportTransform.canvasSize = canvas.canvasSize;
+            viewportTransform.canvasOrigin = ImVec2(
+                (canvasArea.x - canvas.canvasSize.x * viewportTransform.zoom) * 0.5f,
+                (canvasArea.y - canvas.canvasSize.y * viewportTransform.zoom) * 0.5f);
 
             // Draw grid
-            utils::DrawGrid(25.0f * zoom);
+            utils::DrawGrid(viewportTransform, 25.0f);
 
             // Right-click context menu
             if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(1))
@@ -207,7 +241,7 @@ void WidgetDesigner::ShowDesignerViewport()
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("WIDGET_TYPE"))
                 {
                     EWidgetType droppedType = *(const EWidgetType*)payload->Data;
-                    canvas.Create(droppedType, true);
+                    canvas.Create(droppedType, true, &viewportTransform);
                 }
                 ImGui::EndDragDropTarget();
             }
@@ -219,7 +253,7 @@ void WidgetDesigner::ShowDesignerViewport()
                 ImGui::GetIO().MouseDrawCursor = false;
 
             // Draw all widgets
-            canvas.DrawAll();
+            canvas.DrawAll(viewportTransform);
 
             // Keyboard shortcuts
             if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
@@ -250,31 +284,31 @@ void WidgetDesigner::ShowContextMenu()
         {
             if (ImGui::BeginMenu("Common"))
             {
-                if (ImGui::MenuItem("Button"))      canvas.Create(EWidgetType::Button, true);
-                if (ImGui::MenuItem("CheckBox"))     canvas.Create(EWidgetType::CheckBox, true);
-                if (ImGui::MenuItem("Text"))         canvas.Create(EWidgetType::Text, true);
-                if (ImGui::MenuItem("Image"))        canvas.Create(EWidgetType::Image, true);
-                if (ImGui::MenuItem("ProgressBar"))  canvas.Create(EWidgetType::ProgressBar, true);
-                if (ImGui::MenuItem("Slider"))       canvas.Create(EWidgetType::Slider, true);
+                    if (ImGui::MenuItem("Button"))      canvas.Create(EWidgetType::Button, true, &viewportTransform);
+                    if (ImGui::MenuItem("CheckBox"))     canvas.Create(EWidgetType::CheckBox, true, &viewportTransform);
+                    if (ImGui::MenuItem("Text"))         canvas.Create(EWidgetType::Text, true, &viewportTransform);
+                    if (ImGui::MenuItem("Image"))        canvas.Create(EWidgetType::Image, true, &viewportTransform);
+                    if (ImGui::MenuItem("ProgressBar"))  canvas.Create(EWidgetType::ProgressBar, true, &viewportTransform);
+                    if (ImGui::MenuItem("Slider"))       canvas.Create(EWidgetType::Slider, true, &viewportTransform);
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Input"))
             {
-                if (ImGui::MenuItem("Text Input"))   canvas.Create(EWidgetType::TextInput, true);
-                if (ImGui::MenuItem("Input Int"))    canvas.Create(EWidgetType::InputInt, true);
-                if (ImGui::MenuItem("Input Float"))  canvas.Create(EWidgetType::InputFloat, true);
-                if (ImGui::MenuItem("Input Float3")) canvas.Create(EWidgetType::InputFloat3, true);
+                if (ImGui::MenuItem("Text Input"))   canvas.Create(EWidgetType::TextInput, true, &viewportTransform);
+                if (ImGui::MenuItem("Input Int"))    canvas.Create(EWidgetType::InputInt, true, &viewportTransform);
+                if (ImGui::MenuItem("Input Float"))  canvas.Create(EWidgetType::InputFloat, true, &viewportTransform);
+                if (ImGui::MenuItem("Input Float3")) canvas.Create(EWidgetType::InputFloat3, true, &viewportTransform);
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Lists"))
             {
-                if (ImGui::MenuItem("ComboBox"))     canvas.Create(EWidgetType::ComboBox, true);
-                if (ImGui::MenuItem("ListBox"))      canvas.Create(EWidgetType::ListBox, true);
+                if (ImGui::MenuItem("ComboBox"))     canvas.Create(EWidgetType::ComboBox, true, &viewportTransform);
+                if (ImGui::MenuItem("ListBox"))      canvas.Create(EWidgetType::ListBox, true, &viewportTransform);
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Panel"))
             {
-                if (ImGui::MenuItem("Canvas Panel")) canvas.Create(EWidgetType::CanvasPanel, true);
+                if (ImGui::MenuItem("Canvas Panel")) canvas.Create(EWidgetType::CanvasPanel, true, &viewportTransform);
                 ImGui::EndMenu();
             }
             ImGui::EndMenu();
@@ -392,7 +426,7 @@ void WidgetDesigner::ShowDetails()
 void WidgetDesigner::DrawDetailsForWidget(WidgetItem* w)
 {
     // Header
-    ImGui::InputText("Name", &w->name);
+    InputTextS("Name", w->name);
     ImGui::SameLine();
     ImGui::TextDisabled("(%s)", GetWidgetTypeName(w->type));
     ImGui::Separator();
@@ -432,14 +466,14 @@ void WidgetDesigner::DrawDetailsForWidget(WidgetItem* w)
         switch (w->type)
         {
         case EWidgetType::Button:
-            ImGui::InputText("Label", &w->label);
+            InputTextS("Label", w->label);
             break;
         case EWidgetType::CheckBox:
-            ImGui::InputText("Label", &w->label);
+            InputTextS("Label", w->label);
             ImGui::Checkbox("Value", &w->boolValue);
             break;
         case EWidgetType::Text:
-            ImGui::InputTextMultiline("Text", &w->textValue, ImVec2(-1, 60));
+            InputTextMultilineS("Text", w->textValue, ImVec2(-1, 60));
             break;
         case EWidgetType::Image:
             ImGui::TextDisabled("(Image source placeholder)");
@@ -448,37 +482,37 @@ void WidgetDesigner::DrawDetailsForWidget(WidgetItem* w)
             ImGui::SliderFloat("Progress", &w->progress, 0.0f, 1.0f);
             break;
         case EWidgetType::Slider:
-            ImGui::InputText("Label", &w->label);
+            InputTextS("Label", w->label);
             ImGui::DragFloat("Value", &w->floatValue, 0.01f);
             ImGui::DragFloat("Min", &w->minValue, 0.01f);
             ImGui::DragFloat("Max", &w->maxValue, 0.01f);
             break;
         case EWidgetType::TextInput:
-            ImGui::InputText("Label", &w->label);
-            ImGui::InputText("Value", &w->textValue);
+            InputTextS("Label", w->label);
+            InputTextS("Value", w->textValue);
             ImGui::DragFloat("Width", &w->itemWidth, 1.0f, 50.0f, 500.0f);
             break;
         case EWidgetType::InputInt:
-            ImGui::InputText("Label", &w->label);
+            InputTextS("Label", w->label);
             ImGui::InputInt("Value", &w->intValue);
             ImGui::DragFloat("Width", &w->itemWidth, 1.0f, 50.0f, 500.0f);
             break;
         case EWidgetType::InputFloat:
-            ImGui::InputText("Label", &w->label);
+            InputTextS("Label", w->label);
             ImGui::InputFloat("Value", &w->floatValue);
             ImGui::DragFloat("Width", &w->itemWidth, 1.0f, 50.0f, 500.0f);
             break;
         case EWidgetType::InputFloat3:
-            ImGui::InputText("Label", &w->label);
+            InputTextS("Label", w->label);
             ImGui::InputFloat3("Value", w->floatVec);
             ImGui::DragFloat("Width", &w->itemWidth, 1.0f, 50.0f, 500.0f);
             break;
         case EWidgetType::ComboBox:
-            ImGui::InputText("Label", &w->label);
+            InputTextS("Label", w->label);
             ImGui::DragFloat("Width", &w->itemWidth, 1.0f, 50.0f, 500.0f);
             break;
         case EWidgetType::ListBox:
-            ImGui::InputText("Label", &w->label);
+            InputTextS("Label", w->label);
             ImGui::DragFloat("Width", &w->itemWidth, 1.0f, 50.0f, 500.0f);
             break;
         case EWidgetType::CanvasPanel:

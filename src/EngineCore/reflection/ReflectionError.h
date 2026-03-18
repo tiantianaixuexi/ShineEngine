@@ -11,8 +11,7 @@
 #include <cstdio>
 #include <expected>
 #include <source_location>
-#include <string>
-#include <string_view>
+#include "string/shine_string.h"
 
 namespace shine::reflection {
 
@@ -58,7 +57,7 @@ enum class ErrorCode {
 // Backward-compatible alias
 using ReflectionErrorCode = ErrorCode;
 
-constexpr std::string_view ErrorCodeToString(ErrorCode c) noexcept {
+constexpr shine::STextView ErrorCodeToString(ErrorCode c) noexcept {
     switch (c) {
     case ErrorCode::Success:                  return "Success";
     case ErrorCode::TypeNotFound:             return "Type not found";
@@ -88,15 +87,15 @@ constexpr std::string_view ErrorCodeToString(ErrorCode c) noexcept {
 
 struct ReflectionError {
     ErrorCode            code     = ErrorCode::Success;
-    std::string          message;
+    shine::SString       message;
     std::source_location location = std::source_location::current();
 
     bool IsError()   const { return code != ErrorCode::Success; }
     bool IsSuccess() const { return code == ErrorCode::Success; }
 
-    std::string ToString() const {
+    shine::SString ToString() const {
         if (IsSuccess()) return "Success";
-        std::string r = "[";
+        shine::SString r = "[";
         r += ErrorCodeToString(code);
         r += "]";
         if (!message.empty()) { r += ": "; r += message; }
@@ -121,20 +120,20 @@ using Result = std::expected<T, ReflectionError>;
 
 inline std::unexpected<ReflectionError> MakeError(
     ErrorCode code,
-    std::string_view msg = "",
+    shine::STextView msg = {},
     std::source_location loc = std::source_location::current())
 {
-    return std::unexpected(ReflectionError{code, std::string(msg), loc});
+    return std::unexpected(ReflectionError{code, shine::SString(msg), loc});
 }
 
-inline ReflectionError TypeError(std::string_view type_name, std::string_view = "") {
-    return {ErrorCode::TypeNotFound, std::string("Type not found: ") + std::string(type_name)};
+inline ReflectionError TypeError(shine::STextView type_name, shine::STextView = {}) {
+    return {ErrorCode::TypeNotFound, shine::SString("Type not found: ") + shine::SString(type_name)};
 }
-inline ReflectionError FieldError(std::string_view field_name, std::string_view = "") {
-    return {ErrorCode::FieldNotFound, std::string("Field not found: ") + std::string(field_name)};
+inline ReflectionError FieldError(shine::STextView field_name, shine::STextView = {}) {
+    return {ErrorCode::FieldNotFound, shine::SString("Field not found: ") + shine::SString(field_name)};
 }
-inline ReflectionError MethodError(std::string_view method_name, std::string_view = "") {
-    return {ErrorCode::MethodNotFound, std::string("Method not found: ") + std::string(method_name)};
+inline ReflectionError MethodError(shine::STextView method_name, shine::STextView = {}) {
+    return {ErrorCode::MethodNotFound, shine::SString("Method not found: ") + shine::SString(method_name)};
 }
 
 // =============================================================================

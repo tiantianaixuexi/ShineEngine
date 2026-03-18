@@ -240,6 +240,23 @@ namespace shine::editor::views
             const std::string valueLabel = fmt::format("##ScriptProp_{}", index);
             bool changed = false;
             reflection::ScriptValue newValue;
+            const auto isStringValue = [](const reflection::ScriptValue& scriptValue)
+            {
+                return std::holds_alternative<shine::SString>(scriptValue.data)
+                    || std::holds_alternative<shine::STextView>(scriptValue.data);
+            };
+            const auto toEditableString = [](const reflection::ScriptValue& scriptValue) -> std::string
+            {
+                if (std::holds_alternative<shine::SString>(scriptValue.data))
+                {
+                    return std::get<shine::SString>(scriptValue.data).to_string();
+                }
+                if (std::holds_alternative<shine::STextView>(scriptValue.data))
+                {
+                    return std::get<shine::STextView>(scriptValue.data).to_string();
+                }
+                return {};
+            };
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -328,7 +345,7 @@ namespace shine::editor::views
                                 }
                                 else
                                 {
-                                    arr->elements.emplace_back(std::string(""));
+                                    arr->elements.emplace_back(shine::SString(""));
                                 }
                                 changed = true;
                             }
@@ -346,12 +363,12 @@ namespace shine::editor::views
                             const std::string elemLabel = fmt::format("[{}]##{}_{}", i, nameText, i);
                             auto& elem = arr->elements[i];
 
-                            if (std::holds_alternative<std::string>(elem.data))
+                            if (isStringValue(elem))
                             {
-                                std::string text = std::get<std::string>(elem.data);
+                                std::string text = toEditableString(elem);
                                 if (ImGui::InputText(elemLabel.c_str(), &text, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
                                 {
-                                    elem = reflection::ScriptValue(text);
+                                    elem = reflection::ScriptValue(shine::SString(text));
                                     changed = true;
                                 }
                             }
@@ -429,9 +446,10 @@ namespace shine::editor::views
                             {
                                 if (newKeyBuffer[0] != '\0')
                                 {
-                                    if (map->elements.find(newKeyBuffer) == map->elements.end())
+                                    shine::SString newKey(newKeyBuffer);
+                                    if (map->elements.find(newKey) == map->elements.end())
                                     {
-                                        map->elements[newKeyBuffer] = reflection::ScriptValue(std::string(""));
+                                        map->elements[newKey] = reflection::ScriptValue(shine::SString(""));
                                         changed = true;
                                         newKeyBuffer.clear();
                                     }
@@ -441,7 +459,7 @@ namespace shine::editor::views
                         }
 
                         // 编辑每个键值对
-                        std::vector<std::string> keysToRemove;
+                        std::vector<shine::SString> keysToRemove;
                         for (auto& [key, val] : map->elements)
                         {
                             ImGui::PushID(key.c_str());
@@ -460,14 +478,15 @@ namespace shine::editor::views
 
                             // 值编辑
                             const std::string valLabel = fmt::format("##val_{}", key);
-                            if (std::holds_alternative<std::string>(val.data))
+                            if (isStringValue(val))
                             {
                                 char buffer[256];
-                                strncpy_s(buffer, std::get<std::string>(val.data).c_str(), sizeof(buffer) - 1);
+                                const std::string text = toEditableString(val);
+                                strncpy_s(buffer, text.c_str(), sizeof(buffer) - 1);
                                 buffer[sizeof(buffer) - 1] = '\0';
                                 if (ImGui::InputText(valLabel.c_str(), buffer, sizeof(buffer), isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
                                 {
-                                    val = reflection::ScriptValue(std::string(buffer));
+                                    val = reflection::ScriptValue(shine::SString(buffer));
                                     changed = true;
                                 }
                             }
@@ -532,15 +551,11 @@ namespace shine::editor::views
             }
             else
             {
-                static std::string text{};
-                if (std::holds_alternative<std::string>(value.data))
-                {
-                    text = std::get<std::string>(value.data);
-                }
-                changed = ImGui::InputText(valueLabel.c_str(), text.data(), text.length());
+                std::string text = toEditableString(value);
+                changed = ImGui::InputText(valueLabel.c_str(), &text, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0);
                 if (changed)
                 {
-                    newValue = reflection::ScriptValue(text);
+                    newValue = reflection::ScriptValue(shine::SString(text));
                 }
             }
 

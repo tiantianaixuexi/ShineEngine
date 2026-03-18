@@ -1,6 +1,8 @@
 #pragma once
 
+#include <array>
 #include <cassert>
+#include <cstring>
 #include <new>
 #include <stdexcept>
 #include <string>
@@ -34,9 +36,9 @@ namespace shine
     class SString
     {
     public:
-        friend SString operator+(const SString& lhs, const SString& rhs);
-        friend SString operator+(const SString& lhs, STextView rhs);
-        friend SString operator+(STextView lhs, const SString& rhs);
+        friend constexpr SString operator+(const SString& lhs, const SString& rhs);
+        friend constexpr SString operator+(const SString& lhs, STextView rhs);
+        friend constexpr SString operator+(STextView lhs, const SString& rhs);
 
         using value_type = char;
         using size_type = std::size_t;
@@ -78,7 +80,7 @@ namespace shine
 
         constexpr SString() noexcept = default;
 
-        explicit SString(size_type reserve_capacity)
+        constexpr explicit SString(size_type reserve_capacity)
         {
             if (reserve_capacity > kSsoCapacity)
             {
@@ -86,20 +88,20 @@ namespace shine
             }
         }
 
-        SString(const char* cstr)
+        constexpr SString(const char* cstr)
         {
             if (cstr != nullptr)
             {
-                _assign_raw(cstr, std::char_traits<char>::length(cstr));
+                _assign_raw(cstr, _cstring_length(cstr));
             }
         }
 
-        explicit SString(STextView view)
+        constexpr explicit SString(STextView view)
         {
             _assign_raw(view.data(), view.size());
         }
 
-        explicit SString(std::string_view sv)
+        constexpr explicit SString(std::string_view sv)
         {
             _assign_raw(sv.data(), sv.size());
         }
@@ -110,11 +112,11 @@ namespace shine
         }
         
 
-        SString(const SString& other)
+        constexpr SString(const SString& other)
         {
             if (other._is_sso())
             {
-                std::memcpy(&_storage, &other._storage, sizeof(Storage));
+                _copy_bytes(_storage.sso.data(), other._storage.sso.data(), kObjectSize);
             }
             else
             {
@@ -122,13 +124,28 @@ namespace shine
             }
         }
 
-        SString(SString&& other) noexcept
+        constexpr SString(SString&& other) noexcept
         {
-            std::memcpy(&_storage, &other._storage, sizeof(Storage));
-            other._reset_to_empty_sso();
+            if (other._is_sso())
+            {
+                _copy_bytes(_storage.sso.data(), other._storage.sso.data(), kObjectSize);
+            }
+            else
+            {
+                _storage.heap.ptr = other._storage.heap.ptr;
+                _storage.heap.size = other._storage.heap.size;
+                _storage.heap.cap = other._storage.heap.cap;
+                _storage.sso[kTagIndex] = static_cast<char>(kHeapFlag);
+                other._reset_to_empty_sso();
+            }
+
+            if (other._is_sso())
+            {
+                other._reset_to_empty_sso();
+            }
         }
 
-        ~SString()
+        constexpr ~SString()
         {
             if (!_is_sso())
             {
@@ -136,7 +153,7 @@ namespace shine
             }
         }
 
-        SString& operator=(const SString& other)
+        constexpr SString& operator=(const SString& other)
         {
             if (this != &other)
             {
@@ -145,7 +162,7 @@ namespace shine
             return *this;
         }
 
-        SString& operator=(SString&& other) noexcept
+        constexpr SString& operator=(SString&& other) noexcept
         {
             if (this != &other)
             {
@@ -154,19 +171,30 @@ namespace shine
                     delete[] _storage.heap.ptr;
                 }
 
-                std::memcpy(&_storage, &other._storage, sizeof(Storage));
-                other._reset_to_empty_sso();
+                if (other._is_sso())
+                {
+                    _copy_bytes(_storage.sso.data(), other._storage.sso.data(), kObjectSize);
+                    other._reset_to_empty_sso();
+                }
+                else
+                {
+                    _storage.heap.ptr = other._storage.heap.ptr;
+                    _storage.heap.size = other._storage.heap.size;
+                    _storage.heap.cap = other._storage.heap.cap;
+                    _storage.sso[kTagIndex] = static_cast<char>(kHeapFlag);
+                    other._reset_to_empty_sso();
+                }
             }
             return *this;
         }
 
-        SString& operator=(STextView view)
+        constexpr SString& operator=(STextView view)
         {
             _assign_from(view.data(), view.size());
             return *this;
         }
 
-        SString& operator=(std::string_view sv)
+        constexpr SString& operator=(std::string_view sv)
         {
             _assign_from(sv.data(), sv.size());
             return *this;
@@ -178,7 +206,7 @@ namespace shine
             return *this;
         }
 
-        SString& operator=(const char* cstr)
+        constexpr SString& operator=(const char* cstr)
         {
             if (cstr == nullptr)
             {
@@ -186,7 +214,7 @@ namespace shine
             }
             else
             {
-                _assign_from(cstr, std::char_traits<char>::length(cstr));
+                _assign_from(cstr, _cstring_length(cstr));
             }
             return *this;
         }
@@ -226,12 +254,22 @@ namespace shine
 
         [[nodiscard]] constexpr const char* data() const noexcept
         {
-            return _is_sso() ? _storage.sso.data() : _storage.heap.ptr;
+            if (_is_sso())
+            {
+                return _storage.sso.data();
+            }
+
+            return _storage.heap.ptr;
         }
 
         [[nodiscard]] constexpr char* data() noexcept
         {
-            return _is_sso() ? _storage.sso.data() : _storage.heap.ptr;
+            if (_is_sso())
+            {
+                return _storage.sso.data();
+            }
+
+            return _storage.heap.ptr;
         }
 
         [[nodiscard]] constexpr const char* c_str() const noexcept
@@ -241,9 +279,12 @@ namespace shine
 
         [[nodiscard]] constexpr size_type size() const noexcept
         {
-            return _is_sso()
-                ? static_cast<size_type>(static_cast<unsigned char>(_storage.sso[kTagIndex]))
-                : _storage.heap.size;
+            if (_is_sso())
+            {
+                return static_cast<size_type>(static_cast<unsigned char>(_storage.sso[kTagIndex]));
+            }
+
+            return _storage.heap.size;
         }
 
         [[nodiscard]] constexpr size_type length() const noexcept
@@ -261,14 +302,19 @@ namespace shine
             return size();
         }
 
-        [[nodiscard]] size_type code_point_count() const noexcept
+        [[nodiscard]] constexpr size_type code_point_count() const noexcept
         {
             return view().code_point_count();
         }
 
         [[nodiscard]] constexpr size_type capacity() const noexcept
         {
-            return _is_sso() ? kSsoCapacity : _storage.heap.cap;
+            if (_is_sso())
+            {
+                return kSsoCapacity;
+            }
+
+            return _storage.heap.cap;
         }
 
         [[nodiscard]] constexpr bool empty() const noexcept
@@ -323,7 +369,7 @@ namespace shine
         // mutation
         // ---------------------------------------------------------
 
-        void clear() noexcept
+        constexpr void clear() noexcept
         {
             if (_is_sso())
             {
@@ -337,7 +383,7 @@ namespace shine
             }
         }
 
-        void resize(size_type new_size, char fill = '\0')
+        constexpr void resize(size_type new_size, char fill = '\0')
         {
             const size_type old_size = size();
 
@@ -349,14 +395,14 @@ namespace shine
             char* p = data();
             if (new_size > old_size)
             {
-                std::memset(p + old_size, static_cast<unsigned char>(fill), new_size - old_size);
+                _fill_bytes(p + old_size, fill, new_size - old_size);
             }
 
             p[new_size] = '\0';
             _set_size(new_size);
         }
 
-        void push_back(char ch)
+        constexpr void push_back(char ch)
         {
             const size_type old_size = size();
             if (old_size >= capacity())
@@ -370,7 +416,7 @@ namespace shine
             _set_size(old_size + 1);
         }
 
-        SString& append(STextView view_arg)
+        constexpr SString& append(STextView view_arg)
         {
             return _append_raw(view_arg.data(), view_arg.size());
         }
@@ -385,24 +431,24 @@ namespace shine
             return _append_raw(str.data(), str.size());
         }
 
-        SString& append(const char* cstr)
+        constexpr SString& append(const char* cstr)
         {
             return append(STextView::from_cstring(cstr));
         }
 
-        SString& append(char ch)
+        constexpr SString& append(char ch)
         {
             push_back(ch);
             return *this;
         }
 
-        SString& operator+=(STextView view_arg) { return append(view_arg); }
+        constexpr SString& operator+=(STextView view_arg) { return append(view_arg); }
         SString& operator+=(std::string_view sv_arg) { return append(sv_arg); }
         SString& operator+=(const std::string& str) { return append(str); }
-        SString& operator+=(const char* cstr) { return append(STextView::from_cstring(cstr)); }
-        SString& operator+=(char ch) { return append(ch); }
+        constexpr SString& operator+=(const char* cstr) { return append(STextView::from_cstring(cstr)); }
+        constexpr SString& operator+=(char ch) { return append(ch); }
 
-        SString& insert(size_type pos, STextView view_arg)
+        constexpr SString& insert(size_type pos, STextView view_arg)
         {
             const size_type old_size = size();
             if (pos > old_size)
@@ -422,8 +468,8 @@ namespace shine
             }
 
             char* p = data();
-            std::memmove(p + pos + view_arg.size(), p + pos, old_size - pos);
-            std::memcpy(p + pos, view_arg.data(), view_arg.size());
+            _move_bytes(p + pos + view_arg.size(), p + pos, old_size - pos);
+            _copy_bytes(p + pos, view_arg.data(), view_arg.size());
             p[needed] = '\0';
             _set_size(needed);
             return *this;
@@ -446,7 +492,7 @@ namespace shine
 
 
 
-        SString& erase(size_type pos, size_type count = npos)
+        constexpr SString& erase(size_type pos, size_type count = npos)
         {
             const size_type old_size = size();
             if (pos >= old_size)
@@ -457,7 +503,7 @@ namespace shine
             count = std::min(count, old_size - pos);
 
             char* p = data();
-            std::memmove(p + pos, p + pos + count, old_size - pos - count);
+            _move_bytes(p + pos, p + pos + count, old_size - pos - count);
             const size_type new_size = old_size - count;
             p[new_size] = '\0';
             _set_size(new_size);
@@ -547,109 +593,109 @@ namespace shine
             return SString(STextView(data() + pos, count));
         }
 
-        [[nodiscard]] STextView subview(size_type pos, size_type count = npos) const noexcept
+        [[nodiscard]] constexpr STextView subview(size_type pos, size_type count = npos) const noexcept
         {
             return view().substr(pos, count);
         }
 
-        [[nodiscard]] size_type find(STextView pattern, size_type start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find(STextView pattern, size_type start = 0) const noexcept
         {
             return view().find(pattern, start);
         }
 
-        [[nodiscard]] size_type find(const char* cstr, size_type start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find(const char* cstr, size_type start = 0) const noexcept
         {
             return find(STextView::from_cstring(cstr), start);
         }
 
-        [[nodiscard]] size_type find(char ch, size_type start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find(char ch, size_type start = 0) const noexcept
         {
             return view().find(ch, start);
         }
 
-        [[nodiscard]] size_type rfind(char ch, size_type start = npos) const noexcept
+        [[nodiscard]] constexpr size_type rfind(char ch, size_type start = npos) const noexcept
         {
             return view().rfind(ch, start);
         }
 
-        [[nodiscard]] size_type find_first_of(STextView chars, size_type start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find_first_of(STextView chars, size_type start = 0) const noexcept
         {
             return view().find_first_of(chars, start);
         }
 
-        [[nodiscard]] size_type find_first_of(const char* cstr, size_type start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find_first_of(const char* cstr, size_type start = 0) const noexcept
         {
             return find_first_of(STextView::from_cstring(cstr), start);
         }
 
-        [[nodiscard]] size_type find_first_not_of(STextView chars, size_type start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find_first_not_of(STextView chars, size_type start = 0) const noexcept
         {
             return view().find_first_not_of(chars, start);
         }
 
-        [[nodiscard]] size_type find_first_not_of(const char* cstr, size_type start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find_first_not_of(const char* cstr, size_type start = 0) const noexcept
         {
             return find_first_not_of(STextView::from_cstring(cstr), start);
         }
 
-        [[nodiscard]] size_type find_last_of(STextView chars, size_type start = npos) const noexcept
+        [[nodiscard]] constexpr size_type find_last_of(STextView chars, size_type start = npos) const noexcept
         {
             return view().find_last_of(chars, start);
         }
 
-        [[nodiscard]] size_type find_last_of(const char* cstr, size_type start = npos) const noexcept
+        [[nodiscard]] constexpr size_type find_last_of(const char* cstr, size_type start = npos) const noexcept
         {
             return find_last_of(STextView::from_cstring(cstr), start);
         }
 
-        [[nodiscard]] bool contains(STextView pattern) const noexcept
+        [[nodiscard]] constexpr bool contains(STextView pattern) const noexcept
         {
             return view().contains(pattern);
         }
 
-        [[nodiscard]] bool contains(const char* cstr) const noexcept
+        [[nodiscard]] constexpr bool contains(const char* cstr) const noexcept
         {
             return contains(STextView::from_cstring(cstr));
         }
 
-        [[nodiscard]] bool contains(char ch) const noexcept
+        [[nodiscard]] constexpr bool contains(char ch) const noexcept
         {
             return view().contains(ch);
         }
 
-        [[nodiscard]] bool starts_with(STextView prefix) const noexcept
+        [[nodiscard]] constexpr bool starts_with(STextView prefix) const noexcept
         {
             return view().starts_with(prefix);
         }
 
-        [[nodiscard]] bool starts_with(const char* cstr) const noexcept
+        [[nodiscard]] constexpr bool starts_with(const char* cstr) const noexcept
         {
             return starts_with(STextView::from_cstring(cstr));
         }
 
-        [[nodiscard]] bool ends_with(STextView suffix) const noexcept
+        [[nodiscard]] constexpr bool ends_with(STextView suffix) const noexcept
         {
             return view().ends_with(suffix);
         }
 
-        [[nodiscard]] bool ends_with(const char* cstr) const noexcept
+        [[nodiscard]] constexpr bool ends_with(const char* cstr) const noexcept
         {
             return ends_with(STextView::from_cstring(cstr));
         }
 
 
 
-        [[nodiscard]] STextView trim() const noexcept
+        [[nodiscard]] constexpr STextView trim() const noexcept
         {
             return view().trim();
         }
 
-        [[nodiscard]] STextView trim_start() const noexcept
+        [[nodiscard]] constexpr STextView trim_start() const noexcept
         {
             return view().trim_start();
         }
 
-        [[nodiscard]] STextView trim_end() const noexcept
+        [[nodiscard]] constexpr STextView trim_end() const noexcept
         {
             return view().trim_end();
         }
@@ -658,27 +704,27 @@ namespace shine
         // UTF-8 helpers
         // ---------------------------------------------------------
 
-        [[nodiscard]] size_type byte_index_from_code_point(size_type cp_index) const noexcept
+        [[nodiscard]] constexpr size_type byte_index_from_code_point(size_type cp_index) const noexcept
         {
             return view().byte_index_from_code_point(cp_index);
         }
 
-        [[nodiscard]] STextView substr_code_points(size_type cp_pos, size_type cp_count = npos) const noexcept
+        [[nodiscard]] constexpr STextView substr_code_points(size_type cp_pos, size_type cp_count = npos) const noexcept
         {
             return view().substr_code_points(cp_pos, cp_count);
         }
 
-        [[nodiscard]] size_type find_code_point(char32_t cp, size_type byte_start = 0) const noexcept
+        [[nodiscard]] constexpr size_type find_code_point(char32_t cp, size_type byte_start = 0) const noexcept
         {
             return view().find_code_point(cp, byte_start);
         }
 
-        [[nodiscard]] bool contains_code_point(char32_t cp) const noexcept
+        [[nodiscard]] constexpr bool contains_code_point(char32_t cp) const noexcept
         {
             return view().contains_code_point(cp);
         }
 
-        [[nodiscard]] int compare_code_points(STextView rhs) const noexcept
+        [[nodiscard]] constexpr int compare_code_points(STextView rhs) const noexcept
         {
             return view().compare_code_points(rhs);
         }
@@ -694,7 +740,7 @@ namespace shine
         // replace
         // ---------------------------------------------------------
 
-        [[nodiscard]] SString replace(STextView from, STextView to) const
+        [[nodiscard]] constexpr SString replace(STextView from, STextView to) const
         {
             if (from.empty())
             {
@@ -732,13 +778,13 @@ namespace shine
                 const size_type copy_len = pos - src_pos;
                 if (copy_len > 0)
                 {
-                    std::memcpy(dst + dst_pos, src + src_pos, copy_len);
+                    _copy_bytes(dst + dst_pos, src + src_pos, copy_len);
                     dst_pos += copy_len;
                 }
 
                 if (to_len > 0)
                 {
-                    std::memcpy(dst + dst_pos, to.data(), to_len);
+                    _copy_bytes(dst + dst_pos, to.data(), to_len);
                     dst_pos += to_len;
                 }
 
@@ -749,7 +795,7 @@ namespace shine
             if (src_pos < src_len)
             {
                 const size_type tail_len = src_len - src_pos;
-                std::memcpy(dst + dst_pos, src + src_pos, tail_len);
+                _copy_bytes(dst + dst_pos, src + src_pos, tail_len);
                 dst_pos += tail_len;
             }
 
@@ -768,12 +814,12 @@ namespace shine
             return replace(STextView(from), STextView(to));
         }
 
-        [[nodiscard]] SString replace(const char* from, const char* to) const
+        [[nodiscard]] constexpr SString replace(const char* from, const char* to) const
         {
             return replace(STextView::from_cstring(from), STextView::from_cstring(to));
         }
 
-        bool replace_first(STextView from, STextView to)
+        constexpr bool replace_first(STextView from, STextView to)
         {
             if (from.empty())
             {
@@ -800,12 +846,12 @@ namespace shine
             return replace_first(STextView(from), STextView(to));
         }
 
-        bool replace_first(const char* from, const char* to)
+        constexpr bool replace_first(const char* from, const char* to)
         {
             return replace_first(STextView::from_cstring(from), STextView::from_cstring(to));
         }
 
-        void replace_inplace(STextView from, STextView to)
+        constexpr void replace_inplace(STextView from, STextView to)
         {
             if (from.empty() || from == to)
             {
@@ -835,13 +881,13 @@ namespace shine
                     const size_type chunk = match_pos - read_pos;
                     if (chunk > 0)
                     {
-                        std::memmove(p + write_pos, p + read_pos, chunk);
+                        _move_bytes(p + write_pos, p + read_pos, chunk);
                         write_pos += chunk;
                     }
 
                     if (to_len > 0)
                     {
-                        std::memcpy(p + write_pos, to.data(), to_len);
+                        _copy_bytes(p + write_pos, to.data(), to_len);
                         write_pos += to_len;
                     }
 
@@ -852,7 +898,7 @@ namespace shine
                 if (read_pos < old_size)
                 {
                     const size_type tail = old_size - read_pos;
-                    std::memmove(p + write_pos, p + read_pos, tail);
+                    _move_bytes(p + write_pos, p + read_pos, tail);
                     write_pos += tail;
                 }
 
@@ -871,6 +917,45 @@ namespace shine
 
             const size_type old_size = size();
             const size_type new_size = old_size + count * (to_len - from_len);
+
+            if (new_size <= kSsoCapacity)
+            {
+                SString result(new_size);
+                char* result_ptr = result.data();
+                const char* old_ptr = data();
+                size_type src_pos = 0;
+                size_type dst_pos = 0;
+                size_type cur = first_pos;
+
+                while (cur != npos)
+                {
+                    const size_type chunk = cur - src_pos;
+                    if (chunk > 0)
+                    {
+                        _copy_bytes(result_ptr + dst_pos, old_ptr + src_pos, chunk);
+                        dst_pos += chunk;
+                    }
+
+                    _copy_bytes(result_ptr + dst_pos, to.data(), to_len);
+                    dst_pos += to_len;
+
+                    src_pos = cur + from_len;
+                    cur = find(from, src_pos);
+                }
+
+                if (src_pos < old_size)
+                {
+                    const size_type tail = old_size - src_pos;
+                    _copy_bytes(result_ptr + dst_pos, old_ptr + src_pos, tail);
+                    dst_pos += tail;
+                }
+
+                result_ptr[new_size] = '\0';
+                result._set_size(new_size);
+                *this = std::move(result);
+                return;
+            }
+
             char* new_ptr = new char[new_size + 1];
 
             const char* old_ptr = data();
@@ -883,11 +968,11 @@ namespace shine
                 const size_type chunk = cur - src_pos;
                 if (chunk > 0)
                 {
-                    std::memcpy(new_ptr + dst_pos, old_ptr + src_pos, chunk);
+                    _copy_bytes(new_ptr + dst_pos, old_ptr + src_pos, chunk);
                     dst_pos += chunk;
                 }
 
-                std::memcpy(new_ptr + dst_pos, to.data(), to_len);
+                _copy_bytes(new_ptr + dst_pos, to.data(), to_len);
                 dst_pos += to_len;
 
                 src_pos = cur + from_len;
@@ -897,7 +982,7 @@ namespace shine
             if (src_pos < old_size)
             {
                 const size_type tail = old_size - src_pos;
-                std::memcpy(new_ptr + dst_pos, old_ptr + src_pos, tail);
+                _copy_bytes(new_ptr + dst_pos, old_ptr + src_pos, tail);
                 dst_pos += tail;
             }
 
@@ -924,7 +1009,7 @@ namespace shine
             replace_inplace(STextView(from), STextView(to));
         }
 
-        void replace_inplace(const char* from, const char* to)
+        constexpr void replace_inplace(const char* from, const char* to)
         {
             replace_inplace(STextView::from_cstring(from), STextView::from_cstring(to));
         }
@@ -933,7 +1018,7 @@ namespace shine
         // hashing / factories
         // ---------------------------------------------------------
 
-        [[nodiscard]] size_type hash() const noexcept
+        [[nodiscard]] constexpr size_type hash() const noexcept
         {
             // Use our own FNV-1a directly — avoids std::hash<string_view> dispatch,
             // and stays consistent with static_hash().
@@ -945,17 +1030,17 @@ namespace shine
             return static_cast<size_type>(shine::algorithm::hash64(sv_arg));
         }
 
-        [[nodiscard]] static SString from_view(STextView view_arg)
+        [[nodiscard]] static constexpr SString from_view(STextView view_arg)
         {
             return SString(view_arg);
         }
 
-        [[nodiscard]] static SString from_utf8(STextView view_arg)
+        [[nodiscard]] static constexpr SString from_utf8(STextView view_arg)
         {
             return SString(view_arg);
         }
 
-        [[nodiscard]] static SString from_utf8(std::string_view sv_arg)
+        [[nodiscard]] static constexpr SString from_utf8(std::string_view sv_arg)
         {
             return SString(STextView(sv_arg));
         }
@@ -965,7 +1050,7 @@ namespace shine
             return SString(STextView(str));
         }
 
-        [[nodiscard]] static SString from_utf8(const char* cstr)
+        [[nodiscard]] static constexpr SString from_utf8(const char* cstr)
         {
             return SString(STextView::from_cstring(cstr));
         }
@@ -978,6 +1063,86 @@ namespace shine
         [[nodiscard]] constexpr bool _is_sso() const noexcept
         {
             return (static_cast<unsigned char>(_storage.sso[kTagIndex]) & kHeapFlag) == 0;
+        }
+
+        [[nodiscard]] static constexpr size_type _cstring_length(const char* src) noexcept
+        {
+            if (src == nullptr)
+            {
+                return 0;
+            }
+
+            size_type len = 0;
+            while (src[len] != '\0')
+            {
+                ++len;
+            }
+
+            return len;
+        }
+
+        static constexpr void _constexpr_capacity_guard(size_type len)
+        {
+            if (std::is_constant_evaluated() && len > kSsoCapacity)
+            {
+                throw "SString constexpr path exceeds SSO capacity";
+            }
+        }
+
+        static constexpr void _copy_bytes(char* dst, const char* src, size_type len) noexcept
+        {
+            if (!std::is_constant_evaluated())
+            {
+                std::memcpy(dst, src, len);
+                return;
+            }
+
+            for (size_type i = 0; i < len; ++i)
+            {
+                dst[i] = src[i];
+            }
+        }
+
+        static constexpr void _move_bytes(char* dst, const char* src, size_type len) noexcept
+        {
+            if (!std::is_constant_evaluated())
+            {
+                std::memmove(dst, src, len);
+                return;
+            }
+
+            if (dst == src || len == 0)
+            {
+                return;
+            }
+
+            if (dst < src)
+            {
+                for (size_type i = 0; i < len; ++i)
+                {
+                    dst[i] = src[i];
+                }
+                return;
+            }
+
+            for (size_type i = len; i > 0; --i)
+            {
+                dst[i - 1] = src[i - 1];
+            }
+        }
+
+        static constexpr void _fill_bytes(char* dst, char value, size_type len) noexcept
+        {
+            if (!std::is_constant_evaluated())
+            {
+                std::memset(dst, static_cast<unsigned char>(value), len);
+                return;
+            }
+
+            for (size_type i = 0; i < len; ++i)
+            {
+                dst[i] = value;
+            }
         }
 
         constexpr void _reset_to_empty_sso() noexcept
@@ -1009,8 +1174,9 @@ namespace shine
             return cap;
         }
 
-        void _init_heap(size_type cap)
+        constexpr void _init_heap(size_type cap)
         {
+            _constexpr_capacity_guard(cap);
             _storage.heap.ptr = new char[cap + 1];
             _storage.heap.ptr[0] = '\0';
             _storage.heap.size = 0;
@@ -1018,15 +1184,16 @@ namespace shine
             _storage.sso[kTagIndex] = static_cast<char>(kHeapFlag);
         }
 
-        void _grow_to(size_type new_cap)
+        constexpr void _grow_to(size_type new_cap)
         {
+            _constexpr_capacity_guard(new_cap);
             const size_type old_size = size();
             const char* old_data = data();
 
             char* new_ptr = new char[new_cap + 1];
             if (old_size > 0)
             {
-                std::memcpy(new_ptr, old_data, old_size);
+                _copy_bytes(new_ptr, old_data, old_size);
             }
             new_ptr[old_size] = '\0';
 
@@ -1041,7 +1208,7 @@ namespace shine
             _storage.sso[kTagIndex] = static_cast<char>(kHeapFlag);
         }
 
-        SString& _append_raw(const char* src, size_type len)
+        constexpr SString& _append_raw(const char* src, size_type len)
         {
             if (src == nullptr || len == 0)
             {
@@ -1072,13 +1239,13 @@ namespace shine
             }
 
             char* dst = data();
-            std::memcpy(dst + old_size, src, len);
+            _copy_bytes(dst + old_size, src, len);
             dst[needed] = '\0';
             _set_size(needed);
             return *this;
         }
 
-        [[nodiscard]] static SString _concat_raw(
+        [[nodiscard]] static constexpr SString _concat_raw(
             const char* lhs_data, size_type lhs_size,
             const char* rhs_data, size_type rhs_size)
         {
@@ -1088,11 +1255,11 @@ namespace shine
             char* dst = result.data();
             if (lhs_size > 0)
             {
-                std::memcpy(dst, lhs_data, lhs_size);
+                _copy_bytes(dst, lhs_data, lhs_size);
             }
             if (rhs_size > 0)
             {
-                std::memcpy(dst + lhs_size, rhs_data, rhs_size);
+                _copy_bytes(dst + lhs_size, rhs_data, rhs_size);
             }
 
             dst[total] = '\0';
@@ -1100,7 +1267,7 @@ namespace shine
             return result;
         }
 
-        SHINE_FORCE_INLINE void _assign_raw(const char* src, size_type len)
+        constexpr SHINE_FORCE_INLINE void _assign_raw(const char* src, size_type len)
         {
             if (src == nullptr || len == 0)
             {
@@ -1110,21 +1277,23 @@ namespace shine
 
             if (len <= kSsoCapacity)
             {
-                std::memcpy(_storage.sso.data(), src, len);
+                _copy_bytes(_storage.sso.data(), src, len);
                 _storage.sso[len] = '\0';
                 _storage.sso[kTagIndex] = static_cast<char>(len);
                 return;
             }
 
+            _constexpr_capacity_guard(len);
+
             _storage.heap.ptr = new char[len + 1];
-            std::memcpy(_storage.heap.ptr, src, len);
+            _copy_bytes(_storage.heap.ptr, src, len);
             _storage.heap.ptr[len] = '\0';
             _storage.heap.size = len;
             _storage.heap.cap = len;
             _storage.sso[kTagIndex] = static_cast<char>(kHeapFlag);
         }
 
-        SHINE_FORCE_INLINE void _assign_from(const char* src, size_type len)
+        constexpr SHINE_FORCE_INLINE void _assign_from(const char* src, size_type len)
         {
             if (src == nullptr || len == 0)
             {
@@ -1145,11 +1314,11 @@ namespace shine
                 char* old_heap = _is_sso() ? nullptr : _storage.heap.ptr;
                 if (overlaps)
                 {
-                    std::memmove(_storage.sso.data(), src, len);
+                    _move_bytes(_storage.sso.data(), src, len);
                 }
                 else
                 {
-                    std::memcpy(_storage.sso.data(), src, len);
+                    _copy_bytes(_storage.sso.data(), src, len);
                 }
                 _storage.sso[len] = '\0';
                 _storage.sso[kTagIndex] = static_cast<char>(len);
@@ -1157,15 +1326,17 @@ namespace shine
                 return;
             }
 
+            _constexpr_capacity_guard(len);
+
             if (!_is_sso() && _storage.heap.cap >= len)
             {
                 if (overlaps)
                 {
-                    std::memmove(_storage.heap.ptr, src, len);
+                    _move_bytes(_storage.heap.ptr, src, len);
                 }
                 else
                 {
-                    std::memcpy(_storage.heap.ptr, src, len);
+                    _copy_bytes(_storage.heap.ptr, src, len);
                 }
                 _storage.heap.ptr[len] = '\0';
                 _storage.heap.size = len;
@@ -1173,7 +1344,7 @@ namespace shine
             }
 
             char* new_ptr = new char[len + 1];
-            std::memcpy(new_ptr, src, len);
+            _copy_bytes(new_ptr, src, len);
             new_ptr[len] = '\0';
 
             if (!_is_sso())
@@ -1187,22 +1358,22 @@ namespace shine
             _storage.sso[kTagIndex] = static_cast<char>(kHeapFlag);
         }
 
-        void _replace_range(size_type pos, size_type old_len, STextView replacement)
+        constexpr void _replace_range(size_type pos, size_type old_len, STextView replacement)
         {
             const size_type rep_len = replacement.size();
             const size_type cur_size = size();
 
             if (old_len == rep_len)
             {
-                std::memcpy(data() + pos, replacement.data(), rep_len);
+                _copy_bytes(data() + pos, replacement.data(), rep_len);
                 return;
             }
 
             if (rep_len < old_len)
             {
                 char* p = data();
-                std::memcpy(p + pos, replacement.data(), rep_len);
-                std::memmove(
+                _copy_bytes(p + pos, replacement.data(), rep_len);
+                _move_bytes(
                     p + pos + rep_len,
                     p + pos + old_len,
                     cur_size - (pos + old_len));
@@ -1221,11 +1392,11 @@ namespace shine
             }
 
             char* p = data();
-            std::memmove(
+            _move_bytes(
                 p + pos + rep_len,
                 p + pos + old_len,
                 cur_size - (pos + old_len));
-            std::memcpy(p + pos, replacement.data(), rep_len);
+            _copy_bytes(p + pos, replacement.data(), rep_len);
             p[new_size] = '\0';
             _set_size(new_size);
         }
@@ -1235,65 +1406,75 @@ namespace shine
     static_assert(std::is_nothrow_move_constructible_v<SString>);
     static_assert(std::is_nothrow_move_assignable_v<SString>);
 
-    [[nodiscard]] inline SString operator+(const SString& lhs, const SString& rhs)
+    [[nodiscard]] constexpr SString operator+(const SString& lhs, const SString& rhs)
     {
         return SString::_concat_raw(lhs.data(), lhs.size(), rhs.data(), rhs.size());
     }
 
-    [[nodiscard]] inline SString operator+(const SString& lhs, STextView rhs)
+    [[nodiscard]] constexpr SString operator+(const SString& lhs, STextView rhs)
     {
         return SString::_concat_raw(lhs.data(), lhs.size(), rhs.data(), rhs.size());
     }
 
-    [[nodiscard]] inline SString operator+(STextView lhs, const SString& rhs)
+    [[nodiscard]] constexpr SString operator+(STextView lhs, const SString& rhs)
     {
         return SString::_concat_raw(lhs.data(), lhs.size(), rhs.data(), rhs.size());
     }
 
-    [[nodiscard]] inline SString operator+(const SString& lhs, const char* rhs)
+    [[nodiscard]] constexpr SString operator+(const SString& lhs, const char* rhs)
     {
         return lhs + STextView::from_cstring(rhs);
     }
 
-    [[nodiscard]] inline SString operator+(const char* lhs, const SString& rhs)
+    [[nodiscard]] constexpr SString operator+(const char* lhs, const SString& rhs)
     {
         return STextView::from_cstring(lhs) + rhs;
     }
 
-    [[nodiscard]] inline bool operator==(const SString& lhs, const SString& rhs) noexcept
+    [[nodiscard]] constexpr bool operator==(const SString& lhs, const SString& rhs) noexcept
     {
         return lhs.view() == rhs.view();
     }
 
-    [[nodiscard]] inline bool operator==(const SString& lhs, std::string_view rhs) noexcept
+    [[nodiscard]] constexpr bool operator==(const SString& lhs, std::string_view rhs) noexcept
     {
         return lhs.view() == STextView(rhs);
     }
 
-    [[nodiscard]] inline bool operator==(std::string_view lhs, const SString& rhs) noexcept
+    [[nodiscard]] constexpr bool operator==(std::string_view lhs, const SString& rhs) noexcept
     {
         return STextView(lhs) == rhs.view();
     }
 
-    [[nodiscard]] inline bool operator==(const SString& lhs, STextView rhs) noexcept
+    [[nodiscard]] constexpr bool operator==(const SString& lhs, STextView rhs) noexcept
     {
         return lhs.view() == rhs;
     }
 
-    [[nodiscard]] inline bool operator==(STextView lhs, const SString& rhs) noexcept
+    [[nodiscard]] constexpr bool operator==(STextView lhs, const SString& rhs) noexcept
     {
         return lhs == rhs.view();
     }
 
-    [[nodiscard]] inline bool operator==(const SString& lhs, const char* rhs) noexcept
+    [[nodiscard]] constexpr bool operator==(const SString& lhs, const char* rhs) noexcept
     {
         return lhs.view() == STextView::from_cstring(rhs);
     }
 
-    [[nodiscard]] inline std::strong_ordering operator<=>(const SString& lhs, const SString& rhs) noexcept
+    [[nodiscard]] constexpr std::strong_ordering operator<=>(const SString& lhs, const SString& rhs) noexcept
     {
-        return lhs.sv() <=> rhs.sv();
+        return lhs.view() <=> rhs.view();
     }
+
+    static_assert(SString("shine").size() == 5);
+    static_assert(SString("shine").starts_with("sh"));
+    static_assert((SString("ab") + SString("cd")) == "abcd");
+    static_assert([]() constexpr { SString s("abc"); s.push_back('d'); return s == "abcd"; }());
+    static_assert([]() constexpr { SString s("abcd"); s.erase(1, 2); return s == "ad"; }());
+    static_assert(SString("abcabc").replace("ab", "xy") == "xycxyc");
+    static_assert([]() constexpr { SString s("abcabc"); s.replace_first("ab", "z"); return s == "zcabc"; }());
+    static_assert([]() constexpr { SString s("abcabc"); s.replace_inplace("ab", "z"); return s == "zczc"; }());
+    static_assert([]() constexpr { SString s("axxb"); s.replace_inplace("xx", "123"); return s == "a123b"; }());
 }
 
 template <>
@@ -1315,6 +1496,19 @@ struct std::formatter<shine::SString, char> : std::formatter<std::string_view, c
     {
         // Use data()+size() directly — avoids the sv() call overhead.
         return std::formatter<std::string_view, char>::format(
+            std::string_view(s.data(), s.size()), ctx);
+    }
+};
+#endif
+
+#if __has_include("fmt/format.h")
+#include "fmt/format.h"
+template <>
+struct fmt::formatter<shine::SString> : fmt::formatter<std::string_view>
+{
+    auto format(const shine::SString& s, fmt::format_context& ctx) const
+    {
+        return fmt::formatter<std::string_view>::format(
             std::string_view(s.data(), s.size()), ctx);
     }
 };
