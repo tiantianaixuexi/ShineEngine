@@ -237,7 +237,7 @@ namespace shine::co {
 #endif
 
         const size_t  size = header->size;
-        const MemoryTag tag = static_cast<MemoryTag>(header->tag);
+        const auto tag = static_cast<MemoryTag>(header->tag);
         const uint16_t storedOffset = header->offset;
 
         const char* tagName = g_memoryTagNames[static_cast<size_t>(tag)];

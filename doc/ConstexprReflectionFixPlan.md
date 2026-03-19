@@ -1,5 +1,7 @@
 # Constexpr 容器与字符串接入反射的分步修复记录
 
+补充：如果后续目标是把正式 `REFLECTION_STRUCT` 主链真正切到编译期容器输入，而不是继续做底层设施修补，请直接参考 `doc/ReflectionConstexprContainerTaskTable.md`。本文档继续聚焦 `src/constexpr` 基础设施和反射接入前置问题的修复记录。
+
 ## 目标
 
 这批 `src/constexpr` 代码的最终目标不是单纯做 demo 容器，而是作为反射系统里的基础编译期数据结构使用。

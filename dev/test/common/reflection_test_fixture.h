@@ -136,3 +136,121 @@ REFLECT_ENUM(ETestEnum) {
         {ETestEnum::Value3, "Value3"}
     });
 }
+
+namespace shine::reflection {
+
+template <>
+struct StaticTypeRegistrationCTPlanProvider<Transform> {
+    static constexpr bool enabled = true;
+
+    static CTPlanView Get() {
+        static const std::array<CTMetadataEntry, 1> kPositionRuntimeMetadata{{
+            {Hash("Tooltip"), CTMetadataValue{shine::STextView::from_literal("World transform origin")}}
+        }};
+        static const std::array<CTMetadataEntry, 1> kAddTagRuntimeMetadata{{
+            {MetaKeys::BlueprintFunction, CTMetadataValue{true}}
+        }};
+        static const std::array<TypeId, 3> kSetPositionParamTypes{{
+            GetTypeId<float>(),
+            GetTypeId<float>(),
+            GetTypeId<float>()
+        }};
+        static const std::array<TypeId, 1> kAddTagParamTypes{{
+            GetTypeId<int>()
+        }};
+        static const std::array<TypeId, 2> kSetPropertyParamTypes{{
+            GetTypeId<std::string*>(),
+            GetTypeId<int*>()
+        }};
+        static const std::array<TypeId, 1> kGetPropertyParamTypes{{
+            GetTypeId<std::string*>()
+        }};
+
+        static const auto kFieldPlans = [] {
+            std::array<CTFieldPlan, 9> plans{
+                MakeCTFieldPlan<&Transform::position>(shine::STextView::from_literal("position")),
+                MakeCTFieldPlan<&Transform::rotation>(shine::STextView::from_literal("rotation")),
+                MakeCTFieldPlan<&Transform::scale>(shine::STextView::from_literal("scale")),
+                MakeCTFieldPlan<&Transform::name>(shine::STextView::from_literal("name")),
+                MakeCTFieldPlan<&Transform::id>(shine::STextView::from_literal("id")),
+                MakeCTFieldPlan<&Transform::enabled>(shine::STextView::from_literal("enabled")),
+                MakeCTFieldPlan<&Transform::tags>(shine::STextView::from_literal("tags")),
+                MakeCTFieldPlan<&Transform::properties>(shine::STextView::from_literal("properties")),
+                MakeCTFieldPlan<&Transform::flags>(shine::STextView::from_literal("flags"))
+            };
+
+            plans[0].builtinMetadata.displayName = shine::STextView::from_literal("World Position");
+            plans[0].builtinMetadata.category = shine::STextView::from_literal("Transform");
+            plans[0].runtimeMetadata = std::span<const CTMetadataEntry>{kPositionRuntimeMetadata};
+
+            plans[1].builtinMetadata.category = shine::STextView::from_literal("Transform");
+            plans[2].builtinMetadata.category = shine::STextView::from_literal("Transform");
+
+            plans[3].flags = PropertyFlags::EditAnywhere | PropertyFlags::ScriptReadWrite;
+            plans[3].builtinMetadata.hasUISchema = true;
+            plans[3].builtinMetadata.uiSchema = UI::TextInput{128, false};
+            plans[3].builtinMetadata.displayName = shine::STextView::from_literal("Actor Name");
+            plans[3].builtinMetadata.category = shine::STextView::from_literal("Identity");
+
+            plans[4].builtinMetadata.displayName = shine::STextView::from_literal("Actor Id");
+            plans[4].builtinMetadata.category = shine::STextView::from_literal("Identity");
+            plans[4].builtinMetadata.editCondition = shine::STextView::from_literal("enabled");
+            plans[4].builtinMetadata.hasRange = true;
+            plans[4].builtinMetadata.minValue = 0.0f;
+            plans[4].builtinMetadata.maxValue = 100.0f;
+
+            plans[5].builtinMetadata.displayName = shine::STextView::from_literal("Enabled");
+            plans[5].builtinMetadata.category = shine::STextView::from_literal("Identity");
+
+            plans[6].builtinMetadata.category = shine::STextView::from_literal("Collections");
+            plans[7].builtinMetadata.category = shine::STextView::from_literal("Collections");
+            plans[8].builtinMetadata.category = shine::STextView::from_literal("Collections");
+
+            return plans;
+        }();
+
+        static const auto kMethodPlans = [] {
+            std::array<CTMethodPlan, 5> plans{
+                MakeCTMethodPlan<&Transform::SetPosition>(shine::STextView::from_literal("SetPosition"), std::span<const TypeId>{kSetPositionParamTypes}),
+                MakeCTMethodPlan<&Transform::GetPosition>(shine::STextView::from_literal("GetPosition")),
+                MakeCTMethodPlan<&Transform::AddTag>(shine::STextView::from_literal("AddTag"), std::span<const TypeId>{kAddTagParamTypes}),
+                MakeCTMethodPlan<&Transform::SetProperty>(shine::STextView::from_literal("SetProperty"), std::span<const TypeId>{kSetPropertyParamTypes}),
+                MakeCTMethodPlan<&Transform::GetProperty>(shine::STextView::from_literal("GetProperty"), std::span<const TypeId>{kGetPropertyParamTypes})
+            };
+
+            plans[0].flags = FunctionFlags::ScriptCallable;
+            plans[2].flags = FunctionFlags::ScriptCallable;
+            plans[2].runtimeMetadata = std::span<const CTMetadataEntry>{kAddTagRuntimeMetadata};
+            return plans;
+        }();
+
+        static const CTPlanView plan{
+            std::span<const CTFieldPlan>{kFieldPlans},
+            std::span<const CTMethodPlan>{kMethodPlans},
+            {}
+        };
+        return plan;
+    }
+};
+
+template <>
+struct StaticTypeRegistrationCTPlanProvider<ETestEnum> {
+    static constexpr bool enabled = true;
+
+    static CTPlanView Get() {
+        static const std::array<CTEnumPlan, 4> kEnumPlans{{
+            {static_cast<int64_t>(ETestEnum::None), shine::STextView::from_literal("None")},
+            {static_cast<int64_t>(ETestEnum::Value1), shine::STextView::from_literal("Value1")},
+            {static_cast<int64_t>(ETestEnum::Value2), shine::STextView::from_literal("Value2")},
+            {static_cast<int64_t>(ETestEnum::Value3), shine::STextView::from_literal("Value3")}
+        }};
+        static const CTPlanView plan{
+            {},
+            {},
+            std::span<const CTEnumPlan>{kEnumPlans}
+        };
+        return plan;
+    }
+};
+
+} // namespace shine::reflection

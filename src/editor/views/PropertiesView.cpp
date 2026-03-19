@@ -273,7 +273,7 @@ namespace shine::editor::views
             ImGui::TextUnformatted(propertyNameText);
 
             ImGui::TableSetColumnIndex(1);
-            const shine::editor::util::ScopedImGuiID valueId(static_cast<int>(index));
+            ImGui::PushID(static_cast<int>(index));
             if (isReadOnly)
             {
                 ImGui::BeginDisabled();
@@ -368,7 +368,7 @@ namespace shine::editor::views
                         // 编辑每个元素
                         for (size_t i = 0; i < arr->elements.size(); ++i)
                         {
-                            const shine::editor::util::ScopedImGuiID elementId(static_cast<int>(i));
+                            ImGui::PushID(static_cast<int>(i));
                             auto& elem = arr->elements[i];
 
                             if (isStringValue(elem))
@@ -572,7 +572,7 @@ namespace shine::editor::views
         for (size_t groupIndex = 0; groupIndex < cache.groupOrder.size(); ++groupIndex)
         {
             const auto& groupName = cache.groupOrder[groupIndex];
-            const shine::editor::util::ScopedImGuiID groupId(static_cast<int>(groupIndex));
+            ImGui::PushID(static_cast<int>(groupIndex));
             const bool opened = ImGui::CollapsingHeader(
                 groupName.c_str(),
                 ImGuiTreeNodeFlags_DefaultOpen

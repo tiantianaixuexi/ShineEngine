@@ -355,7 +355,7 @@ void WidgetDesigner::ShowHierarchy()
                 default: icon = "    "; break;
                 }
 
-                const shine::editor::util::ScopedImGuiID widgetId(static_cast<int>(w.id));
+                ImGui::PushID(static_cast<int>(w.id));
                 bool opened = ImGui::TreeNodeEx("WidgetNode", flags, "%s%s", icon, w.name.c_str());
                 if (ImGui::IsItemClicked())
                     canvas.selectedId = w.id;
@@ -377,7 +377,7 @@ void WidgetDesigner::ShowHierarchy()
                             if (child.id == canvas.selectedId)
                                 cflags |= ImGuiTreeNodeFlags_Selected;
 
-                            const shine::editor::util::ScopedImGuiID childId(static_cast<int>(child.id));
+                             ImGui::PushID(static_cast<int>(child.id));
                             ImGui::TreeNodeEx("ChildNode", cflags, "    %s", child.name.c_str());
                             if (ImGui::IsItemClicked())
                                 canvas.selectedId = child.id;

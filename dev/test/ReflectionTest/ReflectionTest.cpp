@@ -1021,6 +1021,67 @@ void TestTypeBuilderStagedEmission() {
             && enumInfo.GetEnumEntries()[3].name == shine::STextView::from_literal("Value3") ? "Yes" : "No");
 }
 
+void TestInjectedStaticPlanPath() {
+    PrintSeparator("新增: 正式主链静态 plan 注入");
+
+    auto transformGraph = shine::reflection::BuildTypeRegistrationGraph<Transform>(
+        shine::STextView::from_literal("TransformInjectedPlanProbe"),
+        []<typename TBuilder>(TBuilder& builder) {
+            _ReflectRegFn_Transform(builder);
+        },
+        false);
+    auto enumGraph = shine::reflection::BuildTypeRegistrationGraph<ETestEnum>(
+        shine::STextView::from_literal("EnumInjectedPlanProbe"),
+        []<typename TBuilder>(TBuilder& builder) {
+            _ReflectRegFn_ETestEnum(builder);
+        },
+        true);
+
+    const auto* injectedTransformCTPlan = shine::reflection::TryGetStaticTypeRegistrationCTPlan<Transform>();
+    const auto* injectedEnumCTPlan = shine::reflection::TryGetStaticTypeRegistrationCTPlan<ETestEnum>();
+
+    fmt::print("  injected transform plan: fields={} methods={} uses_injected={}\n",
+        transformGraph.Plan().fieldCount,
+        transformGraph.Plan().methodCount,
+        transformGraph.UsesInjectedPlan() ? "Yes" : "No");
+    fmt::print("  injected enum plan: enums={} uses_injected={}\n",
+        enumGraph.Plan().enumCount,
+        enumGraph.UsesInjectedPlan() ? "Yes" : "No");
+    fmt::print("[PASS] transform graph uses injected plan provider: {}\n",
+        transformGraph.UsesInjectedPlan()
+            && injectedTransformCTPlan != nullptr
+            && transformGraph.IsMeasured()
+            && transformGraph.Plan().fieldCount == 9
+            && transformGraph.Plan().methodCount == 5 ? "Yes" : "No");
+    fmt::print("[PASS] enum graph uses injected plan provider: {}\n",
+        enumGraph.UsesInjectedPlan()
+            && injectedEnumCTPlan != nullptr
+            && enumGraph.IsMeasured()
+            && enumGraph.Plan().enumCount == 4 ? "Yes" : "No");
+    fmt::print("[PASS] CT plan split builtin metadata from runtime extras: {}\n",
+        injectedTransformCTPlan != nullptr
+            && !injectedTransformCTPlan->fieldPlans.empty()
+            && injectedTransformCTPlan->fieldPlans[0].builtinMetadata.displayName == shine::STextView::from_literal("World Position")
+            && injectedTransformCTPlan->fieldPlans[0].runtimeMetadata.size() == 1
+            && injectedTransformCTPlan->fieldPlans[4].builtinMetadata.hasRange
+            && injectedTransformCTPlan->fieldPlans[4].runtimeMetadata.empty()
+            && transformGraph.Plan().RuntimeMetadataEntryCount() == 2 ? "Yes" : "No");
+
+    auto transformInfo = transformGraph.BuildTypeInfo([]<typename TBuilder>(TBuilder& builder) {
+        _ReflectRegFn_Transform(builder);
+    });
+    transformInfo.BuildLookup();
+    const auto* positionField = transformInfo.FindFieldFast("position");
+    const auto* addTagMethod = transformInfo.FindMethodFast("AddTag");
+
+    fmt::print("[PASS] injected transform plan still replays into runtime TypeInfo: {}\n",
+        positionField != nullptr
+            && positionField->GetDisplayNameView() == shine::STextView::from_literal("World Position")
+            && positionField->GetCategoryView() == shine::STextView::from_literal("Transform")
+            && addTagMethod != nullptr
+            && HasFlag(addTagMethod->flags, shine::reflection::FunctionFlags::ScriptCallable) ? "Yes" : "No");
+}
+
 void TestRegisteredTypeColdLocality() {
     PrintSeparator("基线: 已注册类型冷页局部性");
 
@@ -2011,6 +2072,7 @@ int main() {
     TestReflectionColdBatchReservation();
     TestReflectionRegistrationPlan();
     TestTypeBuilderStagedEmission();
+    TestInjectedStaticPlanPath();
     TestRegisteredTypeColdLocality();
     TestTypeRegistryArenaOwnership();
     TestHashInconsistency();

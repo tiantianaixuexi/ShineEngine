@@ -34,6 +34,13 @@ static void CopyColdSpan(ReflectionColdVector<T>& destination, std::span<const T
     }
 }
 
+[[nodiscard]] static UI::Schema InternPlanSchema(UI::Schema schema) {
+    if (auto* filePicker = std::get_if<UI::FilePicker>(&schema)) {
+        filePicker->filter = InternReflectionText(filePicker->filter);
+    }
+    return schema;
+}
+
 template <typename T>
 class ReflectionPlanBlock {
 private:
@@ -527,6 +534,10 @@ struct TypeRegistrationPlan {
         return GetEmitLayout().GetMethodParamTypes(methodPlan);
     }
 
+    [[nodiscard]] size_t RuntimeMetadataEntryCount() const noexcept {
+        return runtimeMetadataEntries.size();
+    }
+
 private:
     [[nodiscard]] EmitLayout MakeEmitLayout() const noexcept {
         return EmitLayout{
@@ -571,6 +582,186 @@ private:
         }
     }
 };
+
+using CTMetadataValue = std::variant<std::monostate, bool, int, float, double, shine::STextView>;
+
+struct CTMetadataEntry {
+    MetadataKey key = 0;
+    CTMetadataValue value{};
+};
+
+struct CTFieldBuiltinMetadata {
+    UI::Schema uiSchema = UI::None{};
+    shine::STextView displayName;
+    shine::STextView category;
+    shine::STextView editCondition;
+    float minValue = 0.0f;
+    float maxValue = 0.0f;
+    bool hasUISchema = false;
+    bool hasRange = false;
+};
+
+struct CTFieldPlan {
+    shine::STextView name;
+    uint32_t nameHash = 0;
+    TypeId typeId = 0;
+    ContainerType containerType = ContainerType::None;
+    const void* containerTrait = nullptr;
+    std::size_t offset = 0;
+    std::size_t size = 0;
+    std::size_t alignment = 0;
+    bool isPod = false;
+    PropertyFlags flags = PropertyFlags::None;
+    CTFieldBuiltinMetadata builtinMetadata{};
+    std::span<const CTMetadataEntry> runtimeMetadata{};
+};
+
+struct CTMethodPlan {
+    shine::STextView name;
+    uint32_t nameHash = 0;
+    TypeId returnType = 0;
+    FunctionFlags flags = FunctionFlags::None;
+    std::span<const TypeId> paramTypes{};
+    std::span<const CTMetadataEntry> runtimeMetadata{};
+};
+
+struct CTEnumPlan {
+    int64_t value = 0;
+    shine::STextView name;
+};
+
+struct CTPlanView {
+    std::span<const CTFieldPlan> fieldPlans{};
+    std::span<const CTMethodPlan> methodPlans{};
+    std::span<const CTEnumPlan> enumPlans{};
+};
+
+template<typename T> struct is_sequence_container;
+template<typename T> struct is_associative_container;
+template<typename T> struct container_trait_provider;
+
+[[nodiscard]] inline MetadataValue MakeRuntimeMetadataValue(const CTMetadataValue& value) {
+    return std::visit([](const auto& current) -> MetadataValue {
+        using ValueType = std::decay_t<decltype(current)>;
+        if constexpr (std::is_same_v<ValueType, std::monostate>) {
+            return MetadataValue{std::monostate{}};
+        } else {
+            return MetadataValue{current};
+        }
+    }, value);
+}
+
+[[nodiscard]] inline TypeRegistrationPlan MakeFrozenTypeRegistrationPlanFromCTPlan(const CTPlanView& ctPlan) {
+    TypeRegistrationPlan plan{};
+    plan.fieldCount = ctPlan.fieldPlans.size();
+    plan.methodCount = ctPlan.methodPlans.size();
+    plan.enumCount = ctPlan.enumPlans.size();
+
+    for (const auto& ctField : ctPlan.fieldPlans) {
+        auto& fieldPlan = plan.fieldPlans.emplace_back();
+        fieldPlan.name = InternReflectionText(ctField.name);
+        fieldPlan.nameHash = ctField.nameHash;
+        fieldPlan.typeId = ctField.typeId;
+        fieldPlan.containerType = ctField.containerType;
+        fieldPlan.containerTrait = ctField.containerTrait;
+        fieldPlan.offset = ctField.offset;
+        fieldPlan.size = ctField.size;
+        fieldPlan.alignment = ctField.alignment;
+        fieldPlan.isPod = ctField.isPod;
+        fieldPlan.flags = ctField.flags;
+        fieldPlan.hasUISchema = ctField.builtinMetadata.hasUISchema;
+        fieldPlan.uiSchema = ctField.builtinMetadata.hasUISchema
+            ? InternPlanSchema(ctField.builtinMetadata.uiSchema)
+            : UI::Schema{UI::None{}};
+        fieldPlan.hasDisplayName = !ctField.builtinMetadata.displayName.empty();
+        fieldPlan.displayName = InternReflectionText(ctField.builtinMetadata.displayName);
+        fieldPlan.hasCategory = !ctField.builtinMetadata.category.empty();
+        fieldPlan.category = InternReflectionText(ctField.builtinMetadata.category);
+        fieldPlan.hasEditCondition = !ctField.builtinMetadata.editCondition.empty();
+        fieldPlan.editCondition = InternReflectionText(ctField.builtinMetadata.editCondition);
+        fieldPlan.hasRange = ctField.builtinMetadata.hasRange;
+        fieldPlan.minValue = ctField.builtinMetadata.minValue;
+        fieldPlan.maxValue = ctField.builtinMetadata.maxValue;
+
+        if (!ctField.runtimeMetadata.empty()) {
+            fieldPlan.runtimeMetadataOffset = plan.runtimeMetadataEntries.size();
+            fieldPlan.runtimeMetadataCount = ctField.runtimeMetadata.size();
+            for (const auto& runtimeEntry : ctField.runtimeMetadata) {
+                plan.runtimeMetadataEntries.push_back({runtimeEntry.key, MakeRuntimeMetadataValue(runtimeEntry.value)});
+            }
+        }
+    }
+
+    for (const auto& ctMethod : ctPlan.methodPlans) {
+        auto& methodPlan = plan.methodPlans.emplace_back();
+        methodPlan.name = InternReflectionText(ctMethod.name);
+        methodPlan.nameHash = ctMethod.nameHash;
+        methodPlan.returnType = ctMethod.returnType;
+        methodPlan.flags = ctMethod.flags;
+
+        if (!ctMethod.paramTypes.empty()) {
+            methodPlan.paramTypeOffset = plan.methodParamTypeEntries.size();
+            methodPlan.paramTypeCount = ctMethod.paramTypes.size();
+            for (const auto typeId : ctMethod.paramTypes) {
+                plan.methodParamTypeEntries.push_back(typeId);
+            }
+        }
+
+        if (!ctMethod.runtimeMetadata.empty()) {
+            methodPlan.runtimeMetadataOffset = plan.runtimeMetadataEntries.size();
+            methodPlan.runtimeMetadataCount = ctMethod.runtimeMetadata.size();
+            for (const auto& runtimeEntry : ctMethod.runtimeMetadata) {
+                plan.runtimeMetadataEntries.push_back({runtimeEntry.key, MakeRuntimeMetadataValue(runtimeEntry.value)});
+            }
+        }
+    }
+
+    for (const auto& ctEnum : ctPlan.enumPlans) {
+        plan.enumPlans.push_back(TypeRegistrationPlan::EnumPlan{
+            ctEnum.value,
+            InternReflectionText(ctEnum.name)
+        });
+    }
+
+    plan.FreezeSharedBlocks();
+    return plan;
+}
+
+template <auto MemberPtr>
+[[nodiscard]] constexpr CTFieldPlan MakeCTFieldPlan(shine::STextView name) {
+    using Node = DSL::FieldDSLNode<MemberPtr>;
+    using MType = typename Node::MemberType;
+    using CType = typename Node::ClassType;
+
+    CTFieldPlan plan{};
+    plan.name = name;
+    plan.nameHash = Hash(name);
+    plan.typeId = GetTypeId<MType>();
+    plan.offset = ComputeOffset<CType, MType>(MemberPtr);
+    plan.size = sizeof(MType);
+    plan.alignment = alignof(MType);
+    plan.isPod = std::is_trivially_copyable_v<MType>;
+    if constexpr (is_sequence_container<MType>::value) {
+        plan.containerType = ContainerType::Sequence;
+        plan.containerTrait = container_trait_provider<MType>::get();
+    } else if constexpr (is_associative_container<MType>::value) {
+        plan.containerType = ContainerType::Associative;
+        plan.containerTrait = container_trait_provider<MType>::get();
+    }
+    return plan;
+}
+
+template <auto MethodPtr>
+[[nodiscard]] constexpr CTMethodPlan MakeCTMethodPlan(shine::STextView name, std::span<const TypeId> paramTypes = {}) {
+    using Traits = MethodTraits<decltype(MethodPtr)>;
+
+    CTMethodPlan plan{};
+    plan.name = name;
+    plan.nameHash = Hash(name);
+    plan.returnType = GetTypeId<typename Traits::ReturnType>();
+    plan.paramTypes = paramTypes;
+    return plan;
+}
 
 template <typename T>
 class TypeRegistrationGraph;
@@ -1163,10 +1354,7 @@ struct TypeBuilderPlanCounter {
         }
 
         static UI::Schema InternSchema(UI::Schema schema) {
-            if (auto* filePicker = std::get_if<UI::FilePicker>(&schema)) {
-                filePicker->filter = InternReflectionText(filePicker->filter);
-            }
-            return schema;
+            return InternPlanSchema(std::move(schema));
         }
 
         void RecordMetadata(MetadataKey key, MetadataValue value) {
@@ -1365,6 +1553,46 @@ struct TypeBuilderPlanCounter {
     }
 };
 
+template <typename T, typename RegisterFn>
+[[nodiscard]] TypeRegistrationPlan MakeFrozenTypeRegistrationPlan(RegisterFn&& registerFn) {
+    TypeRegistrationPlan plan{};
+    TypeBuilderPlanCounter<T> counter(plan);
+    std::forward<RegisterFn>(registerFn)(counter);
+    plan.FreezeSharedBlocks();
+    return plan;
+}
+
+template <typename T>
+struct StaticTypeRegistrationPlanProvider {
+    static constexpr bool enabled = false;
+};
+
+template <typename T>
+struct StaticTypeRegistrationCTPlanProvider {
+    static constexpr bool enabled = false;
+};
+
+template <typename T>
+[[nodiscard]] const CTPlanView* TryGetStaticTypeRegistrationCTPlan() {
+    if constexpr (StaticTypeRegistrationCTPlanProvider<T>::enabled) {
+        static const CTPlanView plan = StaticTypeRegistrationCTPlanProvider<T>::Get();
+        return &plan;
+    }
+    return nullptr;
+}
+
+template <typename T>
+[[nodiscard]] const TypeRegistrationPlan* TryGetStaticTypeRegistrationPlan() {
+    if (const auto* ctPlan = TryGetStaticTypeRegistrationCTPlan<T>(); ctPlan != nullptr) {
+        static const TypeRegistrationPlan plan = MakeFrozenTypeRegistrationPlanFromCTPlan(*ctPlan);
+        return &plan;
+    }
+    if constexpr (StaticTypeRegistrationPlanProvider<T>::enabled) {
+        return &StaticTypeRegistrationPlanProvider<T>::Get();
+    }
+    return nullptr;
+}
+
 template <typename T>
 class TypeRegistrationGraph {
 public:
@@ -1374,8 +1602,19 @@ public:
         : typeName_(InternReflectionText(typeName))
         , isEnum_(isEnum) {}
 
+    TypeRegistrationGraph(shine::STextView typeName, const TypeRegistrationPlan& injectedPlan, bool isEnum = std::is_enum_v<T>)
+        : typeName_(InternReflectionText(typeName))
+        , isEnum_(isEnum)
+        , injectedPlan_(&injectedPlan)
+        , measured_(true)
+        , usesInjectedPlan_(true) {}
+
     template <typename RegisterFn>
     void Measure(RegisterFn&& registerFn) {
+        if (injectedPlan_ != nullptr) {
+            measured_ = true;
+            return;
+        }
         plan_.Reset();
         TypeBuilderPlanCounter<T> counter(plan_);
         std::forward<RegisterFn>(registerFn)(counter);
@@ -1393,13 +1632,13 @@ public:
         info.isPod = std::is_trivially_copyable_v<T>;
         info.isEnum = isEnum_;
 
-        TypeBuilder<T> builder(info, plan_);
+        TypeBuilder<T> builder(info, Plan());
         std::forward<RegisterFn>(registerFn)(builder);
         return info;
     }
 
     [[nodiscard]] const TypeRegistrationPlan& Plan() const noexcept {
-        return plan_;
+        return injectedPlan_ != nullptr ? *injectedPlan_ : plan_;
     }
 
     [[nodiscard]] shine::STextView GetTypeName() const noexcept {
@@ -1410,15 +1649,25 @@ public:
         return measured_;
     }
 
+    [[nodiscard]] bool UsesInjectedPlan() const noexcept {
+        return usesInjectedPlan_;
+    }
+
 private:
     shine::STextView typeName_;
     bool isEnum_ = false;
     TypeRegistrationPlan plan_{};
+    const TypeRegistrationPlan* injectedPlan_ = nullptr;
     bool measured_ = false;
+    bool usesInjectedPlan_ = false;
 };
 
 template <typename T, typename RegisterFn>
 [[nodiscard]] TypeRegistrationGraph<T> BuildTypeRegistrationGraph(shine::STextView typeName, RegisterFn&& registerFn, bool isEnum = std::is_enum_v<T>) {
+    if (const auto* injectedPlan = TryGetStaticTypeRegistrationPlan<T>(); injectedPlan != nullptr) {
+        return TypeRegistrationGraph<T>(typeName, *injectedPlan, isEnum);
+    }
+
     TypeRegistrationGraph<T> graph(typeName, isEnum);
     graph.Measure(std::forward<RegisterFn>(registerFn));
     return graph;

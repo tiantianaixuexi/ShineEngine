@@ -156,7 +156,7 @@ void SceneHierarchyView::RenderObjectNode(shine::gameplay::SObject* obj, int ind
     if (isSelected) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
-    const shine::editor::util::ScopedImGuiID objectId(obj);
+    ImGui::PushID(obj);
     ImGui::TreeNodeEx("SceneObject", flags, "%s [%s]", displayName.data(), obj->getClassName());
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
         if (worldService_) {
