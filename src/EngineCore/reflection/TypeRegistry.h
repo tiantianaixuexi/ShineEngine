@@ -51,10 +51,10 @@ public:
         }
 
         const auto ownerHandle = ReflectionOwnerHandle::FromType(typeInfo);
-        for (auto& field : typeInfo->fields) {
+        for (auto& field : typeInfo->MutableFields()) {
             field.owner = ownerHandle;
         }
-        for (auto& method : typeInfo->methods) {
+        for (auto& method : typeInfo->MutableMethods()) {
             method.owner = ownerHandle;
         }
         const std::size_t index = types_.size();

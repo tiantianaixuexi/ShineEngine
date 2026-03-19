@@ -21,6 +21,14 @@
 namespace shine::editor::views 
 {
 
+namespace
+{
+    SString MakePlacedActorName(const char* prefix, uint64_t index)
+    {
+        return SString::from_utf8(fmt::format("{}_{}", prefix, index));
+    }
+}
+
 static manager::CameraManager  *cameraManager    = nullptr;
 static render::RendererService *renderer         = nullptr;
 
@@ -334,7 +342,7 @@ void EditView::SpawnPlacementActor(EPlacementItemType type, float scale, gamepla
     if (type == EPlacementItemType::EmptyActor)
     {
         auto actor = std::make_unique<shine::gameplay::EmptyActor>();
-        actor->setName(fmt::format("PlacedEmpty_{}", nextPlacedActorId_++).c_str());
+        actor->setName(MakePlacedActorName("PlacedEmpty", nextPlacedActorId_++));
         auto* transform = actor->addComponent<shine::gameplay::component::TransformComponent>();
         transform->setPosition({
             static_cast<float>(spawnPos.X),
@@ -348,7 +356,7 @@ void EditView::SpawnPlacementActor(EPlacementItemType type, float scale, gamepla
     }
 
     auto actor = std::make_unique<shine::gameplay::StaticMeshActor>();
-    actor->setName(fmt::format("PlacedMesh_{}", nextPlacedActorId_++).c_str());
+    actor->setName(MakePlacedActorName("PlacedMesh", nextPlacedActorId_++));
     auto* transform = actor->addComponent<shine::gameplay::component::TransformComponent>();
     transform->setPosition({
         static_cast<float>(spawnPos.X),

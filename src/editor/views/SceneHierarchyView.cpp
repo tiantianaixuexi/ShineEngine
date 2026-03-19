@@ -2,17 +2,33 @@
 
 #include <algorithm>
 #include <cctype>
-#include <cstdio>
-#include <string>
 
 #include "fmt/format.h"
 #include "imgui/imgui.h"
+#include "imgui/imgui_stdlib.h"
 
+#include "editor/util/ImGuiIdScope.h"
 #include "gameplay/component/StaticMeshComponent.h"
 #include "gameplay/component/TransformComponent.h"
 #include "gameplay/mesh/StaticMesh.h"
 
 namespace shine::editor::views {
+
+namespace
+{
+    SString MakeIndexedName(const char* prefix, int index)
+    {
+        return SString::from_utf8(fmt::format("{}_{}", prefix, index));
+    }
+
+    void ToLowerAsciiInPlace(SString& text)
+    {
+        for (char& ch : text)
+        {
+            ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+        }
+    }
+}
 
 void SceneHierarchyView::SetWorldHierarchyService(shine::gameplay::world::IWorldActorHierarchyService* worldService) {
     worldService_ = worldService;
@@ -36,7 +52,7 @@ void SceneHierarchyView::onRender() {
         return;
     }
 
-    ImGui::InputTextWithHint("##SceneSearch", "搜索对象或类型", searchBuffer_, sizeof(searchBuffer_));
+    ImGui::InputTextWithHint("##SceneSearch", "搜索对象或类型", &searchBuffer_);
     ImGui::SameLine();
     if (ImGui::Button("添加")) {
         ImGui::OpenPopup("SceneCreateActorPopup");
@@ -79,7 +95,7 @@ void SceneHierarchyView::onRender() {
     }
 
     if (ImGui::BeginPopup("SceneRenamePopup")) {
-        ImGui::InputText("新名称", renameBuffer_, sizeof(renameBuffer_));
+        ImGui::InputText("新名称", &renameBuffer_);
         if (ImGui::Button("确认")) {
             if (contextObject_) {
                 contextObject_->setName(renameBuffer_);
@@ -107,24 +123,24 @@ void SceneHierarchyView::refreshObjects() {
         return a->getName() < b->getName();
     });
 
-    std::string filter = searchBuffer_;
-    std::ranges::transform(filter, filter.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    SString filter = searchBuffer_;
+    ToLowerAsciiInPlace(filter);
     for (auto* obj : objects) {
-        // if (!obj) {
-        //     continue;
-        // }
-        // if (filter.empty()) {
-        //     visibleObjects_.push_back(obj);
-        //     continue;
-        // }
+        if (!obj) {
+            continue;
+        }
+        if (filter.empty()) {
+            visibleObjects_.push_back(obj);
+            continue;
+        }
 
-        // STextView objectName = obj->getName();
-        // std::string className = obj->getClassName();
-        // std::ranges::transform(objectName, objectName.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        // std::ranges::transform(className, className.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        // if (objectName.find(filter) != std::string::npos || className.find(filter) != std::string::npos) {
-        //     visibleObjects_.push_back(obj);
-        // }
+        SString objectName = obj->getName().empty() ? SString{} : SString(obj->getName());
+        SString className = obj->getClassName();
+        ToLowerAsciiInPlace(objectName);
+        ToLowerAsciiInPlace(className);
+        if (objectName.find(filter) != SString::npos || className.find(filter) != SString::npos) {
+            visibleObjects_.push_back(obj);
+        }
     }
 }
 
@@ -134,13 +150,14 @@ void SceneHierarchyView::RenderObjectNode(shine::gameplay::SObject* obj, int ind
     }
 
     const bool isSelected = worldService_ && worldService_->isSelected(obj);
-    const std::string displayName = obj->getName().empty() ? fmt::format("Object_{}", index) : obj->getName().to_string();
-    const std::string label = fmt::format("{} [{}]", displayName, obj->getClassName());
+    const SString fallbackName = obj->getName().empty() ? MakeIndexedName("Object", index) : SString{};
+    const STextView displayName = obj->getName().empty() ? fallbackName : obj->getName();
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
     if (isSelected) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
-    ImGui::TreeNodeEx(reinterpret_cast<void*>(obj), flags, "%s", label.c_str());
+    const shine::editor::util::ScopedImGuiID objectId(obj);
+    ImGui::TreeNodeEx("SceneObject", flags, "%s [%s]", displayName.data(), obj->getClassName());
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
         if (worldService_) {
             if (ImGui::GetIO().KeyCtrl) {
@@ -158,7 +175,7 @@ void SceneHierarchyView::RenderObjectNode(shine::gameplay::SObject* obj, int ind
     if (ImGui::BeginPopupContextItem()) {
         contextObject_ = obj;
         if (ImGui::MenuItem("重命名")) {
-            std::snprintf(renameBuffer_, sizeof(renameBuffer_), "%s", obj->getName().data());
+            renameBuffer_ = obj->getName();
             ImGui::OpenPopup("SceneRenamePopup");
         }
         const bool owned = isEditorOwned(obj);
@@ -180,7 +197,7 @@ void SceneHierarchyView::createEmptyActor() {
         return;
     }
     auto actor = std::make_unique<shine::gameplay::EmptyActor>();
-    actor->setName(STextView::from_string(fmt::format("EmptyActor_{}", nextEmptyActorId_++)));
+    actor->setName(MakeIndexedName("EmptyActor", nextEmptyActorId_++));
     actor->addComponent<shine::gameplay::component::TransformComponent>();
     auto* actorPtr = actor.get();
     worldService_->addActorToPersistentLevel(std::move(actor));
@@ -192,7 +209,7 @@ void SceneHierarchyView::createStaticMeshActor() {
         return;
     }
     auto actor = std::make_unique<shine::gameplay::StaticMeshActor>();
-    actor->setName(STextView::from_string(fmt::format("StaticMeshActor_{}", nextStaticMeshActorId_++)));
+    actor->setName(MakeIndexedName("StaticMeshActor", nextStaticMeshActorId_++));
     auto* transform = actor->addComponent<shine::gameplay::component::TransformComponent>();
     transform->setScale({0.35f, 0.35f, 0.35f});
     auto* meshComp = actor->addComponent<shine::gameplay::component::StaticMeshComponent>();

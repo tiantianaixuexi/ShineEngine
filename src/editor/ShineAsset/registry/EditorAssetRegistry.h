@@ -75,6 +75,8 @@ namespace shine::editor::asset
     class EditorAssetRegistry : public shine::Subsystem
     {
     public:
+        using DependencySet = AssetDependencyGraph::DependencySet;
+
         EditorAssetRegistry();
         ~EditorAssetRegistry() override = default;
 
@@ -147,7 +149,7 @@ namespace shine::editor::asset
         [[nodiscard]] bool IsDangling(STextView uuid) const;
 
         /// Return all direct dependents of `uuid` (reverse dependency lookup).
-        [[nodiscard]] const std::unordered_set<SString>&
+        [[nodiscard]] const DependencySet&
         GetDependents(STextView uuid) const;
 
         // -----------------------------------------------------------------------
@@ -173,10 +175,16 @@ namespace shine::editor::asset
 
     private:
         // UUID → entry
-        std::unordered_map<SString, EditorAssetEntry> m_entries;
+        std::unordered_map<SString,
+                   EditorAssetEntry,
+                   SStringTransparentHash,
+                   SStringTransparentEqual> m_entries;
 
         // path string → UUID (reverse index for path-based lookup)
-        std::unordered_map<SString, SString> m_pathIndex;
+        std::unordered_map<SString,
+                   SString,
+                   SStringTransparentHash,
+                   SStringTransparentEqual> m_pathIndex;
 
         // dependency graph kept in sync with m_entries
         AssetDependencyGraph m_deps;
@@ -187,7 +195,7 @@ namespace shine::editor::asset
         // Internal helpers
         void RebuildDepsForEntry(const EditorAssetEntry& entry);
         void RemoveDepsForEntry(STextView uuid);
-        void UpdatePathIndex(STextView oldPath, STextView newPath, STextView uuid);
+        void UpdatePathIndex(STextView oldPath, const SString& newPath, STextView uuid);
         void OnFileChangeEvent(const util::watcher::FileChangeEvent& event);
     };
 

@@ -1,5 +1,6 @@
 #include "WidgetDesigner.h"
 #include "WidgetEditorUtils.h"
+#include "editor/util/ImGuiIdScope.h"
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui_stdlib.h"
 #include "fmt/format.h"
@@ -11,10 +12,8 @@ namespace
 {
     static bool InputTextS(const char* label, SString& value, ImGuiInputTextFlags flags = 0)
     {
-        std::string temp = value.to_string();
-        if (ImGui::InputText(label, &temp, flags))
+        if (ImGui::InputText(label, &value, flags))
         {
-            value = SString::from_utf8(temp);
             return true;
         }
         return false;
@@ -22,10 +21,8 @@ namespace
 
     static bool InputTextMultilineS(const char* label, SString& value, const ImVec2& size, ImGuiInputTextFlags flags = 0)
     {
-        std::string temp = value.to_string();
-        if (ImGui::InputTextMultiline(label, &temp, size, flags))
+        if (ImGui::InputTextMultiline(label, &value, size, flags))
         {
-            value = SString::from_utf8(temp);
             return true;
         }
         return false;
@@ -358,8 +355,8 @@ void WidgetDesigner::ShowHierarchy()
                 default: icon = "    "; break;
                 }
 
-                std::string nodeLabel = fmt::format("{}{}", icon, w.name);
-                bool opened = ImGui::TreeNodeEx(nodeLabel.c_str(), flags);
+                const shine::editor::util::ScopedImGuiID widgetId(static_cast<int>(w.id));
+                bool opened = ImGui::TreeNodeEx("WidgetNode", flags, "%s%s", icon, w.name.c_str());
                 if (ImGui::IsItemClicked())
                     canvas.selectedId = w.id;
 
@@ -380,8 +377,8 @@ void WidgetDesigner::ShowHierarchy()
                             if (child.id == canvas.selectedId)
                                 cflags |= ImGuiTreeNodeFlags_Selected;
 
-                            std::string childLabel = fmt::format("    {}", child.name);
-                            ImGui::TreeNodeEx(childLabel.c_str(), cflags);
+                            const shine::editor::util::ScopedImGuiID childId(static_cast<int>(child.id));
+                            ImGui::TreeNodeEx("ChildNode", cflags, "    %s", child.name.c_str());
                             if (ImGui::IsItemClicked())
                                 canvas.selectedId = child.id;
                             ImGui::TreePop();

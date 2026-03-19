@@ -47,6 +47,15 @@ namespace shine::asset
     class RuntimeAssetRegistry : public shine::Subsystem
     {
     public:
+        using AssetMap = std::unordered_map<SString,
+                                            std::shared_ptr<AssetBase>,
+                                            SStringTransparentHash,
+                                            SStringTransparentEqual>;
+        using FactoryMap = std::unordered_map<SString,
+                                              AssetCreatorFn,
+                                              SStringTransparentHash,
+                                              SStringTransparentEqual>;
+
         RuntimeAssetRegistry()  = default;
         ~RuntimeAssetRegistry() override = default;
 
@@ -132,10 +141,10 @@ namespace shine::asset
         mutable std::mutex m_mutex;
 
         // UUID string → live asset
-        std::unordered_map<SString, std::shared_ptr<AssetBase>> m_assets;
+        AssetMap m_assets;
 
         // typeId string → creator function
-        std::unordered_map<SString, AssetCreatorFn> m_factories;
+        FactoryMap m_factories;
     };
 
 } // namespace shine::asset

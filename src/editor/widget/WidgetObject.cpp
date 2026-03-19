@@ -6,6 +6,7 @@
 
 
 #include "imgui/imgui_internal.h"
+#include "imgui/imgui_stdlib.h"
 #include "fmt/format.h"
 #include "glaze/json.hpp"
 
@@ -64,7 +65,7 @@ namespace
     static bool InputTextS(const char* label, SString& value, ImGuiInputTextFlags flags = 0)
     {
 
-        if (ImGui::InputText(label, value.data(), flags))
+        if (ImGui::InputText(label, &value, flags))
         {
             return true;
         }
@@ -74,7 +75,7 @@ namespace
     static bool InputTextMultilineS(const char* label, SString& value, const ImVec2& size, ImGuiInputTextFlags flags = 0)
     {
 
-        if (ImGui::InputTextMultiline(label, value.data(), value.size(), size, flags))
+        if (ImGui::InputTextMultiline(label, &value, size, flags))
         {
             return true;
         }

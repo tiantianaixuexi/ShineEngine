@@ -5,6 +5,9 @@
 #include <concepts>
 #include <utility>
 #include <cstdint>
+#include <memory>
+#include <string_view>
+#include <tuple>
 
 
 namespace shine {
@@ -109,6 +112,34 @@ struct value_list {
     // 求积
     static constexpr auto product = (Vs * ...);
 
+    // 最小值
+    static constexpr auto min = [] consteval {
+        static_assert(size > 0, "value_list::min requires at least one value");
+        using value_type = std::common_type_t<decltype(Vs)...>;
+        constexpr value_type values[] = {static_cast<value_type>(Vs)...};
+        value_type result = values[0];
+        for (std::size_t i = 1; i < size; ++i) {
+            if (values[i] < result) {
+                result = values[i];
+            }
+        }
+        return result;
+    }();
+
+    // 最大值
+    static constexpr auto max = [] consteval {
+        static_assert(size > 0, "value_list::max requires at least one value");
+        using value_type = std::common_type_t<decltype(Vs)...>;
+        constexpr value_type values[] = {static_cast<value_type>(Vs)...};
+        value_type result = values[0];
+        for (std::size_t i = 1; i < size; ++i) {
+            if (values[i] > result) {
+                result = values[i];
+            }
+        }
+        return result;
+    }();
+
 
     // 转换为数组
     static constexpr auto to_array() {
@@ -177,7 +208,7 @@ inline constexpr type_id_t type_id_v = type_hash_v<T>;
 
 // 检查两个类型是否相同（使用 ID）
 template <typename T, typename U>
-constexpr bool same_type_v = type_id_v<T> == type_id_v<U>;
+constexpr bool same_type_v = std::is_same_v<T, U>;
 
 // ============================================================
 // 类型特性检测

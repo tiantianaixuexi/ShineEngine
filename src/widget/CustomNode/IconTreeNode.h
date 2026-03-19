@@ -79,6 +79,42 @@ inline bool IconTreeNode(const char* label,
     return opened;
 }
 
+inline bool IconTreeNodeEx(int id,
+                           const char* label,
+                           ImTextureID openId,
+                           ImTextureID closeId,
+                           ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None)
+{
+    ImGui::PushID(id);
+    const bool opened = IconTreeNode(label, openId, closeId, flags);
+    ImGui::PopID();
+    return opened;
+}
+
+inline bool IconTreeNodeEx(const void* id,
+                           const char* label,
+                           ImTextureID openId,
+                           ImTextureID closeId,
+                           ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None)
+{
+    ImGui::PushID(id);
+    const bool opened = IconTreeNode(label, openId, closeId, flags);
+    ImGui::PopID();
+    return opened;
+}
+
+inline bool IconTreeNodeEx(const char* id,
+                           const char* label,
+                           ImTextureID openId,
+                           ImTextureID closeId,
+                           ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None)
+{
+    ImGui::PushID(id);
+    const bool opened = IconTreeNode(label, openId, closeId, flags);
+    ImGui::PopID();
+    return opened;
+}
+
 // ---------------------------------------------------------------------------
 // IconLeafNode — 叶节点（无箭头）：[图标 16×16] [标签]
 //
@@ -125,6 +161,30 @@ inline bool IconLeafNode(const char* label, ImTextureID iconId)
         label);
 
     return ImGui::IsItemClicked();
+}
+
+inline bool IconLeafNodeEx(int id, const char* label, ImTextureID iconId)
+{
+    ImGui::PushID(id);
+    const bool clicked = IconLeafNode(label, iconId);
+    ImGui::PopID();
+    return clicked;
+}
+
+inline bool IconLeafNodeEx(const void* id, const char* label, ImTextureID iconId)
+{
+    ImGui::PushID(id);
+    const bool clicked = IconLeafNode(label, iconId);
+    ImGui::PopID();
+    return clicked;
+}
+
+inline bool IconLeafNodeEx(const char* id, const char* label, ImTextureID iconId)
+{
+    ImGui::PushID(id);
+    const bool clicked = IconLeafNode(label, iconId);
+    ImGui::PopID();
+    return clicked;
 }
 
 } // namespace shine::widget

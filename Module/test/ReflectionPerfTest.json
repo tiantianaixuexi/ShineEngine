@@ -1,0 +1,37 @@
+{
+  "name": "ReflectionPerfTest",
+  "files": [
+    "dev/test/ReflectionPerfTest/ReflectionPerfTest.cpp"
+  ],
+  "deps": [
+    "engine_core",
+    "memory",
+    "fmt"
+  ],
+  "defines": [
+    "TEST_BUILD"
+  ],
+  "link": {
+    "debug": {
+      "lib": [
+        "mimallocd.lib"
+      ]
+    },
+    "release": {
+      "lib": [
+        "mimalloc.lib"
+      ]
+    }
+  },
+  "type": [
+    "exe"
+  ],
+  "platform": [
+    "Windows"
+  ],
+  "buildMode": [
+    "both"
+  ],
+  "output": "exe/ReflectionPerfTest.exe",
+  "comment": "反射系统 Release 性能专项测试"
+}

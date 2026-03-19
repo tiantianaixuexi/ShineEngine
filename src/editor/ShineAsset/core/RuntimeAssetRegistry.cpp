@@ -13,7 +13,7 @@ namespace shine::asset
     void RuntimeAssetRegistry::UnregisterFactory(STextView typeId)
     {
         std::scoped_lock lock(m_mutex);
-        m_factories.erase(SString(typeId));
+        m_factories.erase(typeId);
     }
 
     void RuntimeAssetRegistry::Register(std::shared_ptr<AssetBase> asset)
@@ -28,20 +28,20 @@ namespace shine::asset
     void RuntimeAssetRegistry::Unregister(STextView uuid)
     {
         std::scoped_lock lock(m_mutex);
-        m_assets.erase(SString(uuid));
+        m_assets.erase(uuid);
     }
 
     std::shared_ptr<AssetBase> RuntimeAssetRegistry::Find(STextView uuid) const
     {
         std::scoped_lock lock(m_mutex);
-        auto it = m_assets.find(SString(uuid));
+        auto it = m_assets.find(uuid);
         return (it != m_assets.end()) ? it->second : nullptr;
     }
 
     bool RuntimeAssetRegistry::Contains(STextView uuid) const
     {
         std::scoped_lock lock(m_mutex);
-        return m_assets.contains(SString(uuid));
+        return m_assets.contains(uuid);
     }
 
     RuntimeAssetRegistry::LoadRequest
@@ -53,8 +53,7 @@ namespace shine::asset
         std::scoped_lock lock(m_mutex);
 
         // Already registered?
-        SString key(uuid);
-        if (auto it = m_assets.find(key); it != m_assets.end())
+        if (auto it = m_assets.find(uuid); it != m_assets.end())
         {
             auto& existing = it->second;
             if (existing->GetState() == EAssetState::Loaded)
@@ -63,7 +62,7 @@ namespace shine::asset
         }
 
         // Find factory
-        auto fit = m_factories.find(SString(typeId));
+        auto fit = m_factories.find(typeId);
         if (fit == m_factories.end())
             return { ELoadResult::NoFactory, nullptr };
 
@@ -73,6 +72,7 @@ namespace shine::asset
             return { ELoadResult::NoFactory, nullptr };
 
         placeholder->SetState(EAssetState::Loading);
+        SString key(uuid);
         m_assets.emplace(key, placeholder);
 
         // NOTE: The actual async load is dispatched by the caller (loader

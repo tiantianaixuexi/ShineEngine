@@ -25,11 +25,11 @@ struct InspectorView : TypeView {
         std::size_t     index;
         bool operator!=(const FieldIterator& o) const { return index != o.index; }
         void operator++() { ++index; }
-        const FieldInfo& operator*() const { return type->fields[index]; }
+        const FieldInfo& operator*() const { return *type->GetFieldAt(index); }
     };
 
     FieldIterator begin() const { return {typeInfo, 0}; }
-    FieldIterator end()   const { return {typeInfo, typeInfo->fields.size()}; }
+    FieldIterator end()   const { return {typeInfo, typeInfo->GetFieldCount()}; }
 
     bool IsEditable(const FieldInfo& f) const {
         return HasFlag(f.flags, PropertyFlags::EditAnywhere)
@@ -42,7 +42,7 @@ struct InspectorView : TypeView {
         if (f.HasEditCondition())
         {
             auto condField = f.GetEditConditionView();
-            if (auto* ci = typeInfo->FindField(condField);
+            if (auto* ci = typeInfo->FindFieldFast(condField);
                 ci && ci->typeId == GetTypeId<bool>())
             {
                 bool bVal = false;

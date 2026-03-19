@@ -6,7 +6,7 @@ namespace shine::editor::asset
 {
     // Static sentinels
     const std::vector<SString>        AssetDependencyGraph::s_emptyVec;
-    const std::unordered_set<SString> AssetDependencyGraph::s_emptySet;
+    const AssetDependencyGraph::DependencySet AssetDependencyGraph::s_emptySet;
 
     void AssetDependencyGraph::SetDependencies(
         STextView ownerUuid, std::span<const std::string> deps)
@@ -54,20 +54,20 @@ namespace shine::editor::asset
     const std::vector<SString>&
     AssetDependencyGraph::GetDependencies(STextView ownerUuid) const
     {
-        auto it = m_forward.find(SString(ownerUuid));
+        auto it = m_forward.find(ownerUuid);
         return (it != m_forward.end()) ? it->second : s_emptyVec;
     }
 
-    const std::unordered_set<SString>&
+    const AssetDependencyGraph::DependencySet&
     AssetDependencyGraph::GetDependents(STextView targetUuid) const
     {
-        auto it = m_reverse.find(SString(targetUuid));
+        auto it = m_reverse.find(targetUuid);
         return (it != m_reverse.end()) ? it->second : s_emptySet;
     }
 
     bool AssetDependencyGraph::HasDependents(STextView targetUuid) const
     {
-        auto it = m_reverse.find(SString(targetUuid));
+        auto it = m_reverse.find(targetUuid);
         return (it != m_reverse.end()) && !it->second.empty();
     }
 
@@ -82,6 +82,8 @@ namespace shine::editor::asset
     {
         if (from == target)
             return true;
+
+        const STextView targetView = target;
 
         // Iterative DFS to avoid stack overflow on deep trees
         std::stack<SString> stack;
@@ -102,7 +104,7 @@ namespace shine::editor::asset
 
             for (const SString& dep : it->second)
             {
-                if (dep == SString(target))
+                if (dep == targetView)
                     return true;
                 if (!visited.contains(dep))
                     stack.push(dep);

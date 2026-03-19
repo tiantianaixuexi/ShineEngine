@@ -7,6 +7,33 @@
 
 namespace shine::editor::asset
 {
+    namespace
+    {
+        class PathLookupKey
+        {
+        public:
+            explicit PathLookupKey(const std::filesystem::path& path)
+                : m_storage(path.string())
+                , m_view(STextView::from_string(m_storage))
+            {
+            }
+
+            [[nodiscard]] STextView View() const noexcept
+            {
+                return m_view;
+            }
+
+        private:
+            std::string m_storage;
+            STextView   m_view;
+        };
+
+        [[nodiscard]] SString MakePathKey(const std::filesystem::path& path)
+        {
+            return SString(path.string());
+        }
+    }
+
     EditorAssetRegistry::EditorAssetRegistry() = default;
 
     // -----------------------------------------------------------------------
@@ -111,22 +138,22 @@ namespace shine::editor::asset
                                        AssetRecord record)
     {
         SString uuid(record.uuid);
-        SString pathStr(diskPath.string());
+        SString pathKey = MakePathKey(diskPath);
 
         // Update path index: remove old mapping if path changed
         if (auto existing = m_entries.find(uuid); existing != m_entries.end())
         {
-            UpdatePathIndex(existing->second.diskPath, pathStr, uuid);
-            existing->second.diskPath  = pathStr;
+            UpdatePathIndex(existing->second.diskPath, pathKey, uuid);
+            existing->second.diskPath  = pathKey;
             existing->second.record    = std::move(record);
             existing->second.isDangling = false;
         }
         else
         {
-            m_pathIndex[pathStr] = uuid;
+            m_pathIndex[pathKey] = uuid;
             EditorAssetEntry e;
             e.uuid     = uuid;
-            e.diskPath = pathStr;
+            e.diskPath = pathKey;
             e.record   = std::move(record);
             m_entries.emplace(uuid, std::move(e));
         }
@@ -141,19 +168,19 @@ namespace shine::editor::asset
     void EditorAssetRegistry::OnFileMoved(const std::filesystem::path& oldPath,
                                           const std::filesystem::path& newPath)
     {
-        SString oldStr(oldPath.string());
-        auto pit = m_pathIndex.find(oldStr);
+        PathLookupKey oldPathKey(oldPath);
+        auto pit = m_pathIndex.find(oldPathKey.View());
         if (pit == m_pathIndex.end())
             return;
 
         SString uuid = pit->second;
-        SString newStr(newPath.string());
+        SString newPathKey = MakePathKey(newPath);
 
-        UpdatePathIndex(oldStr, newStr, uuid);
+        UpdatePathIndex(oldPathKey.View(), newPathKey, uuid);
 
         if (auto it = m_entries.find(uuid); it != m_entries.end())
         {
-            it->second.diskPath  = newStr;
+            it->second.diskPath  = newPathKey;
             it->second.isDangling = false;
         }
     }
@@ -165,8 +192,8 @@ namespace shine::editor::asset
     std::vector<SString>
     EditorAssetRegistry::OnFileDeleted(const std::filesystem::path& path)
     {
-        SString pathStr(path.string());
-        auto pit = m_pathIndex.find(pathStr);
+        PathLookupKey pathKey(path);
+        auto pit = m_pathIndex.find(pathKey.View());
         if (pit == m_pathIndex.end())
             return {};
 
@@ -186,7 +213,7 @@ namespace shine::editor::asset
     DeleteResult EditorAssetRegistry::TryDelete(STextView uuid, EDeletePolicy policy)
     {
         DeleteResult result;
-        auto it = m_entries.find(SString(uuid));
+        auto it = m_entries.find(uuid);
         if (it == m_entries.end())
             return result;   // unknown — nothing to do
 
@@ -222,14 +249,15 @@ namespace shine::editor::asset
 
     const EditorAssetEntry* EditorAssetRegistry::Find(STextView uuid) const
     {
-        auto it = m_entries.find(SString(uuid));
+        auto it = m_entries.find(uuid);
         return (it != m_entries.end()) ? &it->second : nullptr;
     }
 
     const EditorAssetEntry*
     EditorAssetRegistry::FindByPath(const std::filesystem::path& diskPath) const
     {
-        auto pit = m_pathIndex.find(SString(diskPath.string()));
+        PathLookupKey pathKey(diskPath);
+        auto pit = m_pathIndex.find(pathKey.View());
         if (pit == m_pathIndex.end())
             return nullptr;
         auto it = m_entries.find(pit->second);
@@ -238,17 +266,17 @@ namespace shine::editor::asset
 
     bool EditorAssetRegistry::IsKnown(STextView uuid) const
     {
-        auto it = m_entries.find(SString(uuid));
+        auto it = m_entries.find(uuid);
         return (it != m_entries.end()) && !it->second.isDangling;
     }
 
     bool EditorAssetRegistry::IsDangling(STextView uuid) const
     {
-        auto it = m_entries.find(SString(uuid));
+        auto it = m_entries.find(uuid);
         return (it != m_entries.end()) && it->second.isDangling;
     }
 
-    const std::unordered_set<SString>&
+    const EditorAssetRegistry::DependencySet&
     EditorAssetRegistry::GetDependents(STextView uuid) const
     {
         return m_deps.GetDependents(uuid);
@@ -287,11 +315,11 @@ namespace shine::editor::asset
     }
 
     void EditorAssetRegistry::UpdatePathIndex(STextView oldPath,
-                                              STextView newPath,
+                                              const SString& newPath,
                                               STextView uuid)
     {
-        m_pathIndex.erase(SString(oldPath));
-        m_pathIndex[SString(newPath)] = SString(uuid);
+        m_pathIndex.erase(oldPath);
+        m_pathIndex[newPath] = SString(uuid);
     }
 
     void EditorAssetRegistry::OnFileChangeEvent(const util::watcher::FileChangeEvent& event)

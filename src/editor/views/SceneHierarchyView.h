@@ -5,6 +5,7 @@
 #include "gameplay/actor.h"
 #include "gameplay/object.h"
 #include "gameplay/world/WorldServiceInterfaces.h"
+#include "string/shine_string.h"
 #include "BaseView.h"
 
 namespace shine::editor::views
@@ -36,8 +37,8 @@ namespace shine::editor::views
         shine::gameplay::world::IWorldActorHierarchyService* worldService_ = nullptr;
         std::vector<shine::gameplay::SObject*> visibleObjects_;
         shine::gameplay::SObject* contextObject_ = nullptr;
-        char searchBuffer_[128]{};
-        char renameBuffer_[128]{};
+        shine::SString searchBuffer_;
+        shine::SString renameBuffer_;
         int nextEmptyActorId_ = 1;
         int nextStaticMeshActorId_ = 1;
 

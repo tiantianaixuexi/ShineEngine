@@ -26,34 +26,42 @@ using namespace shine::constexpr_;
 
 static int g_tests_passed = 0;
 static int g_tests_failed = 0;
+static bool g_current_test_failed = false;
+static char const* g_current_test_failure = nullptr;
 
 #define TEST(name) void test_##name()
 #define RUN_TEST(name) run_test(#name, test_##name)
 
-template<typename Func>
-void run_test(const char* name, Func func) {
-    std::cout << "Running: " << name << " ... ";
-    try {
-        func();
-        std::cout << "PASSED" << std::endl;
-        ++g_tests_passed;
-    } catch (const std::exception& e) {
-        std::cout << "FAILED: " << e.what() << std::endl;
-        ++g_tests_failed;
-    } catch (...) {
-        std::cout << "FAILED: unknown exception" << std::endl;
-        ++g_tests_failed;
+inline void fail_test(char const* message) {
+    if (!g_current_test_failed) {
+        g_current_test_failed = true;
+        g_current_test_failure = message;
     }
 }
 
-#define ASSERT_TRUE(expr) if (!(expr)) throw std::runtime_error("Assertion failed: " #expr)
-#define ASSERT_FALSE(expr) if (expr) throw std::runtime_error("Assertion failed: NOT " #expr)
-#define ASSERT_EQ(a, b) if ((a) != (b)) throw std::runtime_error("Assertion failed: " #a " == " #b)
-#define ASSERT_NE(a, b) if ((a) == (b)) throw std::runtime_error("Assertion failed: " #a " != " #b)
-#define ASSERT_LT(a, b) if ((a) >= (b)) throw std::runtime_error("Assertion failed: " #a " < " #b)
-#define ASSERT_GT(a, b) if ((a) <= (b)) throw std::runtime_error("Assertion failed: " #a " > " #b)
-#define ASSERT_LE(a, b) if ((a) > (b)) throw std::runtime_error("Assertion failed: " #a " <= " #b)
-#define ASSERT_GE(a, b) if ((a) < (b)) throw std::runtime_error("Assertion failed: " #a " >= " #b)
+template<typename Func>
+void run_test(const char* name, Func func) {
+    std::cout << "Running: " << name << " ... ";
+    g_current_test_failed = false;
+    g_current_test_failure = nullptr;
+    func();
+    if (g_current_test_failed) {
+        std::cout << "FAILED: " << g_current_test_failure << std::endl;
+        ++g_tests_failed;
+        return;
+    }
+    std::cout << "PASSED" << std::endl;
+    ++g_tests_passed;
+}
+
+#define ASSERT_TRUE(expr) do { if (!(expr)) { fail_test("Assertion failed: " #expr); return; } } while (0)
+#define ASSERT_FALSE(expr) do { if (expr) { fail_test("Assertion failed: NOT " #expr); return; } } while (0)
+#define ASSERT_EQ(a, b) do { if ((a) != (b)) { fail_test("Assertion failed: " #a " == " #b); return; } } while (0)
+#define ASSERT_NE(a, b) do { if ((a) == (b)) { fail_test("Assertion failed: " #a " != " #b); return; } } while (0)
+#define ASSERT_LT(a, b) do { if ((a) >= (b)) { fail_test("Assertion failed: " #a " < " #b); return; } } while (0)
+#define ASSERT_GT(a, b) do { if ((a) <= (b)) { fail_test("Assertion failed: " #a " > " #b); return; } } while (0)
+#define ASSERT_LE(a, b) do { if ((a) > (b)) { fail_test("Assertion failed: " #a " <= " #b); return; } } while (0)
+#define ASSERT_GE(a, b) do { if ((a) < (b)) { fail_test("Assertion failed: " #a " >= " #b); return; } } while (0)
 
 // ============================================================
 // constexpr_vector Tests
@@ -599,12 +607,27 @@ TEST(constexpr_map_binary_find) {
     auto it = m.binary_find(3);
     ASSERT_NE(it, m.end());
     ASSERT_EQ(it->value, "three");
+    ASSERT_TRUE(m.is_sorted());
 
-    // binary_find on const map
+    // binary_find on const view of an already sorted map
     const auto& cm = m;
     auto cit = cm.binary_find(4);
     ASSERT_NE(cit, cm.end());
     ASSERT_EQ(cit->value, "four");
+
+    // binary_find on a const unsorted map still finds via a read-only sorted view
+    const constexpr_map<int, std::string, 5> unsorted_map{
+        {3, "three"},
+        {1, "one"},
+        {2, "two"},
+        {5, "five"},
+        {4, "four"},
+    };
+    ASSERT_FALSE(unsorted_map.is_sorted());
+    auto unsorted_it = unsorted_map.binary_find(4);
+    ASSERT_NE(unsorted_it, unsorted_map.end());
+    ASSERT_EQ(unsorted_it->value, "four");
+    ASSERT_FALSE(unsorted_map.is_sorted());
 }
 
 TEST(constexpr_map_access) {
@@ -721,6 +744,20 @@ TEST(constexpr_map_keys_values) {
 
     auto values = m.values();
     ASSERT_EQ(values.size(), 3);
+
+    int key_sum = 0;
+    m.for_each_key([&key_sum](int k) {
+        key_sum += k;
+    });
+    ASSERT_EQ(key_sum, 6);
+
+    std::size_t value_count = 0;
+    m.for_each_value([&value_count](const std::string& v) {
+        if (!v.empty()) {
+            ++value_count;
+        }
+    });
+    ASSERT_EQ(value_count, 3);
 }
 
 TEST(constexpr_map_for_each_filter) {
@@ -786,9 +823,9 @@ TEST(constexpr_map_make) {
         make_pair(3, "three")
     );
     ASSERT_EQ(m.size(), 3);
-    ASSERT_EQ(m[1], "one");
-    ASSERT_EQ(m[2], "two");
-    ASSERT_EQ(m[3], "three");
+    ASSERT_TRUE(std::string_view(m[1]) == std::string_view("one"));
+    ASSERT_TRUE(std::string_view(m[2]) == std::string_view("two"));
+    ASSERT_TRUE(std::string_view(m[3]) == std::string_view("three"));
 }
 
 // ============================================================
@@ -1031,7 +1068,7 @@ TEST(constexpr_str_conversion) {
 
     // to string_view
     std::string_view sv = static_cast<std::string_view>(s);
-    ASSERT_EQ(sv, "hello");
+    ASSERT_TRUE(sv == std::string_view("hello"));
 }
 
 TEST(constexpr_str_find) {
@@ -1090,16 +1127,32 @@ TEST(constexpr_str_substr) {
 
     // runtime substr_view
     auto sv = s.substr_view(0, 5);
-    ASSERT_EQ(sv, "hello");
+    ASSERT_TRUE(sv == std::string_view("hello"));
 
     auto sv2 = s.substr_view(6);
-    ASSERT_EQ(sv2, "world");
+    ASSERT_TRUE(sv2 == std::string_view("world"));
 }
 
 TEST(constexpr_str_trim) {
-    // constexpr_str 的 size_v = N-1 是固定的，trim 后大小不变
-    // 这是设计限制，跳过具体断言
-    ASSERT_TRUE(true);
+    constexpr constexpr_str s = "  hello world  ";
+
+    auto left = s.trim_left();
+    ASSERT_TRUE(std::string_view(left.c_str()) == std::string_view("hello world  "));
+
+    auto right = s.trim_right();
+    ASSERT_TRUE(std::string_view(right.c_str()) == std::string_view("  hello world"));
+
+    auto trimmed = s.trim();
+    ASSERT_TRUE(std::string_view(trimmed.c_str()) == std::string_view("hello world"));
+
+    auto left_view = s.trim_left_view();
+    ASSERT_TRUE(left_view == shine::STextView::from_literal("hello world  "));
+
+    auto right_view = s.trim_right_view();
+    ASSERT_TRUE(right_view == shine::STextView::from_literal("  hello world"));
+
+    auto trimmed_view = s.trim_view();
+    ASSERT_TRUE(trimmed_view == shine::STextView::from_literal("hello world"));
 }
 
 TEST(constexpr_str_case_conversion) {
@@ -1107,11 +1160,11 @@ TEST(constexpr_str_case_conversion) {
 
     // to_lower
     auto lower = s.to_lower();
-    ASSERT_EQ(static_cast<std::string_view>(lower), "hello world");
+    ASSERT_TRUE(static_cast<std::string_view>(lower) == std::string_view("hello world"));
 
     // to_upper
     auto upper = s.to_upper();
-    ASSERT_EQ(static_cast<std::string_view>(upper), "HELLO WORLD");
+    ASSERT_TRUE(static_cast<std::string_view>(upper) == std::string_view("HELLO WORLD"));
 }
 
 TEST(constexpr_str_comparison) {
@@ -1137,7 +1190,7 @@ TEST(constexpr_str_concatenation) {
 
     auto s3 = s1 + s2;
     ASSERT_EQ(s3.size(), 11);
-    ASSERT_EQ(static_cast<std::string_view>(s3), "hello world");
+    ASSERT_TRUE(static_cast<std::string_view>(s3) == std::string_view("hello world"));
 }
 
 TEST(constexpr_str_split) {
@@ -1379,6 +1432,12 @@ TEST(iterator_type_id) {
     // same_type_v
     ASSERT_TRUE((same_type_v<int, int>));
     ASSERT_FALSE((same_type_v<int, float>));
+}
+
+TEST(iterator_same_type_exact_match) {
+    ASSERT_TRUE((same_type_v<int, int>));
+    ASSERT_FALSE((same_type_v<int, const int>));
+    ASSERT_FALSE((same_type_v<int&, int>));
 }
 
 TEST(iterator_concepts) {
@@ -1694,6 +1753,7 @@ int main() {
     RUN_TEST(iterator_value_list);
     RUN_TEST(iterator_type_hash);
     RUN_TEST(iterator_type_id);
+    RUN_TEST(iterator_same_type_exact_match);
     RUN_TEST(iterator_concepts);
     RUN_TEST(iterator_is_pointer_v);
     RUN_TEST(iterator_is_reference_v);

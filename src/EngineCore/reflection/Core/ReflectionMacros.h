@@ -95,7 +95,7 @@ constexpr TypeInfo BuildTypeInfo(shine::STextView name);
             _reflectGraphFn,                                                    \
             true);                                                              \
         shine::reflection::TypeInfo _info = _graph.BuildTypeInfo(_reflectGraphFn); \
-        shine::reflection::TypeRegistry::Get().Register(std::move(_info));      \
+        (void)shine::reflection::TypeRegistry::Get().Register(std::move(_info));\
         return true;                                                            \
     }();                                                                        \
     template<typename _RB>                                                      \

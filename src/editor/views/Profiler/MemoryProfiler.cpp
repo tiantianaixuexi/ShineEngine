@@ -1,7 +1,7 @@
 #include "MemoryProfiler.h"
 #include "fmt/format.h"
 #include "imgui/imgui.h"
-#include <string>
+#include <array>
 #include <vector>
 
 // Include Memory System
@@ -13,6 +13,18 @@ import shine.memory;
 #endif
 
 namespace shine::editor::views {
+
+namespace
+{
+    void RenderMemoryDistributionBar(const char* name, float fraction)
+    {
+        std::array<char, 128> overlay{};
+        const auto result = fmt::format_to_n(overlay.data(), overlay.size() - 1, "{}: {:.1f}%", name, static_cast<double>(fraction) * 100.0);
+        const size_t terminatorIndex = result.size < overlay.size() ? result.size : overlay.size() - 1;
+        overlay[terminatorIndex] = '\0';
+        ImGui::ProgressBar(fraction, ImVec2(0.0f, 0.0f), overlay.data());
+    }
+}
 
 void MemoryProfiler::onInit() {
     SetName("内存监控");
@@ -101,7 +113,7 @@ void MemoryProfiler::onRender() {
             if (totalBytes > 0 && data.stats.bytes_current > 0) {
                 float fraction = (float)data.stats.bytes_current / (float)totalBytes;
                 if (fraction > 0.001f) {
-                    ImGui::ProgressBar(fraction, ImVec2(0.0f, 0.0f), fmt::format("{}: {:.1f}%", data.name, fraction * 100.0f).c_str());
+                    RenderMemoryDistributionBar(data.name, fraction);
                 }
             }
         }

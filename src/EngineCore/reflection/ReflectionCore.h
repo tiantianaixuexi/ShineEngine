@@ -22,6 +22,7 @@
 #include <utility>
 #include <variant>
 #include <vector>
+#include "Core/ConstexprOffset.h"
 #include "Core/ReflectionOwnerHandle.h"
 #include "Memory/ReflectionMemory.h"
 #include "memory/memory.ixx"
@@ -40,6 +41,18 @@ namespace detail {
 template <typename T> struct MemberPtrInfo;
 template <typename C, typename M>
 struct MemberPtrInfo<M C::*> { using ClassType = C; using MemberType = M; };
+
+template <typename T> struct MemberFunctionPtrInfo;
+template <typename C, typename R, typename... Args>
+struct MemberFunctionPtrInfo<R (C::*)(Args...)> {
+    using ClassType = C;
+    using ReturnType = R;
+};
+template <typename C, typename R, typename... Args>
+struct MemberFunctionPtrInfo<R (C::*)(Args...) const> {
+    using ClassType = C;
+    using ReturnType = R;
+};
 } // namespace detail
 
 // =============================================================================
@@ -87,7 +100,14 @@ consteval shine::STextView GetTypeName() noexcept {
     return name;
 }
 
-/// Produce a unique TypeId for type T at compile time.
+/// Produce a per-build runtime lookup TypeId for type T at compile time.
+///
+/// This ID is reproducible within the current build, but it is derived from
+/// compiler-specific type-name strings and is therefore not guaranteed to stay
+/// stable across compilers, toolchain versions, or persisted data.
+///
+/// Use this only for runtime registration and lookup. Do not treat it as a
+/// long-term serialization, asset, or hot-reload identity.
 template <typename T>
 consteval TypeId GetTypeId() noexcept {
     return Hash(GetTypeName<T>());
@@ -194,7 +214,7 @@ using Schema = std::variant<
 
 using MetadataKey       = TypeId;
 using MetadataValue     = std::variant<std::monostate, bool, int, float, double, shine::STextView,shine::SString>;
-using MetadataContainer = std::vector<std::pair<MetadataKey, MetadataValue>>;
+using DSLMetadataStorage = std::vector<std::pair<MetadataKey, MetadataValue>>;
 using ReflectionMetadataStorage = ReflectionColdVector<std::pair<MetadataKey, MetadataValue>>;
 
 inline MetadataValue MakeMetadataValue(shine::STextView value) {
@@ -263,6 +283,8 @@ struct MapTrait {
 // =============================================================================
 
 struct TypeInfo;
+template <typename T, typename Limits>
+struct TypeBuilder;
 
 struct MethodCallParamStorage {
     static constexpr std::size_t kInlineParamCount = 2;
@@ -442,6 +464,7 @@ struct FieldColdData {
 
 struct MethodColdData {
     shine::STextView  name;
+    ReflectionColdVector<TypeId> paramTypes;
     ReflectionMetadataStorage metadata;
 };
 
@@ -526,7 +549,6 @@ struct FieldInfo {
     const void*       containerTrait = nullptr;
     PropertyFlags     flags    = PropertyFlags::None;
     uint32_t          nameHash = 0;
-    ReflectionColdPtr<FieldColdData> coldData;
 
     // ---- Accessors ----------------------------------------------------------
 
@@ -724,7 +746,19 @@ struct FieldInfo {
         return coldData ? coldData->builtinMetadata.maxValue : 0.0f;
     }
 
+    [[nodiscard]] const FieldColdData* GetColdDataPtrForTests() const noexcept {
+        return coldData.get();
+    }
+
+    [[nodiscard]] static consteval std::size_t ColdDataOffsetForTests() {
+        return offsetof(FieldInfo, coldData);
+    }
+
 private:
+    friend class TypeRegistry;
+    template <typename, typename>
+    friend struct TypeBuilder;
+
     FieldColdData& EnsureColdData() {
         if (!coldData) {
             coldData = MakeReflectionColdData<FieldColdData>();
@@ -732,7 +766,15 @@ private:
         return *coldData;
     }
 
-public:
+    void SetColdData(ReflectionColdPtr<FieldColdData> value) noexcept {
+        coldData = std::move(value);
+    }
+
+    [[nodiscard]] FieldColdData& MutableColdData() {
+        return EnsureColdData();
+    }
+
+    ReflectionColdPtr<FieldColdData> coldData;
 };
 
 // =============================================================================
@@ -743,12 +785,10 @@ struct MethodInfo {
     uint32_t            nameHash      = 0;
     InvokeFn            invokeFn      = nullptr;
     TypeId              returnType    = 0;
-    std::vector<TypeId> paramTypes;
     uint64_t            signatureHash = 0;
     FunctionFlags       flags         = FunctionFlags::None;
     ReflectionOwnerHandle owner;
     mutable ReflectionColdPtr<MethodCallCache> callCache;
-    ReflectionColdPtr<MethodColdData> coldData;
 
     void Invoke(void* inst, void** args, void* ret) const {
         if (invokeFn) invokeFn(inst, args, ret);
@@ -773,8 +813,28 @@ struct MethodInfo {
         return coldData ? coldData->metadata : kEmptyMetadata;
     }
 
+    [[nodiscard]] std::span<const TypeId> GetParamTypes() const noexcept {
+        if (!coldData) {
+            return {};
+        }
+        return std::span<const TypeId>(coldData->paramTypes.data(), coldData->paramTypes.size());
+    }
+
+    [[nodiscard]] std::size_t GetParamCount() const noexcept {
+        return coldData ? coldData->paramTypes.size() : 0;
+    }
+
+    [[nodiscard]] TypeId GetParamType(std::size_t index) const noexcept {
+        const auto paramTypes = GetParamTypes();
+        return index < paramTypes.size() ? paramTypes[index] : TypeId{};
+    }
+
     ReflectionMetadataStorage& MutableMetadata() {
         return EnsureColdData().metadata;
+    }
+
+    ReflectionColdVector<TypeId>& MutableParamTypes() {
+        return EnsureColdData().paramTypes;
     }
 
     [[nodiscard]] const TypeInfo* GetOwnerType() const {
@@ -796,13 +856,35 @@ struct MethodInfo {
         return *callCache;
     }
 
+    [[nodiscard]] const MethodColdData* GetColdDataPtrForTests() const noexcept {
+        return coldData.get();
+    }
+
+    [[nodiscard]] static consteval std::size_t ColdDataOffsetForTests() {
+        return offsetof(MethodInfo, coldData);
+    }
+
 private:
+    friend class TypeRegistry;
+    template <typename, typename>
+    friend struct TypeBuilder;
+
     MethodColdData& EnsureColdData() {
         if (!coldData) {
             coldData = MakeReflectionColdData<MethodColdData>();
         }
         return *coldData;
     }
+
+    void SetColdData(ReflectionColdPtr<MethodColdData> value) noexcept {
+        coldData = std::move(value);
+    }
+
+    [[nodiscard]] MethodColdData& MutableColdData() {
+        return EnsureColdData();
+    }
+
+    ReflectionColdPtr<MethodColdData> coldData;
 };
 
 // =============================================================================
@@ -816,39 +898,39 @@ struct TypeInfo {
     bool                isEnum    = false;
     bool                isPod     = false;  // 是否可平凡复制类型
 
-    std::vector<FieldInfo>  fields;
-    std::vector<MethodInfo> methods;
-    ReflectionColdPtr<TypeColdData> coldData;
-
-    // Fast lookup sorted indices for performance
     struct LookupEntry { uint32_t hash; uint32_t index; };
-    std::vector<LookupEntry> fieldLookup_;
-    std::vector<LookupEntry> methodLookup_;
-    bool lookupSorted_ = false;
 
-    const FieldInfo* FindField(shine::STextView fieldName) const {
+    [[nodiscard]] const FieldInfo* FindFieldFast(shine::STextView fieldName) const {
         uint32_t hash = Hash(fieldName);
         auto it = std::ranges::lower_bound(fieldLookup_, hash, {}, &LookupEntry::hash);
 
         // Handle collisions and multiple matches (rare)
         while (it != fieldLookup_.end() && it->hash == hash) {
-            const auto& f = fields[it->index];
+            const auto& f = fields_[it->index];
             if (f.GetNameView() == fieldName) return &f;
             ++it;
         }
         return nullptr;
     }
 
-    const MethodInfo* FindMethod(shine::STextView methodName) const {
+    [[nodiscard]] const MethodInfo* FindMethodFast(shine::STextView methodName) const {
         uint32_t hash = Hash(methodName);
         auto it = std::ranges::lower_bound(methodLookup_, hash, {}, &LookupEntry::hash);
 
         while (it != methodLookup_.end() && it->hash == hash) {
-            const auto& m = methods[it->index];
+            const auto& m = methods_[it->index];
             if (m.GetNameView() == methodName) return &m;
             ++it;
         }
         return nullptr;
+    }
+
+    [[nodiscard]] const FieldInfo* FindField(shine::STextView fieldName) const {
+        return FindFieldFast(fieldName);
+    }
+
+    [[nodiscard]] const MethodInfo* FindMethod(shine::STextView methodName) const {
+        return FindMethodFast(methodName);
     }
 
 public:
@@ -865,15 +947,55 @@ public:
         return coldData ? coldData->enumEntries : kEmptyEnumEntries;
     }
 
-    ReflectionColdVector<EnumEntry>& MutableEnumEntries() {
-        return MutableColdData().enumEntries;
-    }
-
     [[nodiscard]] bool HasEnumEntries() const noexcept {
         return coldData && !coldData->enumEntries.empty();
     }
 
+    [[nodiscard]] const ReflectionColdVector<FieldInfo>& GetFields() const noexcept {
+        return fields_;
+    }
+
+    [[nodiscard]] const ReflectionColdVector<MethodInfo>& GetMethods() const noexcept {
+        return methods_;
+    }
+
+    [[nodiscard]] const FieldInfo* GetFieldAt(std::size_t index) const noexcept {
+        return index < fields_.size() ? &fields_[index] : nullptr;
+    }
+
+    [[nodiscard]] const MethodInfo* GetMethodAt(std::size_t index) const noexcept {
+        return index < methods_.size() ? &methods_[index] : nullptr;
+    }
+
+    [[nodiscard]] static consteval std::size_t FieldsOffsetForTests() {
+        return offsetof(TypeInfo, fields_);
+    }
+
+    [[nodiscard]] static consteval std::size_t MethodsOffsetForTests() {
+        return offsetof(TypeInfo, methods_);
+    }
+
+    [[nodiscard]] static consteval std::size_t ColdDataOffsetForTests() {
+        return offsetof(TypeInfo, coldData);
+    }
+
+    [[nodiscard]] static consteval std::size_t FieldLookupOffsetForTests() {
+        return offsetof(TypeInfo, fieldLookup_);
+    }
+
+    [[nodiscard]] static consteval std::size_t MethodLookupOffsetForTests() {
+        return offsetof(TypeInfo, methodLookup_);
+    }
+
+    [[nodiscard]] static consteval std::size_t LookupSortedOffsetForTests() {
+        return offsetof(TypeInfo, lookupSorted_);
+    }
+
 private:
+    friend class TypeRegistry;
+    template <typename, typename>
+    friend struct TypeBuilder;
+
     TypeColdData& MutableColdData() {
         if (!coldData) {
             coldData = MakeReflectionColdData<TypeColdData>();
@@ -881,30 +1003,51 @@ private:
         return *coldData;
     }
 
+    ReflectionColdVector<FieldInfo>& MutableFields() noexcept {
+        lookupSorted_ = false;
+        return fields_;
+    }
+
+    ReflectionColdVector<MethodInfo>& MutableMethods() noexcept {
+        lookupSorted_ = false;
+        return methods_;
+    }
+
+    ReflectionColdVector<EnumEntry>& MutableEnumEntries() {
+        return MutableColdData().enumEntries;
+    }
+
+    ReflectionColdVector<FieldInfo>  fields_;
+    ReflectionColdVector<MethodInfo> methods_;
+    ReflectionColdPtr<TypeColdData> coldData;
+    ReflectionColdVector<LookupEntry> fieldLookup_;
+    ReflectionColdVector<LookupEntry> methodLookup_;
+    bool lookupSorted_ = false;
+
 public:
 
     void BuildLookup() {
         if (lookupSorted_) return;
 
         fieldLookup_.clear();
-        fieldLookup_.reserve(fields.size());
-        for (uint32_t i = 0; i < (uint32_t)fields.size(); ++i) {
-            fieldLookup_.push_back({fields[i].nameHash, i});
+        fieldLookup_.reserve(fields_.size());
+        for (uint32_t i = 0; i < (uint32_t)fields_.size(); ++i) {
+            fieldLookup_.push_back({fields_[i].nameHash, i});
         }
         std::ranges::sort(fieldLookup_, {}, &LookupEntry::hash);
 
         methodLookup_.clear();
-        methodLookup_.reserve(methods.size());
-        for (uint32_t i = 0; i < (uint32_t)methods.size(); ++i) {
-            methodLookup_.push_back({methods[i].nameHash, i});
+        methodLookup_.reserve(methods_.size());
+        for (uint32_t i = 0; i < (uint32_t)methods_.size(); ++i) {
+            methodLookup_.push_back({methods_[i].nameHash, i});
         }
         std::ranges::sort(methodLookup_, {}, &LookupEntry::hash);
 
         lookupSorted_ = true;
     }
 
-    std::size_t GetFieldCount()  const { return fields.size(); }
-    std::size_t GetMethodCount() const { return methods.size(); }
+    std::size_t GetFieldCount()  const { return fields_.size(); }
+    std::size_t GetMethodCount() const { return methods_.size(); }
     std::size_t GetEnumCount()   const { return GetEnumEntries().size(); }
 };
 
@@ -1185,5 +1328,189 @@ template <auto MemberPtr, typename C = typename detail::MemberPtrInfo<decltype(M
 [[gnu::always_inline]] inline void CT_SET(C& obj, const M& val) {
     obj.*MemberPtr = val;
 }
+
+// BoundMember - 编译期绑定访问包装，统一提供名称/偏移/指针/引用/get/set
+// 用法: using Age = BoundMember<&Player::age>;
+//      auto* ptr = Age::Ptr(player);
+//      Age::Set(player, 42);
+template <auto MemberPtr,
+          typename C = typename detail::MemberPtrInfo<decltype(MemberPtr)>::ClassType,
+          typename M = typename detail::MemberPtrInfo<decltype(MemberPtr)>::MemberType>
+struct BoundMember {
+    using ClassType = C;
+    using MemberType = M;
+
+    static constexpr auto Pointer = MemberPtr;
+
+    [[nodiscard]] static constexpr shine::STextView Name() noexcept {
+        return member_name<MemberPtr>();
+    }
+
+    [[nodiscard]] static std::size_t Offset() noexcept {
+        return compute_offset(MemberPtr);
+    }
+
+    [[nodiscard]] [[gnu::always_inline]] static M* Ptr(C& obj) noexcept {
+        return std::addressof(obj.*MemberPtr);
+    }
+
+    [[nodiscard]] [[gnu::always_inline]] static const M* Ptr(const C& obj) noexcept {
+        return std::addressof(obj.*MemberPtr);
+    }
+
+    [[nodiscard]] [[gnu::always_inline]] static M& Ref(C& obj) noexcept {
+        return obj.*MemberPtr;
+    }
+
+    [[nodiscard]] [[gnu::always_inline]] static const M& Ref(const C& obj) noexcept {
+        return obj.*MemberPtr;
+    }
+
+    [[nodiscard]] [[gnu::always_inline]] static M Get(const C& obj) {
+        return obj.*MemberPtr;
+    }
+
+    [[gnu::always_inline]] static void Set(C& obj, const M& val) {
+        obj.*MemberPtr = val;
+    }
+};
+
+namespace detail {
+
+template <auto FirstMemberPtr, auto... RestMemberPtrs>
+struct LastMemberPtr {
+    static constexpr auto Value = LastMemberPtr<RestMemberPtrs...>::Value;
+};
+
+template <auto LastMemberPtrValue>
+struct LastMemberPtr<LastMemberPtrValue> {
+    static constexpr auto Value = LastMemberPtrValue;
+};
+
+template <typename CurrentType, auto... MemberPtrs>
+struct BoundPathLeafType {
+    using Type = CurrentType;
+};
+
+template <typename CurrentType, auto MemberPtr, auto... RestMemberPtrs>
+struct BoundPathLeafType<CurrentType, MemberPtr, RestMemberPtrs...> {
+    using Info = MemberPtrInfo<decltype(MemberPtr)>;
+    static_assert(std::same_as<remove_cvref_t<CurrentType>, typename Info::ClassType>,
+        "BoundPath member pointer chain does not match the previous member type");
+    using Type = typename BoundPathLeafType<typename Info::MemberType, RestMemberPtrs...>::Type;
+};
+
+template <auto FirstMemberPtr, auto... RestMemberPtrs>
+struct BoundPathAccess {
+    template <typename Obj>
+    [[nodiscard]] [[gnu::always_inline]] static decltype(auto) Ref(Obj&& obj) noexcept {
+        if constexpr (sizeof...(RestMemberPtrs) == 0) {
+            return (std::forward<Obj>(obj).*FirstMemberPtr);
+        } else {
+            return BoundPathAccess<RestMemberPtrs...>::Ref((std::forward<Obj>(obj).*FirstMemberPtr));
+        }
+    }
+};
+
+} // namespace detail
+
+template <auto FirstMemberPtr, auto... RestMemberPtrs>
+struct BoundPath {
+    using RootType = typename detail::MemberPtrInfo<decltype(FirstMemberPtr)>::ClassType;
+    using LeafType = typename detail::BoundPathLeafType<RootType, FirstMemberPtr, RestMemberPtrs...>::Type;
+
+    static constexpr std::size_t Depth = 1 + sizeof...(RestMemberPtrs);
+
+    [[nodiscard]] static constexpr shine::STextView LeafName() noexcept {
+        return member_name<detail::LastMemberPtr<FirstMemberPtr, RestMemberPtrs...>::Value>();
+    }
+
+    [[nodiscard]] static shine::SString Path() {
+        shine::SString path(BoundMember<FirstMemberPtr>::Name());
+        ((path += shine::STextView::from_literal("."), path += member_name<RestMemberPtrs>()), ...);
+        return path;
+    }
+
+    [[nodiscard]] static std::size_t Offset() noexcept {
+        std::size_t offset = compute_offset(FirstMemberPtr);
+        ((offset += compute_offset(RestMemberPtrs)), ...);
+        return offset;
+    }
+
+    [[nodiscard]] [[gnu::always_inline]] static decltype(auto) Ref(RootType& obj) noexcept {
+        return detail::BoundPathAccess<FirstMemberPtr, RestMemberPtrs...>::Ref(obj);
+    }
+
+    [[nodiscard]] [[gnu::always_inline]] static decltype(auto) Ref(const RootType& obj) noexcept {
+        return detail::BoundPathAccess<FirstMemberPtr, RestMemberPtrs...>::Ref(obj);
+    }
+
+    [[nodiscard]] [[gnu::always_inline]] static auto* Ptr(RootType& obj) noexcept {
+        return std::addressof(Ref(obj));
+    }
+
+    [[nodiscard]] [[gnu::always_inline]] static const auto* Ptr(const RootType& obj) noexcept {
+        return std::addressof(Ref(obj));
+    }
+
+    [[nodiscard]] [[gnu::always_inline]] static LeafType Get(const RootType& obj) {
+        return Ref(obj);
+    }
+
+    [[gnu::always_inline]] static void Set(RootType& obj, const LeafType& val) {
+        Ref(obj) = val;
+    }
+};
+
+template <auto MethodPtr,
+          typename C = typename detail::MemberFunctionPtrInfo<decltype(MethodPtr)>::ClassType,
+          typename R = typename detail::MemberFunctionPtrInfo<decltype(MethodPtr)>::ReturnType>
+struct BoundMethod {
+    using ClassType = C;
+    using ReturnType = R;
+
+    static constexpr auto Pointer = MethodPtr;
+
+    [[nodiscard]] static constexpr shine::STextView Name() noexcept {
+        return member_name<MethodPtr>();
+    }
+
+    template <typename Obj, typename... Args>
+    [[nodiscard]] [[gnu::always_inline]] static decltype(auto) Invoke(Obj&& obj, Args&&... args) {
+        return std::invoke(MethodPtr, std::forward<Obj>(obj), std::forward<Args>(args)...);
+    }
+};
+
+template <auto MethodPtr, auto... MemberPtrs>
+struct BoundMethodPath {
+    using PathType = BoundPath<MemberPtrs...>;
+    using RootType = typename PathType::RootType;
+    using TargetType = remove_cvref_t<typename PathType::LeafType>;
+    using MethodType = BoundMethod<MethodPtr>;
+
+    static_assert(std::same_as<TargetType, typename MethodType::ClassType>,
+        "BoundMethodPath target type does not match the leaf type of the member path");
+
+    [[nodiscard]] static shine::SString Path() {
+        shine::SString path = PathType::Path();
+        path += shine::STextView::from_literal(".");
+        path += MethodType::Name();
+        return path;
+    }
+
+    [[nodiscard]] static constexpr shine::STextView MethodName() noexcept {
+        return MethodType::Name();
+    }
+
+    template <typename... Args>
+    [[nodiscard]] [[gnu::always_inline]] static decltype(auto) Invoke(RootType& obj, Args&&... args) {
+        return MethodType::Invoke(PathType::Ref(obj), std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    [[nodiscard]] [[gnu::always_inline]] static decltype(auto) Invoke(const RootType& obj, Args&&... args) {
+        return MethodType::Invoke(PathType::Ref(obj), std::forward<Args>(args)...);
+    }
+};
 
 } // namespace shine::reflection

@@ -10,16 +10,21 @@
 #include "imgui/imgui_stdlib.h"
 
 
-#include "fmt/format.h"
-
-
 #include "script/ScriptSystem.h"
 
 #include "EngineCore/engine_context.h"
+#include "editor/util/ImGuiIdScope.h"
 #include "gameplay/component/ScriptComponent.h"
 
 namespace shine::editor::views
 {
+    namespace {
+        constexpr const char* kScriptValueLabel = "##ScriptValue";
+        constexpr const char* kArrayElementLabel = "##ArrayElement";
+        constexpr const char* kMapValueLabel = "##MapValue";
+        constexpr const char* kGroupTableId = "ScriptGroupTable";
+    }
+
 
     void PropertiesView::onShutDown() {
     }
@@ -154,7 +159,8 @@ namespace shine::editor::views
             shine::SString name;
             shine::SString type;
             shine::SString access;
-            std::string group;
+            shine::SString nameText;
+            shine::SString group;
         };
         struct ScriptLayoutCache
         {
@@ -163,8 +169,11 @@ namespace shine::editor::views
             uint64_t layoutVersion = 0;
             bool valid = false;
             std::vector<CachedScriptProperty> properties;
-            std::vector<std::string> groupOrder;
-            std::unordered_map<std::string, std::vector<size_t>> groupedIndices;
+            std::vector<shine::SString> groupOrder;
+            std::unordered_map<shine::SString,
+                               std::vector<size_t>,
+                               shine::SStringTransparentHash,
+                               shine::SStringTransparentEqual> groupedIndices;
         };
         static ScriptLayoutCache cache{};
 
@@ -206,7 +215,8 @@ namespace shine::editor::views
                     .name = property.name,
                     .type = property.type,
                     .access = property.access,
-                    .group = property.group.empty() ? "默认分组" : property.group.to_string()
+                    .nameText = property.name,
+                    .group = property.group.empty() ? shine::SString("默认分组") : property.group
                 });
 
                 const size_t cachedIndex = cache.properties.size() - 1;
@@ -236,8 +246,7 @@ namespace shine::editor::views
             }
 
             const bool isReadOnly = property.access == "ReadOnly";
-            const std::string nameText = property.name.to_string();
-            const std::string valueLabel = fmt::format("##ScriptProp_{}", index);
+            const char* const propertyNameText = property.nameText.c_str();
             bool changed = false;
             reflection::ScriptValue newValue;
             const auto isStringValue = [](const reflection::ScriptValue& scriptValue)
@@ -245,15 +254,15 @@ namespace shine::editor::views
                 return std::holds_alternative<shine::SString>(scriptValue.data)
                     || std::holds_alternative<shine::STextView>(scriptValue.data);
             };
-            const auto toEditableString = [](const reflection::ScriptValue& scriptValue) -> std::string
+            const auto toEditableString = [](const reflection::ScriptValue& scriptValue) -> shine::SString
             {
                 if (std::holds_alternative<shine::SString>(scriptValue.data))
                 {
-                    return std::get<shine::SString>(scriptValue.data).to_string();
+                    return std::get<shine::SString>(scriptValue.data);
                 }
                 if (std::holds_alternative<shine::STextView>(scriptValue.data))
                 {
-                    return std::get<shine::STextView>(scriptValue.data).to_string();
+                    return shine::SString(std::get<shine::STextView>(scriptValue.data));
                 }
                 return {};
             };
@@ -261,9 +270,10 @@ namespace shine::editor::views
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::AlignTextToFramePadding();
-            ImGui::TextUnformatted(nameText.c_str());
+            ImGui::TextUnformatted(propertyNameText);
 
             ImGui::TableSetColumnIndex(1);
+            const shine::editor::util::ScopedImGuiID valueId(static_cast<int>(index));
             if (isReadOnly)
             {
                 ImGui::BeginDisabled();
@@ -272,7 +282,7 @@ namespace shine::editor::views
             if (property.type == "bool")
             {
                 bool boolValue = std::holds_alternative<bool>(value.data) ? std::get<bool>(value.data) : false;
-                changed = ImGui::Checkbox(valueLabel.c_str(), &boolValue);
+                changed = ImGui::Checkbox(kScriptValueLabel, &boolValue);
                 if (changed)
                 {
                     newValue = reflection::ScriptValue(boolValue);
@@ -293,7 +303,7 @@ namespace shine::editor::views
                 {
                     intValue = static_cast<int>(std::get<double>(value.data));
                 }
-                changed = ImGui::InputInt(valueLabel.c_str(), &intValue);
+                changed = ImGui::InputInt(kScriptValueLabel, &intValue);
                 if (changed)
                 {
                     newValue = reflection::ScriptValue(intValue);
@@ -314,7 +324,7 @@ namespace shine::editor::views
                 {
                     floatValue = static_cast<float>(std::get<double>(value.data));
                 }
-                changed = ImGui::DragFloat(valueLabel.c_str(), &floatValue, 0.01f);
+                changed = ImGui::DragFloat(kScriptValueLabel, &floatValue, 0.01f);
                 if (changed)
                 {
                     newValue = reflection::ScriptValue(floatValue);
@@ -329,9 +339,7 @@ namespace shine::editor::views
                     auto& arr = arrWrapper.ptr;
                     if (!arr) arr = std::make_shared<reflection::ScriptArray>();
 
-                    const std::string treeNodeLabel = fmt::format("[{}] {}", arr->elements.size(), nameText);
-                    ImGui::PushID(nameText.c_str());
-                    if (ImGui::TreeNode(treeNodeLabel.c_str()))
+                    if (ImGui::TreeNodeEx("ScriptArray", ImGuiTreeNodeFlags_None, "[%zu] %s", arr->elements.size(), propertyNameText))
                     {
                         // 添加/删除按钮
                         if (!isReadOnly)
@@ -360,22 +368,22 @@ namespace shine::editor::views
                         // 编辑每个元素
                         for (size_t i = 0; i < arr->elements.size(); ++i)
                         {
-                            const std::string elemLabel = fmt::format("[{}]##{}_{}", i, nameText, i);
+                            const shine::editor::util::ScopedImGuiID elementId(static_cast<int>(i));
                             auto& elem = arr->elements[i];
 
                             if (isStringValue(elem))
                             {
-                                std::string text = toEditableString(elem);
-                                if (ImGui::InputText(elemLabel.c_str(), &text, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
+                                shine::SString text = toEditableString(elem);
+                                if (ImGui::InputText(kArrayElementLabel, &text, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
                                 {
-                                    elem = reflection::ScriptValue(shine::SString(text));
+                                    elem = reflection::ScriptValue(text);
                                     changed = true;
                                 }
                             }
                             else if (std::holds_alternative<int>(elem.data))
                             {
                                 int intVal = std::get<int>(elem.data);
-                                if (ImGui::InputInt(elemLabel.c_str(), &intVal, 1, 10, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
+                                if (ImGui::InputInt(kArrayElementLabel, &intVal, 1, 10, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
                                 {
                                     elem = reflection::ScriptValue(intVal);
                                     changed = true;
@@ -384,7 +392,7 @@ namespace shine::editor::views
                             else if (std::holds_alternative<float>(elem.data))
                             {
                                 float floatVal = std::get<float>(elem.data);
-                                if (ImGui::DragFloat(elemLabel.c_str(), &floatVal, 0.01f, 0, 0, "%.3f", isReadOnly ? ImGuiSliderFlags_NoInput : 0))
+                                if (ImGui::DragFloat(kArrayElementLabel, &floatVal, 0.01f, 0, 0, "%.3f", isReadOnly ? ImGuiSliderFlags_NoInput : 0))
                                 {
                                     elem = reflection::ScriptValue(floatVal);
                                     changed = true;
@@ -393,7 +401,7 @@ namespace shine::editor::views
                             else if (std::holds_alternative<bool>(elem.data))
                             {
                                 bool boolVal = std::get<bool>(elem.data);
-                                if (ImGui::Checkbox(elemLabel.c_str(), &boolVal))
+                                if (ImGui::Checkbox(kArrayElementLabel, &boolVal))
                                 {
                                     elem = reflection::ScriptValue(boolVal);
                                     changed = true;
@@ -401,7 +409,7 @@ namespace shine::editor::views
                             }
                             else
                             {
-                                ImGui::TextDisabled("%s: (unsupported type)", elemLabel.c_str());
+                                ImGui::TextDisabled("[%zu]: (unsupported type)", i);
                             }
                         }
 
@@ -411,7 +419,6 @@ namespace shine::editor::views
                         }
                         ImGui::TreePop();
                     }
-                    ImGui::PopID();
                     // 未展开时显示大小
                     ImGui::SameLine();
                     ImGui::TextDisabled("[%zu]", arr->elements.size());
@@ -430,12 +437,10 @@ namespace shine::editor::views
                     auto& map = mapWrapper.ptr;
                     if (!map) map = std::make_shared<reflection::ScriptMap>();
 
-                    const std::string treeNodeLabel = fmt::format("{{{}}} {}", map->elements.size(), nameText);
-                    ImGui::PushID(nameText.c_str());
-                    if (ImGui::TreeNode(treeNodeLabel.c_str()))
+                    if (ImGui::TreeNodeEx("ScriptMap", ImGuiTreeNodeFlags_None, "{%zu} %s", map->elements.size(), propertyNameText))
                     {
                         // 添加新键值对
-                        static std::string newKeyBuffer{};
+                        static shine::SString newKeyBuffer{};
                         if (!isReadOnly)
                         {
                             ImGui::PushID("new_key_input");
@@ -444,12 +449,11 @@ namespace shine::editor::views
                             ImGui::SameLine();
                             if (ImGui::Button("+ Add Key"))
                             {
-                                if (newKeyBuffer[0] != '\0')
+                                if (!newKeyBuffer.empty())
                                 {
-                                    shine::SString newKey(newKeyBuffer);
-                                    if (map->elements.find(newKey) == map->elements.end())
+                                    if (map->elements.find(newKeyBuffer) == map->elements.end())
                                     {
-                                        map->elements[newKey] = reflection::ScriptValue(shine::SString(""));
+                                        map->elements[newKeyBuffer] = reflection::ScriptValue(shine::SString(""));
                                         changed = true;
                                         newKeyBuffer.clear();
                                     }
@@ -477,23 +481,19 @@ namespace shine::editor::views
                             ImGui::SameLine();
 
                             // 值编辑
-                            const std::string valLabel = fmt::format("##val_{}", key);
                             if (isStringValue(val))
                             {
-                                char buffer[256];
-                                const std::string text = toEditableString(val);
-                                strncpy_s(buffer, text.c_str(), sizeof(buffer) - 1);
-                                buffer[sizeof(buffer) - 1] = '\0';
-                                if (ImGui::InputText(valLabel.c_str(), buffer, sizeof(buffer), isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
+                                shine::SString text = toEditableString(val);
+                                if (ImGui::InputText(kMapValueLabel, &text, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
                                 {
-                                    val = reflection::ScriptValue(shine::SString(buffer));
+                                    val = reflection::ScriptValue(text);
                                     changed = true;
                                 }
                             }
                             else if (std::holds_alternative<int>(val.data))
                             {
                                 int intVal = std::get<int>(val.data);
-                                if (ImGui::InputInt(valLabel.c_str(), &intVal, 1, 10, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
+                                if (ImGui::InputInt(kMapValueLabel, &intVal, 1, 10, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
                                 {
                                     val = reflection::ScriptValue(intVal);
                                     changed = true;
@@ -503,7 +503,7 @@ namespace shine::editor::views
                             else if (std::holds_alternative<float>(val.data))
                             {
                                 float floatVal = std::get<float>(val.data);
-                                if (ImGui::DragFloat(valLabel.c_str(), &floatVal, 0.01f, 0, 0, "%.3f", isReadOnly ? ImGuiSliderFlags_NoInput : 0))
+                                if (ImGui::DragFloat(kMapValueLabel, &floatVal, 0.01f, 0, 0, "%.3f", isReadOnly ? ImGuiSliderFlags_NoInput : 0))
                                 {
                                     val = reflection::ScriptValue(floatVal);
                                     changed = true;
@@ -512,7 +512,7 @@ namespace shine::editor::views
                             else if (std::holds_alternative<bool>(val.data))
                             {
                                 bool boolVal = std::get<bool>(val.data);
-                                if (ImGui::Checkbox(valLabel.c_str(), &boolVal))
+                                if (ImGui::Checkbox(kMapValueLabel, &boolVal))
                                 {
                                     val = reflection::ScriptValue(boolVal);
                                     changed = true;
@@ -539,7 +539,6 @@ namespace shine::editor::views
                         }
                         ImGui::TreePop();
                     }
-                    ImGui::PopID();
                     // 未展开时显示大小
                     ImGui::SameLine();
                     ImGui::TextDisabled("{%zu}", map->elements.size());
@@ -551,11 +550,11 @@ namespace shine::editor::views
             }
             else
             {
-                std::string text = toEditableString(value);
-                changed = ImGui::InputText(valueLabel.c_str(), &text, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0);
+                shine::SString text = toEditableString(value);
+                changed = ImGui::InputText(kScriptValueLabel, &text, isReadOnly ? ImGuiInputTextFlags_ReadOnly : 0);
                 if (changed)
                 {
-                    newValue = reflection::ScriptValue(shine::SString(text));
+                    newValue = reflection::ScriptValue(text);
                 }
             }
 
@@ -573,9 +572,9 @@ namespace shine::editor::views
         for (size_t groupIndex = 0; groupIndex < cache.groupOrder.size(); ++groupIndex)
         {
             const auto& groupName = cache.groupOrder[groupIndex];
-            const std::string groupLabel = fmt::format("{}##ScriptGroup_{}", groupName, groupIndex);
+            const shine::editor::util::ScopedImGuiID groupId(static_cast<int>(groupIndex));
             const bool opened = ImGui::CollapsingHeader(
-                groupLabel.c_str(),
+                groupName.c_str(),
                 ImGuiTreeNodeFlags_DefaultOpen
             );
             if (!opened)
@@ -588,9 +587,8 @@ namespace shine::editor::views
             {
                 continue;
             }
-            const std::string tableId = fmt::format("ScriptGroupTable_{}", groupIndex);
             if (!ImGui::BeginTable(
-                tableId.c_str(),
+                kGroupTableId,
                 2,
                 ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp
             ))

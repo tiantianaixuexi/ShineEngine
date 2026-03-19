@@ -129,8 +129,9 @@ inline bool BuildMethodCallCache(const MethodInfo& method) {
         cache.frameSize = cache.returnOffset + returnType->size;
     }
 
-    cache.ReserveParams(method.paramTypes.size());
-    for (const auto paramTypeId : method.paramTypes) {
+    const auto paramTypes = method.GetParamTypes();
+    cache.ReserveParams(paramTypes.size());
+    for (const auto paramTypeId : paramTypes) {
         const auto* paramType = TypeRegistry::Get().FindFast(paramTypeId);
         if (!paramType) {
             cache.valid = false;
@@ -159,13 +160,13 @@ struct ScriptView : TypeView {
         return TypeRegistry::Get().FindFast(id);
     }
 
-    [[nodiscard]] const FieldInfo*  GetFieldInfo(shine::STextView n) const { return typeInfo->FindField(n); }
+    [[nodiscard]] const FieldInfo*  GetFieldInfo(shine::STextView n) const { return typeInfo->FindFieldFast(n); }
      [[nodiscard]] const FieldInfo*  GetFieldInfo(std::size_t i)      const {
-        return i < typeInfo->fields.size() ? &typeInfo->fields[i] : nullptr;
+        return typeInfo != nullptr ? typeInfo->GetFieldAt(i) : nullptr;
     }
-    [[nodiscard]] const MethodInfo* GetMethodInfo(shine::STextView n) const { return typeInfo->FindMethod(n); }
+    [[nodiscard]] const MethodInfo* GetMethodInfo(shine::STextView n) const { return typeInfo->FindMethodFast(n); }
      [[nodiscard]] const MethodInfo* GetMethodInfo(std::size_t i)      const {
-        return i < typeInfo->methods.size() ? &typeInfo->methods[i] : nullptr;
+        return typeInfo != nullptr ? typeInfo->GetMethodAt(i) : nullptr;
     }
 
     // --- Field get / set (with stack-buffer optimisation) --------------------
@@ -208,7 +209,7 @@ struct ScriptView : TypeView {
     {
         if (!method || !HasFlag(method->flags, FunctionFlags::ScriptCallable))
             return {};
-        if (args.size() != method->paramTypes.size())
+        if (args.size() != method->GetParamCount())
             return {};
         if ((!method->GetCallCache() || !method->GetCallCache()->valid) && !detail::BuildMethodCallCache(*method))
             return {};

@@ -27,6 +27,14 @@
 namespace shine::reflection {
 
 template <typename T>
+static void CopyColdSpan(ReflectionColdVector<T>& destination, std::span<const T> source) {
+    destination.resize(source.size());
+    for (std::size_t index = 0; index < source.size(); ++index) {
+        destination[index] = source[index];
+    }
+}
+
+template <typename T>
 class ReflectionPlanBlock {
 private:
     struct StagePage;
@@ -626,15 +634,17 @@ struct TypeBuilder {
         , emitLayout_(&plan.GetEmitLayout())
         , fieldBatch_(ReflectionColdPool<FieldColdData>::Get().BeginContiguousBatch(plan.fieldCount))
         , methodBatch_(ReflectionColdPool<MethodColdData>::Get().BeginContiguousBatch(plan.methodCount)) {
+        auto& fields = info.MutableFields();
+        auto& methods = info.MutableMethods();
         if (plan.fieldCount != 0) {
-            fieldPlanBaseIndex_ = info.fields.size();
-            info.fields.resize(fieldPlanBaseIndex_ + plan.fieldCount);
+            fieldPlanBaseIndex_ = fields.size();
+            fields.resize(fieldPlanBaseIndex_ + plan.fieldCount);
             fieldsPreSized_ = true;
             fieldWriteIndex_ = fieldPlanBaseIndex_;
         }
         if (plan.methodCount != 0) {
-            methodPlanBaseIndex_ = info.methods.size();
-            info.methods.resize(methodPlanBaseIndex_ + plan.methodCount);
+            methodPlanBaseIndex_ = methods.size();
+            methods.resize(methodPlanBaseIndex_ + plan.methodCount);
             methodsPreSized_ = true;
             methodWriteIndex_ = methodPlanBaseIndex_;
         }
@@ -651,10 +661,10 @@ struct TypeBuilder {
 
     ~TypeBuilder() {
         if (fieldsPreSized_) {
-            info.fields.resize(fieldWriteIndex_);
+            info.MutableFields().resize(fieldWriteIndex_);
         }
         if (methodsPreSized_) {
-            info.methods.resize(methodWriteIndex_);
+            info.MutableMethods().resize(methodWriteIndex_);
         }
         if (enumsPreSized_) {
             info.MutableEnumEntries().resize(enumWriteIndex_);
@@ -771,7 +781,7 @@ struct TypeBuilder {
             f.size      = sizeof(MType);
             f.alignment = alignof(MType);
             f.isPod     = std::is_trivially_copyable_v<MType>;
-            f.coldData  = std::move(fieldColdData);
+            f.SetColdData(std::move(fieldColdData));
 
             if constexpr (is_sequence_container<MType>::value) {
                 f.containerType = ContainerType::Sequence;
@@ -812,7 +822,7 @@ struct TypeBuilder {
                 *static_cast<MType*>(dst) = *static_cast<const MType*>(src);
         };
 
-        return FieldBuilder{f, *this, *f.coldData, fieldPlan};
+        return FieldBuilder{f, *this, f.MutableColdData(), fieldPlan};
     }
 
     // ---- MethodBuilder (fluent API, C++23: unified Meta) --------------------
@@ -864,10 +874,11 @@ struct TypeBuilder {
             m.flags      = FunctionFlags::None;
             m.returnType = GetTypeId<typename Traits::ReturnType>();
             m.owner      = ReflectionOwnerHandle{};
-            m.paramTypes.reserve(Traits::Arity);
-            m.coldData   = std::move(methodColdData);
+            m.SetColdData(std::move(methodColdData));
+            auto& paramTypes = m.MutableParamTypes();
+            paramTypes.reserve(Traits::Arity);
             [&]<std::size_t... I>(std::index_sequence<I...>) {
-                ((m.paramTypes.push_back(
+                ((paramTypes.push_back(
                     GetTypeId<std::tuple_element_t<I, typename Traits::ParamTuple>>())), ...);
             }(std::make_index_sequence<Traits::Arity>{});
         }
@@ -891,7 +902,7 @@ struct TypeBuilder {
             }(std::make_index_sequence<Traits::Arity>{});
         };
 
-        return MethodBuilder{m, *this, *m.coldData, methodPlan};
+        return MethodBuilder{m, *this, m.MutableColdData(), methodPlan};
     }
 
     // ---- Enum registration --------------------------------------------------
@@ -937,7 +948,7 @@ private:
             return;
         }
 
-        auto& field = info.fields[fieldIndex];
+        auto& field = info.MutableFields()[fieldIndex];
         field = FieldInfo{};
         field.nameHash = fieldPlan->nameHash;
         field.flags = fieldPlan->flags;
@@ -949,7 +960,7 @@ private:
         field.size = fieldPlan->size;
         field.alignment = fieldPlan->alignment;
         field.isPod = fieldPlan->isPod;
-        field.coldData = CreateFieldColdData(fieldPlan->name, fieldDescriptor);
+        field.SetColdData(CreateFieldColdData(fieldPlan->name, fieldDescriptor));
     }
 
     void EmitPlannedMethod(size_t methodIndex, const TypeRegistrationPlan::EmitLayout::MethodEmitDescriptor& methodDescriptor) {
@@ -958,15 +969,13 @@ private:
             return;
         }
 
-        auto& method = info.methods[methodIndex];
+        auto& method = info.MutableMethods()[methodIndex];
         method = MethodInfo{};
         method.nameHash = methodPlan->nameHash;
         method.flags = methodPlan->flags;
         method.returnType = methodPlan->returnType;
         method.owner = ReflectionOwnerHandle{};
-        method.paramTypes.reserve(methodPlan->paramTypeCount);
-        method.paramTypes.insert(method.paramTypes.end(), methodDescriptor.paramTypes.begin(), methodDescriptor.paramTypes.end());
-        method.coldData = CreateMethodColdData(methodPlan->name, methodDescriptor);
+        method.SetColdData(CreateMethodColdData(methodPlan->name, methodDescriptor));
     }
 
     void EmitPlannedEnum(size_t enumIndex, const TypeRegistrationPlan::EmitLayout::EnumEmitDescriptor& enumDescriptor) {
@@ -993,12 +1002,7 @@ private:
             coldData->builtinMetadata.minValue = fieldPlan->minValue;
             coldData->builtinMetadata.maxValue = fieldPlan->maxValue;
             coldData->builtinMetadata.hasRange = fieldPlan->hasRange;
-            if (!fieldDescriptor.runtimeMetadata.empty()) {
-                coldData->metadata.reserve(fieldDescriptor.runtimeMetadata.size());
-                for (const auto& entry : fieldDescriptor.runtimeMetadata) {
-                    coldData->metadata.push_back(entry);
-                }
-            }
+            CopyColdSpan(coldData->metadata, fieldDescriptor.runtimeMetadata);
             return coldData;
         }
 
@@ -1013,12 +1017,8 @@ private:
         const auto* methodPlan = methodDescriptor.plan;
         if (methodPlan != nullptr) {
             coldData->name = methodPlan->name;
-            if (!methodDescriptor.runtimeMetadata.empty()) {
-                coldData->metadata.reserve(methodDescriptor.runtimeMetadata.size());
-                for (const auto& entry : methodDescriptor.runtimeMetadata) {
-                    coldData->metadata.push_back(entry);
-                }
-            }
+            CopyColdSpan(coldData->paramTypes, methodDescriptor.paramTypes);
+            CopyColdSpan(coldData->metadata, methodDescriptor.runtimeMetadata);
             return coldData;
         }
         coldData->name = InternReflectionText(methodName);
@@ -1034,29 +1034,31 @@ private:
     }
 
     FieldInfo& AcquireBoundFieldSlot() {
-        return info.fields[fieldWriteIndex_++];
+        return info.MutableFields()[fieldWriteIndex_++];
     }
 
     MethodInfo& AcquireBoundMethodSlot() {
-        return info.methods[methodWriteIndex_++];
+        return info.MutableMethods()[methodWriteIndex_++];
     }
 
     FieldInfo& AcquireFieldSlot() {
-        if (fieldWriteIndex_ < info.fields.size()) {
-            return info.fields[fieldWriteIndex_++];
+        auto& fields = info.MutableFields();
+        if (fieldWriteIndex_ < fields.size()) {
+            return fields[fieldWriteIndex_++];
         }
-        info.fields.emplace_back();
+        fields.emplace_back();
         ++fieldWriteIndex_;
-        return info.fields.back();
+        return fields.back();
     }
 
     MethodInfo& AcquireMethodSlot() {
-        if (methodWriteIndex_ < info.methods.size()) {
-            return info.methods[methodWriteIndex_++];
+        auto& methods = info.MutableMethods();
+        if (methodWriteIndex_ < methods.size()) {
+            return methods[methodWriteIndex_++];
         }
-        info.methods.emplace_back();
+        methods.emplace_back();
         ++methodWriteIndex_;
-        return info.methods.back();
+        return methods.back();
     }
 
     EnumEntry& AcquireEnumSlot() {

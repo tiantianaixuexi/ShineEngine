@@ -19,6 +19,7 @@
 #include "util/EngineDirectoryService.h"
 #include "util/encoding_util.ixx"
 #include "util/file_util.ixx"
+#include "util/path_util.h"
 #include "util/watcher/FileWatchService.h"
 
 
@@ -30,6 +31,12 @@ namespace shine::script
     {
         constexpr auto kReadOnlyAccess  = "ReadOnly";
         constexpr auto kReadWriteAccess = "ReadWrite";
+        constexpr STextView kJsExtension = ".js";
+        constexpr STextView kTsExtension = ".ts";
+        constexpr STextView kBuildScriptPrefix = "build/script/";
+        constexpr STextView kScriptPrefix = "script/";
+        constexpr STextView kScriptSegment = "/script/";
+        constexpr STextView kBuildScriptSegment = "/build/script/";
 
         uint64_t HashScriptText(std::string_view text)
         {
@@ -51,59 +58,72 @@ namespace shine::script
             return key;
         }
 
+        [[nodiscard]] shine::SString NormalizeScriptMappingPath(const std::filesystem::path& path)
+        {
+            return util::to_standard_path(SString::from_utf8(path.string()));
+        }
+
+        [[nodiscard]] shine::SString MakePathText(const std::filesystem::path& path)
+        {
+            return SString::from_utf8(path.string());
+        }
+
+        void ReplaceExtensionInPlace(shine::SString& path, STextView fromExt, STextView toExt)
+        {
+            if (!path.ends_with(fromExt))
+                return;
+
+            path.erase(path.size() - fromExt.size(), fromExt.size());
+            path += toExt;
+        }
+
+        [[nodiscard]] shine::SString NormalizeScriptMapKey(const reflection::ScriptValue& keyValue)
+        {
+            if (std::holds_alternative<shine::SString>(keyValue.data))
+                return std::get<shine::SString>(keyValue.data);
+
+            if (std::holds_alternative<shine::STextView>(keyValue.data))
+                return shine::SString(std::get<shine::STextView>(keyValue.data));
+
+            if (std::holds_alternative<bool>(keyValue.data))
+                return std::get<bool>(keyValue.data) ? shine::SString("true") : shine::SString("false");
+
+            if (std::holds_alternative<int>(keyValue.data))
+                return shine::SString(std::to_string(std::get<int>(keyValue.data)));
+
+            if (std::holds_alternative<float>(keyValue.data))
+                return shine::SString(std::to_string(std::get<float>(keyValue.data)));
+
+            if (std::holds_alternative<double>(keyValue.data))
+                return shine::SString(std::to_string(std::get<double>(keyValue.data)));
+
+            return {};
+        }
+
         // 从 JavaScript 路径计算 TypeScript 源路径
         // build/script/game.js -> script/game.ts
         // 支持相对路径和绝对路径，支持正斜杠和反斜杠
         shine::SString ComputeSourcePathFromJs(const std::filesystem::path& jsPath)
         {
-            std::string pathStr = jsPath.string();
-            // 替换 .js 为 .ts
-            if (pathStr.size() >= 3 && pathStr.substr(pathStr.size() - 3) == ".js")
-            {
-                pathStr.resize(pathStr.size() - 3);
-                pathStr += ".ts";
-            }
-            // 替换 build/script 路径段为 script（支持正斜杠和反斜杠）
-            const std::string buildPrefixFwd = "build/script/";
-            const std::string buildPrefixBkwd = "build\\script\\";
-            const std::string scriptPrefixFwd = "script/";
-            const std::string scriptPrefixBkwd = "script\\";
-
-            size_t pos = pathStr.find(buildPrefixFwd);
-            if (pos != std::string::npos)
-            {
-                pathStr = pathStr.substr(0, pos) + scriptPrefixFwd + pathStr.substr(pos + buildPrefixFwd.size());
-            }
-            else
-            {
-                pos = pathStr.find(buildPrefixBkwd);
-                if (pos != std::string::npos)
-                {
-                    pathStr = pathStr.substr(0, pos) + scriptPrefixBkwd + pathStr.substr(pos + buildPrefixBkwd.size());
-                }
-            }
-            return shine::SString(pathStr);
+            shine::SString path = NormalizeScriptMappingPath(jsPath);
+            ReplaceExtensionInPlace(path, kJsExtension, kTsExtension);
+            path.replace_first(kBuildScriptPrefix, kScriptPrefix);
+            return util::to_platform_path(path.view());
         }
 
         // 从 TypeScript 源路径计算 JavaScript 路径
         // script/game.ts -> build/script/game.js
         shine::SString ComputeJsPathFromSource(const std::filesystem::path& tsPath)
         {
-            std::string pathStr = tsPath.string();
-            // 替换 .ts 为 .js
-            if (pathStr.size() >= 3 && pathStr.substr(pathStr.size() - 3) == ".ts")
+            shine::SString path = NormalizeScriptMappingPath(tsPath);
+            ReplaceExtensionInPlace(path, kTsExtension, kJsExtension);
+
+            if (!path.replace_first(kScriptSegment, kBuildScriptSegment) && path.starts_with(kScriptPrefix))
             {
-                pathStr.resize(pathStr.size() - 3);
-                pathStr += ".js";
+                path.insert(0, "build/");
             }
-            // 如果路径以 script/ 开头，替换为 build/script/
-            const std::string scriptPrefix = "script/";
-            const std::string buildPrefix = "build/script/";
-            if (pathStr.starts_with(scriptPrefix) == 0)
-            {
-                pathStr = buildPrefix + pathStr.substr(scriptPrefix.size());
-            }
-            return shine::SString(pathStr);
+
+            return util::to_platform_path(path.view());
         }
 
         JSValue ResolveScriptObject(JSContext* context, JSValueConst globalObj)
@@ -201,18 +221,7 @@ namespace shine::script
                         trait->Iterate(nativePtr, &data, [](const void* k, const void* v, void* ud) {
                             auto* d = static_cast<IterData*>(ud);
                             auto keyVal = d->bridge->ToScript(k, d->keyType);
-                            shine::SString keyStr {};
-                            if (std::holds_alternative<shine::SString>(keyVal.data)) {
-                                keyStr = std::get<shine::SString>(keyVal.data);
-                            } else if (std::holds_alternative<shine::STextView>(keyVal.data)) {
-                                keyStr = std::get<shine::STextView>(keyVal.data).to_string();
-                            } else if (std::holds_alternative<int>(keyVal.data)) {
-                                keyStr = std::to_string(std::get<int>(keyVal.data));
-                            } else if (std::holds_alternative<float>(keyVal.data)) {
-                                keyStr = std::to_string(std::get<float>(keyVal.data));
-                            } else if (std::holds_alternative<double>(keyVal.data)) {
-                                keyStr = std::to_string(std::get<double>(keyVal.data));
-                            }
+                            shine::SString keyStr = NormalizeScriptMapKey(keyVal);
                             d->map->elements[keyStr] = d->bridge->ToScript(v, d->valType);
                         });
                     }
@@ -602,7 +611,8 @@ namespace shine::script
         }
 
         const std::filesystem::path resolvedPath = ResolveScriptPath(scriptPath);
-        auto textResult = util::read_file_text(shine::SString(resolvedPath.string()).view());
+        const shine::SString resolvedPathText = MakePathText(resolvedPath);
+        auto textResult = util::read_file_text(resolvedPathText.view());
 
         // 如果 .js 文件不存在，尝试自动编译 TypeScript
         if (!textResult.has_value())
@@ -613,25 +623,25 @@ namespace shine::script
                 SHINE_LOG_INFO(ScriptSystemLog, "ScriptRuntime", "JS文件不存在，自动编译 TypeScript: {}", sourceTsPath.string());
                 if (CompileTypeScript())
                 {
-                    textResult = util::read_file_text(shine::SString(resolvedPath.string()).view());
+                    textResult = util::read_file_text(resolvedPathText.view());
                 }
             }
         }
 
         if (!textResult.has_value())
         {
-            SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "读取脚本失败: {} error={}", resolvedPath.string(), textResult.error());
+            SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "读取脚本失败: {} error={}", resolvedPathText, textResult.error());
             return false;
         }
 
         ScriptEntry entry;
-        if (!EvaluateScriptText(shine::SString(resolvedPath.string()).view(), textResult.value(), entry))
+        if (!EvaluateScriptText(resolvedPathText.view(), textResult.value(), entry))
         {
             return false;
         }
 
         entry.propertyLayoutVersion = 1;
-        entry.path = shine::SString(resolvedPath.string());
+        entry.path = resolvedPathText;
         entry.sourcePath = ComputeSourcePathFromJs(resolvedPath);
         sourceHashes_[MakeScriptPathKey(resolvedPath)] = HashScriptText(textResult.value());
         if (!scriptSourceRoot_.empty())
@@ -642,7 +652,8 @@ namespace shine::script
             {
                 std::filesystem::path sourceTsPath = scriptSourceRoot_ / resolvedPath.filename();
                 sourceTsPath.replace_extension(".ts");
-                if (const auto sourceTsResult = util::read_file_text(shine::SString(sourceTsPath.string()).view()))
+                const shine::SString sourceTsPathText = MakePathText(sourceTsPath);
+                if (const auto sourceTsResult = util::read_file_text(sourceTsPathText.view()))
                 {
                     sourceHashes_[MakeScriptPathKey(sourceTsPath)] = HashScriptText(sourceTsResult.value());
                 }
@@ -665,7 +676,7 @@ namespace shine::script
         }
         outHandle.id = handleId;
 
-        SHINE_LOG_INFO(ScriptSystemLog, "ScriptRuntime", "加载脚本成功: {} (source: {}) handle={}", resolvedPath.string(), entry.sourcePath.to_string(), handleId);
+        SHINE_LOG_INFO(ScriptSystemLog, "ScriptRuntime", "加载脚本成功: {} (source: {}) handle={}", resolvedPathText, entry.sourcePath, handleId);
         return true;
     }
 
@@ -682,15 +693,16 @@ namespace shine::script
         }
 
         const std::filesystem::path resolvedPath = ResolveScriptPath(it->second.path.view());
-        const auto textResult = util::read_file_text(shine::SString(resolvedPath.string()).view());
+        const shine::SString resolvedPathText = MakePathText(resolvedPath);
+        const auto textResult = util::read_file_text(resolvedPathText.view());
         if (!textResult.has_value())
         {
-            SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "重载脚本读取失败: {} error={}", resolvedPath.string(), textResult.error());
+            SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "重载脚本读取失败: {} error={}", resolvedPathText, textResult.error());
             return false;
         }
 
         ScriptEntry newEntry;
-        if (!EvaluateScriptText(shine::SString(resolvedPath.string()).view(), textResult.value(), newEntry))
+        if (!EvaluateScriptText(resolvedPathText.view(), textResult.value(), newEntry))
         {
             return false;
         }
@@ -705,7 +717,7 @@ namespace shine::script
         const uint64_t nextLayoutVersion = it->second.propertyLayoutVersion + 1;
         it->second = std::move(newEntry);
         it->second.propertyLayoutVersion = nextLayoutVersion;
-        it->second.path = shine::SString(resolvedPath.string());
+        it->second.path = resolvedPathText;
         it->second.sourcePath = ComputeSourcePathFromJs(resolvedPath);
         invokeScope_.owner = nullptr;
         if (!InvokeNoArg(reloadedHandle, it->second, it->second.initFunc, STextView::from_literal("Init")))
@@ -846,7 +858,8 @@ namespace shine::script
                     return;
                 }
             }
-            if (const auto sourceResult = util::read_file_text(shine::SString(changedPath.string()).view()))
+            const shine::SString changedPathText = MakePathText(changedPath);
+            if (const auto sourceResult = util::read_file_text(changedPathText.view()))
             {
                 const uint64_t sourceHash = HashScriptText(sourceResult.value());
                 if (const auto it = sourceHashes_.find(changedKey); it != sourceHashes_.end() && it->second == sourceHash)
@@ -910,7 +923,8 @@ namespace shine::script
         SHINE_LOG_INFO(ScriptSystemLog, "ScriptRuntime", "开始编译TS: {}", scriptSourceRoot_.string());
         const int exitCode = std::system(command.c_str());
 
-        const auto outputResult = util::read_file_text(shine::SString(compileLogPath.string()).view());
+        const shine::SString compileLogPathText = MakePathText(compileLogPath);
+        const auto outputResult = util::read_file_text(compileLogPathText.view());
         if (exitCode != 0)
         {
             SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "TS编译失败，exitCode={}", exitCode);
@@ -997,21 +1011,22 @@ namespace shine::script
         for (const auto& target : targets)
         {
             const std::filesystem::path resolvedPath = ResolveScriptPath(target.path.view());
-            const auto textResult = util::read_file_text(shine::SString(resolvedPath.string()).view());
+            const shine::SString resolvedPathText = MakePathText(resolvedPath);
+            const auto textResult = util::read_file_text(resolvedPathText.view());
             if (!textResult)
             {
-                SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "脚本热重载失败: handle={} 读取失败 {}", target.handleId, resolvedPath.string());
+                SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "脚本热重载失败: handle={} 读取失败 {}", target.handleId, resolvedPathText);
                 continue;
             }
 
             ScriptEntry newEntry;
-            if (!EvaluateScriptText(shine::SString(resolvedPath.string()).view(), textResult.value(), newEntry))
+            if (!EvaluateScriptText(resolvedPathText.view(), textResult.value(), newEntry))
             {
                 SHINE_LOG_ERROR(ScriptSystemLog, "ScriptError", "脚本热重载失败: handle={}", target.handleId);
                 continue;
             }
 
-            newEntry.path = shine::SString(resolvedPath.string());
+            newEntry.path = resolvedPathText;
             newEntry.sourcePath = ComputeSourcePathFromJs(resolvedPath);
             newEntry.propertyLayoutVersion = target.oldVersion + 1; // Preserve and increment version
             sourceHashes_[MakeScriptPathKey(resolvedPath)] = HashScriptText(textResult.value());
@@ -1019,7 +1034,8 @@ namespace shine::script
             {
                 std::filesystem::path sourceTsPath = scriptSourceRoot_ / resolvedPath.filename();
                 sourceTsPath.replace_extension(".ts");
-                if (const auto sourceTsResult = util::read_file_text(shine::SString(sourceTsPath.string()).view()))
+                const shine::SString sourceTsPathText = MakePathText(sourceTsPath);
+                if (const auto sourceTsResult = util::read_file_text(sourceTsPathText.view()))
                 {
                     sourceHashes_[MakeScriptPathKey(sourceTsPath)] = HashScriptText(sourceTsResult.value());
                 }
@@ -1482,7 +1498,7 @@ namespace shine::script
 
         auto* actor = scope->system->FindActorById(actorId);
         const auto* typeInfo = reflection::TypeRegistry::Get().FindByNameFast(typeName);
-        const auto* fieldInfo = typeInfo ? typeInfo->FindField(fieldName) : nullptr;
+        const auto* fieldInfo = typeInfo ? typeInfo->FindFieldFast(fieldName) : nullptr;
         if (!actor || !fieldInfo) {
             JS_FreeCString(ctx, fieldName);
             JS_FreeCString(ctx, typeName);
@@ -1522,7 +1538,7 @@ namespace shine::script
 
         auto* actor = scope->system->FindActorById(actorId);
         const auto* typeInfo = reflection::TypeRegistry::Get().FindByNameFast(typeName);
-        const auto* fieldInfo = typeInfo ? typeInfo->FindField(fieldName) : nullptr;
+        const auto* fieldInfo = typeInfo ? typeInfo->FindFieldFast(fieldName) : nullptr;
         if (!actor || !fieldInfo || !fieldInfo->setterFn) {
             JS_FreeCString(ctx, fieldName);
             JS_FreeCString(ctx, typeName);
@@ -1663,25 +1679,26 @@ namespace shine::script
         outEntry.properties.clear();
 
         const std::filesystem::path resolvedPath = ResolveScriptPath(scriptPath);
+        const shine::SString resolvedPathText = MakePathText(resolvedPath);
         const std::filesystem::path helperPath = resolvedPath.parent_path() / "shine_decorators.js";
         if (helperPath != resolvedPath && std::filesystem::exists(helperPath))
         {
             if (!decoratorLibLoaded_)
             {
-                const auto helperTextResult = util::read_file_text(shine::SString(helperPath.string()).view());
+                const shine::SString helperPathText = MakePathText(helperPath);
+                const auto helperTextResult = util::read_file_text(helperPathText.view());
                 if (helperTextResult.has_value())
                 {
-                    const std::string helperPathString = helperPath.string();
                     JSValue helperEvalResult = JS_Eval(
                         context_,
                         helperTextResult.value().data(),
                         helperTextResult.value().size(),
-                        helperPathString.c_str(),
+                        helperPathText.c_str(),
                         JS_EVAL_TYPE_GLOBAL
                     );
                     if (JS_IsException(helperEvalResult))
                     {
-                        ReportException(STextView::from_literal("EvaluateDecoratorLib"), shine::SString(helperPathString).view());
+                        ReportException(STextView::from_literal("EvaluateDecoratorLib"), helperPathText.view());
                         JS_FreeValue(context_, helperEvalResult);
                         return false;
                     }
@@ -1709,8 +1726,7 @@ namespace shine::script
             }
         }
 
-        const std::string pathString = resolvedPath.string();
-        JSValue evalResult = JS_Eval(context_, scriptText.data(), scriptText.size(), pathString.c_str(), JS_EVAL_TYPE_GLOBAL);
+        JSValue evalResult = JS_Eval(context_, scriptText.data(), scriptText.size(), resolvedPathText.c_str(), JS_EVAL_TYPE_GLOBAL);
         if (JS_IsException(evalResult))
         {
             ReportException(STextView::from_literal("EvaluateScript"), scriptPath);

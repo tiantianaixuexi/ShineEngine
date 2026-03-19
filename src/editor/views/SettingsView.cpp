@@ -1,6 +1,5 @@
 #include "SettingsView.h"
 #include "../settings/EngineSettings.h"
-#include "../util/InspectorBuilder.h"
 #include "../util/StaticInspector.h" // Include Static Inspector
 #include "imgui/imgui.h"
 

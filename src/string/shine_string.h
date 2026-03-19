@@ -1475,6 +1475,26 @@ namespace shine
     static_assert([]() constexpr { SString s("abcabc"); s.replace_first("ab", "z"); return s == "zcabc"; }());
     static_assert([]() constexpr { SString s("abcabc"); s.replace_inplace("ab", "z"); return s == "zczc"; }());
     static_assert([]() constexpr { SString s("axxb"); s.replace_inplace("xx", "123"); return s == "a123b"; }());
+
+    struct SStringTransparentHash
+    {
+        using is_transparent = void;
+
+        [[nodiscard]] std::size_t operator()(STextView text) const noexcept
+        {
+            return SString::static_hash(text.sv());
+        }
+    };
+
+    struct SStringTransparentEqual
+    {
+        using is_transparent = void;
+
+        [[nodiscard]] constexpr bool operator()(STextView lhs, STextView rhs) const noexcept
+        {
+            return lhs == rhs;
+        }
+    };
 }
 
 template <>
@@ -1482,8 +1502,7 @@ struct std::hash<shine::SString>
 {
     std::size_t operator()(const shine::SString& s) const noexcept
     {
-        // Consistent with SString::hash() and static_hash() — single FNV-1a path.
-        return shine::SString::static_hash(std::string_view(s.data(), s.size()));
+        return shine::SStringTransparentHash{}(s.view());
     }
 };
 

@@ -9,6 +9,7 @@
 #include <concepts>
 
 #include "compiler_hints.h"
+#include "string/shine_text_view.h"
 
 namespace shine {
 namespace constexpr_ {
@@ -130,18 +131,14 @@ struct constexpr_str {
 
     // ==================== 编译期哈希 ====================
 
-    // 辅助函数：递归计算哈希（FNV-1a算法）
-    [[nodiscard]] consteval uint64_t hash_helper(size_t i) const noexcept {
-        if (i >= size_v) return 0;
-        uint64_t hash = hash_helper(i + 1);
-        hash ^= static_cast<uint64_t>(static_cast<unsigned char>(value[i]));
-        hash *= 1099511628211ULL;
-        return hash;
-    }
-
-    // 编译期哈希
-    [[nodiscard]] consteval uint64_t hash() const noexcept {
-        return hash_helper(0);
+    // 编译期/运行时哈希
+    [[nodiscard]] constexpr uint64_t hash() const noexcept {
+        uint64_t hash_value = 14695981039346656037ULL;
+        for (size_t i = 0; i < size_v; ++i) {
+            hash_value ^= static_cast<uint64_t>(static_cast<unsigned char>(value[i]));
+            hash_value *= 1099511628211ULL;
+        }
+        return hash_value;
     }
 
     // 运行时哈希（别名）
@@ -377,6 +374,15 @@ struct constexpr_str {
         return result;
     }
 
+    // 去除前导空白（编译期视图）
+    [[nodiscard]] constexpr shine::STextView trim_left_view() const noexcept {
+        size_t start = 0;
+        while (start < size_v && detail::is_space(value[start])) {
+            ++start;
+        }
+        return shine::STextView(value.data() + start, size_v - start);
+    }
+
     // 去除尾部空白（编译期）
     [[nodiscard]] consteval auto trim_right() const noexcept {
         size_t end = size_v;
@@ -390,6 +396,15 @@ struct constexpr_str {
         }
         result.value[end] = '\0';
         return result;
+    }
+
+    // 去除尾部空白（编译期视图）
+    [[nodiscard]] constexpr shine::STextView trim_right_view() const noexcept {
+        size_t end = size_v;
+        while (end > 0 && detail::is_space(value[end - 1])) {
+            --end;
+        }
+        return shine::STextView(value.data(), end);
     }
 
     // 去除两端空白（编译期）
@@ -410,6 +425,19 @@ struct constexpr_str {
         }
         result.value[trimmed_len] = '\0';
         return result;
+    }
+
+    // 去除两端空白（编译期视图）
+    [[nodiscard]] constexpr shine::STextView trim_view() const noexcept {
+        size_t start = 0;
+        while (start < size_v && detail::is_space(value[start])) {
+            ++start;
+        }
+        size_t end = size_v;
+        while (end > start && detail::is_space(value[end - 1])) {
+            --end;
+        }
+        return shine::STextView(value.data() + start, end - start);
     }
 
     // 转小写（编译期）

@@ -138,11 +138,10 @@ void AssetsBrower::RenderDirectoryNode(const std::filesystem::path &path) {
     if (isRoot)
         flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
-    // 使用全路径作为 id 后缀，避免同名文件夹冲突
-    const std::string labelId = ToDisplayText(path.filename()).to_string() + "##" + path.string();
-
-    const bool opened = shine::widget::IconTreeNode(
-        labelId.c_str(),
+    const SString directoryLabel = ToDisplayText(path.filename());
+    const bool opened = shine::widget::IconTreeNodeEx(
+        static_cast<int>(PathToID(path)),
+        directoryLabel.c_str(),
         iconCache_ ? iconCache_->Get("icon_win_open") : ImTextureID{},
         iconCache_ ? iconCache_->Get("icon_win_close") : ImTextureID{},
         flags);
@@ -174,19 +173,17 @@ void AssetsBrower::RenderDirectoryNode(const std::filesystem::path &path) {
                                        ? editorAssetRegistry_->FindByPath(sp)
                                        : nullptr;
 
-            const bool        hasSubs  = regEntry && !regEntry->record.subAssets.empty();
-            const SString stemStr  = SString::from_utf8(sp.stem().string());
+            const bool hasSubs = regEntry && !regEntry->record.subAssets.empty();
 
             // 按资产类型从查找表取图标（无 if-else）
             const char*       iconKey  = GetAssetTypeIconKey(regEntry ? STextView::from_string(regEntry->record.type) : STextView{});
             const ImTextureID typeIcon = iconCache_ ? iconCache_->Get(iconKey) : ImTextureID{};
+            const SString assetLabel = SString::from_utf8(sp.stem().string());
 
             if (hasSubs) {
-                SString sassetLabelId = stemStr;
-                sassetLabelId += "##";
-                sassetLabelId += SString::from_utf8(sp.string());
-                const bool        nodeOpen      = shine::widget::IconTreeNode(
-                    sassetLabelId.c_str(),
+                const bool        nodeOpen      = shine::widget::IconTreeNodeEx(
+                    static_cast<int>(PathToID(sp)),
+                    assetLabel.c_str(),
                     typeIcon,
                     typeIcon,
                     ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick);
@@ -196,19 +193,13 @@ void AssetsBrower::RenderDirectoryNode(const std::filesystem::path &path) {
 
                 if (nodeOpen) {
                     for (const auto &sub : regEntry->record.subAssets) {
-                        SString subLabel = SString::from_utf8(sub.name);
-                        subLabel += "##";
-                        subLabel += SString::from_utf8(sub.uuid);
                         const ImTextureID subIcon   = iconCache_ ? iconCache_->Get(GetAssetTypeIconKey(STextView::from_string(sub.type))) : ImTextureID{};
-                        shine::widget::IconLeafNode(subLabel.c_str(), subIcon);
+                        shine::widget::IconLeafNodeEx(sub.uuid.c_str(), sub.name.c_str(), subIcon);
                     }
                     ImGui::TreePop();
                 }
             } else {
-                SString sassetLabelId = stemStr;
-                sassetLabelId += "##";
-                sassetLabelId += SString::from_utf8(sp.string());
-                shine::widget::IconLeafNode(sassetLabelId.c_str(), typeIcon);
+                shine::widget::IconLeafNodeEx(static_cast<int>(PathToID(sp)), assetLabel.c_str(), typeIcon);
                 if (ImGui::IsItemClicked())
                     selectedDirectory_ = sp.parent_path();
             }
@@ -249,11 +240,14 @@ const char* AssetsBrower::GetAssetTypeIconKey(STextView type) noexcept
 //  PathToID — 将磁盘路径映射为稳定 ImGuiID（FNV-1a 32-bit）
 // -----------------------------------------------------------------------
 ImGuiID AssetsBrower::PathToID(const std::filesystem::path &path) {
-    const auto s = path.string();
+    const auto &s = path.native();
     uint32_t   h = 2166136261u;
-    for (const unsigned char c : s) {
-        h ^= c;
-        h *= 16777619u;
+    for (const auto c : s) {
+        const auto *bytes = reinterpret_cast<const unsigned char*>(&c);
+        for (size_t i = 0; i < sizeof(c); ++i) {
+            h ^= bytes[i];
+            h *= 16777619u;
+        }
     }
     return static_cast<ImGuiID>(h);
 }
@@ -441,13 +435,16 @@ void AssetsBrower::RenderAssetGrid() {
                     }
 
                     if (displayLabel) {
-                        auto        label = ToDisplayText(entry.path().filename()).to_string();
-                        const float maxW  = layoutItemSize_.x - 8.0f;
-                        while (!label.empty() && ImGui::CalcTextSize(label.c_str()).x > maxW)
-                            label.pop_back();
-                        if (label.size() > 2 && !label.empty() &&
-                            label.back() != entry.path().filename().string().back())
-                            label.replace(label.end() - 2, label.end(), "..");
+                        const SString fullLabel = ToDisplayText(entry.path().filename());
+                        SString label = fullLabel;
+                        const float maxW = layoutItemSize_.x - 8.0f;
+                        while (!label.empty() && ImGui::CalcTextSize(label.c_str()).x > maxW) {
+                            label.resize(label.size() - 1);
+                        }
+                        if (label.size() > 2 && !label.empty() && label.back() != fullLabel.back()) {
+                            label.resize(label.size() - 2);
+                            label.append("..");
+                        }
                         drawList->AddText(
                             ImVec2(pos.x + 4.0f,
                                    pos.y + layoutItemSize_.y - ImGui::GetFontSize() - 2.0f),
@@ -862,8 +859,9 @@ bool AssetsBrower::CreateFolder(const std::filesystem::path &parentDir, const sh
     const auto      newDir = parentDir / std::filesystem::path(name.to_string());
     std::error_code ec;
     std::filesystem::create_directory(newDir, ec);
-    if (!ec)
+    if (!ec) {
         gridDirty_ = true;
+    }
     return !ec;
 }
 

@@ -180,15 +180,36 @@ public:
 
     constexpr const_iterator binary_find(key_type const& key) const
         requires std::totally_ordered<Key> {
-        if (!sorted_) {
-            return find(key); // const 版本不能排序
+        if (sorted_) {
+            auto it = std::lower_bound(begin(), end(), key,
+                [](value_type const& elem, key_type const& k) {
+                    return elem.key < k;
+                });
+            if (it != end() && it->key == key) {
+                return it;
+            }
+            return end();
         }
-        auto it = std::lower_bound(begin(), end(), key,
-            [](value_type const& elem, key_type const& k) {
-                return elem.key < k;
+
+        // const 路径不能原地排序，但也不应退化为线性查找。
+        // 这里构造一个只读的指针视图并对其排序，再返回原容器中的元素指针。
+        std::array<const value_type*, N> ordered{};
+        for (size_type i = 0; i < current_size_; ++i) {
+            ordered[i] = &storage_[i];
+        }
+
+        auto first = ordered.begin();
+        auto last = ordered.begin() + current_size_;
+        std::sort(first, last, [](const value_type* a, const value_type* b) {
+            return a->key < b->key;
+        });
+
+        auto it = std::lower_bound(first, last, key,
+            [](const value_type* elem, key_type const& k) {
+                return elem->key < k;
             });
-        if (it != end() && it->key == key) {
-            return it;
+        if (it != last && (*it)->key == key) {
+            return *it;
         }
         return end();
     }
@@ -413,6 +434,14 @@ public:
         return result;
     }
 
+    // 逐个访问所有键（避免构造临时集合）
+    template <typename Func>
+    constexpr void for_each_key(Func&& func) const {
+        for (size_type i = 0; i < current_size_; ++i) {
+            std::forward<Func>(func)(storage_[i].key);
+        }
+    }
+
     // 获取所有值
     constexpr auto values() const noexcept {
         constexpr_vector<mapped_type, N> result;
@@ -420,6 +449,14 @@ public:
             result.push_back(storage_[i].value);
         }
         return result;
+    }
+
+    // 逐个访问所有值（避免构造临时集合）
+    template <typename Func>
+    constexpr void for_each_value(Func&& func) const {
+        for (size_type i = 0; i < current_size_; ++i) {
+            std::forward<Func>(func)(storage_[i].value);
+        }
     }
 
     // ==================== 遍历 ====================

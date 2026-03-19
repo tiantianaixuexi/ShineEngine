@@ -147,7 +147,7 @@ namespace shine::editor::util {
             }
 
             // --- Struct (recursive) ---
-            if (fieldTypeInfo && !fieldTypeInfo->fields.empty()) {
+            if (fieldTypeInfo && fieldTypeInfo->GetFieldCount() != 0) {
                 if (ImGui::TreeNode(Label())) {
                     void* fieldInstance = static_cast<char*>(instance) + field.offset;
                     InspectorBuilder::DrawInspector(fieldInstance, fieldTypeInfo);
@@ -270,7 +270,7 @@ namespace shine::editor::util {
             
             if (ImGui::BeginCombo(Label(), currentFunc.c_str())) {
                 if (ownerType) {
-                    for (const auto& method : ownerType->methods) {
+                    for (const auto& method : ownerType->GetMethods()) {
                         bool show = !selector.onlyScriptCallable;
                         
                         if (selector.onlyScriptCallable) {
@@ -282,7 +282,7 @@ namespace shine::editor::util {
                         
                         if (show) {
                             const auto methodName = method.GetNameView();
-                            bool isSelected = (currentFunc == methodName);
+                            bool isSelected = (currentFunc.view() == methodName);
                             if (ImGui::Selectable(methodName.data(), isSelected)) {
                                 shine::SString oldVal = currentFunc;
                                 currentFunc = shine::SString(methodName);

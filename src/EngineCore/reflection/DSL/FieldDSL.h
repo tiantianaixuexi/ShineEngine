@@ -34,7 +34,7 @@ namespace DSL {
 struct FieldDescriptorBase {
     shine::STextView  name;
     UI::Schema        uiSchema = UI::None{};
-    MetadataContainer metadata;
+    DSLMetadataStorage metadata;
     OnChangeFn        onChange  = nullptr;
 };
 

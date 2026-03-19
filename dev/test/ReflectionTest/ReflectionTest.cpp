@@ -31,9 +31,11 @@
 #include <algorithm>
 #include <cstring>
 
+#include "../common/reflection_test_fixture.h"
 #include "EngineCore/reflection/Reflection.h"
 #include "EngineCore/reflection/Views/ScriptView.h"
 #include "editor/util/PropertyDrawer.h"
+#include "../common/test_benchmark_framework.h"
 #include "memory/memory.ixx"
 #include "memory/ue_binned2_port.h"
 
@@ -44,11 +46,21 @@
 // 性能基准结构
 // =============================================================================
 struct PerfReport {
-    double fieldLookup_ops = 0;  // ops/sec
-    double getter_ns = 0;
-    double setter_ns = 0;
-    double native_ns = 0;
-    double methodOverhead_x = 0;
+    double fieldLookup_ns = 0;
+    double fieldLookup_ops = 0;
+    double fieldGetLookup_ns = 0;
+    double fieldGetCached_ns = 0;
+    double fieldGetOffset_ns = 0;
+    double fieldGetBound_ns = 0;
+    double fieldSetLookup_ns = 0;
+    double fieldSetCached_ns = 0;
+    double fieldSetOffset_ns = 0;
+    double fieldSetBound_ns = 0;
+    double nativeRead_ns = 0;
+    double nativeWrite_ns = 0;
+    double methodLookupInvoke_ns = 0;
+    double methodCachedInvoke_ns = 0;
+    double methodNative_ns = 0;
     double typeFindSlow_ns = 0;
     double typeFindFast_ns = 0;
     double findSpeedup_x = 0;
@@ -57,14 +69,13 @@ struct PerfReport {
         fmt::print("\n============================================================\n");
         fmt::print("                    性能测试报告\n");
         fmt::print("============================================================\n");
-        fmt::print("  字段查找: {:.2f} M ops/sec\n", fieldLookup_ops / 1000000.0);
-        
-        double getter_overhead = (native_ns > 0) ? (getter_ns / native_ns) : 0;
-        double setter_overhead = (native_ns > 0) ? (setter_ns / native_ns) : 0;
-        
-        fmt::print("  Getter:   {:.4f} ns (开销: {:.1f}x)\n", getter_ns, getter_overhead);
-        fmt::print("  Setter:   {:.4f} ns (开销: {:.1f}x)\n", setter_ns, setter_overhead);
-        fmt::print("  方法调用: {:.1f}x 开销\n", methodOverhead_x);
+        fmt::print("  字段名查找: {:.2f} ns ({:.2f} M ops/sec)\n", fieldLookup_ns, fieldLookup_ops / 1000000.0);
+        fmt::print("  字段读取: native {:.2f} / lookup+get {:.2f} / cached {:.2f} / offset {:.2f} / bound {:.2f} ns\n",
+            nativeRead_ns, fieldGetLookup_ns, fieldGetCached_ns, fieldGetOffset_ns, fieldGetBound_ns);
+        fmt::print("  字段写入: native {:.2f} / lookup+set {:.2f} / cached {:.2f} / offset {:.2f} / bound {:.2f} ns\n",
+            nativeWrite_ns, fieldSetLookup_ns, fieldSetCached_ns, fieldSetOffset_ns, fieldSetBound_ns);
+        fmt::print("  方法调用: native {:.2f} / cached {:.2f} / lookup+invoke {:.2f} ns\n",
+            methodNative_ns, methodCachedInvoke_ns, methodLookupInvoke_ns);
         fmt::print("  类型查找: {:.1f}x 加速 (FindFast)\n", findSpeedup_x);
         fmt::print("============================================================\n\n");
     }
@@ -73,144 +84,43 @@ struct PerfReport {
 // 全局性能报告
 PerfReport g_perfReport;
 
-// 测试结构体
-struct Vec3 {
-    float x, y, z;
-    
-    Vec3() : x(0), y(0), z(0) {}
-    Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
-    
-    Vec3 operator+(const Vec3& other) const {
-        return Vec3(x + other.x, y + other.y, z + other.z);
-    }
-    
-    bool operator==(const Vec3& other) const {
-        return x == other.x && y == other.y && z == other.z;
-    }
-};
-
-// 运行时验证 - 获取成员名和偏移量
-// 注意: MSVC constexpr 支持有限，static_assert 可能失败
-// 但运行时计算应该正常工作
-
-struct Transform {
-    Vec3 position;
-    Vec3 rotation;
-    Vec3 scale;
-    std::string name;
-    int id;
-    bool enabled;
-    std::vector<int> tags;  // 序列容器
-    std::map<std::string, int> properties;  // 关联容器
-    std::set<int> flags;  // Set 容器
-    
-    Transform() : position(), rotation(), scale(1, 1, 1), name(""), id(0), enabled(true) {}
-    
-    // 测试方法 - 使用值类型避免引用问题
-    void SetPosition(float x, float y, float z) {
-        position.x = x; position.y = y; position.z = z;
-    }
-    
-    Vec3 GetPosition() const {
-        return position;
-    }
-    
-    int AddTag(int tag) {
-        tags.push_back(tag);
-        return (int)tags.size();
-    }
-    
-    // 使用指针参数代替引用
-    void SetProperty(std::string* key, int* value) {
-        if (key && value) {
-            properties[*key] = *value;
-        }
-    }
-    
-    int GetProperty(std::string* key) const {
-        if (!key) return -1;
-        auto it = properties.find(*key);
-        return (it != properties.end()) ? it->second : -1;
-    }
-};
-
-// 注册反射
-REFLECTION_STRUCT(Vec3) {
-    REFLECT_FIELD(x);
-    REFLECT_FIELD(y);
-    REFLECT_FIELD(z);
-};
-
-REFLECTION_STRUCT(Transform) {
-    REFLECT_FIELD(position)
-        .DisplayName(shine::STextView::from_literal("World Position"))
-        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Transform"))
-        .Meta(shine::STextView::from_literal("Tooltip"), shine::STextView::from_literal("World transform origin"));
-    REFLECT_FIELD(rotation)
-        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Transform"));
-    REFLECT_FIELD(scale)
-        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Transform"));
-    REFLECT_FIELD(name)
-        .EditAnywhere()
-        .ScriptReadWrite()
-        .UI(shine::reflection::UI::TextInput{128, false})
-        .DisplayName(shine::STextView::from_literal("Actor Name"))
-        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Identity"));
-    REFLECT_FIELD(id)
-        .DisplayName(shine::STextView::from_literal("Actor Id"))
-        .Range(0.0f, 100.0f)
-        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Identity"))
-        .Meta(shine::reflection::MetaKeys::EditCondition, shine::STextView::from_literal("enabled"));
-    REFLECT_FIELD(enabled)
-        .DisplayName(shine::STextView::from_literal("Enabled"))
-        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Identity"));
-    REFLECT_FIELD(tags)
-        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Collections"));
-    REFLECT_FIELD(properties)
-        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Collections"));
-    REFLECT_FIELD(flags)
-        .Meta(shine::reflection::MetaKeys::Category, shine::STextView::from_literal("Collections"));
-    
-    // 使用优化的方法注册
-    REFLECT_METHOD_FAST(SetPosition)
-        .ScriptCallable();
-    REFLECT_METHOD_FAST(GetPosition);
-    REFLECT_METHOD_FAST(AddTag)
-        .ScriptCallable()
-        .Meta(shine::reflection::MetaKeys::BlueprintFunction, true);
-    REFLECT_METHOD_FAST(SetProperty);
-    REFLECT_METHOD_FAST(GetProperty);
-};
-
-// 测试枚举
-enum class ETestEnum {
-    None = 0,
-    Value1 = 1,
-    Value2 = 2,
-    Value3 = 3
-};
-
-REFLECT_ENUM(ETestEnum) {
-    builder.Enums({
-        {ETestEnum::None, "None"},
-        {ETestEnum::Value1, "Value1"},
-        {ETestEnum::Value2, "Value2"},
-        {ETestEnum::Value3, "Value3"}
-    });
-}
-
 // =============================================================================
 // 测试辅助函数
 // =============================================================================
 
 template<typename Func>
-double Benchmark(Func&& func, int iterations = 1000) {
-    auto start = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < iterations; ++i) {
-        func();
+shine::test::BenchmarkStats MeasureBenchmark(Func&& func, int iterations = 1000, int rounds = 32) {
+    return shine::test::measure_benchmark([&]() {
+        if constexpr (std::is_void_v<std::invoke_result_t<Func&>>) {
+            func();
+        } else {
+            decltype(auto) value = func();
+            shine::test::DoNotOptimize(value);
+        }
+        shine::test::ClobberMemory();
+    }, rounds, iterations);
+}
+
+template<typename Func>
+double Benchmark(Func&& func, int iterations = 1000, int rounds = 32) {
+    return MeasureBenchmark(std::forward<Func>(func), iterations, rounds).mean_ns / 1000000.0;
+}
+
+template<typename Func>
+double BenchmarkNs(Func&& func, int iterations = 1000, int rounds = 32) {
+    return MeasureBenchmark(std::forward<Func>(func), iterations, rounds).mean_ns;
+}
+
+double SafeRatio(double lhs, double rhs) {
+    return rhs > 0.0 ? lhs / rhs : 0.0;
+}
+
+void PrintBenchmarkLine(const char* label, double ns, double baseline_ns = 0.0) {
+    fmt::print("  - {:<20} {:>10.2f} ns", label, ns);
+    if (baseline_ns > 0.0) {
+        fmt::print(" ({:.2f}x)", ns / baseline_ns);
     }
-    auto end = std::chrono::high_resolution_clock::now();
-    return std::chrono::duration<double, std::milli>(end - start).count() / iterations;
+    fmt::print("\n");
 }
 
 void PrintSeparator(const char* title) {
@@ -264,11 +174,11 @@ void TestReflectionLayoutBaseline() {
 
     fmt::print("结构摘要:\n");
     PrintLayoutHeader<shine::reflection::TypeInfo>(shine::STextView::from_literal("TypeInfo"),
-        offsetof(shine::reflection::TypeInfo, coldData));
+        shine::reflection::TypeInfo::ColdDataOffsetForTests());
     PrintLayoutHeader<shine::reflection::FieldInfo>(shine::STextView::from_literal("FieldInfo"),
-        offsetof(shine::reflection::FieldInfo, coldData));
+        shine::reflection::FieldInfo::ColdDataOffsetForTests());
     PrintLayoutHeader<shine::reflection::MethodInfo>(shine::STextView::from_literal("MethodInfo"),
-        offsetof(shine::reflection::MethodInfo, coldData));
+        shine::reflection::MethodInfo::ColdDataOffsetForTests());
     PrintLayoutHeader<shine::reflection::TypeColdData>(shine::STextView::from_literal("TypeColdData"));
     PrintLayoutHeader<shine::reflection::FieldColdData>(shine::STextView::from_literal("FieldColdData"));
     PrintLayoutHeader<shine::reflection::MethodColdData>(shine::STextView::from_literal("MethodColdData"));
@@ -297,18 +207,17 @@ void TestReflectionLayoutBaseline() {
     PrintMemberLayout(shine::STextView::from_literal("containerTrait"), offsetof(shine::reflection::FieldInfo, containerTrait), sizeof(const void*), alignof(const void*));
     PrintMemberLayout(shine::STextView::from_literal("flags"), offsetof(shine::reflection::FieldInfo, flags), sizeof(shine::reflection::PropertyFlags), alignof(shine::reflection::PropertyFlags));
     PrintMemberLayout(shine::STextView::from_literal("nameHash"), offsetof(shine::reflection::FieldInfo, nameHash), sizeof(uint32_t), alignof(uint32_t));
-    PrintMemberLayout(shine::STextView::from_literal("coldData"), offsetof(shine::reflection::FieldInfo, coldData), sizeof(shine::reflection::ReflectionColdPtr<shine::reflection::FieldColdData>), alignof(shine::reflection::ReflectionColdPtr<shine::reflection::FieldColdData>));
+    PrintMemberLayout(shine::STextView::from_literal("coldData"), shine::reflection::FieldInfo::ColdDataOffsetForTests(), sizeof(shine::reflection::ReflectionColdPtr<shine::reflection::FieldColdData>), alignof(shine::reflection::ReflectionColdPtr<shine::reflection::FieldColdData>));
 
     fmt::print("\nMethodInfo 成员布局:\n");
     PrintMemberLayout(shine::STextView::from_literal("nameHash"), offsetof(shine::reflection::MethodInfo, nameHash), sizeof(uint32_t), alignof(uint32_t));
     PrintMemberLayout(shine::STextView::from_literal("invokeFn"), offsetof(shine::reflection::MethodInfo, invokeFn), sizeof(shine::reflection::InvokeFn), alignof(shine::reflection::InvokeFn));
     PrintMemberLayout(shine::STextView::from_literal("returnType"), offsetof(shine::reflection::MethodInfo, returnType), sizeof(shine::reflection::TypeId), alignof(shine::reflection::TypeId));
-    PrintMemberLayout(shine::STextView::from_literal("paramTypes"), offsetof(shine::reflection::MethodInfo, paramTypes), sizeof(std::vector<shine::reflection::TypeId>), alignof(std::vector<shine::reflection::TypeId>));
     PrintMemberLayout(shine::STextView::from_literal("signatureHash"), offsetof(shine::reflection::MethodInfo, signatureHash), sizeof(uint64_t), alignof(uint64_t));
     PrintMemberLayout(shine::STextView::from_literal("flags"), offsetof(shine::reflection::MethodInfo, flags), sizeof(shine::reflection::FunctionFlags), alignof(shine::reflection::FunctionFlags));
     PrintMemberLayout(shine::STextView::from_literal("owner"), offsetof(shine::reflection::MethodInfo, owner), sizeof(shine::reflection::ReflectionOwnerHandle), alignof(shine::reflection::ReflectionOwnerHandle));
     PrintMemberLayout(shine::STextView::from_literal("callCache"), offsetof(shine::reflection::MethodInfo, callCache), sizeof(shine::reflection::ReflectionColdPtr<shine::reflection::MethodCallCache>), alignof(shine::reflection::ReflectionColdPtr<shine::reflection::MethodCallCache>));
-    PrintMemberLayout(shine::STextView::from_literal("coldData"), offsetof(shine::reflection::MethodInfo, coldData), sizeof(shine::reflection::ReflectionColdPtr<shine::reflection::MethodColdData>), alignof(shine::reflection::ReflectionColdPtr<shine::reflection::MethodColdData>));
+    PrintMemberLayout(shine::STextView::from_literal("coldData"), shine::reflection::MethodInfo::ColdDataOffsetForTests(), sizeof(shine::reflection::ReflectionColdPtr<shine::reflection::MethodColdData>), alignof(shine::reflection::ReflectionColdPtr<shine::reflection::MethodColdData>));
 
     fmt::print("\nReflectionOwnerHandle 布局:\n");
     PrintMemberLayout(shine::STextView::from_literal("rawValue"), 0, sizeof(shine::reflection::ReflectionOwnerHandle), alignof(shine::reflection::ReflectionOwnerHandle));
@@ -319,16 +228,21 @@ void TestReflectionLayoutBaseline() {
     PrintMemberLayout(shine::STextView::from_literal("alignment"), offsetof(shine::reflection::TypeInfo, alignment), sizeof(std::size_t), alignof(std::size_t));
     PrintMemberLayout(shine::STextView::from_literal("isEnum"), offsetof(shine::reflection::TypeInfo, isEnum), sizeof(bool), alignof(bool));
     PrintMemberLayout(shine::STextView::from_literal("isPod"), offsetof(shine::reflection::TypeInfo, isPod), sizeof(bool), alignof(bool));
-    PrintMemberLayout(shine::STextView::from_literal("fields"), offsetof(shine::reflection::TypeInfo, fields), sizeof(std::vector<shine::reflection::FieldInfo>), alignof(std::vector<shine::reflection::FieldInfo>));
-    PrintMemberLayout(shine::STextView::from_literal("methods"), offsetof(shine::reflection::TypeInfo, methods), sizeof(std::vector<shine::reflection::MethodInfo>), alignof(std::vector<shine::reflection::MethodInfo>));
-    PrintMemberLayout(shine::STextView::from_literal("coldData"), offsetof(shine::reflection::TypeInfo, coldData), sizeof(shine::reflection::ReflectionColdPtr<shine::reflection::TypeColdData>), alignof(shine::reflection::ReflectionColdPtr<shine::reflection::TypeColdData>));
-    PrintMemberLayout(shine::STextView::from_literal("fieldLookup_"), offsetof(shine::reflection::TypeInfo, fieldLookup_), sizeof(std::vector<shine::reflection::TypeInfo::LookupEntry>), alignof(std::vector<shine::reflection::TypeInfo::LookupEntry>));
-    PrintMemberLayout(shine::STextView::from_literal("methodLookup_"), offsetof(shine::reflection::TypeInfo, methodLookup_), sizeof(std::vector<shine::reflection::TypeInfo::LookupEntry>), alignof(std::vector<shine::reflection::TypeInfo::LookupEntry>));
-    PrintMemberLayout(shine::STextView::from_literal("lookupSorted_"), offsetof(shine::reflection::TypeInfo, lookupSorted_), sizeof(bool), alignof(bool));
+    PrintMemberLayout(shine::STextView::from_literal("fields"), shine::reflection::TypeInfo::FieldsOffsetForTests(), sizeof(shine::reflection::ReflectionColdVector<shine::reflection::FieldInfo>), alignof(shine::reflection::ReflectionColdVector<shine::reflection::FieldInfo>));
+    PrintMemberLayout(shine::STextView::from_literal("methods"), shine::reflection::TypeInfo::MethodsOffsetForTests(), sizeof(shine::reflection::ReflectionColdVector<shine::reflection::MethodInfo>), alignof(shine::reflection::ReflectionColdVector<shine::reflection::MethodInfo>));
+    PrintMemberLayout(shine::STextView::from_literal("coldData"), shine::reflection::TypeInfo::ColdDataOffsetForTests(), sizeof(shine::reflection::ReflectionColdPtr<shine::reflection::TypeColdData>), alignof(shine::reflection::ReflectionColdPtr<shine::reflection::TypeColdData>));
+    PrintMemberLayout(shine::STextView::from_literal("fieldLookup_"), shine::reflection::TypeInfo::FieldLookupOffsetForTests(), sizeof(shine::reflection::ReflectionColdVector<shine::reflection::TypeInfo::LookupEntry>), alignof(shine::reflection::ReflectionColdVector<shine::reflection::TypeInfo::LookupEntry>));
+    PrintMemberLayout(shine::STextView::from_literal("methodLookup_"), shine::reflection::TypeInfo::MethodLookupOffsetForTests(), sizeof(shine::reflection::ReflectionColdVector<shine::reflection::TypeInfo::LookupEntry>), alignof(shine::reflection::ReflectionColdVector<shine::reflection::TypeInfo::LookupEntry>));
+    PrintMemberLayout(shine::STextView::from_literal("lookupSorted_"), shine::reflection::TypeInfo::LookupSortedOffsetForTests(), sizeof(bool), alignof(bool));
 
     fmt::print("\nTypeColdData 成员布局:\n");
     PrintMemberLayout(shine::STextView::from_literal("name"), offsetof(shine::reflection::TypeColdData, name), sizeof(shine::STextView), alignof(shine::STextView));
     PrintMemberLayout(shine::STextView::from_literal("enumEntries"), offsetof(shine::reflection::TypeColdData, enumEntries), sizeof(shine::reflection::ReflectionColdVector<shine::reflection::EnumEntry>), alignof(shine::reflection::ReflectionColdVector<shine::reflection::EnumEntry>));
+
+    fmt::print("\nMethodColdData 成员布局:\n");
+    PrintMemberLayout(shine::STextView::from_literal("name"), offsetof(shine::reflection::MethodColdData, name), sizeof(shine::STextView), alignof(shine::STextView));
+    PrintMemberLayout(shine::STextView::from_literal("paramTypes"), offsetof(shine::reflection::MethodColdData, paramTypes), sizeof(shine::reflection::ReflectionColdVector<shine::reflection::TypeId>), alignof(shine::reflection::ReflectionColdVector<shine::reflection::TypeId>));
+    PrintMemberLayout(shine::STextView::from_literal("metadata"), offsetof(shine::reflection::MethodColdData, metadata), sizeof(shine::reflection::ReflectionMetadataStorage), alignof(shine::reflection::ReflectionMetadataStorage));
 
     fmt::print("\nReflectionMetadataStorage 成员布局:\n");
     PrintMemberLayout(shine::STextView::from_literal("data"), 0, sizeof(shine::reflection::ReflectionMetadataStorage), alignof(shine::reflection::ReflectionMetadataStorage));
@@ -814,14 +728,16 @@ void TestReflectionRegistrationPlan() {
     auto transformInfo = transformGraph.BuildTypeInfo([]<typename TBuilder>(TBuilder& builder) {
         _ReflectRegFn_Transform(builder);
     });
+    const auto& transformFields = transformInfo.GetFields();
+    const auto& transformMethods = transformInfo.GetMethods();
     fmt::print("  reserved capacities: fields={} methods={} enums={}\n",
-        transformInfo.fields.capacity(),
-        transformInfo.methods.capacity(),
+        transformFields.capacity(),
+        transformMethods.capacity(),
         transformInfo.GetEnumEntries().capacity());
     fmt::print("[PASS] transform field reserve matches plan: {}\n",
-        transformInfo.fields.capacity() >= transformPlan.fieldCount ? "Yes" : "No");
+        transformFields.capacity() >= transformPlan.fieldCount ? "Yes" : "No");
     fmt::print("[PASS] transform method reserve matches plan: {}\n",
-        transformInfo.methods.capacity() >= transformPlan.methodCount ? "Yes" : "No");
+        transformMethods.capacity() >= transformPlan.methodCount ? "Yes" : "No");
     fmt::print("[PASS] transform field metadata plan captured runtime extras: {}\n",
         sumFieldMetadata(transformPlan.fieldPlans) == 1 ? "Yes" : "No");
     fmt::print("[PASS] transform method metadata plan captured runtime extras: {}\n",
@@ -977,8 +893,8 @@ void TestTypeBuilderStagedEmission() {
     const shine::reflection::MethodInfo* stagedMethodBase = nullptr;
     {
         shine::reflection::TypeBuilder<Transform> transformBuilder(transformInfo, transformPlan);
-        stagedFieldBase = transformInfo.fields.data();
-        stagedMethodBase = transformInfo.methods.data();
+        stagedFieldBase = transformInfo.GetFields().data();
+        stagedMethodBase = transformInfo.GetMethods().data();
         transformInfo.BuildLookup();
         const auto* stagedPositionBeforeReplay = transformInfo.FindField(shine::STextView::from_literal("position"));
         const auto* stagedAddTagBeforeReplay = transformInfo.FindMethod(shine::STextView::from_literal("AddTag"));
@@ -988,8 +904,8 @@ void TestTypeBuilderStagedEmission() {
             && stagedPositionBeforeReplay->GetDisplayNameView() == shine::STextView::from_literal("World Position")
             && stagedAddTagBeforeReplay != nullptr
             && stagedAddTagBeforeReplay->returnType == shine::reflection::GetTypeId<int>()
-            && stagedAddTagBeforeReplay->paramTypes.size() == 1
-            && stagedAddTagBeforeReplay->paramTypes[0] == shine::reflection::GetTypeId<int>();
+            && stagedAddTagBeforeReplay->GetParamCount() == 1
+            && stagedAddTagBeforeReplay->GetParamType(0) == shine::reflection::GetTypeId<int>();
         bindingDeferredUntilReplay = stagedPositionBeforeReplay != nullptr
             && stagedPositionBeforeReplay->getterFn == nullptr
             && stagedPositionBeforeReplay->setterFn == nullptr
@@ -998,8 +914,8 @@ void TestTypeBuilderStagedEmission() {
             && stagedAddTagBeforeReplay != nullptr
             && stagedAddTagBeforeReplay->invokeFn == nullptr;
         fmt::print("  staged before emit: fields={} methods={} enums={}\n",
-            transformInfo.fields.size(),
-            transformInfo.methods.size(),
+            transformInfo.GetFieldCount(),
+            transformInfo.GetMethodCount(),
             transformInfo.GetEnumEntries().size());
         _ReflectRegFn_Transform(transformBuilder);
         const auto* stagedPositionAfterReplay = transformInfo.FindField(shine::STextView::from_literal("position"));
@@ -1014,17 +930,17 @@ void TestTypeBuilderStagedEmission() {
     }
 
     fmt::print("  staged after emit: fields={} methods={} enums={}\n",
-        transformInfo.fields.size(),
-        transformInfo.methods.size(),
+        transformInfo.GetFieldCount(),
+        transformInfo.GetMethodCount(),
         transformInfo.GetEnumEntries().size());
     fmt::print("[PASS] transform fields emitted in-place: {}\n",
-        transformInfo.fields.data() == stagedFieldBase ? "Yes" : "No");
+        transformInfo.GetFields().data() == stagedFieldBase ? "Yes" : "No");
     fmt::print("[PASS] transform methods emitted in-place: {}\n",
-        transformInfo.methods.data() == stagedMethodBase ? "Yes" : "No");
+        transformInfo.GetMethods().data() == stagedMethodBase ? "Yes" : "No");
     fmt::print("[PASS] transform staged field count exact: {}\n",
-        transformInfo.fields.size() == transformPlan.fieldCount ? "Yes" : "No");
+        transformInfo.GetFieldCount() == transformPlan.fieldCount ? "Yes" : "No");
     fmt::print("[PASS] transform staged method count exact: {}\n",
-        transformInfo.methods.size() == transformPlan.methodCount ? "Yes" : "No");
+        transformInfo.GetMethodCount() == transformPlan.methodCount ? "Yes" : "No");
     fmt::print("[PASS] staged payload ready before replay: {}\n",
         stagedPayloadReadyBeforeReplay ? "Yes" : "No");
     fmt::print("[PASS] replay deferred binding work only: {}\n",
@@ -1066,8 +982,8 @@ void TestTypeBuilderStagedEmission() {
             && addTagMethod != nullptr
             && addTagMethod->GetNameView() == shine::STextView::from_literal("AddTag")
             && addTagMethod->returnType == shine::reflection::GetTypeId<int>()
-            && addTagMethod->paramTypes.size() == 1
-            && addTagMethod->paramTypes[0] == shine::reflection::GetTypeId<int>()
+            && addTagMethod->GetParamCount() == 1
+            && addTagMethod->GetParamType(0) == shine::reflection::GetTypeId<int>()
             && HasFlag(addTagMethod->flags, shine::reflection::FunctionFlags::ScriptCallable) ? "Yes" : "No");
 
     auto enumGraph = shine::reflection::BuildTypeRegistrationGraph<ETestEnum>(
@@ -1121,9 +1037,9 @@ void TestRegisteredTypeColdLocality() {
     size_t lastFieldPage = static_cast<size_t>(-1);
     size_t firstFieldSlot = static_cast<size_t>(-1);
     size_t lastFieldSlot = static_cast<size_t>(-1);
-    for (const auto& field : typeInfo->fields) {
-        const size_t pageIndex = fieldPool.PageIndexOf(field.coldData.get());
-        const size_t slotIndex = fieldPool.SlotIndexInPageOf(field.coldData.get());
+    for (const auto& field : typeInfo->GetFields()) {
+        const size_t pageIndex = fieldPool.PageIndexOf(field.GetColdDataPtrForTests());
+        const size_t slotIndex = fieldPool.SlotIndexInPageOf(field.GetColdDataPtrForTests());
         if (firstFieldPage == static_cast<size_t>(-1)) {
             firstFieldPage = pageIndex;
             firstFieldSlot = slotIndex;
@@ -1136,9 +1052,9 @@ void TestRegisteredTypeColdLocality() {
     size_t lastMethodPage = static_cast<size_t>(-1);
     size_t firstMethodSlot = static_cast<size_t>(-1);
     size_t lastMethodSlot = static_cast<size_t>(-1);
-    for (const auto& method : typeInfo->methods) {
-        const size_t pageIndex = methodPool.PageIndexOf(method.coldData.get());
-        const size_t slotIndex = methodPool.SlotIndexInPageOf(method.coldData.get());
+    for (const auto& method : typeInfo->GetMethods()) {
+        const size_t pageIndex = methodPool.PageIndexOf(method.GetColdDataPtrForTests());
+        const size_t slotIndex = methodPool.SlotIndexInPageOf(method.GetColdDataPtrForTests());
         if (firstMethodPage == static_cast<size_t>(-1)) {
             firstMethodPage = pageIndex;
             firstMethodSlot = slotIndex;
@@ -1161,9 +1077,9 @@ void TestRegisteredTypeColdLocality() {
     fmt::print("[PASS] transform methods share one cold page: {}\n",
         firstMethodPage == lastMethodPage ? "Yes" : "No");
     fmt::print("[PASS] transform field cold slots are contiguous: {}\n",
-        firstFieldPage == lastFieldPage && (lastFieldSlot - firstFieldSlot + 1) == typeInfo->fields.size() ? "Yes" : "No");
+        firstFieldPage == lastFieldPage && (lastFieldSlot - firstFieldSlot + 1) == typeInfo->GetFieldCount() ? "Yes" : "No");
     fmt::print("[PASS] transform method cold slots are contiguous: {}\n",
-        firstMethodPage == lastMethodPage && (lastMethodSlot - firstMethodSlot + 1) == typeInfo->methods.size() ? "Yes" : "No");
+        firstMethodPage == lastMethodPage && (lastMethodSlot - firstMethodSlot + 1) == typeInfo->GetMethodCount() ? "Yes" : "No");
 }
 
 void TestTypeRegistryArenaOwnership() {
@@ -1282,10 +1198,28 @@ void TestConstexprLimitation() {
     auto* rt_info = shine::reflection::TypeRegistry::Get().FindFast(shine::reflection::GetTypeId<Transform>());
     if (rt_info) {
         fmt::print("运行时类型信息:\n");
-        fmt::print("  - 字段数量: {}\n", rt_info->fields.size());
-        for (const auto& f : rt_info->fields) {
+        fmt::print("  - 字段数量: {}\n", rt_info->GetFieldCount());
+        for (const auto& f : rt_info->GetFields()) {
             fmt::print("    - {}: offset={}, size={}\n", f.GetNameView(), f.offset, f.size);
         }
+
+        using PositionBinding = shine::reflection::BoundMember<&Transform::position>;
+        using PositionXPath = shine::reflection::BoundPath<&Transform::position, &Vec3::x>;
+        using PositionLengthSq = shine::reflection::BoundMethodPath<&Vec3::LengthSquared, &Transform::position>;
+        const auto* positionField = rt_info->FindField(PositionBinding::Name());
+        fmt::print("编译期绑定包装:\n");
+        fmt::print("  - Name(): {}\n", PositionBinding::Name());
+        fmt::print("  - Offset(): {}\n", PositionBinding::Offset());
+        fmt::print("  - 与运行时字段 offset 一致: {}\n",
+            positionField != nullptr && positionField->offset == PositionBinding::Offset() ? "Yes" : "No");
+        fmt::print("链式字段路径包装:\n");
+        fmt::print("  - Path(): {}\n", PositionXPath::Path());
+        fmt::print("  - LeafName(): {}\n", PositionXPath::LeafName());
+        fmt::print("  - Offset(): {}\n", PositionXPath::Offset());
+        fmt::print("混合路径方法包装:\n");
+        fmt::print("  - Path(): {}\n", PositionLengthSq::Path());
+        fmt::print("  - MethodName(): {}\n", PositionLengthSq::MethodName());
+        fmt::print("  - Invoke(): {}\n", PositionLengthSq::Invoke(Transform{}));
     }
 }
 
@@ -1307,7 +1241,7 @@ void TestSerializationGap() {
     auto* typeInfo = shine::reflection::TypeRegistry::Get().FindFast(shine::reflection::GetTypeId<Transform>());
     if (typeInfo) {
         fmt::print("手动序列化 Transform 实例:\n");
-        for (const auto& field : typeInfo->fields) {
+        for (const auto& field : typeInfo->GetFields()) {
             // 简化: 只打印字段信息，实际序列化需要处理类型
             fmt::print("  {}: offset={}\n", field.GetNameView(), field.offset);
         }
@@ -1382,75 +1316,114 @@ void TestContainerLimitation() {
 
 void TestFieldAccessPerformance() {
     PrintSeparator("性能测试: 字段访问");
-    
+
+    using PositionBinding = shine::reflection::BoundMember<&Transform::position>;
     Transform t;
     t.position = Vec3(1.0f, 2.0f, 3.0f);
-    
+
     auto* typeInfo = shine::reflection::TypeRegistry::Get().FindFast(shine::reflection::GetTypeId<Transform>());
     if (!typeInfo) {
         fmt::print("错误: 无法获取 Transform 类型信息\n");
         return;
     }
-    
-    // 预热
-    for (int i = 0; i < 1000; ++i) {
-        typeInfo->FindField("position");
+
+    const auto* positionField = typeInfo->FindField(PositionBinding::Name());
+    if (positionField == nullptr) {
+        fmt::print("错误: 无法获取 position 字段信息\n");
+        return;
     }
-    
-    // 测试字段查找性能 (冷启动 + 缓存)
-    double cold_time = Benchmark([&]() {
-        return typeInfo->FindField("position");
-    }, 10000);
-    
-    fmt::print("字段查找性能:\n");
-    fmt::print("  - 10k次查找平均耗时: {:.4f} ms\n", cold_time);
-    fmt::print("  - 吞吐量: {:.0f} ops/sec\n", 1.0 / cold_time * 1000);
-    
-    // 保存字段查找性能
-    g_perfReport.fieldLookup_ops = 1.0 / cold_time * 1000;
-    
-    // 测试 getter/setter 性能
-    Vec3 out_val;
-    double getter_time = Benchmark([&]() {
-        auto* field = typeInfo->FindField("position");
-        if (field) field->Get(&t, &out_val);
-    }, 100000);
-    
-    double setter_time = Benchmark([&]() {
-        auto* field = typeInfo->FindField("position");
-        if (field) field->Set(&t, &out_val);
-    }, 100000);
-    
-    // 对比原生访问
-    double native_time = Benchmark([&]() {
-        Vec3 v = t.position;
-        v.x += 1.0f;
-    }, 100000);
 
-    // 测试真正的编译期绑定 CT_GET/CT_SET - 零开销内联
-    double ct_get_time = Benchmark([&]() {
-        float v = shine::reflection::CT_GET<&Vec3::x>(t.position);
-    }, 100000);
+    auto* offsetPtr = reinterpret_cast<Vec3*>(reinterpret_cast<char*>(&t) + positionField->offset);
+    Vec3 readBuffer{};
+    Vec3 writeBuffer{4.0f, 5.0f, 6.0f};
+    float scalarWrite = 1.0f;
 
-    double ct_set_time = Benchmark([&]() {
-        shine::reflection::CT_SET<&Vec3::x>(t.position, 1.0f);
-    }, 100000);
+    for (int i = 0; i < 1024; ++i) {
+        (void)typeInfo->FindFieldFast(PositionBinding::Name());
+        positionField->Get(&t, &readBuffer);
+    }
 
-    fmt::print("原生访问性能:\n");
-    fmt::print("  - 100k次调用平均耗时: {:.4f} ns\n", native_time * 1000);
+    const auto lookupStats = MeasureBenchmark([&]() {
+        return typeInfo->FindField(PositionBinding::Name());
+    }, 20000);
+    const auto nativeReadStats = MeasureBenchmark([&]() {
+        return t.position;
+    }, 20000);
+    const auto reflectLookupReadStats = MeasureBenchmark([&]() {
+        auto* field = typeInfo->FindField(PositionBinding::Name());
+        field->Get(&t, &readBuffer);
+    }, 12000);
+    const auto reflectCachedReadStats = MeasureBenchmark([&]() {
+        positionField->Get(&t, &readBuffer);
+    }, 20000);
+    const auto offsetReadStats = MeasureBenchmark([&]() {
+        return *offsetPtr;
+    }, 20000);
+    const auto boundReadStats = MeasureBenchmark([&]() {
+        return PositionBinding::Get(t);
+    }, 20000);
 
-    fmt::print("编译期绑定 (CT_GET/CT_SET) 性能:\n");
-    fmt::print("  - CT_GET: {:.4f} ns\n", ct_get_time * 1000);
-    fmt::print("  - CT_SET: {:.4f} ns\n", ct_set_time * 1000);
+    const auto nativeWriteStats = MeasureBenchmark([&]() {
+        scalarWrite += 0.125f;
+        t.position = Vec3(scalarWrite, scalarWrite + 1.0f, scalarWrite + 2.0f);
+    }, 12000);
+    const auto reflectLookupWriteStats = MeasureBenchmark([&]() {
+        writeBuffer.x += 0.25f;
+        auto* field = typeInfo->FindField(PositionBinding::Name());
+        field->Set(&t, &writeBuffer);
+    }, 12000);
+    const auto reflectCachedWriteStats = MeasureBenchmark([&]() {
+        writeBuffer.y += 0.125f;
+        positionField->Set(&t, &writeBuffer);
+    }, 12000);
+    const auto offsetWriteStats = MeasureBenchmark([&]() {
+        writeBuffer.z += 0.0625f;
+        *offsetPtr = writeBuffer;
+    }, 12000);
+    const auto boundWriteStats = MeasureBenchmark([&]() {
+        writeBuffer.x += 0.03125f;
+        PositionBinding::Set(t, writeBuffer);
+    }, 12000);
 
-    fmt::print("反射开销: getter={:.1f}x, setter={:.1f}x, CT_GET={:.1f}x, CT_SET={:.1f}x\n",
-        getter_time / native_time, setter_time / native_time,
-        ct_get_time / native_time, ct_set_time / native_time);
-    
-    // 保存到性能报告
-    g_perfReport.getter_ns = getter_time * 1000;
-    g_perfReport.setter_ns = setter_time * 1000;
-    g_perfReport.native_ns = native_time * 1000;
+    fmt::print("专项基准: 字段读取路径 (position)\n");
+    PrintBenchmarkLine("name lookup", lookupStats.mean_ns);
+    PrintBenchmarkLine("native read", nativeReadStats.mean_ns);
+    PrintBenchmarkLine("lookup + Get", reflectLookupReadStats.mean_ns, nativeReadStats.mean_ns);
+    PrintBenchmarkLine("cached Get", reflectCachedReadStats.mean_ns, nativeReadStats.mean_ns);
+    PrintBenchmarkLine("offset read", offsetReadStats.mean_ns, nativeReadStats.mean_ns);
+    PrintBenchmarkLine("BoundMember::Get", boundReadStats.mean_ns, nativeReadStats.mean_ns);
+
+    fmt::print("专项基准: 字段写入路径 (position)\n");
+    PrintBenchmarkLine("native write", nativeWriteStats.mean_ns);
+    PrintBenchmarkLine("lookup + Set", reflectLookupWriteStats.mean_ns, nativeWriteStats.mean_ns);
+    PrintBenchmarkLine("cached Set", reflectCachedWriteStats.mean_ns, nativeWriteStats.mean_ns);
+    PrintBenchmarkLine("offset write", offsetWriteStats.mean_ns, nativeWriteStats.mean_ns);
+    PrintBenchmarkLine("BoundMember::Set", boundWriteStats.mean_ns, nativeWriteStats.mean_ns);
+
+    const auto ctGetStats = MeasureBenchmark([&]() {
+        return shine::reflection::CT_GET<&Vec3::x>(t.position);
+    }, 20000);
+    const auto ctSetStats = MeasureBenchmark([&]() {
+        scalarWrite += 0.015625f;
+        shine::reflection::CT_SET<&Vec3::x>(t.position, scalarWrite);
+    }, 12000);
+
+    fmt::print("补充: 子成员 CT_GET/CT_SET\n");
+    PrintBenchmarkLine("CT_GET<&Vec3::x>", ctGetStats.mean_ns);
+    PrintBenchmarkLine("CT_SET<&Vec3::x>", ctSetStats.mean_ns);
+
+    g_perfReport.fieldLookup_ns = lookupStats.mean_ns;
+    g_perfReport.fieldLookup_ops = lookupStats.mean_ns > 0.0 ? 1000000000.0 / lookupStats.mean_ns : 0.0;
+    g_perfReport.fieldGetLookup_ns = reflectLookupReadStats.mean_ns;
+    g_perfReport.fieldGetCached_ns = reflectCachedReadStats.mean_ns;
+    g_perfReport.fieldGetOffset_ns = offsetReadStats.mean_ns;
+    g_perfReport.fieldGetBound_ns = boundReadStats.mean_ns;
+    g_perfReport.fieldSetLookup_ns = reflectLookupWriteStats.mean_ns;
+    g_perfReport.fieldSetCached_ns = reflectCachedWriteStats.mean_ns;
+    g_perfReport.fieldSetOffset_ns = offsetWriteStats.mean_ns;
+    g_perfReport.fieldSetBound_ns = boundWriteStats.mean_ns;
+    g_perfReport.nativeRead_ns = nativeReadStats.mean_ns;
+    g_perfReport.nativeWrite_ns = nativeWriteStats.mean_ns;
 }
 
 // =============================================================================
@@ -1491,28 +1464,28 @@ void TestContainerPerformance() {
     // 原生容器操作
     fmt::print("\n原生容器操作性能:\n");
     
-    double native_vec_get = Benchmark([&]() {
+    double native_vec_get = BenchmarkNs([&]() {
         int size = t.tags.size();
         return size;
     }, 100000);
-    fmt::print("  - vector::size: {:.4f} ns\n", native_vec_get * 1000);
+    fmt::print("  - vector::size: {:.4f} ns\n", native_vec_get);
     
-    double native_vec_push = Benchmark([&]() {
+    double native_vec_push = BenchmarkNs([&]() {
         // 不修改容器，只测量访问
         return t.tags[0];
     }, 100000);
-    fmt::print("  - vector::operator[]: {:.4f} ns\n", native_vec_push * 1000);
+    fmt::print("  - vector::operator[]: {:.4f} ns\n", native_vec_push);
     
-    double native_map_find = Benchmark([&]() {
+    double native_map_find = BenchmarkNs([&]() {
         auto it = t.properties.find("health");
         return it != t.properties.end();
     }, 100000);
-    fmt::print("  - map::find: {:.4f} ns\n", native_map_find * 1000);
+    fmt::print("  - map::find: {:.4f} ns\n", native_map_find);
     
-    double native_set_count = Benchmark([&]() {
+    double native_set_count = BenchmarkNs([&]() {
         return t.flags.count(2);
     }, 100000);
-    fmt::print("  - set::count: {:.4f} ns\n", native_set_count * 1000);
+    fmt::print("  - set::count: {:.4f} ns\n", native_set_count);
     
     // 反射容器操作（通过 offset 访问）
     fmt::print("\n反射容器操作性能:\n");
@@ -1522,30 +1495,30 @@ void TestContainerPerformance() {
     auto* propsContainer = reinterpret_cast<std::map<std::string, int>*>((char*)&t + propsField->offset);
     auto* flagsContainer = reinterpret_cast<std::set<int>*>((char*)&t + flagsField->offset);
     
-    double reflect_vec_get = Benchmark([&]() {
+    double reflect_vec_get = BenchmarkNs([&]() {
         std::size_t size = tagsContainer->size();
         return size;
     }, 100000);
-    fmt::print("  - vector::size (反射): {:.4f} ns\n", reflect_vec_get * 1000);
+    fmt::print("  - vector::size (反射): {:.4f} ns\n", reflect_vec_get);
     fmt::print("    开销: {:.1f}x\n", reflect_vec_get / native_vec_get);
     
-    double reflect_vec_access = Benchmark([&]() {
+    double reflect_vec_access = BenchmarkNs([&]() {
         return (*tagsContainer)[0];
     }, 100000);
-    fmt::print("  - vector::operator[] (反射): {:.4f} ns\n", reflect_vec_access * 1000);
+    fmt::print("  - vector::operator[] (反射): {:.4f} ns\n", reflect_vec_access);
     fmt::print("    开销: {:.1f}x\n", reflect_vec_access / native_vec_push);
     
-    double reflect_map_find = Benchmark([&]() {
+    double reflect_map_find = BenchmarkNs([&]() {
         auto it = propsContainer->find("health");
         return it != propsContainer->end();
     }, 100000);
-    fmt::print("  - map::find (反射): {:.4f} ns\n", reflect_map_find * 1000);
+    fmt::print("  - map::find (反射): {:.4f} ns\n", reflect_map_find);
     fmt::print("    开销: {:.1f}x\n", reflect_map_find / native_map_find);
     
-    double reflect_set_count = Benchmark([&]() {
+    double reflect_set_count = BenchmarkNs([&]() {
         return flagsContainer->count(2);
     }, 100000);
-    fmt::print("  - set::count (反射): {:.4f} ns\n", reflect_set_count * 1000);
+    fmt::print("  - set::count (反射): {:.4f} ns\n", reflect_set_count);
     fmt::print("    开销: {:.1f}x\n", reflect_set_count / native_set_count);
     
     // 容器反射总结
@@ -1577,12 +1550,12 @@ void TestAllFieldsPerformance() {
     auto* typeInfo = shine::reflection::TypeRegistry::Get().FindFast(shine::reflection::GetTypeId<Transform>());
     if (!typeInfo) return;
     
-    fmt::print("Transform 字段数量: {}\n", typeInfo->fields.size());
+    fmt::print("Transform 字段数量: {}\n", typeInfo->GetFieldCount());
     fmt::print("\n");
     
     // 预热查找缓存
-    for (auto& field : typeInfo->fields) {
-        typeInfo->FindField(field.GetNameView());
+    for (const auto& field : typeInfo->GetFields()) {
+        (void)typeInfo->FindFieldFast(field.GetNameView());
     }
     
     // 对每个字段进行性能测试
@@ -1590,29 +1563,29 @@ void TestAllFieldsPerformance() {
     fmt::print("{:<15} {:>10} {:>10} {:>10} {:>10}\n", "字段", "原生", "反射", "offset", "CT_GET");
     fmt::print("--------------------------------------------------------\n");
     
-    for (auto& field : typeInfo->fields) {
+    for (const auto& field : typeInfo->GetFields()) {
         const char* fieldName = field.GetNameView().data();
         
         // 原生访问 - 对于容器类型只测 size() 操作
         double nativeTime = 0;
         if (strcmp(fieldName, "position") == 0) {
-            nativeTime = Benchmark([&]() { Vec3 v = t.position; (void)v; }, 100000);
+            nativeTime = BenchmarkNs([&]() { Vec3 v = t.position; (void)v; }, 100000);
         } else if (strcmp(fieldName, "rotation") == 0) {
-            nativeTime = Benchmark([&]() { Vec3 v = t.rotation; (void)v; }, 100000);
+            nativeTime = BenchmarkNs([&]() { Vec3 v = t.rotation; (void)v; }, 100000);
         } else if (strcmp(fieldName, "scale") == 0) {
-            nativeTime = Benchmark([&]() { Vec3 v = t.scale; (void)v; }, 100000);
+            nativeTime = BenchmarkNs([&]() { Vec3 v = t.scale; (void)v; }, 100000);
         } else if (strcmp(fieldName, "name") == 0) {
-            nativeTime = Benchmark([&]() { std::string_view v = t.name; (void)v; }, 100000);
+            nativeTime = BenchmarkNs([&]() { std::string_view v = t.name; (void)v; }, 100000);
         } else if (strcmp(fieldName, "id") == 0) {
-            nativeTime = Benchmark([&]() { int v = t.id; (void)v; }, 100000);
+            nativeTime = BenchmarkNs([&]() { int v = t.id; (void)v; }, 100000);
         } else if (strcmp(fieldName, "enabled") == 0) {
-            nativeTime = Benchmark([&]() { bool v = t.enabled; (void)v; }, 100000);
+            nativeTime = BenchmarkNs([&]() { bool v = t.enabled; (void)v; }, 100000);
         } else if (strcmp(fieldName, "tags") == 0) {
-            nativeTime = Benchmark([&]() { auto v = t.tags.size(); (void)v; }, 100000);
+            nativeTime = BenchmarkNs([&]() { auto v = t.tags.size(); (void)v; }, 100000);
         } else if (strcmp(fieldName, "properties") == 0) {
-            nativeTime = Benchmark([&]() { auto v = t.properties.size(); (void)v; }, 100000);
+            nativeTime = BenchmarkNs([&]() { auto v = t.properties.size(); (void)v; }, 100000);
         } else if (strcmp(fieldName, "flags") == 0) {
-            nativeTime = Benchmark([&]() { auto v = t.flags.size(); (void)v; }, 100000);
+            nativeTime = BenchmarkNs([&]() { auto v = t.flags.size(); (void)v; }, 100000);
         }
         
         // 反射访问 - 使用偏移量直接访问（无复制！）
@@ -1621,19 +1594,19 @@ void TestAllFieldsPerformance() {
             // POD 类型用反射 Get
             if (strcmp(fieldName, "position") == 0 || strcmp(fieldName, "rotation") == 0 || strcmp(fieldName, "scale") == 0) {
                 Vec3 buf;
-                reflectTime = Benchmark([&]() {
+                reflectTime = BenchmarkNs([&]() {
                     auto* f = typeInfo->FindField(fieldName);
                     if (f) f->Get(&t, &buf);
                 }, 100000);
             } else if (strcmp(fieldName, "id") == 0) {
                 int buf;
-                reflectTime = Benchmark([&]() {
+                reflectTime = BenchmarkNs([&]() {
                     auto* f = typeInfo->FindField(fieldName);
                     if (f) f->Get(&t, &buf);
                 }, 100000);
             } else if (strcmp(fieldName, "enabled") == 0) {
                 bool buf;
-                reflectTime = Benchmark([&]() {
+                reflectTime = BenchmarkNs([&]() {
                     auto* f = typeInfo->FindField(fieldName);
                     if (f) f->Get(&t, &buf);
                 }, 100000);
@@ -1641,22 +1614,22 @@ void TestAllFieldsPerformance() {
         } else {
             // 非 POD 类型用偏移量直接访问（零复制！）
             if (strcmp(fieldName, "name") == 0) {
-                reflectTime = Benchmark([&]() {
+                reflectTime = BenchmarkNs([&]() {
                     auto* str = reinterpret_cast<std::string*>((char*)&t + field.offset);
                     (void)str->data();
                 }, 100000);
             } else if (strcmp(fieldName, "tags") == 0) {
-                reflectTime = Benchmark([&]() {
+                reflectTime = BenchmarkNs([&]() {
                     auto* vec = reinterpret_cast<std::vector<int>*>((char*)&t + field.offset);
                     (void)vec->data();
                 }, 100000);
             } else if (strcmp(fieldName, "properties") == 0) {
-                reflectTime = Benchmark([&]() {
+                reflectTime = BenchmarkNs([&]() {
                     auto* m = reinterpret_cast<std::map<std::string, int>*>((char*)&t + field.offset);
                     (void)m->begin();
                 }, 100000);
             } else if (strcmp(fieldName, "flags") == 0) {
-                reflectTime = Benchmark([&]() {
+                reflectTime = BenchmarkNs([&]() {
                     auto* s = reinterpret_cast<std::set<int>*>((char*)&t + field.offset);
                     (void)s->begin();
                 }, 100000);
@@ -1667,39 +1640,39 @@ void TestAllFieldsPerformance() {
         double offsetTime = 0;
         if (field.isPod) {
             if (strcmp(fieldName, "position") == 0 || strcmp(fieldName, "rotation") == 0 || strcmp(fieldName, "scale") == 0) {
-                offsetTime = Benchmark([&]() {
+                offsetTime = BenchmarkNs([&]() {
                     auto* ptr = (Vec3*)((char*)&t + field.offset);
                     Vec3 v = *ptr;
                 }, 100000);
             } else if (strcmp(fieldName, "id") == 0) {
-                offsetTime = Benchmark([&]() {
+                offsetTime = BenchmarkNs([&]() {
                     auto* ptr = (int*)((char*)&t + field.offset);
                     int v = *ptr;
                 }, 100000);
             } else if (strcmp(fieldName, "enabled") == 0) {
-                offsetTime = Benchmark([&]() {
+                offsetTime = BenchmarkNs([&]() {
                     auto* ptr = (bool*)((char*)&t + field.offset);
                     bool v = *ptr;
                 }, 100000);
             }
         } else {
             if (strcmp(fieldName, "name") == 0) {
-                offsetTime = Benchmark([&]() {
+                offsetTime = BenchmarkNs([&]() {
                     auto* ptr = (std::string*)((char*)&t + field.offset);
                     (void)ptr->data();
                 }, 100000);
             } else if (strcmp(fieldName, "tags") == 0) {
-                offsetTime = Benchmark([&]() {
+                offsetTime = BenchmarkNs([&]() {
                     auto* ptr = (std::vector<int>*)((char*)&t + field.offset);
                     (void)ptr->data();
                 }, 100000);
             } else if (strcmp(fieldName, "properties") == 0) {
-                offsetTime = Benchmark([&]() {
+                offsetTime = BenchmarkNs([&]() {
                     auto* ptr = (std::map<std::string, int>*)((char*)&t + field.offset);
                     (void)ptr->begin();
                 }, 100000);
             } else if (strcmp(fieldName, "flags") == 0) {
-                offsetTime = Benchmark([&]() {
+                offsetTime = BenchmarkNs([&]() {
                     auto* ptr = (std::set<int>*)((char*)&t + field.offset);
                     (void)ptr->begin();
                 }, 100000);
@@ -1710,15 +1683,15 @@ void TestAllFieldsPerformance() {
         double ctGetTime = 0;
         if (field.isPod) {
             if (strcmp(fieldName, "position") == 0) {
-                ctGetTime = Benchmark([&]() { Vec3 v = shine::reflection::CT_GET<&Transform::position>(t); (void)v; }, 100000);
+                ctGetTime = BenchmarkNs([&]() { Vec3 v = shine::reflection::CT_GET<&Transform::position>(t); (void)v; }, 100000);
             } else if (strcmp(fieldName, "rotation") == 0) {
-                ctGetTime = Benchmark([&]() { Vec3 v = shine::reflection::CT_GET<&Transform::rotation>(t); (void)v; }, 100000);
+                ctGetTime = BenchmarkNs([&]() { Vec3 v = shine::reflection::CT_GET<&Transform::rotation>(t); (void)v; }, 100000);
             } else if (strcmp(fieldName, "scale") == 0) {
-                ctGetTime = Benchmark([&]() { Vec3 v = shine::reflection::CT_GET<&Transform::scale>(t); (void)v; }, 100000);
+                ctGetTime = BenchmarkNs([&]() { Vec3 v = shine::reflection::CT_GET<&Transform::scale>(t); (void)v; }, 100000);
             } else if (strcmp(fieldName, "id") == 0) {
-                ctGetTime = Benchmark([&]() { int v = shine::reflection::CT_GET<&Transform::id>(t); (void)v; }, 100000);
+                ctGetTime = BenchmarkNs([&]() { int v = shine::reflection::CT_GET<&Transform::id>(t); (void)v; }, 100000);
             } else if (strcmp(fieldName, "enabled") == 0) {
-                ctGetTime = Benchmark([&]() { bool v = shine::reflection::CT_GET<&Transform::enabled>(t); (void)v; }, 100000);
+                ctGetTime = BenchmarkNs([&]() { bool v = shine::reflection::CT_GET<&Transform::enabled>(t); (void)v; }, 100000);
             }
         }
         
@@ -1726,14 +1699,14 @@ void TestAllFieldsPerformance() {
         double offsetOverhead = (nativeTime > 0 && offsetTime > 0) ? (offsetTime / nativeTime) : 0;
         
         fmt::print("{:<15} {:>10.4f} {:>10.4f} {:>10.4f} {:>10.4f}\n",
-            fieldName, nativeTime * 1000, reflectTime * 1000, offsetTime * 1000, ctGetTime * 1000);
+            fieldName, nativeTime, reflectTime, offsetTime, ctGetTime);
     }
     
     // 字段大小分布
     fmt::print("\n字段大小分布:\n");
     fmt::print("{:<15} {:>10} {:>10}\n", "字段名", "大小", "类型");
     fmt::print("--------------------------------------------------------\n");
-    for (auto& field : typeInfo->fields) {
+    for (const auto& field : typeInfo->GetFields()) {
         const char* fieldName = field.GetNameView().data();
         fmt::print("{:<15} {:>10} {:>10}\n", fieldName, field.size, field.isPod ? "POD" : "Non-POD");
     }
@@ -1742,35 +1715,35 @@ void TestAllFieldsPerformance() {
     fmt::print("\n字段访问性能总结:\n");
     double totalNative = 0, totalReflect = 0;
     int count = 0;
-    for (auto& field : typeInfo->fields) {
+    for (const auto& field : typeInfo->GetFields()) {
         const char* fieldName = field.GetNameView().data();
 
         double nativeTime = 0;
-        if (strcmp(fieldName, "position") == 0) nativeTime = Benchmark([&]() { Vec3 v = t.position; (void)v; }, 100000);
-        else if (strcmp(fieldName, "rotation") == 0) nativeTime = Benchmark([&]() { Vec3 v = t.rotation; (void)v; }, 100000);
-        else if (strcmp(fieldName, "scale") == 0) nativeTime = Benchmark([&]() { Vec3 v = t.scale; (void)v; }, 100000);
-        else if (strcmp(fieldName, "name") == 0) nativeTime = Benchmark([&]() { std::string v = t.name; (void)v; }, 100000);
-        else if (strcmp(fieldName, "id") == 0) nativeTime = Benchmark([&]() { int v = t.id; (void)v; }, 100000);
-        else if (strcmp(fieldName, "enabled") == 0) nativeTime = Benchmark([&]() { bool v = t.enabled; (void)v; }, 100000);
-        else if (strcmp(fieldName, "tags") == 0) nativeTime = Benchmark([&]() { std::size_t v = t.tags.size(); (void)v; }, 100000);
-        else if (strcmp(fieldName, "properties") == 0) nativeTime = Benchmark([&]() { std::size_t v = t.properties.size(); (void)v; }, 100000);
-        else if (strcmp(fieldName, "flags") == 0) nativeTime = Benchmark([&]() { std::size_t v = t.flags.size(); (void)v; }, 100000);
+        if (strcmp(fieldName, "position") == 0) nativeTime = BenchmarkNs([&]() { Vec3 v = t.position; (void)v; }, 100000);
+        else if (strcmp(fieldName, "rotation") == 0) nativeTime = BenchmarkNs([&]() { Vec3 v = t.rotation; (void)v; }, 100000);
+        else if (strcmp(fieldName, "scale") == 0) nativeTime = BenchmarkNs([&]() { Vec3 v = t.scale; (void)v; }, 100000);
+        else if (strcmp(fieldName, "name") == 0) nativeTime = BenchmarkNs([&]() { std::string v = t.name; (void)v; }, 100000);
+        else if (strcmp(fieldName, "id") == 0) nativeTime = BenchmarkNs([&]() { int v = t.id; (void)v; }, 100000);
+        else if (strcmp(fieldName, "enabled") == 0) nativeTime = BenchmarkNs([&]() { bool v = t.enabled; (void)v; }, 100000);
+        else if (strcmp(fieldName, "tags") == 0) nativeTime = BenchmarkNs([&]() { std::size_t v = t.tags.size(); (void)v; }, 100000);
+        else if (strcmp(fieldName, "properties") == 0) nativeTime = BenchmarkNs([&]() { std::size_t v = t.properties.size(); (void)v; }, 100000);
+        else if (strcmp(fieldName, "flags") == 0) nativeTime = BenchmarkNs([&]() { std::size_t v = t.flags.size(); (void)v; }, 100000);
 
         double reflectTime = 0;
         if (strcmp(fieldName, "position") == 0 || strcmp(fieldName, "rotation") == 0 || strcmp(fieldName, "scale") == 0)
-            reflectTime = Benchmark([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { Vec3 v; f->Get(&t, &v); } }, 100000);
+            reflectTime = BenchmarkNs([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { Vec3 v; f->Get(&t, &v); } }, 100000);
         else if (strcmp(fieldName, "name") == 0)
-            reflectTime = Benchmark([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { std::string v; f->Get(&t, &v); } }, 100000);
+            reflectTime = BenchmarkNs([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { std::string v; f->Get(&t, &v); } }, 100000);
         else if (strcmp(fieldName, "id") == 0)
-            reflectTime = Benchmark([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { int v; f->Get(&t, &v); } }, 100000);
+            reflectTime = BenchmarkNs([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { int v; f->Get(&t, &v); } }, 100000);
         else if (strcmp(fieldName, "enabled") == 0)
-            reflectTime = Benchmark([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { bool v; f->Get(&t, &v); } }, 100000);
+            reflectTime = BenchmarkNs([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { bool v; f->Get(&t, &v); } }, 100000);
         else if (strcmp(fieldName, "tags") == 0)
-            reflectTime = Benchmark([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { std::vector<int> v; f->Get(&t, &v); } }, 100000);
+            reflectTime = BenchmarkNs([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { std::vector<int> v; f->Get(&t, &v); } }, 100000);
         else if (strcmp(fieldName, "properties") == 0)
-            reflectTime = Benchmark([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { std::map<std::string, int> v; f->Get(&t, &v); } }, 100000);
+            reflectTime = BenchmarkNs([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { std::map<std::string, int> v; f->Get(&t, &v); } }, 100000);
         else if (strcmp(fieldName, "flags") == 0)
-            reflectTime = Benchmark([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { std::set<int> v; f->Get(&t, &v); } }, 100000);
+            reflectTime = BenchmarkNs([&]() { auto* f = typeInfo->FindField(fieldName); if (f) { std::set<int> v; f->Get(&t, &v); } }, 100000);
 
         totalNative += nativeTime;
         totalReflect += reflectTime;
@@ -1784,41 +1757,41 @@ void TestAllFieldsPerformance() {
 
 void TestTypeLookupPerformance() {
     PrintSeparator("性能测试: 类型查找");
-    
+
     // 测试 TypeRegistry 查找性能
     constexpr int iterations = 100000;
-    
-    double find_slow = Benchmark([&]() {
+
+    const auto findSlowStats = MeasureBenchmark([&]() {
         return shine::reflection::TypeRegistry::Get().Find(shine::reflection::GetTypeId<Transform>());
     }, iterations);
-    
-    double find_fast = Benchmark([&]() {
+
+    const auto findFastStats = MeasureBenchmark([&]() {
         return shine::reflection::TypeRegistry::Get().FindFast(shine::reflection::GetTypeId<Transform>());
     }, iterations);
-    
+
     fmt::print("类型查找 (Find) 性能:\n");
-    fmt::print("  - {}次查找平均: {:.4f} ns\n", iterations, find_slow * 1000);
+    fmt::print("  - {}次查找平均: {:.4f} ns\n", iterations, findSlowStats.mean_ns);
     fmt::print("类型查找 (FindFast) 性能:\n");
-    fmt::print("  - {}次查找平均: {:.4f} ns\n", iterations, find_fast * 1000);
-    fmt::print("加速比: {:.2f}x\n", find_slow / find_fast);
-    
+    fmt::print("  - {}次查找平均: {:.4f} ns\n", iterations, findFastStats.mean_ns);
+    fmt::print("加速比: {:.2f}x\n", SafeRatio(findSlowStats.mean_ns, findFastStats.mean_ns));
+
     // 保存类型查找性能
-    g_perfReport.typeFindSlow_ns = find_slow * 1000;
-    g_perfReport.typeFindFast_ns = find_fast * 1000;
-    g_perfReport.findSpeedup_x = find_slow / find_fast;
+    g_perfReport.typeFindSlow_ns = findSlowStats.mean_ns;
+    g_perfReport.typeFindFast_ns = findFastStats.mean_ns;
+    g_perfReport.findSpeedup_x = SafeRatio(findSlowStats.mean_ns, findFastStats.mean_ns);
 }
 
 void TestMethodCallPerformance() {
     PrintSeparator("性能测试: 方法调用");
-    
+
     auto* typeInfo = shine::reflection::TypeRegistry::Get().FindFast(shine::reflection::GetTypeId<Transform>());
-    if (!typeInfo || typeInfo->methods.empty()) {
+    if (!typeInfo || typeInfo->GetMethodCount() == 0) {
         fmt::print("Transform 没有注册方法\n");
         return;
     }
     
-    fmt::print("已注册方法数量: {}\n", typeInfo->methods.size());
-    for (const auto& m : typeInfo->methods) {
+    fmt::print("已注册方法数量: {}\n", typeInfo->GetMethodCount());
+    for (const auto& m : typeInfo->GetMethods()) {
         fmt::print("  - {} (返回类型: {})\n", m.GetNameView(), m.returnType);
     }
     
@@ -1839,25 +1812,29 @@ void TestMethodCallPerformance() {
     // 准备参数 (3个float参数)
     float args[3] = {10.0f, 20.0f, 30.0f};
     void* args_ptr[] = {args, args + 1, args + 2};
-    
-    // 测试反射调用性能 (使用优化的 FastMethodCall)
-    double reflect_time = Benchmark([&]() {
+
+    const auto lookupInvokeStats = MeasureBenchmark([&]() {
+        auto* found = typeInfo->FindMethod("SetPosition");
+        found->Invoke(&t, args_ptr, nullptr);
+    }, 12000);
+
+    const auto cachedInvokeStats = MeasureBenchmark([&]() {
         method->Invoke(&t, args_ptr, nullptr);
-    }, 100000);
-    
-    // 测试原生调用性能
-    double native_time = Benchmark([&]() {
+    }, 12000);
+
+    const auto nativeStats = MeasureBenchmark([&]() {
         t.SetPosition(10.0f, 20.0f, 30.0f);
-    }, 100000);
-    
+    }, 12000);
+
     fmt::print("\n方法调用性能对比:\n");
-    fmt::print("  - 原生调用: {:.4f} ns\n", native_time * 1000);
-    fmt::print("  - 反射调用 (REFLECT_METHOD_FAST): {:.4f} ns\n", reflect_time * 1000);
-    fmt::print("  - 开销: {:.1f}x\n", reflect_time / native_time);
-    
-    // 保存方法调用性能
-    g_perfReport.methodOverhead_x = reflect_time / native_time;
-    
+    PrintBenchmarkLine("native call", nativeStats.mean_ns);
+    PrintBenchmarkLine("cached Invoke", cachedInvokeStats.mean_ns, nativeStats.mean_ns);
+    PrintBenchmarkLine("lookup + Invoke", lookupInvokeStats.mean_ns, nativeStats.mean_ns);
+
+    g_perfReport.methodNative_ns = nativeStats.mean_ns;
+    g_perfReport.methodCachedInvoke_ns = cachedInvokeStats.mean_ns;
+    g_perfReport.methodLookupInvoke_ns = lookupInvokeStats.mean_ns;
+
     // 验证调用结果
     method->Invoke(&t, args_ptr, nullptr);
     fmt::print("\n验证: position = ({}, {}, {})\n", 
@@ -1908,7 +1885,7 @@ void TestBasicFunctionality() {
         fmt::print("[PASS] Transform 类型注册成功\n");
         fmt::print("       - ID: {}\n", (*result)->id);
         fmt::print("       - Size: {}\n", (*result)->size);
-        fmt::print("       - Fields: {}\n", (*result)->fields.size());
+        fmt::print("       - Fields: {}\n", (*result)->GetFieldCount());
     } else {
         fmt::print("[FAIL] Transform 类型注册失败\n");
     }
@@ -1925,12 +1902,14 @@ void TestBasicFunctionality() {
         fmt::print("[PASS] type name lookup -> same pointer: {}\n", typeInfoByName == typeInfo ? "OK" : "FAIL");
 
         // Get position
-        auto* posField = typeInfo->FindField("position");
+        auto* posField = typeInfo->FindFieldFast("position");
         if (posField) {
             Vec3 pos;
             posField->Get(&t, &pos);
             fmt::print("[PASS] Get position: ({}, {}, {})\n", pos.x, pos.y, pos.z);
             fmt::print("[PASS] position owner handle -> type: {}\n", posField->GetOwnerType() == typeInfo ? "OK" : "FAIL");
+            fmt::print("[PASS] FindFieldFast matches compatibility alias: {}\n",
+                posField == typeInfo->FindField("position") ? "OK" : "FAIL");
         }
         
         // Set position
@@ -1941,7 +1920,7 @@ void TestBasicFunctionality() {
         }
         
         // Get name
-        auto* nameField = typeInfo->FindField("name");
+        auto* nameField = typeInfo->FindFieldFast("name");
         if (nameField) {
             std::string name;
             nameField->Get(&t, &name);
@@ -1949,16 +1928,18 @@ void TestBasicFunctionality() {
         }
         
         // Get id
-        auto* idField = typeInfo->FindField("id");
+        auto* idField = typeInfo->FindFieldFast("id");
         if (idField) {
             int id;
             idField->Get(&t, &id);
             fmt::print("[PASS] Get id: {}\n", id);
         }
 
-        auto* method = typeInfo->FindMethod("GetPosition");
+        auto* method = typeInfo->FindMethodFast("GetPosition");
         if (method) {
             fmt::print("[PASS] method owner handle -> type: {}\n", method->GetOwnerType() == typeInfo ? "OK" : "FAIL");
+            fmt::print("[PASS] FindMethodFast matches compatibility alias: {}\n",
+                method == typeInfo->FindMethod("GetPosition") ? "OK" : "FAIL");
         }
     }
     
@@ -1978,7 +1959,7 @@ void TestFlagsAndMetadata() {
         shine::reflection::InspectorView view;
         view.typeInfo = typeInfo;
 
-        for (const auto& field : typeInfo->fields) {
+        for (const auto& field : typeInfo->GetFields()) {
             fmt::print("字段: {}\n", field.GetNameView());
             fmt::print("  - Is POD: {}\n", field.isPod ? "Yes" : "No");
             fmt::print("  - Size: {} bytes\n", field.size);
@@ -2001,7 +1982,7 @@ void TestFlagsAndMetadata() {
         enabledInstance.enabled = true;
         Transform disabledInstance;
         disabledInstance.enabled = false;
-        if (const auto* idField = typeInfo->FindField("id")) {
+        if (const auto* idField = typeInfo->FindFieldFast("id")) {
             fmt::print("[PASS] id visible when enabled=true: {}\n", view.IsVisible(*idField, &enabledInstance) ? "Yes" : "No");
             fmt::print("[PASS] id visible when enabled=false: {}\n", view.IsVisible(*idField, &disabledInstance) ? "Yes" : "No");
         }
@@ -2037,16 +2018,7 @@ int main() {
     TestSerializationGap();
     TestContainerLimitation();
     
-    // 性能测试
-    TestFieldAccessPerformance();
-    TestContainerPerformance();
-    TestAllFieldsPerformance();
-    TestTypeLookupPerformance();
-    TestMethodCallPerformance();
-    TestMemoryUsage();
-    
-    // 输出性能报告
-    g_perfReport.Print();
+    fmt::print("\n性能专项已拆分到 ReflectionPerfTest，请使用 .\\build.bat test ReflectionPerfTest --release --no-pause\n");
     
     fmt::print("\n============================================================\n");
     fmt::print("                    测试完成\n");

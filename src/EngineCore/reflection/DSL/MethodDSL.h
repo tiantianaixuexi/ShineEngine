@@ -46,7 +46,7 @@ namespace DSL {
 
 struct MethodDescriptorBase {
     shine::STextView  name;
-    MetadataContainer metadata;
+    DSLMetadataStorage metadata;
 };
 
 template <std::size_t = 0>

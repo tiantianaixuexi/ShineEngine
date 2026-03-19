@@ -27,6 +27,18 @@ namespace shine::editor::asset
     class AssetDependencyGraph
     {
     public:
+        using DependencySet = std::unordered_set<SString,
+                                                 SStringTransparentHash,
+                                                 SStringTransparentEqual>;
+        using ForwardMap = std::unordered_map<SString,
+                                              std::vector<SString>,
+                                              SStringTransparentHash,
+                                              SStringTransparentEqual>;
+        using ReverseMap = std::unordered_map<SString,
+                                              DependencySet,
+                                              SStringTransparentHash,
+                                              SStringTransparentEqual>;
+
         AssetDependencyGraph()  = default;
         ~AssetDependencyGraph() = default;
 
@@ -56,7 +68,7 @@ namespace shine::editor::asset
 
         /// Return the UUIDs of all assets that directly depend on `targetUuid`.
         /// This is the answer to "who will break if I delete this asset?"
-        [[nodiscard]] const std::unordered_set<SString>&
+        [[nodiscard]] const DependencySet&
         GetDependents(STextView targetUuid) const;
 
         /// Return true if any live asset directly depends on `targetUuid`.
@@ -80,14 +92,14 @@ namespace shine::editor::asset
 
     private:
         // UUID → list of UUIDs this asset depends on (forward edges)
-        std::unordered_map<SString, std::vector<SString>> m_forward;
+        ForwardMap m_forward;
 
         // UUID → set of UUIDs that depend on this asset (reverse edges)
-        std::unordered_map<SString, std::unordered_set<SString>> m_reverse;
+        ReverseMap m_reverse;
 
         // Sentinel empty containers returned for unknown UUIDs
         static const std::vector<SString>            s_emptyVec;
-        static const std::unordered_set<SString>     s_emptySet;
+        static const DependencySet                   s_emptySet;
 
         // DFS reachability check for cycle detection
         [[nodiscard]] bool IsReachable(STextView from, STextView target) const;
